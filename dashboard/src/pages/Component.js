@@ -207,7 +207,7 @@ class ComponentDashboardView extends Component {
                 <BreadCrumbItem
                     route={pathname}
                     name="Components"
-                    addBtn={components.length > 0}
+                    addBtn={components.length > 0 && components[0] !== false}
                     btnText="Create New Component"
                     toggleForm={this.toggleForm}
                 />
@@ -286,7 +286,9 @@ class ComponentDashboardView extends Component {
                                                                     .showNewComponentForm ||
                                                                 !components ||
                                                                 components.length ===
-                                                                    0
+                                                                    0 ||
+                                                                components[0] ===
+                                                                    false
                                                             }
                                                         >
                                                             <NewComponent
@@ -298,7 +300,9 @@ class ComponentDashboardView extends Component {
                                                                 }
                                                                 showCancelBtn={
                                                                     components.length >
-                                                                    0
+                                                                        0 &&
+                                                                    components[0] !==
+                                                                        false
                                                                 }
                                                             />
                                                         </ShouldRender>

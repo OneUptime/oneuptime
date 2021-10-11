@@ -342,7 +342,7 @@ class MonitorDashboardView extends Component {
                 <BreadCrumbItem
                     route={pathname + '#'}
                     name="Monitors"
-                    addBtn={monitors.length > 0}
+                    addBtn={monitors.length > 0 && monitors[0] !== false}
                     btnText="Create New Monitor"
                     toggleForm={this.toggleForm}
                 />
@@ -402,7 +402,10 @@ class MonitorDashboardView extends Component {
                                                             !this.state
                                                                 .showNewMonitorForm &&
                                                             monitors &&
-                                                            monitors.length > 0
+                                                            monitors.length >
+                                                                0 &&
+                                                            monitors[0] !==
+                                                                false
                                                         }
                                                     >
                                                         <ComponentSummary
@@ -437,7 +440,9 @@ class MonitorDashboardView extends Component {
                                                                     .showNewMonitorForm ||
                                                                 !monitors ||
                                                                 monitors.length ===
-                                                                    0
+                                                                    0 ||
+                                                                monitors[0] ===
+                                                                    false
                                                             }
                                                         >
                                                             <NewMonitor
@@ -456,7 +461,9 @@ class MonitorDashboardView extends Component {
                                                                 }
                                                                 showCancelBtn={
                                                                     monitors.length >
-                                                                    0
+                                                                        0 &&
+                                                                    monitors[0] !==
+                                                                        false
                                                                 }
                                                                 toggleForm={
                                                                     this
