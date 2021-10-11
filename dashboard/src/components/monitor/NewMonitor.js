@@ -2825,6 +2825,21 @@ class NewMonitor extends Component {
                                             <span>Cancel</span>
                                         </button>
                                     </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !requesting &&
+                                            this.props.toggleForm &&
+                                            this.props.showCancelBtn
+                                        }
+                                    >
+                                        <button
+                                            className="bs-Button"
+                                            disabled={requesting}
+                                            onClick={this.props.toggleForm}
+                                        >
+                                            <span>Cancel</span>
+                                        </button>
+                                    </ShouldRender>
                                     <button
                                         id="addMonitorButton"
                                         className="bs-Button bs-Button--blue"
@@ -3106,6 +3121,8 @@ NewMonitor.propTypes = {
     configFileInputKey: PropTypes.string,
     fetchAutomatedScript: PropTypes.func,
     scripts: PropTypes.array,
+    showCancelBtn: PropTypes.bool,
+    toggleForm: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewMonitorForm);

@@ -41,6 +41,9 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 class MonitorDashboardView extends Component {
+    state = {
+        showNewMonitorForm: false,
+    };
     componentDidMount() {
         this.props.loadPage('Monitors');
         if (SHOULD_LOG_ANALYTICS) {
@@ -134,6 +137,11 @@ class MonitorDashboardView extends Component {
         this.props.destroy('NewMonitor');
         socket.removeListener(`createMonitor-${this.props.currentProject._id}`);
     }
+
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showNewMonitorForm: !prevState.showNewMonitorForm,
+        }));
 
     ready = () => {
         const projectId = this.props.currentProject
@@ -331,7 +339,13 @@ class MonitorDashboardView extends Component {
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem route={pathname} name={componentName} />
-                <BreadCrumbItem route={pathname + '#'} name="Monitors" />
+                <BreadCrumbItem
+                    route={pathname + '#'}
+                    name="Monitors"
+                    addBtn={monitors.length > 0}
+                    btnText="Create New Monitor"
+                    toggleForm={this.toggleForm}
+                />
                 <div className="Box-root">
                     <div>
                         <div>
@@ -385,10 +399,10 @@ class MonitorDashboardView extends Component {
 
                                                     <ShouldRender
                                                         if={
+                                                            !this.state
+                                                                .showNewMonitorForm &&
                                                             monitors &&
-                                                            monitors.length &&
-                                                            monitors[0] !==
-                                                                false
+                                                            monitors.length > 0
                                                         }
                                                     >
                                                         <ComponentSummary
@@ -410,24 +424,46 @@ class MonitorDashboardView extends Component {
                                                         />
                                                     </ShouldRender>
 
-                                                    {monitors}
+                                                    {!this.state
+                                                        .showNewMonitorForm &&
+                                                        monitors &&
+                                                        monitors.length > 0 &&
+                                                        monitors}
 
                                                     <RenderIfSubProjectAdmin>
-                                                        <NewMonitor
-                                                            index={1000}
-                                                            formKey="NewMonitorForm"
-                                                            componentId={
-                                                                this.props
-                                                                    .componentId
+                                                        <ShouldRender
+                                                            if={
+                                                                this.state
+                                                                    .showNewMonitorForm ||
+                                                                !monitors ||
+                                                                monitors.length ===
+                                                                    0
                                                             }
-                                                            componentSlug={
-                                                                this.props
-                                                                    .component &&
-                                                                this.props
-                                                                    .component
-                                                                    .slug
-                                                            }
-                                                        />
+                                                        >
+                                                            <NewMonitor
+                                                                index={1000}
+                                                                formKey="NewMonitorForm"
+                                                                componentId={
+                                                                    this.props
+                                                                        .componentId
+                                                                }
+                                                                componentSlug={
+                                                                    this.props
+                                                                        .component &&
+                                                                    this.props
+                                                                        .component
+                                                                        .slug
+                                                                }
+                                                                showCancelBtn={
+                                                                    monitors.length >
+                                                                    0
+                                                                }
+                                                                toggleForm={
+                                                                    this
+                                                                        .toggleForm
+                                                                }
+                                                            />
+                                                        </ShouldRender>
                                                     </RenderIfSubProjectAdmin>
                                                     <RenderIfSubProjectMember>
                                                         <ShouldRender
