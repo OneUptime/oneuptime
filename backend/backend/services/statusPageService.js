@@ -487,7 +487,7 @@ module.exports = {
                 ];
                 const subscribers = await SubscriberService.findBy({
                     query: { statusPageId: statusPage._id },
-                    select: '_id ',
+                    select: '_id',
                     populate: populateSubscriber,
                 });
                 await Promise.all(
