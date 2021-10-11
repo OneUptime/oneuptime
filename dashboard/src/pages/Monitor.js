@@ -317,7 +317,7 @@ class MonitorDashboardView extends Component {
                 false
             );
 
-        monitors && monitors.unshift(projectMonitor);
+        monitors && projectMonitor && monitors.unshift(projectMonitor);
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
