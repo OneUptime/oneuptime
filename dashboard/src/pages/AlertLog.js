@@ -214,7 +214,7 @@ class AlertLog extends Component {
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
                                 <ShouldRender if={subProjects.length > 0}>
                                     <div className="Box-root Padding-top--20 Padding-left--20">
-                                        <Badge color={'red'}>Project</Badge>
+                                        <Badge color={'red'}>Projects</Badge>
                                     </div>
                                 </ShouldRender>
                                 <AlertProjectBox
