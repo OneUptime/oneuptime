@@ -24,6 +24,9 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 });
 
 class ErrorTracking extends Component {
+    state = {
+        showNewErrorTrackerForm: false,
+    };
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -73,6 +76,10 @@ class ErrorTracking extends Component {
             this.props.fetchErrorTrackers(projectId, componentId);
         }
     };
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showNewErrorTrackerForm: !prevState.showNewErrorTrackerForm,
+        }));
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -133,7 +140,13 @@ class ErrorTracking extends Component {
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Error Tracking" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Error Tracking"
+                    addBtn={errorTrackersList}
+                    btnText="Create New Error Tracker"
+                    toggleForm={this.toggleForm}
+                />
                 <div>
                     <div>
                         <ShouldRender if={this.props.errorTracker.requesting}>
@@ -155,11 +168,23 @@ class ErrorTracking extends Component {
                                     />
                                 </ShouldRender>
                             </div>
-                            {errorTrackersList}
-                            <NewErrorTracker
-                                componentId={this.props.componentId}
-                                componentSlug={this.props.componentSlug}
-                            />
+                            {!this.state.showNewErrorTrackerForm &&
+                                errorTrackersList &&
+                                errorTrackersList}
+
+                            <ShouldRender
+                                if={
+                                    this.state.showNewErrorTrackerForm ||
+                                    !errorTrackersList
+                                }
+                            >
+                                <NewErrorTracker
+                                    componentId={this.props.componentId}
+                                    componentSlug={this.props.componentSlug}
+                                    toggleForm={this.toggleForm}
+                                    showCancelBtn={errorTrackersList}
+                                />
+                            </ShouldRender>
                         </ShouldRender>
                     </div>
                 </div>
