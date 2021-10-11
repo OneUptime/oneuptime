@@ -3,6 +3,7 @@ smoke_test_staging:
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
+        - chmod +x ./ci/scripts/docker-install.sh
         - ./ci/scripts/docker-install.sh
         - echo "Setup machine for running log java tests"
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
