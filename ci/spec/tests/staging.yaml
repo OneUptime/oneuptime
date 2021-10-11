@@ -1,22 +1,14 @@
 smoke_test_staging:
-    stage: BuildAndTest
+    stage: Tests
     allow_failure: true
     script:
-        - chmod +x ./ci/scripts/checkhash.sh
-        - chmod +x ./ci/scripts/docker-install.sh
-        - ./ci/scripts/docker-install.sh
-        - echo "Setup machine for running log java tests"
-        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-        - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
-        - sudo docker run -e NODE_ENV=development -e IS_SAAS_SERVICE=true -e IS_TESTING=true --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
         - cd tests
         - npm ci
         - npm run-script staging-test
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - master
             - hotfix-master
