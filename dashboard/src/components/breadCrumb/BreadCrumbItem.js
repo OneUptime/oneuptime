@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 import { PropTypes } from 'prop-types';
 import { history } from '../../store';
@@ -15,6 +15,9 @@ function BreadCrumbItem({
     containerType,
     icon,
     switchToProjectViewerNav,
+    addBtn,
+    btnText,
+    toggleForm,
 }) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
@@ -35,6 +38,45 @@ function BreadCrumbItem({
     };
 
     const titleElement = document.querySelector('#page-title-wrapper');
+
+    const [isShowing, setIsShowing] = useState(false);
+    if (addBtn && !isShowing) {
+        const wrapContainer = document.querySelector('#breadcrumb-wrap');
+
+        if (wrapContainer && btnText) {
+            // design the btn to look great
+            const btn = document.createElement('button');
+            btn.id = 'newFormId';
+            btn.innerHTML = btnText;
+            btn.type = 'button';
+            btn.className = 'bs-Button';
+            btn.addEventListener('click', toggleForm);
+
+            wrapContainer.appendChild(btn);
+            wrapContainer.style.display = 'flex';
+            wrapContainer.style.alignItems = 'center';
+            wrapContainer.style.justifyContent = 'space-between';
+
+            setIsShowing(true);
+        }
+    }
+
+    useEffect(
+        () => () => {
+            // cleanup
+            if (isShowing) {
+                const wrapContainer = document.querySelector(
+                    '#breadcrumb-wrap'
+                );
+                const btn = document.querySelector('#newFormId');
+                if (wrapContainer && btn) {
+                    btn.removeEventListener('click', toggleForm);
+                    wrapContainer.removeChild(btn);
+                }
+            }
+        },
+        [isShowing]
+    );
 
     if (titleElement) {
         const titleIcon = titleElement.querySelector('#titleIcon');
@@ -93,6 +135,9 @@ BreadCrumbItem.propTypes = {
     containerType: PropTypes.string,
     icon: PropTypes.string,
     switchToProjectViewerNav: PropTypes.bool,
+    addBtn: PropTypes.bool,
+    btnText: PropTypes.string,
+    toggleForm: PropTypes.func,
 };
 
 export default BreadCrumbItem;
