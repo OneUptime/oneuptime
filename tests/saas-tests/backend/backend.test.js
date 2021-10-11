@@ -18,14 +18,14 @@ describe('Check Backend', () => {
     });
 
     test('should get status ok from backend', async done => {
-        await page.goto(utils.BACKEND_URL, {
+        await page.goto(utils.BACKEND_URL + '/api', {
             waitUntil: 'networkidle2',
         });
         const response = await init.page$Eval(page, 'body > pre', e => {
             return e.innerHTML;
         });
         expect(response).toBe(
-            '{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}'
+            '{"backend":{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"},"database":{"status":"Up","message":"Mongodb database connection is healthy"},"redis":{"status":"Up","message":"Redis connection is healthy"}}'
         );
         done();
     });

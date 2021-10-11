@@ -480,11 +480,16 @@ module.exports = {
             );
 
             if (statusPage) {
+                const populateSubscriber = [
+                    { path: 'projectId', select: 'name' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'statusPageId', select: 'name' },
+                ];
                 const subscribers = await SubscriberService.findBy({
                     query: { statusPageId: statusPage._id },
-                    select: '_id',
+                    select: '_id ',
+                    populate: populateSubscriber,
                 });
-
                 await Promise.all(
                     subscribers.map(async subscriber => {
                         await SubscriberService.deleteBy(

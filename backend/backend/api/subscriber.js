@@ -159,7 +159,6 @@ router.post('/:projectId/subscribe/:monitorId', async function(req, res) {
         const data = req.body;
         data.projectId = req.params.projectId;
         data.monitorId = req.params.monitorId;
-
         if (!data.alertVia) {
             return sendErrorResponse(req, res, {
                 code: 400,

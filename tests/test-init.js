@@ -551,7 +551,12 @@ const _this = {
             e.click()
         );
     },
-    addMonitorToStatusPage: async function(componentName, monitorName, page) {
+    addMonitorToStatusPage: async function(
+        componentName,
+        monitorName,
+        additionalMonitor,
+        page
+    ) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         const description = utils.generateRandomString();
         await _this.pageWaitForSelector(page, '#statusPages');
@@ -565,22 +570,22 @@ const _this = {
         });
         await _this.pageClick(page, '#addMoreMonitors');
         await _this.selectDropdownValue(
-            'ul > li:last-of-type #monitor-name',
+            `#monitor-name-${additionalMonitor}`,
             `${componentName} / ${monitorName}`,
             page
         );
         await _this.pageClick(
             page,
-            'ul > li:last-of-type #monitor-description'
+            `#monitor-description-${additionalMonitor}`
         );
         await _this.pageType(
             page,
-            'ul > li:last-of-type #monitor-description',
+            `#monitor-description-${additionalMonitor}`,
             description
         );
         await _this.pageClick(
             page,
-            'ul > li:last-of-type #manual-monitor-checkbox'
+            `#manual-monitor-checkbox-${additionalMonitor}`
         );
         await _this.pageClick(page, '#btnAddStatusPageMonitors');
     },
