@@ -181,7 +181,7 @@ class ComponentDashboardView extends Component {
                 false
             );
 
-        components && components.unshift(projectComponent);
+        components && projectComponent && components.unshift(projectComponent);
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
 
