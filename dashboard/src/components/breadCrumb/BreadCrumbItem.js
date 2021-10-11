@@ -44,7 +44,7 @@ function BreadCrumbItem({
         const wrapContainer = document.querySelector('#breadcrumb-wrap');
 
         if (wrapContainer && btnText) {
-            // design the btn to look great
+            // setup button and hook it to the node
             const btn = document.createElement('button');
             btn.id = 'newFormId';
             btn.innerHTML = btnText;
