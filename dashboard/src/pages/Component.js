@@ -296,8 +296,9 @@ class ComponentDashboardView extends Component {
                                                                     this
                                                                         .toggleForm
                                                                 }
-                                                                componentCount={
-                                                                    components.length
+                                                                showCancelBtn={
+                                                                    components.length >
+                                                                    0
                                                                 }
                                                             />
                                                         </ShouldRender>

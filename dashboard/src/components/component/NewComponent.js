@@ -321,7 +321,7 @@ class NewComponent extends Component {
                                         if={
                                             !requesting &&
                                             this.props.toggleForm &&
-                                            this.props.componentCount > 0
+                                            this.props.showCancelBtn
                                         }
                                     >
                                         <button
@@ -444,7 +444,7 @@ NewComponent.propTypes = {
     subProjects: PropTypes.array,
     showUpgradeForm: PropTypes.func,
     toggleForm: PropTypes.func,
-    componentCount: PropTypes.number,
+    showCancelBtn: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewComponentForm);
