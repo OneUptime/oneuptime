@@ -282,6 +282,20 @@ class NewApplicationLog extends Component {
                                 </div>
                                 <ShouldRender if={!edit}>
                                     <div>
+                                        <ShouldRender
+                                            if={
+                                                this.props.toggleForm &&
+                                                this.props.showCancelBtn
+                                            }
+                                        >
+                                            <button
+                                                className="bs-Button"
+                                                disabled={requesting}
+                                                onClick={this.props.toggleForm}
+                                            >
+                                                <span>Cancel</span>
+                                            </button>
+                                        </ShouldRender>
                                         <button
                                             id="addApplicationLogButton"
                                             className="bs-Button bs-Button--blue"
@@ -393,6 +407,8 @@ NewApplicationLog.propTypes = {
     editApplicationLogSwitch: PropTypes.func,
     editApplicationLog: PropTypes.func,
     resourceCategoryList: PropTypes.array,
+    toggleForm: PropTypes.func,
+    showCancelBtn: PropTypes.bool,
 };
 
 export default connect(
