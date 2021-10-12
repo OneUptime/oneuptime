@@ -442,10 +442,7 @@ module.exports = {
             ]);
             return { components, count, _id: projectId, skip, limit };
         } catch (error) {
-            ErrorService.log(
-                'componentService.getComponentsBySubprojects',
-                error
-            );
+            ErrorService.log('componentService.getComponentsByPaginate', error);
             throw error;
         }
     },
