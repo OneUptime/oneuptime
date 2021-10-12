@@ -16,9 +16,11 @@ export function hideDeleteModal() {
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
-export function fetchComponents(projectId) {
+export function fetchComponents({ projectId, skip = 0, limit = 3 }) {
     return function(dispatch) {
-        const promise = getApi(`component/${projectId}`);
+        const promise = getApi(
+            `component/${projectId}?skip=${skip}&limit=${limit}`
+        );
         dispatch(fetchComponentsRequest());
 
         promise.then(
@@ -67,6 +69,61 @@ export function fetchComponentsFailure(error) {
 export function resetFetchComponents() {
     return {
         type: types.FETCH_COMPONENTS_RESET,
+    };
+}
+
+// Component list
+// props -> {name: '', type, data -> { data.url}}
+export function fetchPaginatedComponents({ projectId, skip = 0, limit = 3 }) {
+    return function(dispatch) {
+        const promise = getApi(
+            `component/${projectId}/paginated?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchPaginatedComponentsRequest(projectId));
+
+        promise.then(
+            function(response) {
+                dispatch(fetchPaginatedComponentsSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(
+                    fetchPaginatedComponentsFailure(errors(error), projectId)
+                );
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchPaginatedComponentsSuccess(payload) {
+    return {
+        type: types.FETCH_PAGINATED_COMPONENTS_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchPaginatedComponentsRequest(projectId) {
+    return {
+        type: types.FETCH_PAGINATED_COMPONENTS_REQUEST,
+        payload: projectId,
+    };
+}
+
+export function fetchPaginatedComponentsFailure(error, projectId) {
+    return {
+        type: types.FETCH_PAGINATED_COMPONENTS_FAILURE,
+        payload: { error, projectId },
     };
 }
 
