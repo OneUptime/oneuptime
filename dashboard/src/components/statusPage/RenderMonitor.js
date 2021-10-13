@@ -109,7 +109,7 @@ let RenderMonitor = ({
                             <Field
                                 className="db-select-nw"
                                 name={`${monitor}.monitor`}
-                                id="monitor-name"
+                                id={`monitor-name-${monitorIndex}`}
                                 component={RenderSelect}
                                 options={[
                                     ...allMonitors
@@ -138,7 +138,7 @@ let RenderMonitor = ({
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     component="input"
                                     name={`${monitor}.description`}
-                                    id="monitor-description"
+                                    id={`monitor-description-${monitorIndex}`}
                                 />
                             </div>
                         )}
@@ -186,7 +186,7 @@ let RenderMonitor = ({
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
                                             disabled={!shouldEdit}
-                                            id="manual-monitor-checkbox"
+                                            id={`manual-monitor-checkbox-${monitorIndex}`}
                                         />
                                     )}
                                     {type === 'incomingHttpRequest' && (
