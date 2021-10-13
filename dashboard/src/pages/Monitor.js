@@ -141,9 +141,6 @@ class MonitorDashboardView extends Component {
     };
 
     componentDidUpdate(prevProps) {
-        // if (prevProps.monitor.paginatedMonitorsList.monitors.length === 0) {
-        //     this.fetchMonitorResources();
-        // }
         if (
             JSON.stringify(prevProps.monitor.paginatedMonitorsList.monitors) !==
             JSON.stringify(this.props.monitor.paginatedMonitorsList.monitors)
