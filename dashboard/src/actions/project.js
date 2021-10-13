@@ -4,7 +4,7 @@ import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
 import { fetchComponents } from './component';
 import {
-    // fetchMonitors,
+    fetchMonitors,
     resetFetchMonitors,
     resetCreateMonitor,
     deleteProjectMonitors,
@@ -357,7 +357,7 @@ export function switchProject(dispatch, project, subProjects = []) {
     fetchAlert(project._id)(dispatch);
     fetchSubProjectStatusPages(project._id)(dispatch);
     fetchComponents({ projectId: project._id })(dispatch); // default skip = 0, limit = 3
-    // fetchMonitors(project._id, 0, 3)(dispatch); // default skip = 0, limit = 3
+    fetchMonitors(project._id)(dispatch);
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);
     fetchUnresolvedIncidents(project._id, true)(dispatch);
