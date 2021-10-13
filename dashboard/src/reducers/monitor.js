@@ -512,6 +512,38 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return monitor;
                     }),
                 },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.paginatedMonitorsList.monitors.map(
+                        monitor => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(monitor => {
+                                          if (
+                                              monitor._id ===
+                                              action.payload.monitorId
+                                          ) {
+                                              monitor.incidents =
+                                                  action.payload.incidents.data;
+                                              monitor.skip =
+                                                  action.payload.skip;
+                                              monitor.limit =
+                                                  action.payload.limit;
+                                              monitor.count =
+                                                  action.payload.count;
+                                              return monitor;
+                                          } else {
+                                              return monitor;
+                                          }
+                                      })
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
+                },
                 fetchMonitorsIncidentRequest: false,
             });
 
@@ -519,6 +551,12 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -616,6 +654,32 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return monitor;
                     }),
                 },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.paginatedMonitorsList.monitors.map(
+                        monitor => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(monitor => {
+                                          if (
+                                              monitor._id ===
+                                              action.payload.monitorId
+                                          ) {
+                                              monitor.logs =
+                                                  action.payload.logs.data;
+                                              return monitor;
+                                          } else {
+                                              return monitor;
+                                          }
+                                      })
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
+                },
                 fetchMonitorLogsRequest: false,
                 monitorLogsRequest: {
                     ...state.monitorLogsRequest,
@@ -627,6 +691,12 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -665,6 +735,32 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return monitor;
                     }),
                 },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.paginatedMonitorsList.monitors.map(
+                        monitor => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(monitor => {
+                                          if (
+                                              monitor._id ===
+                                              action.payload.monitorId
+                                          ) {
+                                              monitor.statuses =
+                                                  action.payload.statuses.data;
+                                              return monitor;
+                                          } else {
+                                              return monitor;
+                                          }
+                                      })
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
+                },
                 fetchMonitorStatusesRequest: false,
             });
 
@@ -672,6 +768,12 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
@@ -725,6 +827,50 @@ export default function monitor(state = INITIAL_STATE, action) {
                         return monitor;
                     }),
                 },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.paginatedMonitorsList.monitors.map(
+                        monitor => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(monitor => {
+                                          if (
+                                              monitor._id ===
+                                              action.payload.monitorId
+                                          ) {
+                                              const mainSiteUrlLogs = action.payload.logs.data.filter(
+                                                  log =>
+                                                      monitor.data &&
+                                                      monitor.data.url ===
+                                                          log.url
+                                              );
+                                              if (
+                                                  mainSiteUrlLogs &&
+                                                  mainSiteUrlLogs.length > 0
+                                              ) {
+                                                  monitor.currentLighthouseLog =
+                                                      mainSiteUrlLogs[0];
+                                              }
+                                              monitor.lighthouseLogs = {
+                                                  data:
+                                                      action.payload.logs.data,
+                                                  skip: action.payload.skip,
+                                                  limit: action.payload.limit,
+                                                  count: action.payload.count,
+                                              };
+                                              return monitor;
+                                          } else {
+                                              return monitor;
+                                          }
+                                      })
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
+                },
                 fetchLighthouseLogsRequest: false,
             });
 
@@ -732,6 +878,12 @@ export default function monitor(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
                     requesting: false,
                     error: action.payload,
                     success: false,
