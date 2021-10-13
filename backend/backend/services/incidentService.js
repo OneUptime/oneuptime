@@ -768,6 +768,11 @@ module.exports = {
 
                 _this.refreshInterval(incidentId);
 
+                AlertService.sendAcknowledgedIncidentToSubscribers(
+                    incident,
+                    monitors
+                );
+
                 for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
                         incident.projectId._id || incident.projectId,
@@ -796,10 +801,6 @@ module.exports = {
                         downtimestring
                     );
 
-                    AlertService.sendAcknowledgedIncidentToSubscribers(
-                        incident,
-                        monitor
-                    );
                     AlertService.sendAcknowledgedIncidentMail(
                         incident,
                         monitor
@@ -936,6 +937,8 @@ module.exports = {
             _this.clearInterval(incidentId);
 
             const statusData = [];
+            // send notificaton to subscribers
+            AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
@@ -1246,8 +1249,6 @@ module.exports = {
                 downtimestring
             );
 
-            // send notificaton to subscribers
-            AlertService.sendResolvedIncidentToSubscribers(incident, monitor);
             AlertService.sendResolveIncidentMail(incident, monitor);
 
             const msg = `${
