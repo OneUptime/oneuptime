@@ -106,8 +106,7 @@ function ComponentList(props) {
                                         props.prevClicked(
                                             props.projectId,
                                             skip,
-                                            limit,
-                                            props.projectId
+                                            limit
                                         )
                                     }
                                     className={
@@ -132,8 +131,7 @@ function ComponentList(props) {
                                         props.nextClicked(
                                             props.projectId,
                                             skip,
-                                            limit,
-                                            props.projectId
+                                            limit
                                         )
                                     }
                                     className={
