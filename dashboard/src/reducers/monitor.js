@@ -68,11 +68,23 @@ import {
     CHANGE_MONITOR_COMPONENT_FAILURE,
     CHANGE_MONITOR_COMPONENT_SUCCESS,
     CHANGE_MONITOR_COMPONENT_REQUEST,
+    FETCH_PAGINATED_MONITORS_FAILURE,
+    FETCH_PAGINATED_MONITORS_REQUEST,
+    FETCH_PAGINATED_MONITORS_SUCCESS,
 } from '../constants/monitor';
 import moment from 'moment';
 
 const INITIAL_STATE = {
     monitorsList: {
+        monitors: [],
+        error: null,
+        requesting: false,
+        success: false,
+        startDate: moment().subtract(30, 'd'),
+        endDate: moment(),
+        editMode: false,
+    },
+    paginatedMonitorsList: {
         monitors: [],
         error: null,
         requesting: false,
@@ -271,10 +283,23 @@ export default function monitor(state = INITIAL_STATE, action) {
                     ...state.monitorsList,
                     requesting: false,
                     error: null,
-                    success: false,
+                    success: true,
                     monitors: action.payload,
                 },
             });
+
+        case FETCH_PAGINATED_MONITORS_SUCCESS: {
+            return Object.assign({}, state, {
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: [action.payload],
+                    requestingNextPage: false,
+                },
+            });
+        }
 
         case FETCH_MONITORS_FAILURE:
             return Object.assign({}, state, {
@@ -283,6 +308,17 @@ export default function monitor(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                },
+            });
+
+        case FETCH_PAGINATED_MONITORS_FAILURE:
+            return Object.assign({}, state, {
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                    requestingNextPage: false,
                 },
             });
 
@@ -298,6 +334,17 @@ export default function monitor(state = INITIAL_STATE, action) {
                     requesting: true,
                     error: null,
                     success: false,
+                },
+            });
+
+        case FETCH_PAGINATED_MONITORS_REQUEST:
+            return Object.assign({}, state, {
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: action.payload ? false : true,
+                    error: null,
+                    success: false,
+                    requestingNextPage: true,
                 },
             });
 

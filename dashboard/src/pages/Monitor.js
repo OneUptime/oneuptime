@@ -18,6 +18,7 @@ import {
     fetchMonitorStatuses,
     fetchLighthouseLogs,
     fetchMonitors,
+    fetchPaginatedMonitors,
 } from '../actions/monitor';
 import { fetchComponentSummary, fetchComponent } from '../actions/component';
 import { loadPage } from '../actions/page';
@@ -43,7 +44,49 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 class MonitorDashboardView extends Component {
     state = {
         showNewMonitorForm: false,
+        page: 1,
     };
+
+    prevClicked = (projectId, skip, limit) => {
+        this.props
+            .fetchPaginatedMonitors({
+                projectId,
+                skip: (skip || 0) > (limit || 3) ? skip - limit : 0,
+                limit,
+                componentSlug: this.props.componentSlug,
+                paginate: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page:
+                            prevState.page === 1
+                                ? prevState.page
+                                : prevState.page - 1,
+                        requestingNextPage: false,
+                    };
+                });
+            });
+    };
+
+    nextClicked = (projectId, skip, limit) => {
+        this.props
+            .fetchPaginatedMonitors({
+                projectId,
+                skip: skip + limit,
+                limit,
+                componentSlug: this.props.componentSlug,
+                paginate: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page: prevState.page + 1,
+                    };
+                });
+            });
+    };
+
     componentDidMount() {
         this.props.loadPage('Monitors');
         if (SHOULD_LOG_ANALYTICS) {
@@ -56,46 +99,55 @@ class MonitorDashboardView extends Component {
     }
 
     fetchMonitorResources = () => {
-        this.props.monitor.monitorsList.monitors.forEach(subProject => {
-            if (subProject.monitors.length > 0) {
-                subProject.monitors.forEach(monitor => {
-                    this.props.fetchMonitorLogs(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        this.props.startDate,
-                        this.props.endDate
-                    );
-                    this.props.fetchMonitorsIncidents(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        0,
-                        3
-                    );
-                    this.props.fetchMonitorStatuses(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        this.props.startDate,
-                        this.props.endDate
-                    );
-                    if (
-                        monitor.type === 'url' &&
-                        monitor.data &&
-                        monitor.data.url
-                    ) {
-                        this.props.fetchLighthouseLogs(
+        this.props.monitor.paginatedMonitorsList.monitors.forEach(
+            subProject => {
+                if (subProject.monitors.length > 0) {
+                    subProject.monitors.forEach(monitor => {
+                        this.props.fetchMonitorLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                        this.props.fetchMonitorsIncidents(
                             monitor.projectId._id || monitor.projectId,
                             monitor._id,
                             0,
-                            1,
-                            monitor.data.url
+                            3
                         );
-                    }
-                });
+                        this.props.fetchMonitorStatuses(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                        if (
+                            monitor.type === 'url' &&
+                            monitor.data &&
+                            monitor.data.url
+                        ) {
+                            this.props.fetchLighthouseLogs(
+                                monitor.projectId._id || monitor.projectId,
+                                monitor._id,
+                                0,
+                                1,
+                                monitor.data.url
+                            );
+                        }
+                    });
+                }
             }
-        });
+        );
     };
+
     componentDidUpdate(prevProps) {
-        if (prevProps.monitor.monitorsList.monitors.length === 0) {
+        // if (prevProps.monitor.paginatedMonitorsList.monitors.length === 0) {
+        //     this.fetchMonitorResources();
+        // }
+        if (
+            JSON.stringify(prevProps.monitor.paginatedMonitorsList.monitors) !==
+            JSON.stringify(this.props.monitor.paginatedMonitorsList.monitors)
+        ) {
             this.fetchMonitorResources();
         }
         if (
@@ -168,42 +220,12 @@ class MonitorDashboardView extends Component {
                     this.props.currentProject._id || this.props.currentProject,
             });
         }
-        this.props.monitor.monitorsList.monitors.forEach(subProject => {
-            if (subProject.monitors.length > 0) {
-                subProject.monitors.forEach(monitor => {
-                    this.props.fetchMonitorLogs(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        this.props.startDate,
-                        this.props.endDate
-                    );
-                    this.props.fetchMonitorsIncidents(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        0,
-                        3
-                    );
-                    this.props.fetchMonitorStatuses(
-                        monitor.projectId._id || monitor.projectId,
-                        monitor._id,
-                        this.props.startDate,
-                        this.props.endDate
-                    );
-                    if (
-                        monitor.type === 'url' &&
-                        monitor.data &&
-                        monitor.data.url
-                    ) {
-                        this.props.fetchLighthouseLogs(
-                            monitor.projectId._id || monitor.projectId,
-                            monitor._id,
-                            0,
-                            1,
-                            monitor.data.url
-                        );
-                    }
-                });
-            }
+
+        this.props.fetchPaginatedMonitors({
+            projectId,
+            skip: 0,
+            limit: 3,
+            componentSlug: this.props.componentSlug,
         });
     };
 
@@ -232,14 +254,14 @@ class MonitorDashboardView extends Component {
 
         const monitor = this.props.monitor;
         if (component && component._id) {
-            monitor.monitorsList.monitors.forEach(item => {
+            monitor.paginatedMonitorsList.monitors.forEach(item => {
                 item.monitors = item.monitors.filter(
                     monitor => monitor.componentId._id === component._id
                 );
             });
         }
 
-        let allMonitors = monitor.monitorsList.monitors
+        let allMonitors = monitor.paginatedMonitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
 
@@ -250,7 +272,7 @@ class MonitorDashboardView extends Component {
         const monitors =
             subProjects &&
             subProjects.map((subProject, i) => {
-                const subProjectMonitor = this.props.monitor.monitorsList.monitors.find(
+                const subProjectMonitor = this.props.monitor.paginatedMonitorsList.monitors.find(
                     subProjectMonitor =>
                         subProjectMonitor._id === subProject._id
                 );
@@ -280,6 +302,25 @@ class MonitorDashboardView extends Component {
                                 projectType={'subproject'}
                                 projectName={subProject.name}
                                 monitors={subProjectMonitor.monitors}
+                                projectId={subProject._id}
+                                skip={subProjectMonitor.skip}
+                                limit={subProjectMonitor.limit}
+                                count={subProjectMonitor.count}
+                                requesting={
+                                    this.props.monitor.paginatedMonitorsList
+                                        .requesting
+                                }
+                                error={
+                                    this.props.monitor.paginatedMonitorsList
+                                        .error
+                                }
+                                page={this.state.page}
+                                prevClicked={this.prevClicked}
+                                nextClicked={this.nextClicked}
+                                requestingNextPage={
+                                    this.props.monitor.paginatedMonitorsList
+                                        .requestingNextPage
+                                }
                             />
                         </div>
                     </div>
@@ -289,7 +330,7 @@ class MonitorDashboardView extends Component {
             });
 
         // Add Project Monitors to Monitors List
-        let projectMonitor = this.props.monitor.monitorsList.monitors.find(
+        let projectMonitor = this.props.monitor.paginatedMonitorsList.monitors.find(
             subProjectMonitor => subProjectMonitor._id === currentProjectId
         );
         allMonitors = IsUserInSubProject(currentProject)
@@ -318,6 +359,24 @@ class MonitorDashboardView extends Component {
                             projectType={'project'}
                             projectName={'Project'}
                             monitors={projectMonitor.monitors}
+                            projectId={currentProject._id}
+                            skip={projectMonitor.skip}
+                            limit={projectMonitor.limit}
+                            count={projectMonitor.count}
+                            requesting={
+                                this.props.monitor.paginatedMonitorsList
+                                    .requesting
+                            }
+                            error={
+                                this.props.monitor.paginatedMonitorsList.error
+                            }
+                            page={this.state.page}
+                            prevClicked={this.prevClicked}
+                            nextClicked={this.nextClicked}
+                            requestingNextPage={
+                                this.props.monitor.paginatedMonitorsList
+                                    .requestingNextPage
+                            }
                         />
                     </div>
                 </div>
@@ -357,7 +416,7 @@ class MonitorDashboardView extends Component {
                                                 <ShouldRender
                                                     if={
                                                         !this.props.monitor
-                                                            .monitorsList
+                                                            .paginatedMonitorsList
                                                             .requesting
                                                     }
                                                 >
@@ -477,7 +536,7 @@ class MonitorDashboardView extends Component {
                                                             if={
                                                                 !this.props
                                                                     .monitor
-                                                                    .monitorsList
+                                                                    .paginatedMonitorsList
                                                                     .requesting &&
                                                                 allMonitors.length ===
                                                                     0
@@ -544,7 +603,7 @@ class MonitorDashboardView extends Component {
                                                 <ShouldRender
                                                     if={
                                                         this.props.monitor
-                                                            .monitorsList
+                                                            .paginatedMonitorsList
                                                             .requesting
                                                     }
                                                 >
@@ -580,6 +639,7 @@ const mapDispatchToProps = dispatch => {
             fetchComponent,
             fetchMonitors,
             fetchDefaultTemplate,
+            fetchPaginatedMonitors,
         },
         dispatch
     );
@@ -626,10 +686,10 @@ const mapStateToProps = (state, ownProps) => {
             state.component.currentComponent.component._id,
         currentProject: state.project.currentProject,
         incidents: state.incident.unresolvedincidents.incidents,
-        monitors: state.monitor.monitorsList.monitors,
+        monitors: state.monitor.paginatedMonitorsList.monitors,
         subProjects,
-        startDate: state.monitor.monitorsList.startDate,
-        endDate: state.monitor.monitorsList.endDate,
+        startDate: state.monitor.paginatedMonitorsList.startDate,
+        endDate: state.monitor.paginatedMonitorsList.endDate,
         component,
         tutorialStat,
         componentSummaryObj: state.component.componentSummary,
@@ -679,6 +739,7 @@ MonitorDashboardView.propTypes = {
     componentSlug: PropTypes.string,
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
+    fetchPaginatedMonitors: PropTypes.func,
 };
 
 MonitorDashboardView.displayName = 'MonitorDashboardView';
