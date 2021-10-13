@@ -70,7 +70,7 @@ function ComponentList(props) {
                                         )
                                     </ShouldRender>
                                     <ShouldRender if={!(numberOfPages > 0)}>
-                                        <span id="numberOfIncidents">
+                                        <span id="numberOfComponents">
                                             {count}{' '}
                                             {count > 1
                                                 ? 'total components'
