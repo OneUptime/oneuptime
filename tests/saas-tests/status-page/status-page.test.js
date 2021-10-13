@@ -175,17 +175,17 @@ describe('Check status-page up', () => {
             });
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectDropdownValue(
-                '#monitor-name',
+                '#monitor-name-0',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            await init.pageClick(page, '#monitor-description');
+            await init.pageClick(page, '#monitor-description-0');
             await init.pageType(
                 page,
-                '#monitor-description',
+                '#monitor-description-0',
                 'Status Page Description'
             );
-            await init.pageClick(page, '#manual-monitor-checkbox');
+            await init.pageClick(page, '#manual-monitor-checkbox-0');
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             // CLick status Page Url
             await init.clickStatusPageUrl(page);
@@ -229,7 +229,7 @@ describe('Check status-page up', () => {
             let spanElement;
             spanElement = await init.pageWaitForSelector(
                 page,
-                '#monitor-name',
+                '#monitor-name-0',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -243,7 +243,7 @@ describe('Check status-page up', () => {
             await init.themeNavigationAndConfirmation(page, 'Clean');
             spanElement = await init.pageWaitForSelector(
                 page,
-                '#monitor-name',
+                '#monitor-name-0',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -261,6 +261,7 @@ describe('Check status-page up', () => {
         'should add more monitors and see if they are present on the status-page',
         async done => {
             // This creates 2 additonal monitors
+            let additionalMonitor = 0;
             for (let i = 0; i < 2; i++) {
                 await init.navigateToComponentDetails(componentName, page);
                 const monitorName = utils.generateRandomString();
@@ -274,9 +275,11 @@ describe('Check status-page up', () => {
                     }
                 );
 
+                additionalMonitor++;
                 await init.addMonitorToStatusPage(
                     componentName,
                     monitorName,
+                    additionalMonitor,
                     page
                 );
             }
