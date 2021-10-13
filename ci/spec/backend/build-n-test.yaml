@@ -34,6 +34,12 @@ test_backend:
         - ./ci/scripts/storehash.sh test_backend backend init-script probe http-test-server
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
+    artifacts:
+        name: 'coverage-$CI_COMMIT_SHORT_SHA'
+        when: always
+        paths:
+            - backend/coverage/lcov-report/
+        expire_in: 1 week
     except:
         refs:
             - hotfix-master
@@ -62,6 +68,12 @@ test_enterprise_backend:
         - ./ci/scripts/storehash.sh test_enterprise_backend backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
+    artifacts:
+        name: 'coverage-$CI_COMMIT_SHORT_SHA'
+        when: always
+        paths:
+            - backend/coverage/lcov-report/
+        expire_in: 1 week
     except:
         refs:
             - hotfix-master
