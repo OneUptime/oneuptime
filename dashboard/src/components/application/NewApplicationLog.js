@@ -292,6 +292,7 @@ class NewApplicationLog extends Component {
                                                 className="bs-Button"
                                                 disabled={requesting}
                                                 onClick={this.props.toggleForm}
+                                                type="button"
                                             >
                                                 <span>Cancel</span>
                                             </button>
@@ -317,6 +318,7 @@ class NewApplicationLog extends Component {
                                             className="bs-Button"
                                             disabled={requesting}
                                             onClick={this.cancelEdit}
+                                            type="button"
                                         >
                                             <span>Cancel</span>
                                         </button>
