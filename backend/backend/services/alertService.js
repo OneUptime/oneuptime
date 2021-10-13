@@ -1866,6 +1866,7 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const track = {};
 
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
@@ -1876,6 +1877,31 @@ module.exports = {
                 $or: [{ monitorId: { $in: monitorIds } }, { monitorId: null }],
                 projectId,
             });
+
+            const sendSubscriberAlert = async ({
+                subscriber,
+                monitor,
+                statusPageSlug,
+                subscribers,
+            }) => {
+                await _this.sendSubscriberAlert(
+                    subscriber,
+                    incident,
+                    'Investigation note is created',
+                    null,
+                    {
+                        note: data.content,
+                        incidentState: data.incident_state,
+                        noteType: data.incident_state,
+                        statusNoteStatus,
+                        statusPageSlug,
+                    },
+                    subscribers.length,
+                    uuid,
+                    monitor
+                );
+            };
+
             for (const monitor of monitors) {
                 if (incident) {
                     for (const subscriber of subscribers) {
@@ -1893,22 +1919,25 @@ module.exports = {
                                 ? statusPage.slug
                                 : null;
                         }
-                        await _this.sendSubscriberAlert(
-                            subscriber,
-                            incident,
-                            'Investigation note is created',
-                            null,
-                            {
-                                note: data.content,
-                                incidentState: data.incident_state,
-                                noteType: data.incident_state,
-                                statusNoteStatus,
+                        if (subscriber.alertVia === AlertType.Email) {
+                            if (!track[subscriber.contactEmail]) {
+                                track[subscriber.contactEmail] =
+                                    subscriber.contactEmail;
+                                sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    statusPageSlug,
+                                    subscribers,
+                                });
+                            }
+                        } else {
+                            sendSubscriberAlert({
+                                subscriber,
+                                monitor,
                                 statusPageSlug,
-                            },
-                            subscribers.length,
-                            uuid,
-                            monitor
-                        );
+                                subscribers,
+                            });
+                        }
                     }
                 }
             }
@@ -1997,16 +2026,25 @@ module.exports = {
                                 }
                             }
                         } else {
-                            await _this.sendSubscriberAlert(
-                                subscriber,
-                                incident,
-                                'Subscriber Incident Created',
-                                null,
-                                {},
-                                subscribers.length,
-                                uuid,
-                                monitor
-                            );
+                            if (subscriber.alertVia === AlertType.Email) {
+                                if (!track[subscriber.contactEmail]) {
+                                    track[subscriber.contactEmail] =
+                                        subscriber.contactEmail;
+                                    sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage: null,
+                                        subscribers,
+                                    });
+                                }
+                            } else {
+                                sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    enabledStatusPage: null,
+                                    subscribers,
+                                });
+                            }
                         }
                     }
                 }
@@ -2747,10 +2785,11 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident, monitor) {
+    sendAcknowledgedIncidentToSubscribers: async function(incident, monitors) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const track = {};
             const populateStatusPage = [
                 { path: 'projectId', select: 'parentProjectId' },
                 { path: 'monitorIds', select: 'name' },
@@ -2764,48 +2803,86 @@ module.exports = {
             const selectStatusPage =
                 'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-            if (incident) {
-                const subscribers = await SubscriberService.subscribersForAlert(
-                    {
-                        monitorId: monitor._id,
-                        subscribed: true,
-                    }
+            const sendSubscriberAlert = async ({
+                subscriber,
+                monitor,
+                enabledStatusPage,
+                subscribers,
+            }) => {
+                await _this.sendSubscriberAlert(
+                    subscriber,
+                    incident,
+                    'Subscriber Incident Acknowledged',
+                    enabledStatusPage,
+                    {},
+                    subscribers.length,
+                    uuid,
+                    monitor
                 );
-                for (const subscriber of subscribers) {
-                    if (subscriber.statusPageId) {
-                        const enabledStatusPage = await StatusPageService.findOneBy(
-                            {
-                                query: {
-                                    _id: subscriber.statusPageId,
-                                    isSubscriberEnabled: true,
-                                },
-                                populate: populateStatusPage,
-                                select: selectStatusPage,
-                            }
-                        );
-                        if (enabledStatusPage) {
-                            await _this.sendSubscriberAlert(
-                                subscriber,
-                                incident,
-                                'Subscriber Incident Acknowledged',
-                                enabledStatusPage,
-                                {},
-                                subscribers.length,
-                                uuid,
-                                monitor
-                            );
+            };
+
+            if (incident) {
+                for (const monitor of monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor._id,
+                            subscribed: true,
                         }
-                    } else {
-                        await _this.sendSubscriberAlert(
-                            subscriber,
-                            incident,
-                            'Subscriber Incident Acknowledged',
-                            null,
-                            {},
-                            subscribers.length,
-                            uuid,
-                            monitor
-                        );
+                    );
+                    for (const subscriber of subscribers) {
+                        if (subscriber.statusPageId) {
+                            const enabledStatusPage = await StatusPageService.findOneBy(
+                                {
+                                    query: {
+                                        _id: subscriber.statusPageId,
+                                        isSubscriberEnabled: true,
+                                    },
+                                    populate: populateStatusPage,
+                                    select: selectStatusPage,
+                                }
+                            );
+                            if (enabledStatusPage) {
+                                if (subscriber.alertVia === AlertType.Email) {
+                                    if (!track[subscriber.contactEmail]) {
+                                        track[subscriber.contactEmail] =
+                                            subscriber.contactEmail;
+                                        await sendSubscriberAlert({
+                                            subscriber,
+                                            monitor,
+                                            enabledStatusPage,
+                                            subscribers,
+                                        });
+                                    }
+                                } else {
+                                    await sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage,
+                                        subscribers,
+                                    });
+                                }
+                            }
+                        } else {
+                            if (subscriber.alertVia === AlertType.Email) {
+                                if (!track[subscriber.contactEmail]) {
+                                    track[subscriber.contactEmail] =
+                                        subscriber.contactEmail;
+                                    await sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage: null,
+                                        subscribers,
+                                    });
+                                }
+                            } else {
+                                await sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    enabledStatusPage: null,
+                                    subscribers,
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -2818,10 +2895,11 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident, monitor) {
+    sendResolvedIncidentToSubscribers: async function(incident, monitors) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const track = {};
             const populateStatusPage = [
                 { path: 'projectId', select: 'parentProjectId' },
                 { path: 'monitorIds', select: 'name' },
@@ -2835,48 +2913,86 @@ module.exports = {
             const selectStatusPage =
                 'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-            if (incident) {
-                const subscribers = await SubscriberService.subscribersForAlert(
-                    {
-                        monitorId: monitor._id,
-                        subscribed: true,
-                    }
+            const sendSubscriberAlert = async ({
+                subscriber,
+                monitor,
+                enabledStatusPage,
+                subscribers,
+            }) => {
+                await _this.sendSubscriberAlert(
+                    subscriber,
+                    incident,
+                    'Subscriber Incident Resolved',
+                    enabledStatusPage,
+                    {},
+                    subscribers.length,
+                    uuid,
+                    monitor
                 );
-                for (const subscriber of subscribers) {
-                    if (subscriber.statusPageId) {
-                        const enabledStatusPage = await StatusPageService.findOneBy(
-                            {
-                                query: {
-                                    _id: subscriber.statusPageId,
-                                    isSubscriberEnabled: true,
-                                },
-                                select: selectStatusPage,
-                                populate: populateStatusPage,
-                            }
-                        );
-                        if (enabledStatusPage) {
-                            await _this.sendSubscriberAlert(
-                                subscriber,
-                                incident,
-                                'Subscriber Incident Resolved',
-                                enabledStatusPage,
-                                {},
-                                subscribers.length,
-                                uuid,
-                                monitor
-                            );
+            };
+
+            if (incident) {
+                for (const monitor of monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor._id,
+                            subscribed: true,
                         }
-                    } else {
-                        await _this.sendSubscriberAlert(
-                            subscriber,
-                            incident,
-                            'Subscriber Incident Resolved',
-                            null,
-                            {},
-                            subscribers.length,
-                            uuid,
-                            monitor
-                        );
+                    );
+                    for (const subscriber of subscribers) {
+                        if (subscriber.statusPageId) {
+                            const enabledStatusPage = await StatusPageService.findOneBy(
+                                {
+                                    query: {
+                                        _id: subscriber.statusPageId,
+                                        isSubscriberEnabled: true,
+                                    },
+                                    select: selectStatusPage,
+                                    populate: populateStatusPage,
+                                }
+                            );
+                            if (enabledStatusPage) {
+                                if (subscriber.alertVia === AlertType.Email) {
+                                    if (!track[subscriber.contactEmail]) {
+                                        track[subscriber.contactEmail] =
+                                            subscriber.contactEmail;
+                                        sendSubscriberAlert({
+                                            subscriber,
+                                            monitor,
+                                            enabledStatusPage,
+                                            subscribers,
+                                        });
+                                    }
+                                } else {
+                                    sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage,
+                                        subscribers,
+                                    });
+                                }
+                            }
+                        } else {
+                            if (subscriber.alertVia === AlertType.Email) {
+                                if (!track[subscriber.contactEmail]) {
+                                    track[subscriber.contactEmail] =
+                                        subscriber.contactEmail;
+                                    sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage: null,
+                                        subscribers,
+                                    });
+                                }
+                            } else {
+                                sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    enabledStatusPage: null,
+                                    subscribers,
+                                });
+                            }
+                        }
                     }
                 }
             }
