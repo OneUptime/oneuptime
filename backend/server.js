@@ -61,25 +61,29 @@ const io = require('socket.io')(http, {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session
 });
-const redisAdapter = require('socket.io-redis');
+// const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const redis = require('redis');
+// const redis = require('redis');
 const mongoose = require('./backend/config/db');
 
-io.adapter(
-    redisAdapter({
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
-    })
-);
+// try {
+//     io.adapter(
+//         redisAdapter({
+//             host: process.env.REDIS_HOST,
+//             port: process.env.REDIS_PORT,
+//         })
+//     );
 
-const redisClient = redis.createClient({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
-});
-global.redisClient = redisClient;
-
+//     const redisClient = redis.createClient({
+//         host: process.env.REDIS_HOST,
+//         port: process.env.REDIS_PORT,
+//     });
+//     global.redisClient = redisClient;
+// } catch (err) {
+//     // eslint-disable-next-line no-console
+//     console.log('redis error: ', err);
+// }
 global.io = io;
 
 // Sentry: The request handler must be the first middleware on the app
@@ -148,8 +152,8 @@ app.use(bodyParser.json({ limit: '10mb' }));
 
 const { RATE_LIMITTER_ENABLED } = process.env;
 if (RATE_LIMITTER_ENABLED === 'true') {
-    const rateLimiter = require('./backend/middlewares/rateLimit');
-    app.use(rateLimiter);
+    // const rateLimiter = require('./backend/middlewares/rateLimit');
+    // app.use(rateLimiter);
 }
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));

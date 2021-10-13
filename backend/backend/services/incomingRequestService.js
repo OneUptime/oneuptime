@@ -848,7 +848,7 @@ module.exports = {
                             : 'offline';
 
                         const incidentPriority = analyseVariable(
-                            data.incidentPriority,
+                            String(data.incidentPriority),
                             dataConfig
                         ).toLowerCase();
                         const priorityObj = {};
@@ -957,7 +957,7 @@ module.exports = {
                             : 'offline';
 
                         const incidentPriority = analyseVariable(
-                            data.incidentPriority,
+                            String(data.incidentPriority),
                             dataConfig
                         ).toLowerCase();
                         const priorityObj = {};
