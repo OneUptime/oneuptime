@@ -395,6 +395,16 @@ module.exports = {
                     await MonitorStatusService.deleteBy({ _id }, userId);
                 }
 
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId._id || monitor.monitorId
+                );
+
+                // update all monitor status in the background to match incident type
+                MonitorService.updateAllMonitorStatus(
+                    { _id: { $in: monitors } },
+                    { monitorStatus: 'online' }
+                );
+
                 const populateIncTimeline = [
                     { path: 'createdById', select: 'name' },
                     {
