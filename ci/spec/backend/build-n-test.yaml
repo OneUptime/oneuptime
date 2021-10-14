@@ -54,13 +54,13 @@ test_enterprise_backend:
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - chmod +x ./ci/scripts/docker-install.sh
         - ./ci/scripts/docker-install.sh
+        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name bredis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker ps
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
         - sudo apt-get install -y nodejs
         - cd backend
         - npm ci
