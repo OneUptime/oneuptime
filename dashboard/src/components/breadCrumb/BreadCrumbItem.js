@@ -47,10 +47,15 @@ function BreadCrumbItem({
             // setup button and hook it to the node
             const btn = document.createElement('button');
             btn.id = 'newFormId';
-            btn.innerHTML = btnText;
             btn.type = 'button';
-            btn.className = 'bs-Button';
+            btn.classList = 'bs-Button bs-ButtonLegacy ActionIconParent';
             btn.addEventListener('click', toggleForm);
+
+            const span = document.createElement('span');
+            span.classList =
+                'bs-FileUploadButton bs-Button--icon bs-Button--new';
+            span.innerHTML = btnText;
+            btn.appendChild(span);
 
             wrapContainer.appendChild(btn);
             wrapContainer.style.display = 'flex';
