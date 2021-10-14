@@ -51,6 +51,7 @@ import performanceTracker from './performanceTracker';
 import performanceTrackerMetric from './performanceTrackerMetric';
 import automatedScripts from './automatedScript';
 import incidentNoteTemplate from './incidentNoteTemplate';
+import statusPageCategory from './statusPageCategory';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -104,6 +105,7 @@ const appReducer = combineReducers({
     performanceTrackerMetric,
     automatedScripts,
     incidentNoteTemplate,
+    statusPageCategory,
 });
 
 export default (state, action) => {

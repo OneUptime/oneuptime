@@ -196,9 +196,11 @@ class BlockChart extends Component {
                             this.requestday(need, this.props.time.date)
                         }
                     ></div>
-                    <div className="tooltiptext-chart">
-                        <div>{title}</div>
-                        <div>{title1}</div>
+                    <div className="tooltip_div">
+                        <div className="tooltiptext-chart">
+                            <div>{title}</div>
+                            <div>{title1}</div>
+                        </div>
                     </div>
                 </div>
             );

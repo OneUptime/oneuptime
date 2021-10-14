@@ -53,6 +53,8 @@ let RenderMonitor = ({
     fields,
     dispatch,
     errors,
+    form = 'StatuspageMonitors',
+    statusPageCategory,
 }) => {
     const currentMonitorForm = monitors[monitorIndex];
     const { monitor: currentMonitorID } = currentMonitorForm;
@@ -67,38 +69,30 @@ let RenderMonitor = ({
     const { type = null } = !!selectedMonitor && selectedMonitor;
 
     const resetSelectedCharts = () => {
-        dispatch(change('StatuspageMonitors', `${monitor}.uptime`, false));
-        dispatch(change('StatuspageMonitors', `${monitor}.memory`, false));
-        dispatch(change('StatuspageMonitors', `${monitor}.cpu`, false));
-        dispatch(change('StatuspageMonitors', `${monitor}.storage`, false));
+        dispatch(change(form, `${monitor}.uptime`, false));
+        dispatch(change(form, `${monitor}.memory`, false));
+        dispatch(change(form, `${monitor}.cpu`, false));
+        dispatch(change(form, `${monitor}.storage`, false));
+        dispatch(change(form, `${monitor}.responseTime`, false));
+        dispatch(change(form, `${monitor}.temperature`, false));
+        dispatch(change(form, `${monitor}.runtime`, false));
         dispatch(
-            change('StatuspageMonitors', `${monitor}.responseTime`, false)
+            change(form, `${monitor}.statusPageCategory`, statusPageCategory)
         );
-        dispatch(change('StatuspageMonitors', `${monitor}.temperature`, false));
-        dispatch(change('StatuspageMonitors', `${monitor}.runtime`, false));
     };
 
     const shouldEdit =
         IsAdminSubProject(subProject) || IsOwnerSubProject(subProject);
 
     return (
-        <li id={`monitor-${monitorIndex}`} style={{ margin: '5px 0px' }}>
+        <li
+            id={`monitor-${monitorIndex}`}
+            style={{ margin: '5px 0px', width: '100%' }}
+        >
             <div className="Card-root">
                 <div className="Box-root">
-                    {monitorIndex > 0 && (
-                        <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
-                            <div className="Box-root">
-                                <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Monitor {monitorIndex + 1}</span>
-                                </span>
-                                <p>
-                                    <span></span>
-                                </p>
-                            </div>
-                        </div>
-                    )}
                     <div
-                        className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2"
+                        className="bs-ContentSection-content Box-root Box-background--offset Padding-horizontal--8 Padding-vertical--2 drag-n-drop"
                         style={{ backgroundColor: '#f7f7f7' }}
                     >
                         <div className="bs-Fieldset-row Margin-bottom--12">
@@ -108,12 +102,14 @@ let RenderMonitor = ({
                                     flex: '35% 0 0',
                                 }}
                             >
-                                <span>Add these to my status page</span>
+                                <span>
+                                    Add these to my status page category
+                                </span>
                             </label>
                             <Field
                                 className="db-select-nw"
                                 name={`${monitor}.monitor`}
-                                id="monitor-name"
+                                id={`monitor-name-${monitorIndex}`}
                                 component={RenderSelect}
                                 options={[
                                     ...allMonitors
@@ -142,7 +138,7 @@ let RenderMonitor = ({
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     component="input"
                                     name={`${monitor}.description`}
-                                    id="monitor-description"
+                                    id={`monitor-description-${monitorIndex}`}
                                 />
                             </div>
                         )}
@@ -190,7 +186,7 @@ let RenderMonitor = ({
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
                                             disabled={!shouldEdit}
-                                            id="manual-monitor-checkbox"
+                                            id={`manual-monitor-checkbox-${monitorIndex}`}
                                         />
                                     )}
                                     {type === 'incomingHttpRequest' && (
@@ -257,7 +253,8 @@ let RenderMonitor = ({
                                             />
                                         </Fragment>
                                     )}
-                                    {errors.monitors[monitorIndex] &&
+                                    {errors &&
+                                        errors.monitors[monitorIndex] &&
                                         errors.monitors[monitorIndex].error && (
                                             <div
                                                 className="errors"
@@ -297,11 +294,10 @@ let RenderMonitor = ({
     );
 };
 
-const selector = formValueSelector('StatuspageMonitors');
-
 const mapStateToProps = (state, ownProps) => {
+    const selector = formValueSelector(ownProps.form);
     const { subProject } = ownProps;
-    const subProjectId = subProject._id;
+    const subProjectId = subProject?._id;
 
     const allComponents = state.component.componentList.components
         .filter(
@@ -321,19 +317,25 @@ const mapStateToProps = (state, ownProps) => {
      * This monitor nested object(monitor.monitor._id) is then extracted and used to update 'monitor.monitor'.
      * monitor.monitor is the required id used in setting the initial values by default.
      */
-    monitors.map(monitor => {
-        if (monitor.monitor && typeof monitor.monitor === 'object') {
-            monitor.monitor = monitor.monitor._id;
-        }
-        return monitor;
-    });
+    monitors &&
+        monitors.map(monitor => {
+            if (monitor.monitor && typeof monitor.monitor === 'object') {
+                monitor.monitor = monitor.monitor._id;
+            }
+            return monitor;
+        });
 
     const {
         form: {
-            StatuspageMonitors: { syncErrors: errors },
+            [ownProps.form]: { syncErrors: errors },
         },
     } = state;
-    return { allComponents, allMonitors, monitors, errors };
+    return {
+        allComponents,
+        allMonitors,
+        monitors,
+        errors,
+    };
 };
 
 RenderMonitor = connect(mapStateToProps)(RenderMonitor);
@@ -349,6 +351,8 @@ RenderMonitor.propTypes = {
     fields: PropTypes.object.isRequired,
     dispatch: PropTypes.func.isRequired,
     errors: PropTypes.object.isRequired,
+    form: PropTypes.string,
+    statusPageCategory: PropTypes.string,
 };
 
 export { RenderMonitor };

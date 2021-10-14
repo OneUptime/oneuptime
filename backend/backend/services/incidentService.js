@@ -325,7 +325,7 @@ module.exports = {
                     content: incident.description,
                     incidentId: incident._id,
                     createdById:
-                        incident.createdById._id || incident.createdById,
+                        incident.createdById?._id || incident.createdById,
                     type: 'investigation',
                     incident_state: 'Identified',
                     post_statuspage: true,
@@ -394,6 +394,16 @@ module.exports = {
                     const { _id } = monitorStatus;
                     await MonitorStatusService.deleteBy({ _id }, userId);
                 }
+
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId._id || monitor.monitorId
+                );
+
+                // update all monitor status in the background to match incident type
+                MonitorService.updateAllMonitorStatus(
+                    { _id: { $in: monitors } },
+                    { monitorStatus: 'online' }
+                );
 
                 const populateIncTimeline = [
                     { path: 'createdById', select: 'name' },
@@ -768,6 +778,11 @@ module.exports = {
 
                 _this.refreshInterval(incidentId);
 
+                AlertService.sendAcknowledgedIncidentToSubscribers(
+                    incident,
+                    monitors
+                );
+
                 for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
                         incident.projectId._id || incident.projectId,
@@ -796,10 +811,6 @@ module.exports = {
                         downtimestring
                     );
 
-                    AlertService.sendAcknowledgedIncidentToSubscribers(
-                        incident,
-                        monitor
-                    );
                     AlertService.sendAcknowledgedIncidentMail(
                         incident,
                         monitor
@@ -936,6 +947,8 @@ module.exports = {
             _this.clearInterval(incidentId);
 
             const statusData = [];
+            // send notificaton to subscribers
+            AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
@@ -1246,8 +1259,6 @@ module.exports = {
                 downtimestring
             );
 
-            // send notificaton to subscribers
-            AlertService.sendResolvedIncidentToSubscribers(incident, monitor);
             AlertService.sendResolveIncidentMail(incident, monitor);
 
             const msg = `${

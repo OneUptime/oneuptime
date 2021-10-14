@@ -10,12 +10,12 @@ staging_container-scanner:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy container-scanner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build --build-arg PORT="3055" ./container-scanner -t fyipeproject/container-scanner:master
-        - sudo docker tag fyipeproject/container-scanner:master fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/container-scanner:master
+        - sudo docker buildx create --use
+        - sudo docker buildx build --build-arg PORT="3055" --platform linux/amd64,linux/arm64 --tag fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID --push ./container-scanner
+        - sudo docker buildx build --build-arg PORT="3055" --platform linux/amd64,linux/arm64 --tag fyipeproject/container-scanner:master --push ./container-scanner
         - sudo kubectl set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
@@ -40,11 +40,11 @@ production_container-scanner:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build --build-arg PORT="3055" ./container-scanner -t fyipeproject/container-scanner:latest
-        - sudo docker tag fyipeproject/container-scanner:latest fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/container-scanner:latest
+        - sudo docker buildx create --use
+        - sudo docker buildx build --build-arg PORT="3055" --platform linux/amd64,linux/arm64 --tag fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID --push ./container-scanner
+        - sudo docker buildx build --build-arg PORT="3055" --platform linux/amd64,linux/arm64 --tag fyipeproject/container-scanner:latest --push ./container-scanner
         - sudo kubectl set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh

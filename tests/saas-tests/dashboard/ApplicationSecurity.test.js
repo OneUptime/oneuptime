@@ -217,7 +217,7 @@ describe('Application Security Page', () => {
                 '#securityLog',
                 {
                     visible: true,
-                    timeout: init.timeout,
+                    timeout: 600000, //Pinging takes 5 minutes and scanning takes some more time
                 }
             );
 
