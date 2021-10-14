@@ -289,6 +289,24 @@ class ContainerSecurityForm extends Component {
                                     </div>
                                 </div>
                                 <div>
+                                    <ShouldRender
+                                        if={
+                                            this.props.showCancelBtn &&
+                                            this.props.toggleForm
+                                        }
+                                    >
+                                        <button
+                                            className="bs-Button"
+                                            disabled={
+                                                addingContainer ||
+                                                requestingDockerCredentials
+                                            }
+                                            onClick={this.props.toggleForm}
+                                            type="button"
+                                        >
+                                            <span>Cancel</span>
+                                        </button>
+                                    </ShouldRender>
                                     <button
                                         id="addContainerBtn"
                                         className="bs-Button bs-Button--blue"
@@ -333,6 +351,8 @@ ContainerSecurityForm.propTypes = {
     requestingDockerCredentials: PropTypes.bool,
     openModal: PropTypes.func,
     resourceCategoryList: PropTypes.array,
+    toggleForm: PropTypes.func,
+    showCancelBtn: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>

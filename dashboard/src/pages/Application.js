@@ -30,10 +30,9 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 });
 
 class Application extends Component {
-    constructor(props) {
-        super(props);
-        this.props = props;
-    }
+    state = {
+        showApplicationSecurityForm: false,
+    };
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -86,6 +85,11 @@ class Application extends Component {
         }
     }
 
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showApplicationSecurityForm: !prevState.showApplicationSecurityForm,
+        }));
+
     render() {
         const {
             projectId,
@@ -124,6 +128,8 @@ class Application extends Component {
 
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
+
+        const isEmpty = applicationSecurities.length === 0;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -141,6 +147,9 @@ class Application extends Component {
                     route={pathname}
                     name="Application Security"
                     pageTitle="Application"
+                    addBtn={!isEmpty}
+                    btnText="Create Application Security"
+                    toggleForm={this.toggleForm}
                 />
                 <div className="Margin-vertical--12">
                     <div>
@@ -162,7 +171,8 @@ class Application extends Component {
                                         !gettingSecurityLogs
                                     }
                                 >
-                                    {applicationSecurities.length > 0 &&
+                                    {!this.state.showApplicationSecurityForm &&
+                                        !isEmpty &&
                                         applicationSecurities.map(
                                             applicationSecurity => {
                                                 return (
@@ -203,10 +213,20 @@ class Application extends Component {
                                 <span>
                                     <div>
                                         <div>
-                                            <ApplicationSecurityForm
-                                                projectId={projectId}
-                                                componentId={componentId}
-                                            />
+                                            <ShouldRender
+                                                if={
+                                                    this.state
+                                                        .showApplicationSecurityForm ||
+                                                    isEmpty
+                                                }
+                                            >
+                                                <ApplicationSecurityForm
+                                                    projectId={projectId}
+                                                    componentId={componentId}
+                                                    toggleForm={this.toggleForm}
+                                                    showCancelBtn={!isEmpty}
+                                                />
+                                            </ShouldRender>
                                         </div>
                                     </div>
                                 </span>

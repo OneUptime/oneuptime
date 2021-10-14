@@ -8,9 +8,11 @@ import { change, autofill } from 'redux-form';
 
 //Monitor list
 //props -> {name: '', type, data -> { data.url}}
-export function fetchMonitors(projectId) {
+export function fetchMonitors(projectId, skip = 0, limit = 0) {
     return function(dispatch) {
-        const promise = getApi(`monitor/${projectId}`);
+        const promise = getApi(
+            `monitor/${projectId}?skip=${skip}&limit=${limit}`
+        );
         dispatch(fetchMonitorsRequest());
 
         promise.then(
@@ -59,6 +61,68 @@ export function fetchMonitorsFailure(error) {
 export function resetFetchMonitors() {
     return {
         type: types.FETCH_MONITORS_RESET,
+    };
+}
+
+//Monitor list
+//props -> {name: '', type, data -> { data.url}}
+export function fetchPaginatedMonitors({
+    projectId,
+    skip = 0,
+    limit = 0,
+    componentSlug,
+    componentId,
+    paginate = false,
+}) {
+    return function(dispatch) {
+        let url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentId=${componentId}`;
+        if (componentSlug) {
+            url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentSlug=${componentSlug}`;
+        }
+        const promise = getApi(url);
+        dispatch(fetchPaginatedMonitorsRequest(paginate));
+
+        promise.then(
+            function(monitors) {
+                dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchPaginatedMonitorsFailure(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchPaginatedMonitorsSuccess(monitors) {
+    return {
+        type: types.FETCH_PAGINATED_MONITORS_SUCCESS,
+        payload: monitors,
+    };
+}
+
+export function fetchPaginatedMonitorsRequest(paginate) {
+    return {
+        type: types.FETCH_PAGINATED_MONITORS_REQUEST,
+        payload: paginate,
+    };
+}
+
+export function fetchPaginatedMonitorsFailure(error) {
+    return {
+        type: types.FETCH_PAGINATED_MONITORS_FAILURE,
+        payload: error,
     };
 }
 

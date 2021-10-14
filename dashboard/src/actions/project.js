@@ -356,7 +356,7 @@ export function switchProject(dispatch, project, subProjects = []) {
     getSubProjects(project._id)(dispatch);
     fetchAlert(project._id)(dispatch);
     fetchSubProjectStatusPages(project._id)(dispatch);
-    fetchComponents(project._id)(dispatch);
+    fetchComponents({ projectId: project._id })(dispatch); // default skip = 0, limit = 3
     fetchMonitors(project._id)(dispatch);
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);

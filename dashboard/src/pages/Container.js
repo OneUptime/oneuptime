@@ -29,10 +29,9 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 class Container extends Component {
-    constructor(props) {
-        super(props);
-        this.props = props;
-    }
+    state = {
+        showContainerSecurityForm: false,
+    };
 
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
@@ -88,6 +87,11 @@ class Container extends Component {
         }
     }
 
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showContainerSecurityForm: !prevState.showContainerSecurityForm,
+        }));
+
     render() {
         const {
             componentId,
@@ -126,6 +130,8 @@ class Container extends Component {
 
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
+
+        const isEmpty = containerSecurities.length === 0;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -143,6 +149,9 @@ class Container extends Component {
                     route={pathname}
                     name="Container Security"
                     pageTitle="Container"
+                    addBtn={!isEmpty}
+                    btnText="Create Container Security"
+                    toggleForm={this.toggleForm}
                 />
                 <div className="Margin-vertical--12">
                     <div>
@@ -167,7 +176,8 @@ class Container extends Component {
                                         !gettingSecurityLogs
                                     }
                                 >
-                                    {containerSecurities.length > 0 &&
+                                    {!this.state.showContainerSecurityForm &&
+                                        !isEmpty &&
                                         containerSecurities.map(
                                             containerSecurity => {
                                                 return (
@@ -214,10 +224,20 @@ class Container extends Component {
                                 <span>
                                     <div>
                                         <div>
-                                            <ContainerSecurityForm
-                                                componentId={componentId}
-                                                projectId={projectId}
-                                            />
+                                            <ShouldRender
+                                                if={
+                                                    this.state
+                                                        .showContainerSecurityForm ||
+                                                    isEmpty
+                                                }
+                                            >
+                                                <ContainerSecurityForm
+                                                    componentId={componentId}
+                                                    projectId={projectId}
+                                                    toggleForm={this.toggleForm}
+                                                    showCancelBtn={!isEmpty}
+                                                />
+                                            </ShouldRender>
                                         </div>
                                     </div>
                                 </span>
