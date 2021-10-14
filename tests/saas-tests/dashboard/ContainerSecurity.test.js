@@ -159,7 +159,7 @@ describe('Container Security Page', () => {
         await init.pageWaitForSelector(
             page,
             `#scanningContainerSecurity_${containerSecurityName}`,
-            { hidden: true, timeout: 600000 }
+            { hidden: true, timeout: 600000 } //Pinging takes 5 minutes and scanning takes some more time
         );
         await init.pageClick(
             page,
