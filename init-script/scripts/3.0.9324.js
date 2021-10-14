@@ -33,6 +33,14 @@ async function run() {
                 { monitorStatus: 'online' }
             );
         }
+
+        if (!incident) {
+            await update(
+                monitorCollection,
+                { _id: monitor._id },
+                { monitorStatus: 'online' }
+            );
+        }
     }
 
     return `Script completed`;
