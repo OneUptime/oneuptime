@@ -434,6 +434,10 @@ class TopContent extends Component {
                 <SubProjectDropDown
                     value={activeSubProject || 'Select Sub-Project'}
                     options={[
+                        {
+                            value: this.props.currentProject?._id,
+                            label: this.props.currentProject?.name,
+                        },
                         ...(this.props.subProjects &&
                         this.props.subProjects.length > 0
                             ? this.props.subProjects.map(subProject => ({
