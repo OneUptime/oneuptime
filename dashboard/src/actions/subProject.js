@@ -436,3 +436,10 @@ export function markSubProjectForDelete(projectId, subProjectId, feedback) {
         return promise;
     };
 }
+
+export function setActiveSubProject(subproject) {
+    return {
+        type: types.SET_ACTIVE_SUBPROJECT,
+        payload: subproject,
+    };
+}

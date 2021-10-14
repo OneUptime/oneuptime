@@ -37,6 +37,7 @@ const initialState = {
         error: null,
     },
     showDeleteModal: false,
+    activeSubProject: null,
 };
 
 export default function subProject(state = initialState, action) {
@@ -337,6 +338,12 @@ export default function subProject(state = initialState, action) {
             return Object.assign({}, state, {
                 currentSubProject: null,
             });
+
+        case types.SET_ACTIVE_SUBPROJECT:
+            return {
+                ...state,
+                activeSubProject: action.payload,
+            };
 
         default:
             return state;
