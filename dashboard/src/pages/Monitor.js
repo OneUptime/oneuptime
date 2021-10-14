@@ -51,7 +51,7 @@ class MonitorDashboardView extends Component {
         this.props
             .fetchPaginatedMonitors({
                 projectId,
-                skip: (skip || 0) > (limit || 3) ? skip - limit : 0,
+                skip: (skip || 0) > (limit || 5) ? skip - limit : 0,
                 limit,
                 componentSlug: this.props.componentSlug,
                 paginate: true,
@@ -221,7 +221,7 @@ class MonitorDashboardView extends Component {
         this.props.fetchPaginatedMonitors({
             projectId,
             skip: 0,
-            limit: 3,
+            limit: 5,
             componentSlug: this.props.componentSlug,
         });
     };
