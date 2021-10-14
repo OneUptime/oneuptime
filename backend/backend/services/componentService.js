@@ -416,6 +416,37 @@ module.exports = {
         }
     },
 
+    async getComponentsByPaginate(projectId, limit, skip) {
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            const _this = this;
+
+            const populate = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const select =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+
+            const [components, count] = await Promise.all([
+                _this.findBy({
+                    query: { projectId },
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                _this.countBy({ projectId }),
+            ]);
+            return { components, count, _id: projectId, skip, limit };
+        } catch (error) {
+            ErrorService.log('componentService.getComponentsByPaginate', error);
+            throw error;
+        }
+    },
+
     addSeat: async function(query) {
         try {
             const project = await ProjectService.findOneBy({

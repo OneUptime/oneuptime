@@ -804,6 +804,122 @@ module.exports = {
         }
     },
 
+    async getMonitorsBySubprojectsPaginate(
+        projectId,
+        componentId,
+        limit,
+        skip
+    ) {
+        try {
+            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof skip === 'string') skip = parseInt(skip);
+            const _this = this;
+
+            const select =
+                '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
+
+            const [monitors, count] = await Promise.all([
+                _this.findBy({
+                    query: { componentId },
+                    limit,
+                    skip,
+                    select,
+                    populate,
+                }),
+                _this.countBy({ componentId }),
+            ]);
+
+            const monitorsWithStatus = await Promise.all(
+                monitors.map(async monitor => {
+                    let monitorStatus;
+
+                    const incidentList = [];
+
+                    const monitorIncidents = await IncidentService.findBy({
+                        query: {
+                            'monitors.monitorId': monitor._id,
+                            resolved: false,
+                        },
+                        select: 'incidentType',
+                    });
+
+                    for (const incident of monitorIncidents) {
+                        incidentList.push(incident.incidentType);
+                    }
+
+                    if (monitor.disabled) {
+                        monitorStatus = 'disabled';
+                    } else if (incidentList.includes('offline')) {
+                        monitorStatus = 'offline';
+                    } else if (incidentList.includes('degraded')) {
+                        monitorStatus = 'degraded';
+                    } else {
+                        monitorStatus = 'online';
+                    }
+
+                    return {
+                        ...monitor,
+                        status: monitorStatus,
+                    };
+                })
+            );
+
+            const populateSchedule = [
+                { path: 'userIds', select: 'name' },
+                { path: 'createdById', select: 'name' },
+                { path: 'monitorIds', select: 'name' },
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
+                },
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name email',
+                    },
+                },
+            ];
+
+            const selectSchedule =
+                '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
+            const monitorsWithSchedules = await Promise.all(
+                monitorsWithStatus.map(async monitor => {
+                    const monitorSchedules = await ScheduleService.findBy({
+                        query: { monitorIds: monitor._id },
+                        select: selectSchedule,
+                        populate: populateSchedule,
+                    });
+                    return {
+                        ...monitor,
+                        schedules: monitorSchedules,
+                    };
+                })
+            );
+
+            return {
+                monitors: monitorsWithSchedules,
+                count,
+                _id: projectId,
+                skip,
+                limit,
+            };
+        } catch (error) {
+            ErrorService.log('monitorService.getMonitorsBySubprojects', error);
+            throw error;
+        }
+    },
+
     async getProbeMonitors(probeId, date) {
         try {
             const newdate = new Date();

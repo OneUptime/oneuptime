@@ -14,6 +14,7 @@ const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const ScheduleService = require('../services/scheduleService');
 const ProbeService = require('../services/probeService');
+const ComponentService = require('../services/componentService');
 const Api = require('../utils/api');
 
 const router = express.Router();
@@ -431,13 +432,58 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map(project => project._id)
             : null;
+
+        const { limit, skip } = req.query;
         // Call the MonitorService.
         const monitors = await MonitorService.getMonitorsBySubprojects(
             subProjectIds,
-            req.query.limit || 0,
-            req.query.skip || 0
+            limit || 0,
+            skip || 0
         );
         return sendItemResponse(req, res, monitors);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/:projectId/paginated', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        // const { projectId } = req.params;
+        const { skip, limit, componentSlug } = req.query;
+        let componentId = req.query.componentId;
+
+        let component;
+        if (!componentId) {
+            if (!componentSlug) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Provide either componentSlug or componentId as a query',
+                });
+            }
+
+            component = await ComponentService.findOneBy({
+                query: { slug: componentSlug },
+                select: '_id projectId',
+            });
+            componentId = component?._id;
+        } else {
+            component = await ComponentService.findOneBy({
+                query: { _id: componentId },
+                select: 'projectId',
+            });
+        }
+
+        const response = await MonitorService.getMonitorsBySubprojectsPaginate(
+            component.projectId,
+            componentId,
+            limit,
+            skip
+        );
+        return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

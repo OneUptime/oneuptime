@@ -26,6 +26,9 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 });
 
 class ApplicationLog extends Component {
+    state = {
+        showNewLogContainerForm: false,
+    };
     componentDidMount() {
         this.props.loadPage('Logs');
         if (SHOULD_LOG_ANALYTICS) {
@@ -68,6 +71,10 @@ class ApplicationLog extends Component {
     componentWillUnmount() {
         socket.removeListener(`createApplicationLog-${this.props.componentId}`);
     }
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showNewLogContainerForm: !prevState.showNewLogContainerForm,
+        }));
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -132,7 +139,13 @@ class ApplicationLog extends Component {
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Logs" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Logs"
+                    addBtn={applicationLogsList}
+                    btnText="Create New Log Container"
+                    toggleForm={this.toggleForm}
+                />
                 <div>
                     <div>
                         <ShouldRender if={this.props.applicationLog.requesting}>
@@ -155,13 +168,25 @@ class ApplicationLog extends Component {
                                         }
                                     />
                                 </ShouldRender>
-                                {applicationLogsList}
-                                <NewApplicationLog
-                                    index={2000}
-                                    formKey="NewApplicationLogForm"
-                                    componentId={this.props.componentId}
-                                    componentSlug={this.props.componentSlug}
-                                />
+                                {!this.state.showNewLogContainerForm &&
+                                    applicationLogsList &&
+                                    applicationLogsList}
+
+                                <ShouldRender
+                                    if={
+                                        this.state.showNewLogContainerForm ||
+                                        !applicationLogsList
+                                    }
+                                >
+                                    <NewApplicationLog
+                                        index={2000}
+                                        formKey="NewApplicationLogForm"
+                                        componentId={this.props.componentId}
+                                        componentSlug={this.props.componentSlug}
+                                        toggleForm={this.toggleForm}
+                                        showCancelBtn={applicationLogsList}
+                                    />
+                                </ShouldRender>
                             </div>
                         </ShouldRender>
                     </div>

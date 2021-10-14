@@ -16,6 +16,9 @@ import { fetchComponent } from '../actions/component';
 import PerformanceTrackerList from '../components/performanceTracker/PerformanceTrackerList';
 
 class PerformanceTracker extends Component {
+    state = {
+        showNewPerformanceTrackerForm: false,
+    };
     componentDidMount() {
         this.props.loadPage('Performance Tracker');
         if (SHOULD_LOG_ANALYTICS) {
@@ -88,6 +91,11 @@ class PerformanceTracker extends Component {
         );
     };
 
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showNewPerformanceTrackerForm: !prevState.showNewPerformanceTrackerForm,
+        }));
+
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -102,6 +110,9 @@ class PerformanceTracker extends Component {
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
+
+        const isEmpty =
+            this.props.performanceTrackerList.performanceTrackers.length === 0;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -115,7 +126,13 @@ class PerformanceTracker extends Component {
                     route={getParentRoute(pathname, null, 'component-tracker')}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Performance Tracker" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Performance Tracker"
+                    addBtn={!isEmpty}
+                    btnText="Create New Performance Tracker"
+                    toggleForm={this.toggleForm}
+                />
                 <div>
                     <div>
                         <ShouldRender
@@ -123,17 +140,29 @@ class PerformanceTracker extends Component {
                         >
                             <LoadingState />
                         </ShouldRender>
-                        {this.renderPerformanceTrackerList()}
+                        {!this.state.showNewPerformanceTrackerForm &&
+                            !isEmpty &&
+                            this.renderPerformanceTrackerList()}
                         <ShouldRender
                             if={!this.props.performanceTrackerList.requesting}
                         >
                             <div className="db-RadarRulesLists-page">
-                                <NewPerformanceTracker
-                                    index={2000}
-                                    formKey="NewPerformanceTrackerForm"
-                                    componentId={this.props.componentId}
-                                    componentSlug={this.props.componentSlug}
-                                />
+                                <ShouldRender
+                                    if={
+                                        this.state
+                                            .showNewPerformanceTrackerForm ||
+                                        isEmpty
+                                    }
+                                >
+                                    <NewPerformanceTracker
+                                        index={2000}
+                                        formKey="NewPerformanceTrackerForm"
+                                        componentId={this.props.componentId}
+                                        componentSlug={this.props.componentSlug}
+                                        toggleForm={this.toggleForm}
+                                        showCancelBtn={!isEmpty}
+                                    />
+                                </ShouldRender>
                             </div>
                         </ShouldRender>
                     </div>

@@ -267,6 +267,24 @@ class ApplicationSecurityForm extends Component {
                                     </div>
                                 </div>
                                 <div>
+                                    <ShouldRender
+                                        if={
+                                            this.props.showCancelBtn &&
+                                            this.props.toggleForm
+                                        }
+                                    >
+                                        <button
+                                            className="bs-Button"
+                                            disabled={
+                                                isRequesting ||
+                                                requestingGitCredentials
+                                            }
+                                            onClick={this.props.toggleForm}
+                                            type="button"
+                                        >
+                                            <span>Cancel</span>
+                                        </button>
+                                    </ShouldRender>
                                     <button
                                         id="addApplicationBtn"
                                         className="bs-Button bs-Button--blue"
@@ -311,6 +329,8 @@ ApplicationSecurityForm.propTypes = {
     requestingGitCredentials: PropTypes.bool,
     openModal: PropTypes.func,
     resourceCategoryList: PropTypes.array,
+    toggleForm: PropTypes.func,
+    showCancelBtn: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>

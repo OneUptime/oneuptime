@@ -24,9 +24,56 @@ import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
-import { fetchComponents } from '../actions/component';
+import {
+    fetchComponents,
+    fetchPaginatedComponents,
+} from '../actions/component';
 
 class ComponentDashboardView extends Component {
+    state = {
+        showNewComponentForm: false,
+        page: {},
+    };
+
+    prevClicked = (projectId, skip, limit) => {
+        this.props
+            .fetchPaginatedComponents({
+                projectId,
+                skip: (skip || 0) > (limit || 3) ? skip - limit : 0,
+                limit,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    const updatedPage = prevState.page;
+                    updatedPage[projectId] =
+                        !updatedPage[projectId] || updatedPage[projectId] === 1
+                            ? 1
+                            : updatedPage[projectId] - 1;
+
+                    return { page: updatedPage };
+                });
+            });
+    };
+
+    nextClicked = (projectId, skip, limit) => {
+        this.props
+            .fetchPaginatedComponents({
+                projectId,
+                skip: skip + limit,
+                limit,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    const updatedPage = prevState.page;
+                    updatedPage[projectId] = !updatedPage[projectId]
+                        ? 2
+                        : updatedPage[projectId] + 1;
+
+                    return { page: updatedPage };
+                });
+            });
+    };
+
     componentDidMount() {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
@@ -48,11 +95,17 @@ class ComponentDashboardView extends Component {
         this.props.destroy('NewComponent');
     }
 
+    toggleForm = () => {
+        this.setState(prevState => ({
+            showNewComponentForm: !prevState.showNewComponentForm,
+        }));
+    };
+
     ready = () => {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.fetchComponents(projectId);
+        this.props.fetchComponents({ projectId });
         this.props.getSmtpConfig(projectId);
         this.props.fetchMonitors(projectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
@@ -135,6 +188,17 @@ class ComponentDashboardView extends Component {
                                 projectType={'subproject'}
                                 projectName={subProject.name}
                                 components={subProjectComponent.components}
+                                skip={subProjectComponent.skip}
+                                limit={subProjectComponent.limit}
+                                count={subProjectComponent.count}
+                                page={this.state.page[subProject._id]}
+                                prevClicked={this.prevClicked}
+                                nextClicked={this.nextClicked}
+                                requestErrorObject={
+                                    this.props.component.componentList[
+                                        subProject._id
+                                    ]
+                                }
                             />
                         </div>
                     </div>
@@ -174,6 +238,17 @@ class ComponentDashboardView extends Component {
                             projectType={'project'}
                             projectName={'Project'}
                             components={projectComponent.components}
+                            skip={projectComponent.skip}
+                            count={projectComponent.count}
+                            limit={projectComponent.limit}
+                            page={this.state.page[currentProjectId]}
+                            prevClicked={this.prevClicked}
+                            nextClicked={this.nextClicked}
+                            requestErrorObject={
+                                this.props.component.componentList[
+                                    currentProjectId
+                                ]
+                            }
                         />
                     </div>
                 </div>
@@ -181,7 +256,7 @@ class ComponentDashboardView extends Component {
                 false
             );
 
-        components && components.unshift(projectComponent);
+        components && projectComponent && components.unshift(projectComponent);
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
 
@@ -194,7 +269,13 @@ class ComponentDashboardView extends Component {
                     slug={currentProject ? currentProject.slug : null}
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
-                <BreadCrumbItem route={pathname} name="Components" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Components"
+                    addBtn={components.length > 0 && components[0] !== false}
+                    btnText="Create New Component"
+                    toggleForm={this.toggleForm}
+                />
                 <ShouldRender
                     if={this.props.monitors && this.props.monitors.length > 0}
                 >
@@ -257,13 +338,39 @@ class ComponentDashboardView extends Component {
                                                         />
                                                     </ShouldRender>
 
-                                                    {components}
+                                                    {!this.state
+                                                        .showNewComponentForm &&
+                                                        components &&
+                                                        components.length > 0 &&
+                                                        components}
 
                                                     <RenderIfSubProjectAdmin>
-                                                        <NewComponent
-                                                            index={1000}
-                                                            formKey="NewComponentForm"
-                                                        />
+                                                        <ShouldRender
+                                                            if={
+                                                                this.state
+                                                                    .showNewComponentForm ||
+                                                                !components ||
+                                                                components.length ===
+                                                                    0 ||
+                                                                components[0] ===
+                                                                    false
+                                                            }
+                                                        >
+                                                            <NewComponent
+                                                                index={1000}
+                                                                formKey="NewComponentForm"
+                                                                toggleForm={
+                                                                    this
+                                                                        .toggleForm
+                                                                }
+                                                                showCancelBtn={
+                                                                    components.length >
+                                                                        0 &&
+                                                                    components[0] !==
+                                                                        false
+                                                                }
+                                                            />
+                                                        </ShouldRender>
                                                     </RenderIfSubProjectAdmin>
 
                                                     <RenderIfSubProjectMember>
@@ -375,6 +482,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorLogs,
             getSmtpConfig,
             fetchComponents,
+            fetchPaginatedComponents,
         },
         dispatch
     );
@@ -469,6 +577,7 @@ ComponentDashboardView.propTypes = {
     monitorListRequesting: PropTypes.bool,
     monitorsRequesting: PropTypes.bool,
     switchToProjectViewerNav: PropTypes.bool,
+    fetchPaginatedComponents: PropTypes.func,
 };
 
 ComponentDashboardView.displayName = 'ComponentDashboardView';
