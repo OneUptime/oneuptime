@@ -60,6 +60,7 @@ test_enterprise_backend:
         - sudo docker run --name bredis -p 6379:6379 -d redis:5.0.7 redis-server
         - sudo docker ps
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
         - sudo apt-get install -y nodejs
         - cd backend
         - npm ci
