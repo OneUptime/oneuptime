@@ -110,280 +110,280 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    test(
-        'Should create a new monitor in component and goto the details page after creating',
-        async done => {
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
-            const newMonitorName = `another-${monitorName}`;
-            await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.pageClick(page, 'input[id=name]');
-            await init.pageType(page, 'input[id=name]', newMonitorName);
-            await init.pageClick(page, '[data-testId=type_url]');
-            await init.pageWaitForSelector(page, '#url', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#url');
-            await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+    // test(
+    //     'Should create a new monitor in component and goto the details page after creating',
+    //     async done => {
+    //         // Navigate to Component details
+    //         await init.navigateToComponentDetails(componentName, page);
+    //         const newMonitorName = `another-${monitorName}`;
+    //         await init.pageWaitForSelector(page, '#form-new-monitor');
+    //         await init.pageClick(page, 'input[id=name]');
+    //         await init.pageType(page, 'input[id=name]', newMonitorName);
+    //         await init.pageClick(page, '[data-testId=type_url]');
+    //         await init.pageWaitForSelector(page, '#url', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, '#url');
+    //         await init.pageType(page, '#url', 'https://google.com');
+    //         await init.page$Eval(page, 'button[type=submit]', e => e.click());
 
-            let spanElement = await init.pageWaitForSelector(
-                page,
-                `#monitor-title-${newMonitorName}`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(newMonitorName);
+    //         let spanElement = await init.pageWaitForSelector(
+    //             page,
+    //             `#monitor-title-${newMonitorName}`
+    //         );
+    //         spanElement = await spanElement.getProperty('innerText');
+    //         spanElement = await spanElement.jsonValue();
+    //         spanElement.should.be.exactly(newMonitorName);
 
-            // check if the tabs on the details page are defined
-            const monitorTabsComponent = await init.pageWaitForSelector(
-                page,
-                `#customTabList`
-            );
-            expect(monitorTabsComponent).toBeDefined();
-            done();
-        },
-        operationTimeOut
-    );
+    //         // check if the tabs on the details page are defined
+    //         const monitorTabsComponent = await init.pageWaitForSelector(
+    //             page,
+    //             `#customTabList`
+    //         );
+    //         expect(monitorTabsComponent).toBeDefined();
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'should show the correct path on the breadcrumbs when viewing a particular monitor',
-        async done => {
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
-            const monitorDetailsBtn = `#more-details-${monitorName}`;
-            await init.pageWaitForSelector(page, monitorDetailsBtn, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, monitorDetailsBtn, e => e.click());
+    // test(
+    //     'should show the correct path on the breadcrumbs when viewing a particular monitor',
+    //     async done => {
+    //         // Navigate to Component details
+    //         await init.navigateToComponentDetails(componentName, page);
+    //         const monitorDetailsBtn = `#more-details-${monitorName}`;
+    //         await init.pageWaitForSelector(page, monitorDetailsBtn, {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.page$Eval(page, monitorDetailsBtn, e => e.click());
 
-            const projectSelector = `#cbUnnamedProject`;
-            const componentSelector = `#cb${componentName}`;
-            const monitorSelector = `#cb${monitorName}`;
-            await init.pageWaitForSelector(page, projectSelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, componentSelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, monitorSelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
+    //         const projectSelector = `#cbUnnamedProject`;
+    //         const componentSelector = `#cb${componentName}`;
+    //         const monitorSelector = `#cb${monitorName}`;
+    //         await init.pageWaitForSelector(page, projectSelector, {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageWaitForSelector(page, componentSelector, {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageWaitForSelector(page, monitorSelector, {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
 
-            const projectBreadcrumb = await page.evaluate(
-                projectSelector =>
-                    document.querySelector(projectSelector).textContent,
-                projectSelector
-            );
-            const componentBreadcrumb = await page.evaluate(
-                componentSelector =>
-                    document.querySelector(componentSelector).textContent,
-                componentSelector
-            );
-            const monitorBreadcrumb = await page.evaluate(
-                monitorSelector =>
-                    document.querySelector(monitorSelector).textContent,
-                monitorSelector
-            );
-            expect(projectBreadcrumb).toBe('Unnamed Project');
-            expect(componentBreadcrumb).toBe(componentName);
-            expect(monitorBreadcrumb).toBe(monitorName);
+    //         const projectBreadcrumb = await page.evaluate(
+    //             projectSelector =>
+    //                 document.querySelector(projectSelector).textContent,
+    //             projectSelector
+    //         );
+    //         const componentBreadcrumb = await page.evaluate(
+    //             componentSelector =>
+    //                 document.querySelector(componentSelector).textContent,
+    //             componentSelector
+    //         );
+    //         const monitorBreadcrumb = await page.evaluate(
+    //             monitorSelector =>
+    //                 document.querySelector(monitorSelector).textContent,
+    //             monitorSelector
+    //         );
+    //         expect(projectBreadcrumb).toBe('Unnamed Project');
+    //         expect(componentBreadcrumb).toBe(componentName);
+    //         expect(monitorBreadcrumb).toBe(monitorName);
 
-            done();
-        },
-        operationTimeOut
-    );
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'Should create a new log container in component',
-        async done => {
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
+    // test(
+    //     'Should create a new log container in component',
+    //     async done => {
+    //         // Navigate to Component details
+    //         await init.navigateToComponentDetails(componentName, page);
 
-            await init.pageWaitForSelector(page, '#logs');
-            await init.pageClick(page, '#logs');
+    //         await init.pageWaitForSelector(page, '#logs');
+    //         await init.pageClick(page, '#logs');
 
-            // Fill and submit New Application  log form
-            await init.pageWaitForSelector(page, '#form-new-application-log');
-            await init.pageType(page, 'input[id=name]', applicationLogName);
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+    //         // Fill and submit New Application  log form
+    //         await init.pageWaitForSelector(page, '#form-new-application-log');
+    //         await init.pageType(page, 'input[id=name]', applicationLogName);
+    //         await init.page$Eval(page, 'button[type=submit]', e => e.click());
 
-            let spanElement;
-            spanElement = await init.pageWaitForSelector(
-                page,
-                `span#application-log-title-${applicationLogName}`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(applicationLogName);
-            done();
-        },
-        operationTimeOut
-    );
+    //         let spanElement;
+    //         spanElement = await init.pageWaitForSelector(
+    //             page,
+    //             `span#application-log-title-${applicationLogName}`
+    //         );
+    //         spanElement = await spanElement.getProperty('innerText');
+    //         spanElement = await spanElement.jsonValue();
+    //         spanElement.should.be.exactly(applicationLogName);
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'Should create a new monitor in a new component and get list of resources',
-        async done => {
-            // Navigate to Components page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+    // test(
+    //     'Should create a new monitor in a new component and get list of resources',
+    //     async done => {
+    //         // Navigate to Components page
+    //         await page.goto(utils.DASHBOARD_URL, {
+    //             waitUntil: 'networkidle0',
+    //         });
+    //         await init.pageWaitForSelector(page, '#components');
+    //         await init.page$Eval(page, '#components', e => e.click());
 
-            // Fill and submit New Component form
-            await init.pageWaitForSelector(page, '#form-new-component');
-            await init.pageType(page, 'input[id=name]', newComponentName);
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+    //         // Fill and submit New Component form
+    //         await init.pageWaitForSelector(page, '#form-new-component');
+    //         await init.pageType(page, 'input[id=name]', newComponentName);
+    //         await init.page$Eval(page, 'button[type=submit]', e => e.click());
 
-            await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.pageClick(page, 'input[id=name]');
-            await init.pageType(page, 'input[id=name]', newMonitorName);
-            await init.pageClick(page, '[data-testId=type_url]');
-            await init.pageWaitForSelector(page, '#url', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#url');
-            await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
-            await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+    //         await init.pageWaitForSelector(page, '#form-new-monitor');
+    //         await init.pageClick(page, 'input[id=name]');
+    //         await init.pageType(page, 'input[id=name]', newMonitorName);
+    //         await init.pageClick(page, '[data-testId=type_url]');
+    //         await init.pageWaitForSelector(page, '#url', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, '#url');
+    //         await init.pageType(page, '#url', 'https://google.com');
+    //         await init.page$Eval(page, 'button[type=submit]', e => e.click());
+    //         await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
 
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+    //         await page.goto(utils.DASHBOARD_URL);
+    //         await init.pageWaitForSelector(page, '#components');
+    //         await init.page$Eval(page, '#components', e => e.click());
 
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             hidden: true,
+    //         });
 
-            await init.pageWaitForSelector(page, '#component0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+    //         await init.pageWaitForSelector(page, '#component0', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
 
-            const newComponentSelector = `#count_${newComponentName}`;
-            const componentSelector = `#count_${componentName}`;
+    //         const newComponentSelector = `#count_${newComponentName}`;
+    //         const componentSelector = `#count_${componentName}`;
 
-            await init.pageWaitForSelector(page, newComponentSelector);
-            const newResourceCount = await init.page$Eval(
-                page,
-                newComponentSelector,
-                elem => elem.textContent
-            );
-            expect(newResourceCount).toEqual('1 Resource');
+    //         await init.pageWaitForSelector(page, newComponentSelector);
+    //         const newResourceCount = await init.page$Eval(
+    //             page,
+    //             newComponentSelector,
+    //             elem => elem.textContent
+    //         );
+    //         expect(newResourceCount).toEqual('1 Resource');
 
-            await init.pageWaitForSelector(page, componentSelector);
-            const firstResourceCount = await init.page$Eval(
-                page,
-                componentSelector,
-                elem => elem.textContent
-            );
-            expect(firstResourceCount).toEqual('3 Resources');
-            done();
-        },
-        operationTimeOut
-    );
+    //         await init.pageWaitForSelector(page, componentSelector);
+    //         const firstResourceCount = await init.page$Eval(
+    //             page,
+    //             componentSelector,
+    //             elem => elem.textContent
+    //         );
+    //         expect(firstResourceCount).toEqual('3 Resources');
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'Should get list of resources and confirm their types match',
-        async done => {
-            // Navigate to Components page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+    // test(
+    //     'Should get list of resources and confirm their types match',
+    //     async done => {
+    //         // Navigate to Components page
+    //         await page.goto(utils.DASHBOARD_URL, {
+    //             waitUntil: 'networkidle0',
+    //         });
+    //         await init.pageWaitForSelector(page, '#components');
+    //         await init.page$Eval(page, '#components', e => e.click());
 
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             hidden: true,
+    //         });
 
-            await init.pageWaitForSelector(page, `#count_${componentName}`);
-            const firstResourceCount = await init.page$Eval(
-                page,
-                `#count_${componentName}`,
-                elem => elem.textContent
-            );
-            expect(firstResourceCount).toEqual('3 Resources');
+    //         await init.pageWaitForSelector(page, `#count_${componentName}`);
+    //         const firstResourceCount = await init.page$Eval(
+    //             page,
+    //             `#count_${componentName}`,
+    //             elem => elem.textContent
+    //         );
+    //         expect(firstResourceCount).toEqual('3 Resources');
 
-            let spanElement = await init.pageWaitForSelector(
-                page,
-                `#resource_type_${monitorName}`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
+    //         let spanElement = await init.pageWaitForSelector(
+    //             page,
+    //             `#resource_type_${monitorName}`
+    //         );
+    //         spanElement = await spanElement.getProperty('innerText');
+    //         spanElement = await spanElement.jsonValue();
 
-            expect(spanElement).toMatch('Website Monitor');
+    //         expect(spanElement).toMatch('Website Monitor');
 
-            spanElement = await init.pageWaitForSelector(
-                page,
-                `#resource_type_${applicationLogName}`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
+    //         spanElement = await init.pageWaitForSelector(
+    //             page,
+    //             `#resource_type_${applicationLogName}`
+    //         );
+    //         spanElement = await spanElement.getProperty('innerText');
+    //         spanElement = await spanElement.jsonValue();
 
-            expect(spanElement).toMatch('Log Container');
+    //         expect(spanElement).toMatch('Log Container');
 
-            spanElement = await init.pageWaitForSelector(
-                page,
-                `#resource_status_${applicationLogName}`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
+    //         spanElement = await init.pageWaitForSelector(
+    //             page,
+    //             `#resource_status_${applicationLogName}`
+    //         );
+    //         spanElement = await spanElement.getProperty('innerText');
+    //         spanElement = await spanElement.jsonValue();
 
-            expect(spanElement).toMatch('No Logs Yet');
-            done();
-        },
-        operationTimeOut
-    );
+    //         expect(spanElement).toMatch('No Logs Yet');
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'Should get list of resources and  navigate to each page',
-        async done => {
-            // Navigate to Components page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+    // test(
+    //     'Should get list of resources and  navigate to each page',
+    //     async done => {
+    //         // Navigate to Components page
+    //         await page.goto(utils.DASHBOARD_URL, {
+    //             waitUntil: 'networkidle0',
+    //         });
+    //         await init.pageWaitForSelector(page, '#components');
+    //         await init.page$Eval(page, '#components', e => e.click());
 
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             hidden: true,
+    //         });
 
-            await init.pageWaitForSelector(page, `#count_${componentName}`);
-            const firstResourceCount = await init.page$Eval(
-                page,
-                `#count_${componentName}`,
-                elem => elem.textContent
-            );
-            expect(firstResourceCount).toEqual('3 Resources'); // one log container and two monitor
+    //         await init.pageWaitForSelector(page, `#count_${componentName}`);
+    //         const firstResourceCount = await init.page$Eval(
+    //             page,
+    //             `#count_${componentName}`,
+    //             elem => elem.textContent
+    //         );
+    //         expect(firstResourceCount).toEqual('3 Resources'); // one log container and two monitor
 
-            await init.page$Eval(
-                page,
-                `#view-resource-${applicationLogName}`,
-                e => e.click()
-            );
+    //         await init.page$Eval(
+    //             page,
+    //             `#view-resource-${applicationLogName}`,
+    //             e => e.click()
+    //         );
 
-            let spanElement = await init.pageWaitForSelector(
-                page,
-                `#application-log-title-${applicationLogName}`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
+    //         let spanElement = await init.pageWaitForSelector(
+    //             page,
+    //             `#application-log-title-${applicationLogName}`
+    //         );
+    //         spanElement = await spanElement.getProperty('innerText');
+    //         spanElement = await spanElement.jsonValue();
 
-            expect(spanElement).toMatch(applicationLogName);
-            done();
-        },
-        operationTimeOut
-    );
+    //         expect(spanElement).toMatch(applicationLogName);
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 });
