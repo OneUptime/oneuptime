@@ -131,15 +131,11 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => project._id)
-            : null;
-
         const { limit, skip } = req.query;
 
         // Call the ComponentService.
         const components = await ComponentService.getComponentsBySubprojects(
-            subProjectIds,
+            [req.params.projectId],
             limit || 0,
             skip || 0
         );
