@@ -435,7 +435,6 @@ describe('Container Security Page', () => {
                 }
             );
             await init.pageClick(page, '#deleteContainerSecurityModalBtn');
-            //await page.waitForNavigation();
 
             const containerSecurity = await init.pageWaitForSelector(
                 page,
