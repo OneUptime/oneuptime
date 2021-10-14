@@ -130,57 +130,53 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    test(
-        'should scan a container security',
-        async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#components', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#components');
+    test('should scan a container security', async done => {
+        await page.goto(utils.DASHBOARD_URL);
+        await init.pageWaitForSelector(page, '#components', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, '#components');
 
-            await init.pageWaitForSelector(page, '#component0', {
+        await init.pageWaitForSelector(page, '#component0', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, `#more-details-${component}`);
+        await init.pageWaitForSelector(page, '#security', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, '#security');
+        await init.pageWaitForSelector(page, '#container', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, '#container');
+        await init.pageWaitForSelector(page, '#largeSpinner', {
+            hidden: true,
+        });
+        await init.pageWaitForSelector(
+            page,
+            `#scanningContainerSecurity_${containerSecurityName}`,
+            { hidden: true, timeout: 600000 }
+        );
+        await init.pageClick(
+            page,
+            `#moreContainerSecurity_${containerSecurityName}`
+        );
+        const issueCount = await init.pageWaitForSelector(
+            page,
+            '#vulnerabilities',
+            {
                 visible: true,
                 timeout: init.timeout,
-            });
-            await init.pageClick(page, `#more-details-${component}`);
-            await init.pageWaitForSelector(page, '#security', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#security');
-            await init.pageWaitForSelector(page, '#container', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#container');
-            await init.pageWaitForSelector(page, '#largeSpinner', {
-                hidden: true,
-            });
-            await init.pageWaitForSelector(
-                page,
-                `#scanningContainerSecurity_${containerSecurityName}`,
-                { hidden: true, timeout: 600000 } //Pinging takes 5 minutes and scanning takes some more time
-            );
-            await init.pageClick(
-                page,
-                `#moreContainerSecurity_${containerSecurityName}`
-            );
-            const issueCount = await init.pageWaitForSelector(
-                page,
-                '#vulnerabilities',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
-            expect(issueCount).toBeDefined();
+            }
+        );
+        expect(issueCount).toBeDefined();
 
-            done();
-        },
-        operationTimeOut
-    );
+        done();
+    }, 600000);
 
     test(
         'should view details of the security log',
@@ -439,7 +435,7 @@ describe('Container Security Page', () => {
                 }
             );
             await init.pageClick(page, '#deleteContainerSecurityModalBtn');
-            await page.waitForNavigation();
+            //await page.waitForNavigation();
 
             const containerSecurity = await init.pageWaitForSelector(
                 page,
