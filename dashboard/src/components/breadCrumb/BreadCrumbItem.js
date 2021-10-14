@@ -15,7 +15,7 @@ function BreadCrumbItem({
     containerType,
     icon,
     switchToProjectViewerNav,
-    addBtn,
+    // addBtn,
     btnText,
     toggleForm,
 }) {
@@ -40,7 +40,8 @@ function BreadCrumbItem({
     const titleElement = document.querySelector('#page-title-wrapper');
 
     const [isShowing, setIsShowing] = useState(false);
-    if (addBtn && !isShowing) {
+    // if(addBtn && !isShowing){}
+    if (!isShowing) {
         const wrapContainer = document.querySelector('#breadcrumb-wrap');
 
         if (wrapContainer && btnText) {
@@ -140,7 +141,7 @@ BreadCrumbItem.propTypes = {
     containerType: PropTypes.string,
     icon: PropTypes.string,
     switchToProjectViewerNav: PropTypes.bool,
-    addBtn: PropTypes.bool,
+    // addBtn: PropTypes.bool,
     btnText: PropTypes.string,
     toggleForm: PropTypes.func,
 };
