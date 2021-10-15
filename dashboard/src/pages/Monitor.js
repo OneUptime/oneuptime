@@ -266,7 +266,7 @@ class MonitorDashboardView extends Component {
         const currentProjectSlug = currentProject ? currentProject.slug : null;
 
         // SubProject Monitors List
-        const monitors =
+        let monitors =
             subProjects &&
             subProjects.map((subProject, i) => {
                 const subProjectMonitor = this.props.monitor.paginatedMonitorsList.monitors.find(
@@ -382,6 +382,9 @@ class MonitorDashboardView extends Component {
             );
 
         monitors && projectMonitor && monitors.unshift(projectMonitor);
+        monitors = monitors.filter(
+            monitor => monitor && typeof monitor === 'object'
+        );
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
