@@ -106,14 +106,13 @@ class ComponentDashboardView extends Component {
     };
 
     ready = () => {
-        const projectId = this.props.activeProjectId
-            ? this.props.activeProjectId
-            : this.props.currentProject
+        const { activeProjectId } = this.props;
+        const currentProjectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.fetchComponents({ projectId });
-        this.props.getSmtpConfig(projectId);
-        this.props.fetchMonitors(projectId).then(() => {
+        this.props.fetchComponents({ projectId: activeProjectId });
+        this.props.getSmtpConfig(currentProjectId);
+        this.props.fetchMonitors(activeProjectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
                     subProject.monitors.forEach(monitor => {
@@ -153,11 +152,7 @@ class ComponentDashboardView extends Component {
             switchToProjectViewerNav,
             activeProjectId,
         } = this.props;
-        const currentProjectId = activeProjectId
-            ? activeProjectId
-            : currentProject
-            ? currentProject._id
-            : null;
+        const currentProjectId = activeProjectId;
         let allComponents = this.props.component.componentList.components
             .map(component => component.components)
             .flat();
@@ -494,9 +489,7 @@ const mapStateToProps = state => {
         monitorListRequesting: state.monitor.monitorsList.requesting,
         monitorsRequesting: state.monitor.monitorsList.monitors.requesting,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-        activeProjectId:
-            state.subProject?.activeSubProject ||
-            state.project.currentProject?._id,
+        activeProjectId: state.subProject?.activeSubProject,
     };
 };
 
