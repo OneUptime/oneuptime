@@ -30,7 +30,11 @@ import { fetchUnresolvedIncidents, resetUnresolvedIncidents } from './incident';
 import { fetchNotifications, fetchNotificationsReset } from './notification';
 import { fetchAlert, resetAlert } from './alert';
 import { deleteProjectIncidents } from './incident';
-import { getSubProjects, resetSubProjects } from './subProject';
+import {
+    getSubProjects,
+    resetSubProjects,
+    setActiveSubProject,
+} from './subProject';
 import { resetFetchComponentResources } from './component';
 import errors from '../errors';
 import isMainProjectViewer from '../utils/isMainProjectViewer';
@@ -352,6 +356,7 @@ export function switchProject(dispatch, project, subProjects = []) {
     dispatch(fetchNotificationsReset());
     dispatch(resetFetchTutorial());
     dispatch(resetFetchComponentResources());
+    dispatch(setActiveSubProject(project._id));
 
     getSubProjects(project._id)(dispatch);
     fetchAlert(project._id)(dispatch);
