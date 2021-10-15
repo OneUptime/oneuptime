@@ -233,6 +233,8 @@ describe('Components', () => {
             await init.page$Eval(page, '#components', e => e.click());
 
             // Fill and submit New Component form with incorrect details
+            await init.pageWaitForSelector(page, '#cbComponents');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-component');
             await init.pageWaitForSelector(page, '#name');
             await init.page$Eval(page, 'button[type=submit]', e => e.click());
