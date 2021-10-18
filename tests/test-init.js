@@ -961,6 +961,39 @@ const _this = {
             visible: true,
         });
     },
+    addAdditionalMonitorToComponent: async function(
+        page,
+        componentName,
+        monitorName
+    ) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+            timeout: _this.timeout,
+        });
+        await _this.pageWaitForSelector(page, '#components');
+        await _this.pageClickNavigate(page, '#components');
+        await _this.pageWaitForSelector(page, '#component0');
+        await _this.pageWaitForSelector(page, `#more-details-${componentName}`);
+        await _this.pageClickNavigate(page, `#more-details-${componentName}`);
+        await _this.pageWaitForSelector(page, '#cbMonitors');
+        await _this.pageClick(page, '#newFormId');
+        await _this.pageWaitForSelector(page, '#form-new-monitor');
+        await _this.pageWaitForSelector(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
+        await page.focus('input[id=name]');
+        await _this.pageType(page, 'input[id=name]', monitorName);
+        await _this.pageClick(page, '[data-testId=type_url]');
+        await _this.pageWaitForSelector(page, '#url', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#url');
+        await _this.pageType(page, '#url', 'https://google.com');
+        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
+            visible: true,
+        });
+    },
     /**
      *  adds an api monitor with js expressions for up and degraded events
      * @param {*} page a page instance of puppeteer
