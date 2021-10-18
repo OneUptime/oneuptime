@@ -53,7 +53,11 @@ describe('Status Page', () => {
         await init.addComponent(componentName, page);
         await init.addNewMonitorToComponent(page, componentName, monitorName);
         // Creates the second monitor
-        await init.addNewMonitorToComponent(page, componentName, monitorName1);
+        await init.addAdditionalMonitorToComponent(
+            page,
+            componentName,
+            monitorName1
+        );
     });
 
     afterAll(async done => {
