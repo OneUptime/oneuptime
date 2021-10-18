@@ -28,7 +28,7 @@ import { setActiveSubProject } from '../../actions/subProject';
 import SubProjectDropDown from '../basic/SubProjectDropDown';
 class TopContent extends Component {
     handleChange = value => {
-        this.props.setActiveSubProject(value);
+        this.props.setActiveSubProject(value, true);
     };
 
     componentDidMount() {
@@ -436,7 +436,7 @@ class TopContent extends Component {
                     options={[
                         {
                             value: this.props.currentProject?._id,
-                            label: this.props.currentProject?.name,
+                            label: `${this.props.currentProject?.name} (main project)`,
                         },
                         ...(this.props.subProjects &&
                         this.props.subProjects.length > 0
@@ -452,7 +452,10 @@ class TopContent extends Component {
                 <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                         <ShouldRender if={isNotViewer && renderSearch}>
-                            <div className="db-Search-wrapper">
+                            <div
+                                className="db-Search-wrapper"
+                                style={{ marginRight: 15 }}
+                            >
                                 <Search />
                             </div>
                         </ShouldRender>
