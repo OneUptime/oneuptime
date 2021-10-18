@@ -345,6 +345,14 @@ export function switchProject(dispatch, project, subProjects = []) {
         history.push(`/dashboard/project/${project.slug}`);
     }
 
+    if (!User.getActiveSubProjectId('active_subproject_id')) {
+        dispatch(setActiveSubProject(project._id, true));
+    }
+
+    const activeSubProjectId = User.getActiveSubProjectId(
+        'active_subproject_id'
+    );
+
     dispatch(resetSubProjects());
     dispatch(resetAlert());
     dispatch(resetSchedule());
@@ -356,18 +364,18 @@ export function switchProject(dispatch, project, subProjects = []) {
     dispatch(fetchNotificationsReset());
     dispatch(resetFetchTutorial());
     dispatch(resetFetchComponentResources());
-    dispatch(setActiveSubProject(project._id));
+    dispatch(setActiveSubProject(activeSubProjectId));
 
     getSubProjects(project._id)(dispatch);
-    fetchAlert(project._id)(dispatch);
-    fetchSubProjectStatusPages(project._id)(dispatch);
-    fetchComponents({ projectId: project._id })(dispatch); // default skip = 0, limit = 3
-    fetchMonitors(project._id)(dispatch);
+    fetchAlert(activeSubProjectId)(dispatch);
+    fetchSubProjectStatusPages(activeSubProjectId)(dispatch);
+    fetchComponents({ projectId: activeSubProjectId })(dispatch); // default skip = 0, limit = 3
+    fetchMonitors(activeSubProjectId)(dispatch);
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);
     fetchUnresolvedIncidents(project._id, true)(dispatch);
-    fetchSchedules(project._id)(dispatch);
-    fetchSubProjectSchedules(project._id)(dispatch);
+    fetchSchedules(activeSubProjectId)(dispatch);
+    fetchSubProjectSchedules(activeSubProjectId)(dispatch);
     fetchNotifications(project._id)(dispatch);
     fetchTutorial()(dispatch);
     User.setProject(JSON.stringify(project));
