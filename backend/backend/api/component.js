@@ -436,8 +436,8 @@ router.get(
                 monitors,
                 containerSecurity,
                 applicationSecurity,
-                applicationLogs,
-                errorTrackers,
+                applicationLogObj,
+                errorTrackerObj,
                 performanceTrackers,
             ] = await Promise.all([
                 MonitorService.findBy({
@@ -570,7 +570,7 @@ router.get(
             );
 
             await Promise.all(
-                applicationLogs.map(async elem => {
+                applicationLogObj.applicationLogs.map(async elem => {
                     let logStatus = 'No logs yet';
                     // confirm if the application log has started collecting logs or not
                     const logs = await LogService.getLogsByApplicationLogId(
@@ -596,7 +596,7 @@ router.get(
             );
 
             await Promise.all(
-                errorTrackers.map(async errorTracker => {
+                errorTrackerObj.errorTrackers.map(async errorTracker => {
                     let errorStatus = 'No Errors yet';
 
                     const populateIssue = [
