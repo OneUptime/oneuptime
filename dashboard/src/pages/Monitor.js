@@ -63,7 +63,6 @@ class MonitorDashboardView extends Component {
                             prevState.page === 1
                                 ? prevState.page
                                 : prevState.page - 1,
-                        requestingNextPage: false,
                     };
                 });
             });
