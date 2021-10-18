@@ -341,6 +341,8 @@ export function switchProject(dispatch, project, subProjects = []) {
             history.push(`/dashboard/project/${project.slug}`);
         }
         User.setCurrentProjectId(project._id);
+
+        dispatch(setActiveSubProject(project._id, true));
     } else if (historyProjectId && historyProjectId === '/') {
         history.push(`/dashboard/project/${project.slug}`);
     }
