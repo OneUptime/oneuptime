@@ -208,11 +208,7 @@ class IncidentLog extends React.Component {
             switchToProjectViewerNav,
             activeProjectId,
         } = this.props;
-        const currentProjectId = activeProjectId
-            ? activeProjectId
-            : currentProject
-            ? currentProject._id
-            : null;
+        const currentProjectId = activeProjectId;
 
         // Add Project Incidents to All Incidents List
         let projectIncident =
