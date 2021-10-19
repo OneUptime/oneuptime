@@ -57,7 +57,7 @@ export function ApplicationLogList(props) {
                                             </span>{' '}
                                             {count > 1
                                                 ? 'total application logs'
-                                                : 'Application logs'}{' '}
+                                                : 'Application log'}{' '}
                                         </ShouldRender>
                                         )
                                     </ShouldRender>
@@ -66,7 +66,7 @@ export function ApplicationLogList(props) {
                                             {count}{' '}
                                             {count > 1
                                                 ? 'total application logs'
-                                                : 'Application logs'}
+                                                : 'Application log'}
                                         </span>
                                     </ShouldRender>
                                 </span>

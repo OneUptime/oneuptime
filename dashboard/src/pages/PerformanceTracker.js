@@ -276,8 +276,8 @@ class PerformanceTracker extends Component {
                                                                 {count}
                                                             </span>{' '}
                                                             {count > 1
-                                                                ? 'total application logs'
-                                                                : 'Application logs'}{' '}
+                                                                ? 'total performance trackers'
+                                                                : 'Performance tracker'}{' '}
                                                         </ShouldRender>
                                                         )
                                                     </ShouldRender>
@@ -290,7 +290,7 @@ class PerformanceTracker extends Component {
                                                             {count}{' '}
                                                             {count > 1
                                                                 ? 'total application logs'
-                                                                : 'Application logs'}
+                                                                : 'Performance tracker'}
                                                         </span>
                                                     </ShouldRender>
                                                 </span>

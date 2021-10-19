@@ -492,8 +492,9 @@ export const getApplicationSecurityBySlug = ({
 };
 
 // Get all Application Security
-export const getApplicationSecuritiesRequest = () => ({
+export const getApplicationSecuritiesRequest = fetchingPage => ({
     type: types.GET_APPLICATION_SECURITIES_REQUEST,
+    payload: fetchingPage,
 });
 
 export const getApplicationSecuritiesSuccess = payload => ({
@@ -509,12 +510,15 @@ export const getApplicationSecuritiesFailure = error => ({
 export const getApplicationSecurities = ({
     projectId,
     componentId,
+    skip = 0,
+    limit = 0,
+    fetchingPage = false,
 }) => async dispatch => {
-    dispatch(getApplicationSecuritiesRequest());
+    dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
     try {
         const response = await getApi(
-            `security/${projectId}/${componentId}/application`
+            `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
         );
         dispatch(getApplicationSecuritiesSuccess(response.data));
     } catch (error) {

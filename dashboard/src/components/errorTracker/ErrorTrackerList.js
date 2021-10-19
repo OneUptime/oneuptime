@@ -55,7 +55,7 @@ export function ErrorTrackerList(props) {
                                             </span>{' '}
                                             {count > 1
                                                 ? 'total error trackers'
-                                                : 'Error trackers'}{' '}
+                                                : 'Error tracker'}{' '}
                                         </ShouldRender>
                                         )
                                     </ShouldRender>
@@ -64,7 +64,7 @@ export function ErrorTrackerList(props) {
                                             {count}{' '}
                                             {count > 1
                                                 ? 'total error trackers'
-                                                : 'Error trackers'}
+                                                : 'Error tracker'}
                                         </span>
                                     </ShouldRender>
                                 </span>
