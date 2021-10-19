@@ -731,6 +731,35 @@ const _this = {
             page.waitForNavigation(),
         ]);
     },
+    addAdditionalComponent: async function(
+        component,
+        page,
+        projectName = null
+    ) {
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
+        await _this.pageWaitForSelector(page, '#components', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClickNavigate(page, '#components');
+
+        // Fill and submit New Component form
+        await _this.pageWaitForSelector(page, '#cbComponents');
+        await _this.pageClick(page, '#newFormId');
+        await _this.pageWaitForSelector(page, '#form-new-component');
+        await _this.pageClick(page, 'input[id=name]');
+        await page.focus('input[id=name]');
+        await _this.pageType(page, 'input[id=name]', component);
+
+        if (projectName) {
+            await _this.selectDropdownValue('#subProjectId', projectName, page);
+        }
+
+        await Promise.all([
+            page.$eval('button[type=submit]', e => e.click()),
+            page.waitForNavigation(),
+        ]);
+    },
 
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page

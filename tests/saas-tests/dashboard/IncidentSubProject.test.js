@@ -46,7 +46,11 @@ describe('Incident API With SubProjects', () => {
             await init.addSubProject(subProjectName, page);
             // Create Component
             await init.addComponent(componentName, page, subProjectName);
-            await init.addComponent(newComponentName, page, subProjectName);
+            await init.addAdditionalComponent(
+                newComponentName,
+                page,
+                subProjectName
+            );
             await page.goto(utils.DASHBOARD_URL);
             // add new user to sub-project
             await init.addUserToProject(
@@ -65,7 +69,7 @@ describe('Incident API With SubProjects', () => {
                 projectMonitorName
             );
             // add new monitor to sub-project
-            await init.addNewMonitorToComponent(
+            await init.addAdditionalMonitorToComponent(
                 page,
                 componentName,
                 projectMonitorName1
@@ -98,6 +102,10 @@ describe('Incident API With SubProjects', () => {
             await init.page$Eval(page, '#closeIncident_0', elem =>
                 elem.click()
             );
+            await page.reload({
+                waitUntil: 'networkidle0',
+                timeout: init.timeout,
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -323,8 +331,8 @@ describe('Incident API With SubProjects', () => {
                 page,
                 `#form-new-incident-${type}-message`
             );
-            await init.pageClick(page, `textarea[id=new-${type}]`);
-            await init.pageType(page, `textarea[id=new-${type}]`, internalNote);
+            await init.pageClick(page, '#incident_description');
+            await init.pageType(page, '#incident_description', internalNote);
             await init.selectDropdownValue(
                 '#incident_state',
                 'investigating',

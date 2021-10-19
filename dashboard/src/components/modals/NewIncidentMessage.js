@@ -376,6 +376,7 @@ class NewIncidentMessage extends Component {
                                                                 component={
                                                                     RenderCodeEditor
                                                                 }
+                                                                id="incident_description"
                                                                 mode="markdown"
                                                                 height="150px"
                                                                 width="100%"
