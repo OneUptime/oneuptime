@@ -176,7 +176,6 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#edit_${type}_incident_message_0`);
 
             // edit investigation message thread form
-            // await init.pageWaitForSelector(page, `#edit-${type}`);
             await init.pageClick(page, '#incident_description');
             await init.pageType(page, '#incident_description', '-updated');
             await init.selectDropdownValue('#incident_state', 'update', page);

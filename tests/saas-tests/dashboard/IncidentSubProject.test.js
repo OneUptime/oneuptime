@@ -94,7 +94,7 @@ describe('Incident API With SubProjects', () => {
                 hidden: true,
             });
 
-            // // close incident modal
+            // close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
