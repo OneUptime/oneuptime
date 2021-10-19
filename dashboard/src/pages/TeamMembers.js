@@ -13,9 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
 import PropTypes from 'prop-types';
-import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
-import ShouldRender from '../components/basic/ShouldRender';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -74,67 +72,6 @@ const LoadedTeam = props => {
     } = props;
     const membersPerPage = 10;
 
-    // SubProject TeamMembers List
-    const allTeamMembers =
-        subProjects &&
-        subProjects.map((subProject, i) => {
-            const teamMembers = team.subProjectTeamMembers.find(
-                subProjectTeamMember =>
-                    subProjectTeamMember._id === subProject._id
-            );
-            return teamMembers && teamMembers.teamMembers ? (
-                <RenderIfUserInSubProject
-                    subProjectId={teamMembers._id}
-                    key={i}
-                >
-                    <div className="bs-BIM" key={i}>
-                        <div className="Box-root Margin-bottom--12">
-                            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                <ShouldRender if={subProjects.length > 0}>
-                                    <div className="Box-root Padding-top--20 Padding-left--20">
-                                        <Badge color={'blue'}>
-                                            {subProject.name}
-                                        </Badge>
-                                    </div>
-                                </ShouldRender>
-                                <TeamMemberProjectBox
-                                    paginate={props.paginate}
-                                    canPaginateBackward={
-                                        pages[teamMembers._id] &&
-                                        pages[teamMembers._id] > 1
-                                            ? true
-                                            : false
-                                    }
-                                    canPaginateForward={
-                                        teamMembers.count &&
-                                        teamMembers.count >
-                                            (pages[teamMembers._id] || 1) *
-                                                membersPerPage
-                                            ? true
-                                            : false
-                                    }
-                                    teamMembers={teamMembers}
-                                    team={props.team}
-                                    subProjectName={subProject.name}
-                                    currentProjectId={currentProjectId}
-                                    inviteModalId={inviteModalId}
-                                    openModal={props.openModal}
-                                    pages={pages}
-                                    membersPerPage={membersPerPage}
-                                    allTeamLength={
-                                        team.subProjectTeamMembers.length
-                                    }
-                                    modalList={modalList}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </RenderIfUserInSubProject>
-            ) : (
-                false
-            );
-        });
-
     // Add Project TeamMembers to All TeamMembers List
     let projectTeamMembers = team.subProjectTeamMembers.find(
         subProjectTeamMember => subProjectTeamMember._id === currentProjectId
@@ -149,11 +86,6 @@ const LoadedTeam = props => {
                 <div className="bs-BIM">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">
-                            <ShouldRender if={subProjects.length > 0}>
-                                <div className="Box-root Padding-top--20 Padding-left--20">
-                                    <Badge color={'red'}>Project</Badge>
-                                </div>
-                            </ShouldRender>
                             <TeamMemberProjectBox
                                 paginate={props.paginate}
                                 canPaginateBackward={
@@ -173,9 +105,11 @@ const LoadedTeam = props => {
                                 teamMembers={projectTeamMembers}
                                 team={props.team}
                                 subProjectName={
-                                    props.currentProject
-                                        ? props.currentProject.name
-                                        : null
+                                    (props.subProjects &&
+                                        props.subProjects.find(
+                                            obj => obj._id === currentProjectId
+                                        )?.name) ||
+                                    props.currentProject?.name
                                 }
                                 currentProjectId={currentProjectId}
                                 inviteModalId={inviteModalId}
@@ -196,7 +130,7 @@ const LoadedTeam = props => {
             false
         );
 
-    allTeamMembers && allTeamMembers.unshift(projectTeamMembers);
+    const allTeamMembers = projectTeamMembers && [projectTeamMembers];
     return allTeamMembers;
 };
 
@@ -234,8 +168,8 @@ class TeamApp extends Component {
     }
 
     componentDidMount() {
-        if (this.props.currentProject) {
-            this.props.subProjectTeamLoading(this.props.currentProject._id);
+        if (this.props.activeProjectId) {
+            this.props.subProjectTeamLoading(this.props.activeProjectId);
         }
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > TEAM MEMBERS');
@@ -243,8 +177,8 @@ class TeamApp extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.currentProject !== this.props.currentProject) {
-            this.props.subProjectTeamLoading(this.props.currentProject._id);
+        if (prevProps.activeProjectId !== this.props.activeProjectId) {
+            this.props.subProjectTeamLoading(this.props.activeProjectId);
         }
     }
 
@@ -309,10 +243,7 @@ class TeamApp extends Component {
                                             paginate={this.props.paginate}
                                             subProjects={this.props.subProjects}
                                             currentProjectId={
-                                                this.props.currentProject
-                                                    ? this.props.currentProject
-                                                          ._id
-                                                    : null
+                                                this.props.activeProjectId
                                             }
                                             parent={pathname}
                                             modalList={this.props.modalList}
@@ -340,6 +271,7 @@ TeamApp.propTypes = {
     }),
     modalList: PropTypes.array,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
 };
 
 const mapStateToProps = state => {
@@ -360,6 +292,7 @@ const mapStateToProps = state => {
         subProjects,
         modalList: state.modal.modals,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 

@@ -13,7 +13,7 @@ import {
     scanApplicationSecuritySuccess,
     getApplicationSecuritySuccess,
 } from '../actions/security';
-import { LargeSpinner } from '../components/basic/Loader';
+import { LargeSpinner, ListLoader } from '../components/basic/Loader';
 import { fetchComponent } from '../actions/component';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -32,6 +32,46 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 class Application extends Component {
     state = {
         showApplicationSecurityForm: false,
+        page: 1,
+    };
+
+    prevClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .getApplicationSecurities({
+                projectId,
+                componentId,
+                skip: (skip || 0) > (limit || 5) ? skip - limit : 0,
+                limit,
+                fetchingPage: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page:
+                            prevState.page === 1
+                                ? prevState.page
+                                : prevState.page - 1,
+                    };
+                });
+            });
+    };
+
+    nextClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .getApplicationSecurities({
+                projectId,
+                componentId,
+                skip: skip + limit,
+                limit,
+                fetchingPage: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page: prevState.page + 1,
+                    };
+                });
+            });
     };
 
     componentDidMount() {
@@ -54,7 +94,12 @@ class Application extends Component {
             getApplicationSecurityLogs({ projectId, componentId });
 
             // load container security
-            getApplicationSecurities({ projectId, componentId });
+            getApplicationSecurities({
+                projectId,
+                componentId,
+                skip: 0,
+                limit: 5,
+            });
         }
     }
 
@@ -80,7 +125,12 @@ class Application extends Component {
                 getApplicationSecurityLogs({ projectId, componentId });
 
                 // load container security
-                getApplicationSecurities({ projectId, componentId });
+                getApplicationSecurities({
+                    projectId,
+                    componentId,
+                    skip: 0,
+                    limit: 5,
+                });
             }
         }
     }
@@ -104,7 +154,21 @@ class Application extends Component {
             getApplicationSecuritySuccess,
             currentProject,
             switchToProjectViewerNav,
+            skip,
+            limit,
+            count,
+            fetchingPage,
+            numberOfPage,
+            error,
         } = this.props;
+
+        const page = this.state.page;
+        const canNext =
+            appSecurities && count && count > skip + limit ? true : false;
+        const canPrev = appSecurities && skip <= 0 ? false : true;
+        const numberOfPages = numberOfPage
+            ? numberOfPage
+            : Math.ceil(parseInt(count) / limit);
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
@@ -230,6 +294,152 @@ class Application extends Component {
                                         </div>
                                     </div>
                                 </span>
+                                <ShouldRender
+                                    if={
+                                        !gettingApplicationSecurities &&
+                                        !gettingSecurityLogs &&
+                                        !this.state
+                                            .showApplicationSecurityForm &&
+                                        !isEmpty
+                                    }
+                                >
+                                    <div
+                                        className="Box-root Card-shadow--medium"
+                                        tabIndex="0"
+                                    >
+                                        <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        <span
+                                                            id={`applicationsecurity_count`}
+                                                            className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
+                                                        >
+                                                            <ShouldRender
+                                                                if={
+                                                                    numberOfPages >
+                                                                    0
+                                                                }
+                                                            >
+                                                                Page{' '}
+                                                                {page
+                                                                    ? page
+                                                                    : 1}{' '}
+                                                                of{' '}
+                                                                {numberOfPages}{' '}
+                                                                (
+                                                                <ShouldRender
+                                                                    if={
+                                                                        appSecurities
+                                                                    }
+                                                                >
+                                                                    <span id="numberOfApplicationSecurities">
+                                                                        {count}
+                                                                    </span>{' '}
+                                                                    {count > 1
+                                                                        ? 'total application securities'
+                                                                        : 'Application security'}{' '}
+                                                                </ShouldRender>
+                                                                )
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !(
+                                                                        numberOfPages >
+                                                                        0
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span id="numberOfApplicationSecurities">
+                                                                    {count}{' '}
+                                                                    {count > 1
+                                                                        ? 'total application securities'
+                                                                        : 'Application security'}
+                                                                </span>
+                                                            </ShouldRender>
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            {fetchingPage ? (
+                                                <ListLoader />
+                                            ) : null}
+                                            {error ? (
+                                                <div
+                                                    style={{
+                                                        color: 'red',
+                                                    }}
+                                                >
+                                                    {error}
+                                                </div>
+                                            ) : null}
+                                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                    <div className="Box-root Margin-right--8">
+                                                        <button
+                                                            id="btnPrev"
+                                                            onClick={() =>
+                                                                this.prevClicked(
+                                                                    projectId,
+                                                                    componentId,
+                                                                    skip,
+                                                                    limit
+                                                                )
+                                                            }
+                                                            className={
+                                                                'Button bs-ButtonLegacy' +
+                                                                (canPrev
+                                                                    ? ''
+                                                                    : 'Is--disabled')
+                                                            }
+                                                            disabled={!canPrev}
+                                                            data-db-analytics-name="list_view.pagination.previous"
+                                                            type="button"
+                                                        >
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Previous
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <button
+                                                            id="btnNext"
+                                                            onClick={() =>
+                                                                this.nextClicked(
+                                                                    projectId,
+                                                                    componentId,
+                                                                    skip,
+                                                                    limit
+                                                                )
+                                                            }
+                                                            className={
+                                                                'Button bs-ButtonLegacy' +
+                                                                (canNext
+                                                                    ? ''
+                                                                    : 'Is--disabled')
+                                                            }
+                                                            disabled={!canNext}
+                                                            data-db-analytics-name="list_view.pagination.next"
+                                                            type="button"
+                                                        >
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Next
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
                             </div>
                         </div>
                     </div>
@@ -260,6 +470,15 @@ Application.propTypes = {
     getApplicationSecuritySuccess: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
     currentProject: PropTypes.object,
+    skip: PropTypes.number,
+    limit: PropTypes.number,
+    count: PropTypes.number,
+    fetchingPage: PropTypes.bool,
+    numberOfPage: PropTypes.number,
+    error: PropTypes.oneOf([
+        PropTypes.string,
+        PropTypes.oneOfType([null, undefined]),
+    ]),
 };
 
 const mapStateToProps = (state, props) => {
@@ -271,7 +490,7 @@ const mapStateToProps = (state, props) => {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
-        applicationSecurities: state.security.applicationSecurities,
+        applicationSecurities: state.security.applicationSecurities.securities,
         gettingSecurityLogs:
             state.security.getApplicationSecurityLog.requesting,
         gettingApplicationSecurities: state.security.getApplication.requesting,
@@ -280,6 +499,12 @@ const mapStateToProps = (state, props) => {
         componentSlug,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
         currentProject: state.project.currentProject,
+
+        skip: state.security.applicationSecurities.skip,
+        limit: state.security.applicationSecurities.limit,
+        count: state.security.applicationSecurities.count,
+        fetchingPage: state.security.applicationSecurities.fetchingPage,
+        error: state.security.getApplication.error,
     };
 };
 

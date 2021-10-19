@@ -39,6 +39,8 @@ import StatusPageCategory from '../components/statusPage/StatusPageCategory';
 import { fetchAllStatusPageCategories } from '../actions/statusPageCategory';
 import MonitorsWithCategory from '../components/statusPage/MonitorsWithCategory';
 import EmptyCategory from '../components/statusPage/EmptyCategory';
+import { fetchComponents } from '../actions/component';
+import { fetchMonitors } from '../actions/monitor';
 
 class StatusPage extends Component {
     state = {
@@ -64,6 +66,8 @@ class StatusPage extends Component {
         if (projectId) {
             await this.props.fetchProjectStatusPage(projectId);
             await this.props.fetchSubProjectStatusPages(projectId);
+            this.props.fetchComponents({ projectId });
+            this.props.fetchMonitors(projectId);
         }
         if (!this.props.statusPage.status._id) {
             if (
@@ -121,6 +125,8 @@ class StatusPage extends Component {
                 if (projectId) {
                     await this.props.fetchProjectStatusPage(projectId);
                     await this.props.fetchSubProjectStatusPages(projectId);
+                    this.props.fetchComponents({ projectId: projectId });
+                    this.props.fetchMonitors(projectId);
                 }
                 if (
                     this.props.statusPage.subProjectStatusPages &&
@@ -219,6 +225,7 @@ class StatusPage extends Component {
             switchToProjectViewerNav,
             loadingCategories,
             allStatusPageCategories,
+            activeProjectId,
         } = this.props;
         const pageName = status ? status.name : null;
         const data = {
@@ -228,7 +235,7 @@ class StatusPage extends Component {
             theme: status.theme,
         };
         const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectId = activeProjectId;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -722,6 +729,8 @@ const mapDispatchToProps = dispatch => {
             fetchProjectStatusPage,
             fetchAllStatusPageCategories,
             updateStatusPageMonitors,
+            fetchComponents,
+            fetchMonitors,
         },
         dispatch
     );
@@ -752,8 +761,7 @@ function mapStateToProps(state, props) {
         .flat();
     return {
         statusPage: statusPageObject,
-        projectId:
-            state.project.currentProject && state.project.currentProject._id,
+        projectId: state.subProject?.activeSubProject,
         subProjectId,
         subProjects: state.subProject.subProjects.subProjects,
         currentProject:
@@ -765,6 +773,7 @@ function mapStateToProps(state, props) {
             state.statusPageCategory.fetchAllStatusPageCategories.categories,
         monitors,
         formState: state.form,
+        activeProjectId: state.subProject?.activeSubProject,
     };
 }
 
@@ -788,6 +797,9 @@ StatusPage.propTypes = {
     monitors: PropTypes.array,
     updateStatusPageMonitors: PropTypes.func,
     formState: PropTypes.object,
+    activeProjectId: PropTypes.string,
+    fetchComponents: PropTypes.func,
+    fetchMonitors: PropTypes.func,
 };
 
 StatusPage.displayName = 'StatusPage';

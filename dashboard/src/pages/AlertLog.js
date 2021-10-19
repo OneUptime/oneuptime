@@ -5,9 +5,7 @@ import Fade from 'react-reveal/Fade';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
 import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox';
-import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
-import ShouldRender from '../components/basic/ShouldRender';
 import { v4 as uuidv4 } from 'uuid';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -23,21 +21,19 @@ class AlertLog extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > ALERT LOG');
         }
-        if (this.props?.currentProject?._id) {
+        if (this.props?.activeProjectId) {
             this.ready();
         }
     }
 
     componentDidUpdate(prevProps) {
-        if (
-            prevProps?.currentProject?._id !== this.props?.currentProject?._id
-        ) {
+        if (prevProps?.activeProjectId !== this.props?.activeProjectId) {
             this.ready();
         }
     }
 
     ready = () => {
-        this.props.fetchAlert(this.props.currentProject._id);
+        this.props.fetchAlert(this.props.activeProjectId);
     };
 
     prevClicked = (projectId, skip, limit) => {
@@ -74,98 +70,15 @@ class AlertLog extends Component {
             error,
             location: { pathname },
             switchToProjectViewerNav,
+            activeProjectId,
         } = this.props;
-        // SubProject Alert List
-        const allAlerts =
-            subProjects &&
-            subProjects.map((subProject, i) => {
-                const subProjectAlert =
-                    this.props.alerts.data &&
-                    this.props.alerts.data.length > 0 &&
-                    this.props.alerts.data.find(
-                        subProjectAlert =>
-                            subProjectAlert._id === subProject._id
-                    );
-                if (
-                    subProjectAlert &&
-                    subProjectAlert.count &&
-                    typeof subProjectAlert.count === 'string'
-                ) {
-                    subProjectAlert.count = parseInt(subProjectAlert.count, 10);
-                }
-                if (
-                    subProjectAlert &&
-                    subProjectAlert.skip &&
-                    typeof subProjectAlert.skip === 'string'
-                ) {
-                    subProjectAlert.skip = parseInt(subProjectAlert.skip, 10);
-                }
-                if (
-                    subProjectAlert &&
-                    subProjectAlert.limit &&
-                    typeof subProjectAlert.limit === 'string'
-                ) {
-                    subProjectAlert.limit = parseInt(subProjectAlert.limit, 10);
-                }
-                let canNext =
-                    subProjectAlert &&
-                    subProjectAlert.count &&
-                    subProjectAlert.count >
-                        subProjectAlert.skip + subProjectAlert.limit
-                        ? true
-                        : false;
-                let canPrev =
-                    subProjectAlert && subProjectAlert.skip <= 0 ? false : true;
-
-                if (
-                    this.props.alerts &&
-                    (this.props.alerts.requesting || !this.props.alerts.data)
-                ) {
-                    canNext = false;
-                    canPrev = false;
-                }
-                return subProjectAlert && subProjectAlert.alerts ? (
-                    <RenderIfUserInSubProject
-                        subProjectId={subProjectAlert._id}
-                        key={i}
-                    >
-                        <div className="bs-BIM" key={i}>
-                            <div className="Box-root Margin-bottom--12">
-                                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                    <ShouldRender if={subProjects.length > 0}>
-                                        <div className="Box-root Padding-top--20 Padding-left--20">
-                                            <Badge color={'blue'}>
-                                                {subProject.name}
-                                            </Badge>
-                                        </div>
-                                    </ShouldRender>
-                                    <AlertProjectBox
-                                        subProjectAlert={subProjectAlert}
-                                        subProjectName={subProject.name}
-                                        currentProjectId={currentProject._id}
-                                        prevClicked={this.prevClicked}
-                                        nextClicked={this.nextClicked}
-                                        canNext={canNext}
-                                        canPrev={canPrev}
-                                        isRequesting={isRequesting}
-                                        error={error}
-                                        pages={this.state[currentProject._id]}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </RenderIfUserInSubProject>
-                ) : (
-                    false
-                );
-            });
 
         // Add Project Alerts to All Alerts List
         let projectAlert =
             this.props.alerts.data &&
             this.props.alerts.data.length > 0 &&
             this.props.alerts.data.find(
-                projectAlert => projectAlert._id === currentProject._id
+                projectAlert => projectAlert._id === activeProjectId
             );
         if (
             projectAlert &&
@@ -212,15 +125,17 @@ class AlertLog extends Component {
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                <ShouldRender if={subProjects.length > 0}>
-                                    <div className="Box-root Padding-top--20 Padding-left--20">
-                                        <Badge color={'red'}>Project</Badge>
-                                    </div>
-                                </ShouldRender>
                                 <AlertProjectBox
                                     subProjectAlert={projectAlert}
-                                    subProjectName={currentProject.name}
-                                    currentProjectId={currentProject._id}
+                                    subProjectName={
+                                        (subProjects &&
+                                            subProjects.find(
+                                                obj =>
+                                                    obj._id === activeProjectId
+                                            )?.name) ||
+                                        currentProject.name
+                                    }
+                                    currentProjectId={activeProjectId}
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
                                     canNext={canNext}
@@ -228,7 +143,7 @@ class AlertLog extends Component {
                                     isRequesting={isRequesting}
                                     error={error}
                                     subProjects={subProjects}
-                                    pages={this.state[currentProject._id]}
+                                    pages={this.state[activeProjectId]}
                                 />
                             </div>
                         </div>
@@ -237,9 +152,9 @@ class AlertLog extends Component {
             ) : (
                 false
             );
-        allAlerts && allAlerts.unshift(projectAlert);
+        const allAlerts = projectAlert && [projectAlert];
         const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectId = activeProjectId;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -293,6 +208,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         subProjects,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 
@@ -317,6 +233,7 @@ AlertLog.propTypes = {
         pathname: PropTypes.string,
     }),
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
 };
 
 AlertLog.displayName = 'AlertLog';

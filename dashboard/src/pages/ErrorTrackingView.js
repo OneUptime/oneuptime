@@ -46,12 +46,20 @@ class ErrorTrackingView extends Component {
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
             this.props.fetchErrorTrackers(
                 this.props.currentProject._id,
-                this.props.componentId
+                this.props.componentId,
+                this.props.trackerSkip,
+                this.props.trackerLimit
             );
         }
     }
     ready = () => {
-        const { componentSlug, fetchComponent, componentId } = this.props;
+        const {
+            componentSlug,
+            fetchComponent,
+            componentId,
+            trackerLimit,
+            trackerSkip,
+        } = this.props;
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
@@ -59,7 +67,12 @@ class ErrorTrackingView extends Component {
             fetchComponent(projectId, componentSlug);
         }
         if (projectId && componentId) {
-            this.props.fetchErrorTrackers(projectId, componentId);
+            this.props.fetchErrorTrackers(
+                projectId,
+                componentId,
+                trackerSkip,
+                trackerLimit
+            );
         }
     };
     handleCloseQuickStart = () => {
@@ -174,6 +187,8 @@ const mapStateToProps = (state, ownProps) => {
         errorTracker,
         componentSlug,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        trackerSkip: state.errorTracker.errorTrackersList.skip || 0,
+        trackerLimit: state.errorTracker.errorTrackersList.limit || 5,
     };
 };
 ErrorTrackingView.propTypes = {
@@ -187,5 +202,7 @@ ErrorTrackingView.propTypes = {
     editErrorTracker: PropsType.func,
     componentId: PropsType.string,
     switchToProjectViewerNav: PropsType.bool,
+    trackerLimit: PropsType.number,
+    trackerSkip: PropsType.number,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTrackingView);

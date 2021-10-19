@@ -9,7 +9,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import { bindActionCreators } from 'redux';
 import { logEvent } from '../analytics';
 import { loadPage } from '../actions/page';
-import { LoadingState } from '../components/basic/Loader';
+import { ListLoader, LoadingState } from '../components/basic/Loader';
 import { fetchPerformanceTrackers } from '../actions/performanceTracker';
 import NewPerformanceTracker from '../components/performanceTracker/NewPerformanceTracker';
 import { fetchComponent } from '../actions/component';
@@ -18,7 +18,49 @@ import PerformanceTrackerList from '../components/performanceTracker/Performance
 class PerformanceTracker extends Component {
     state = {
         showNewPerformanceTrackerForm: false,
+        page: 1,
+        requesting: false,
     };
+
+    prevClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .fetchPerformanceTrackers({
+                projectId,
+                componentId,
+                skip: (skip || 0) > (limit || 5) ? skip - limit : 0,
+                limit,
+                fetchingPage: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page:
+                            prevState.page === 1
+                                ? prevState.page
+                                : prevState.page - 1,
+                    };
+                });
+            });
+    };
+
+    nextClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .fetchPerformanceTrackers({
+                projectId,
+                componentId,
+                skip: skip + limit,
+                limit,
+                fetchingPage: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page: prevState.page + 1,
+                    };
+                });
+            });
+    };
+
     componentDidMount() {
         this.props.loadPage('Performance Tracker');
         if (SHOULD_LOG_ANALYTICS) {
@@ -28,6 +70,7 @@ class PerformanceTracker extends Component {
         }
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
+            this.setState({ requesting: true });
             fetchComponent(currentProject._id, componentSlug).then(() => {
                 this.ready();
             });
@@ -47,27 +90,34 @@ class PerformanceTracker extends Component {
                 this.props.fetchComponent(projectId, this.props.componentSlug);
             }
             if (projectId && componentId) {
-                fetchPerformanceTrackers({
-                    projectId,
-                    componentId,
-                    skip: 0,
-                    limit: 10,
-                });
+                this.setRequesting();
+                this.props
+                    .fetchPerformanceTrackers({
+                        projectId,
+                        componentId,
+                        skip: 0,
+                        limit: 5,
+                    })
+                    .then(() => this.setState({ requesting: false }));
             }
         }
     }
+
+    setRequesting = () => this.setState({ requesting: true });
 
     ready = () => {
         const componentId = this.props.componentId;
         const projectId =
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
-            this.props.fetchPerformanceTrackers({
-                projectId,
-                componentId,
-                skip: 0,
-                limit: 10,
-            });
+            this.props
+                .fetchPerformanceTrackers({
+                    projectId,
+                    componentId,
+                    skip: 0,
+                    limit: 5,
+                })
+                .then(() => this.setState({ requesting: false }));
         }
     };
 
@@ -86,6 +136,7 @@ class PerformanceTracker extends Component {
                     componentSlug={componentSlug}
                     projectSlug={projectSlug}
                     projectId={component.projectId._id || component.projectId}
+                    requesting={performanceTrackerList.requesting}
                 />
             )
         );
@@ -105,7 +156,25 @@ class PerformanceTracker extends Component {
             component,
             currentProject,
             switchToProjectViewerNav,
+            performanceTrackerList,
+            numberOfPage,
         } = this.props;
+
+        const skip = performanceTrackerList.skip;
+        const limit = performanceTrackerList.limit;
+        const count = performanceTrackerList.count;
+        const error = performanceTrackerList.error;
+        const fetchingPage = performanceTrackerList.fetchingPage;
+        const componentId = component?._id;
+        const page = this.state.page;
+        const canNext =
+            performanceTrackerList && count && count > skip + limit
+                ? true
+                : false;
+        const canPrev = performanceTrackerList && skip <= 0 ? false : true;
+        const numberOfPages = numberOfPage
+            ? numberOfPage
+            : Math.ceil(parseInt(count) / limit);
 
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
@@ -136,15 +205,23 @@ class PerformanceTracker extends Component {
                 <div>
                     <div>
                         <ShouldRender
-                            if={this.props.performanceTrackerList.requesting}
+                            if={
+                                this.props.performanceTrackerList.requesting ||
+                                this.state.requesting
+                            }
                         >
                             <LoadingState />
                         </ShouldRender>
-                        {!this.state.showNewPerformanceTrackerForm &&
+                        {!this.props.performanceTrackerList.requesting &&
+                            !this.state.requesting &&
+                            !this.state.showNewPerformanceTrackerForm &&
                             !isEmpty &&
                             this.renderPerformanceTrackerList()}
                         <ShouldRender
-                            if={!this.props.performanceTrackerList.requesting}
+                            if={
+                                !this.props.performanceTrackerList.requesting &&
+                                !this.state.requesting
+                            }
                         >
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
@@ -163,6 +240,136 @@ class PerformanceTracker extends Component {
                                         showCancelBtn={!isEmpty}
                                     />
                                 </ShouldRender>
+                            </div>
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                !this.props.performanceTrackerList.requesting &&
+                                !this.state.requesting &&
+                                !this.state.showNewPerformanceTrackerForm &&
+                                !isEmpty
+                            }
+                        >
+                            <div
+                                className="Box-root Card-shadow--medium"
+                                tabIndex="0"
+                            >
+                                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                            <span>
+                                                <span
+                                                    id={`performancetracker_count`}
+                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
+                                                >
+                                                    <ShouldRender
+                                                        if={numberOfPages > 0}
+                                                    >
+                                                        Page {page ? page : 1}{' '}
+                                                        of {numberOfPages} (
+                                                        <ShouldRender
+                                                            if={
+                                                                performanceTrackerList
+                                                            }
+                                                        >
+                                                            <span id="numberOfPerformance">
+                                                                {count}
+                                                            </span>{' '}
+                                                            {count > 1
+                                                                ? 'total performance trackers'
+                                                                : 'Performance tracker'}{' '}
+                                                        </ShouldRender>
+                                                        )
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            !(numberOfPages > 0)
+                                                        }
+                                                    >
+                                                        <span id="numberOfPerformance">
+                                                            {count}{' '}
+                                                            {count > 1
+                                                                ? 'total application logs'
+                                                                : 'Performance tracker'}
+                                                        </span>
+                                                    </ShouldRender>
+                                                </span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    {fetchingPage ? <ListLoader /> : null}
+                                    {error ? (
+                                        <div
+                                            style={{
+                                                color: 'red',
+                                            }}
+                                        >
+                                            {error}
+                                        </div>
+                                    ) : null}
+                                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                            <div className="Box-root Margin-right--8">
+                                                <button
+                                                    id="btnPrev"
+                                                    onClick={() =>
+                                                        this.prevClicked(
+                                                            projectId,
+                                                            componentId,
+                                                            skip,
+                                                            limit
+                                                        )
+                                                    }
+                                                    className={
+                                                        'Button bs-ButtonLegacy' +
+                                                        (canPrev
+                                                            ? ''
+                                                            : 'Is--disabled')
+                                                    }
+                                                    disabled={!canPrev}
+                                                    data-db-analytics-name="list_view.pagination.previous"
+                                                    type="button"
+                                                >
+                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                            <span>
+                                                                Previous
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                            <div className="Box-root">
+                                                <button
+                                                    id="btnNext"
+                                                    onClick={() =>
+                                                        this.nextClicked(
+                                                            projectId,
+                                                            componentId,
+                                                            skip,
+                                                            limit
+                                                        )
+                                                    }
+                                                    className={
+                                                        'Button bs-ButtonLegacy' +
+                                                        (canNext
+                                                            ? ''
+                                                            : 'Is--disabled')
+                                                    }
+                                                    disabled={!canNext}
+                                                    data-db-analytics-name="list_view.pagination.next"
+                                                    type="button"
+                                                >
+                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                            <span>Next</span>
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </ShouldRender>
                     </div>
@@ -220,6 +427,7 @@ PerformanceTracker.propTypes = {
     fetchComponent: PropTypes.func,
     projectSlug: PropTypes.string,
     switchToProjectViewerNav: PropTypes.bool,
+    numberOfPage: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(PerformanceTracker);

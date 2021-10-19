@@ -406,6 +406,7 @@ const mapStateToProps = (state, ownProps) => {
         fetchCredentialError: state.credential.getCredential.error,
         components,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        currentProject: state.project.currentProject,
     };
 };
 

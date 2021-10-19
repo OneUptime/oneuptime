@@ -62,10 +62,18 @@ export function resetCreateApplicationLog() {
     };
 }
 
-export function fetchApplicationLogs(projectId, componentId) {
+export function fetchApplicationLogs(
+    projectId,
+    componentId,
+    skip = 0,
+    limit = 0,
+    paginated = false
+) {
     return function(dispatch) {
-        const promise = getApi(`application-log/${projectId}/${componentId}`);
-        dispatch(fetchApplicationLogsRequest());
+        const promise = getApi(
+            `application-log/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchApplicationLogsRequest(paginated));
 
         promise.then(
             function(applicationLogs) {
@@ -97,9 +105,10 @@ export function fetchApplicationLogsSuccess(applicationLogs) {
     };
 }
 
-export function fetchApplicationLogsRequest() {
+export function fetchApplicationLogsRequest(paginated) {
     return {
         type: types.FETCH_APPLICATION_LOGS_REQUEST,
+        payload: paginated,
     };
 }
 
