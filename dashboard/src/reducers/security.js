@@ -28,7 +28,13 @@ const initialState = {
         error: null,
     },
     editApplicationSecurity: { requesting: false, success: false, error: null },
-    applicationSecurities: [],
+    applicationSecurities: {
+        securities: [],
+        skip: 0,
+        limit: 0,
+        count: 0,
+        fetchingPage: false,
+    },
     applicationSecurity: {},
     applicationSecurityLog: {},
     applicationSecurityLogs: [],
@@ -356,11 +362,6 @@ export default function security(state = initialState, action) {
             };
 
         case types.ADD_APPLICATION_SECURITY_SUCCESS: {
-            const applicationSecurities = [
-                action.payload,
-                ...state.applicationSecurities,
-            ];
-
             return {
                 ...state,
                 addApplication: {
@@ -368,7 +369,13 @@ export default function security(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                applicationSecurities,
+                applicationSecurities: {
+                    ...state.applicationSecurities,
+                    securities: [
+                        action.payload,
+                        ...state.applicationSecurities.securities,
+                    ],
+                },
             };
         }
 
@@ -393,17 +400,19 @@ export default function security(state = initialState, action) {
             };
 
         case types.GET_APPLICATION_SECURITY_SUCCESS: {
-            const applicationSecurities =
-                state.applicationSecurities.length > 0
-                    ? state.applicationSecurities.map(applicationSecurity => {
-                          if (
-                              String(applicationSecurity._id) ===
-                              String(action.payload._id)
-                          ) {
-                              applicationSecurity = action.payload;
+            const securities =
+                state.applicationSecurities.securities.length > 0
+                    ? state.applicationSecurities.securities.map(
+                          applicationSecurity => {
+                              if (
+                                  String(applicationSecurity._id) ===
+                                  String(action.payload._id)
+                              ) {
+                                  applicationSecurity = action.payload;
+                              }
+                              return applicationSecurity;
                           }
-                          return applicationSecurity;
-                      })
+                      )
                     : [action.payload];
             return {
                 ...state,
@@ -413,7 +422,10 @@ export default function security(state = initialState, action) {
                     error: null,
                 },
                 applicationSecurity: action.payload,
-                applicationSecurities,
+                applicationSecurities: {
+                    ...state.applicationSecurities,
+                    securities,
+                },
             };
         }
 
@@ -431,9 +443,13 @@ export default function security(state = initialState, action) {
             return {
                 ...state,
                 getApplication: {
-                    requesting: true,
+                    requesting: action.payload ? false : true,
                     success: false,
                     error: null,
+                },
+                applicationSecurities: {
+                    ...state.applicationSecurities,
+                    fetchingPage: true,
                 },
             };
 
@@ -445,7 +461,13 @@ export default function security(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                applicationSecurities: action.payload,
+                applicationSecurities: {
+                    securities: action.payload.data,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    count: action.payload.count,
+                    fetchingPage: false,
+                },
             };
 
         case types.GET_APPLICATION_SECURITIES_FAILURE:
@@ -455,6 +477,10 @@ export default function security(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+                applicationSecurities: {
+                    ...state.applicationSecurities,
+                    fetchingPage: false,
                 },
             };
 
@@ -470,7 +496,7 @@ export default function security(state = initialState, action) {
 
         case types.DELETE_APPLICATION_SECURITY_SUCCESS: {
             // update the list of application securities
-            const applicationSecurities = state.applicationSecurities.filter(
+            const securities = state.applicationSecurities.securities.filter(
                 applicationSecurity =>
                     String(applicationSecurity._id) !==
                     String(action.payload._id)
@@ -482,7 +508,10 @@ export default function security(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                applicationSecurities,
+                applicationSecurities: {
+                    ...state.applicationSecurities,
+                    securities,
+                },
             };
         }
 
