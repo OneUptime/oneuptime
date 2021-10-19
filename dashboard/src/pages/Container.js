@@ -14,7 +14,7 @@ import {
     getContainerSecuritySuccess,
 } from '../actions/security';
 import { fetchComponent } from '../actions/component';
-import { LargeSpinner } from '../components/basic/Loader';
+import { LargeSpinner, ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -31,6 +31,46 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 class Container extends Component {
     state = {
         showContainerSecurityForm: false,
+        page: 1,
+    };
+
+    prevClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .getContainerSecurities({
+                projectId,
+                componentId,
+                skip: (skip || 0) > (limit || 5) ? skip - limit : 0,
+                limit,
+                fetchingPage: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page:
+                            prevState.page === 1
+                                ? prevState.page
+                                : prevState.page - 1,
+                    };
+                });
+            });
+    };
+
+    nextClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .getContainerSecurities({
+                projectId,
+                componentId,
+                skip: skip + limit,
+                limit,
+                fetchingPage: true,
+            })
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page: prevState.page + 1,
+                    };
+                });
+            });
     };
 
     componentDidMount() {
@@ -53,7 +93,12 @@ class Container extends Component {
             getContainerSecurityLogs({ projectId, componentId });
 
             // load container security
-            getContainerSecurities({ projectId, componentId });
+            getContainerSecurities({
+                projectId,
+                componentId,
+                skip: 0,
+                limit: 5,
+            });
         }
     }
 
@@ -73,7 +118,12 @@ class Container extends Component {
                 getContainerSecurityLogs({ projectId, componentId });
 
                 // load container security
-                getContainerSecurities({ projectId, componentId });
+                getContainerSecurities({
+                    projectId,
+                    componentId,
+                    skip: 0,
+                    limit: 5,
+                });
             }
         }
         if (
@@ -106,7 +156,21 @@ class Container extends Component {
             getContainerSecuritySuccess,
             currentProject,
             switchToProjectViewerNav,
+            skip,
+            limit,
+            count,
+            fetchingPage,
+            numberOfPage,
+            error,
         } = this.props;
+
+        const page = this.state.page;
+        const canNext =
+            securities && count && count > skip + limit ? true : false;
+        const canPrev = securities && skip <= 0 ? false : true;
+        const numberOfPages = numberOfPage
+            ? numberOfPage
+            : Math.ceil(parseInt(count) / limit);
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
@@ -241,6 +305,151 @@ class Container extends Component {
                                         </div>
                                     </div>
                                 </span>
+                                <ShouldRender
+                                    if={
+                                        !gettingContainerSecurities &&
+                                        !gettingSecurityLogs &&
+                                        !this.state.showContainerSecurityForm &&
+                                        !isEmpty
+                                    }
+                                >
+                                    <div
+                                        className="Box-root Card-shadow--medium"
+                                        tabIndex="0"
+                                    >
+                                        <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        <span
+                                                            id={`containersecurity_count`}
+                                                            className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
+                                                        >
+                                                            <ShouldRender
+                                                                if={
+                                                                    numberOfPages >
+                                                                    0
+                                                                }
+                                                            >
+                                                                Page{' '}
+                                                                {page
+                                                                    ? page
+                                                                    : 1}{' '}
+                                                                of{' '}
+                                                                {numberOfPages}{' '}
+                                                                (
+                                                                <ShouldRender
+                                                                    if={
+                                                                        securities
+                                                                    }
+                                                                >
+                                                                    <span id="numberOfContainerSecurities">
+                                                                        {count}
+                                                                    </span>{' '}
+                                                                    {count > 1
+                                                                        ? 'total container securities'
+                                                                        : 'Container security'}{' '}
+                                                                </ShouldRender>
+                                                                )
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    !(
+                                                                        numberOfPages >
+                                                                        0
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span id="numberOfContainerSecurities">
+                                                                    {count}{' '}
+                                                                    {count > 1
+                                                                        ? 'total container securities'
+                                                                        : 'Container security'}
+                                                                </span>
+                                                            </ShouldRender>
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            {fetchingPage ? (
+                                                <ListLoader />
+                                            ) : null}
+                                            {error ? (
+                                                <div
+                                                    style={{
+                                                        color: 'red',
+                                                    }}
+                                                >
+                                                    {error}
+                                                </div>
+                                            ) : null}
+                                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                    <div className="Box-root Margin-right--8">
+                                                        <button
+                                                            id="btnPrev"
+                                                            onClick={() =>
+                                                                this.prevClicked(
+                                                                    projectId,
+                                                                    componentId,
+                                                                    skip,
+                                                                    limit
+                                                                )
+                                                            }
+                                                            className={
+                                                                'Button bs-ButtonLegacy' +
+                                                                (canPrev
+                                                                    ? ''
+                                                                    : 'Is--disabled')
+                                                            }
+                                                            disabled={!canPrev}
+                                                            data-db-analytics-name="list_view.pagination.previous"
+                                                            type="button"
+                                                        >
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Previous
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <button
+                                                            id="btnNext"
+                                                            onClick={() =>
+                                                                this.nextClicked(
+                                                                    projectId,
+                                                                    componentId,
+                                                                    skip,
+                                                                    limit
+                                                                )
+                                                            }
+                                                            className={
+                                                                'Button bs-ButtonLegacy' +
+                                                                (canNext
+                                                                    ? ''
+                                                                    : 'Is--disabled')
+                                                            }
+                                                            disabled={!canNext}
+                                                            data-db-analytics-name="list_view.pagination.next"
+                                                            type="button"
+                                                        >
+                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Next
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ShouldRender>
                             </div>
                         </div>
                     </div>
@@ -271,6 +480,15 @@ Container.propTypes = {
     getContainerSecuritySuccess: PropTypes.func,
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
+    skip: PropTypes.number,
+    limit: PropTypes.number,
+    count: PropTypes.number,
+    fetchingPage: PropTypes.bool,
+    numberOfPage: PropTypes.number,
+    error: PropTypes.oneOf([
+        PropTypes.string,
+        PropTypes.oneOfType([null, undefined]),
+    ]),
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -284,7 +502,7 @@ const mapStateToProps = (state, ownProps) => {
             state.component.currentComponent.component &&
             state.component.currentComponent.component._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
-        containerSecurities: state.security.containerSecurities,
+        containerSecurities: state.security.containerSecurities.securities,
         gettingSecurityLogs: state.security.getContainerSecurityLog.requesting,
         gettingContainerSecurities: state.security.getContainer.requesting,
         component:
@@ -292,6 +510,11 @@ const mapStateToProps = (state, ownProps) => {
         componentSlug,
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        skip: state.security.containerSecurities.skip,
+        limit: state.security.containerSecurities.limit,
+        count: state.security.containerSecurities.count,
+        fetchingPage: state.security.containerSecurities.fetchingPage,
+        error: state.security.getContainer.error,
     };
 };
 
