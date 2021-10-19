@@ -113,7 +113,8 @@ describe('Incident Timeline API', () => {
                 page,
                 `#form-new-incident-${type}-message`
             );
-            await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
+            await init.pageClick(page, '#incident_description');
+            await init.pageType(page, '#incident_description', `${message}`);
             await init.selectDropdownValue(
                 '#incident_state',
                 'investigating',
@@ -175,9 +176,9 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#edit_${type}_incident_message_0`);
 
             // edit investigation message thread form
-            await init.pageWaitForSelector(page, `#edit-${type}`);
-            await init.pageClick(page, `textarea[id=edit-${type}]`);
-            await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
+            // await init.pageWaitForSelector(page, `#edit-${type}`);
+            await init.pageClick(page, '#incident_description');
+            await init.pageType(page, '#incident_description', '-updated');
             await init.selectDropdownValue('#incident_state', 'update', page);
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, `#${type}-editButton`, {
@@ -234,8 +235,8 @@ describe('Incident Timeline API', () => {
                 page,
                 `#form-new-incident-${type}-message`
             );
-            await init.pageClick(page, `textarea[id=new-${type}]`);
-            await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
+            await init.pageClick(page, '#incident_description');
+            await init.pageType(page, '#incident_description', `${message}`);
             await init.selectDropdownValue('#incident_state', 'others', page);
             await init.pageClick(page, 'input[name=custom_incident_state]');
             await init.pageType(
@@ -299,8 +300,8 @@ describe('Incident Timeline API', () => {
 
             // edit investigation message thread form
             await init.pageWaitForSelector(page, `#${type}-editButton`);
-            await init.pageClick(page, `textarea[id=edit-${type}]`);
-            await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
+            await init.pageClick(page, '#incident_description');
+            await init.pageType(page, '#incident_description', '-updated');
             await init.selectDropdownValue(
                 '#incident_state',
                 'investigating',
@@ -402,10 +403,10 @@ describe('Incident Timeline API', () => {
                     page,
                     `#form-new-incident-${type}-message`
                 );
-                await init.pageClick(page, `textarea[id=new-${type}]`);
+                await init.pageClick(page, '#incident_description');
                 await init.pageType(
                     page,
-                    `textarea[id=new-${type}]`,
+                    '#incident_description',
                     `${internalNote}`
                 );
                 await init.selectDropdownValue(
