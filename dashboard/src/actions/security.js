@@ -108,8 +108,9 @@ export const getContainerSecurityBySlug = ({
 };
 
 // Get all Container Security
-export const getContainerSecuritiesRequest = () => ({
+export const getContainerSecuritiesRequest = fetchingPage => ({
     type: types.GET_CONTAINER_SECURITIES_REQUEST,
+    payload: fetchingPage,
 });
 
 export const getContainerSecuritiesSuccess = payload => ({
@@ -125,12 +126,15 @@ export const getContainerSecuritiesFailure = error => ({
 export const getContainerSecurities = ({
     projectId,
     componentId,
+    skip = 0,
+    limit = 0,
+    fetchingPage = false,
 }) => async dispatch => {
-    dispatch(getContainerSecuritiesRequest());
+    dispatch(getContainerSecuritiesRequest(fetchingPage));
 
     try {
         const response = await getApi(
-            `security/${projectId}/${componentId}/container`
+            `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
         );
         dispatch(getContainerSecuritiesSuccess(response.data));
     } catch (error) {
