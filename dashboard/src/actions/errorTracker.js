@@ -93,10 +93,18 @@ export function fetchErrorTrackersByProject(projectId) {
     };
 }
 
-export function fetchErrorTrackers(projectId, componentId) {
+export function fetchErrorTrackers(
+    projectId,
+    componentId,
+    skip = 0,
+    limit = 0,
+    fetchingPage = false
+) {
     return function(dispatch) {
-        const promise = getApi(`error-tracker/${projectId}/${componentId}`);
-        dispatch(fetchErrorTrackersRequest());
+        const promise = getApi(
+            `error-tracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchErrorTrackersRequest(fetchingPage));
 
         promise.then(
             function(errorTrackers) {
@@ -128,9 +136,10 @@ export function fetchErrorTrackersSuccess(errorTrackers) {
     };
 }
 
-export function fetchErrorTrackersRequest() {
+export function fetchErrorTrackersRequest(fetchingPage) {
     return {
         type: types.FETCH_ERROR_TRACKERS_REQUEST,
+        payload: fetchingPage,
     };
 }
 

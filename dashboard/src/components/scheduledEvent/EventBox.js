@@ -104,7 +104,10 @@ class EventBox extends Component {
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
-        const projectName = currentProject
+        let projectName = subProjects.find(obj => obj._id === projectId)?.name;
+        projectName = projectName
+            ? projectName
+            : currentProject
             ? currentProject.name
             : currentSubProject
             ? currentSubProject.name
@@ -114,20 +117,6 @@ class EventBox extends Component {
             <Fade>
                 <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                        <ShouldRender
-                            if={subProjects.length > 0 && currentProject}
-                        >
-                            <div className="Box-root Padding-bottom--20">
-                                <Badge color={'red'}>Project</Badge>
-                            </div>
-                        </ShouldRender>
-                        {subProjects.length > 0 && currentSubProject && (
-                            <div className="Box-root Padding-bottom--20">
-                                <Badge color={'blue'}>
-                                    {currentSubProject.name}
-                                </Badge>
-                            </div>
-                        )}
                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">

@@ -43,12 +43,15 @@ class ApplicationLogView extends Component {
             fetchComponent,
             componentId,
             fetchApplicationLogs,
+            logLimit,
+            logSkip,
         } = this.props;
         const projectId =
             this.props.currentProject && this.props.currentProject._id;
         componentSlug && fetchComponent(projectId, componentSlug); // On Page Reload, the state is blank hence componentId is null. ComponentSlug present in URL bar is used to fetch component before the componentId is loaded alongside component.
         if (projectId && componentId) {
-            componentId && fetchApplicationLogs(projectId, componentId);
+            componentId &&
+                fetchApplicationLogs(projectId, componentId, logSkip, logLimit);
         }
     };
 
@@ -78,7 +81,9 @@ class ApplicationLogView extends Component {
             ) {
                 this.props.fetchApplicationLogs(
                     this.props.currentProject._id,
-                    this.props.componentId
+                    this.props.componentId,
+                    this.props.logSkip,
+                    this.props.logLimit
                 );
             }
         }
@@ -323,6 +328,8 @@ const mapStateToProps = (state, props) => {
             state.component && state.component.currentComponent.component,
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        logSkip: state.applicationLog.applicationLogsList.skip || 0,
+        logLimit: state.applicationLog.applicationLogsList.limit || 5,
     };
 };
 
@@ -353,6 +360,8 @@ ApplicationLogView.propTypes = {
     ),
     editApplicationLog: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
+    logSkip: PropTypes.number,
+    logLimit: PropTypes.number,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ApplicationLogView);

@@ -7,7 +7,13 @@ const initialState = {
     scanContainerSecurity: { requesting: false, success: false, error: null },
     getContainerSecurityLog: { requesting: false, success: false, error: null },
     editContainerSecurity: { requesting: false, success: false, error: null },
-    containerSecurities: [],
+    containerSecurities: {
+        securities: [],
+        skip: 0,
+        limit: 0,
+        count: 0,
+        fetchingPage: false,
+    },
     containerSecurity: {},
     containerSecurityLog: {},
     containerSecurityLogs: [],
@@ -42,11 +48,6 @@ export default function security(state = initialState, action) {
             };
 
         case types.ADD_CONTAINER_SECURITY_SUCCESS: {
-            const containerSecurities = [
-                action.payload,
-                ...state.containerSecurities,
-            ];
-
             return {
                 ...state,
                 addContainer: {
@@ -54,7 +55,13 @@ export default function security(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                containerSecurities,
+                containerSecurities: {
+                    ...state.containerSecurities,
+                    securities: [
+                        action.payload,
+                        ...state.containerSecurities.securities,
+                    ],
+                },
             };
         }
 
@@ -79,17 +86,19 @@ export default function security(state = initialState, action) {
             };
 
         case types.GET_CONTAINER_SECURITY_SUCCESS: {
-            const containerSecurities =
-                state.containerSecurities.length > 0
-                    ? state.containerSecurities.map(containerSecurity => {
-                          if (
-                              String(containerSecurity._id) ===
-                              String(action.payload._id)
-                          ) {
-                              containerSecurity = action.payload;
+            const securities =
+                state.containerSecurities.securities.length > 0
+                    ? state.containerSecurities.securities.map(
+                          containerSecurity => {
+                              if (
+                                  String(containerSecurity._id) ===
+                                  String(action.payload._id)
+                              ) {
+                                  containerSecurity = action.payload;
+                              }
+                              return containerSecurity;
                           }
-                          return containerSecurity;
-                      })
+                      )
                     : [action.payload];
             return {
                 ...state,
@@ -99,7 +108,10 @@ export default function security(state = initialState, action) {
                     error: null,
                 },
                 containerSecurity: action.payload,
-                containerSecurities,
+                containerSecurities: {
+                    ...state.containerSecurities,
+                    securities,
+                },
             };
         }
 
@@ -117,9 +129,13 @@ export default function security(state = initialState, action) {
             return {
                 ...state,
                 getContainer: {
-                    requesting: true,
+                    requesting: action.payload ? false : true,
                     success: false,
                     error: null,
+                },
+                containerSecurities: {
+                    ...state.containerSecurities,
+                    fetchingPage: true,
                 },
             };
 
@@ -131,7 +147,13 @@ export default function security(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                containerSecurities: action.payload,
+                containerSecurities: {
+                    securities: action.payload.data,
+                    count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    fetchingPage: false,
+                },
             };
 
         case types.GET_CONTAINER_SECURITIES_FAILURE:
@@ -141,6 +163,10 @@ export default function security(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+                containerSecurities: {
+                    ...state.containerSecurities,
+                    fetchingPage: false,
                 },
             };
 
@@ -156,10 +182,14 @@ export default function security(state = initialState, action) {
 
         case types.DELETE_CONTAINER_SECURITY_SUCCESS: {
             // update the list of container securities
-            const containerSecurities = state.containerSecurities.filter(
+            const securities = state.containerSecurities.securities.filter(
                 containerSecurity =>
                     String(containerSecurity._id) !== String(action.payload._id)
             );
+            const count =
+                state.containerSecurities.count === 0
+                    ? 0
+                    : state.containerSecurities.count - 1;
             return {
                 ...state,
                 deleteContainer: {
@@ -167,7 +197,11 @@ export default function security(state = initialState, action) {
                     success: true,
                     error: null,
                 },
-                containerSecurities,
+                containerSecurities: {
+                    ...state.containerSecurities,
+                    securities,
+                    count,
+                },
             };
         }
 

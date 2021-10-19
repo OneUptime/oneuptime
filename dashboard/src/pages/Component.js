@@ -89,6 +89,10 @@ class ComponentDashboardView extends Component {
         ) {
             this.ready();
         }
+
+        if (prevProps?.activeProjectId !== this.props?.activeProjectId) {
+            this.ready();
+        }
     }
 
     componentWillUnmount() {
@@ -102,12 +106,13 @@ class ComponentDashboardView extends Component {
     };
 
     ready = () => {
-        const projectId = this.props.currentProject
+        const { activeProjectId } = this.props;
+        const currentProjectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.fetchComponents({ projectId });
-        this.props.getSmtpConfig(projectId);
-        this.props.fetchMonitors(projectId).then(() => {
+        this.props.fetchComponents({ projectId: activeProjectId });
+        this.props.getSmtpConfig(currentProjectId);
+        this.props.fetchMonitors(activeProjectId).then(() => {
             this.props.monitor.monitorsList.monitors.forEach(subProject => {
                 if (subProject.monitors.length > 0) {
                     subProject.monitors.forEach(monitor => {
@@ -142,70 +147,15 @@ class ComponentDashboardView extends Component {
         }
 
         const {
-            subProjects,
             currentProject,
             location: { pathname },
             switchToProjectViewerNav,
+            activeProjectId,
         } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
+        const currentProjectId = activeProjectId;
         let allComponents = this.props.component.componentList.components
             .map(component => component.components)
             .flat();
-
-        // SubProject Components List
-        const components =
-            subProjects &&
-            subProjects.map((subProject, i) => {
-                const subProjectComponent = this.props.component.componentList.components.find(
-                    subProjectComponent =>
-                        String(subProjectComponent._id) ===
-                        String(subProject._id)
-                );
-                allComponents = IsUserInSubProject(subProject)
-                    ? allComponents
-                    : allComponents.filter(
-                          component =>
-                              component.projectId !== subProjectComponent._id ||
-                              component.projectId._id !==
-                                  subProjectComponent._id
-                      );
-                return subProjectComponent &&
-                    subProjectComponent.components.length > 0 ? (
-                    <div
-                        id={`box_${subProject.name}`}
-                        className="Box-root Margin-vertical--12"
-                        key={i}
-                    >
-                        <div
-                            className="db-Trends Card-root"
-                            style={{ overflow: 'visible' }}
-                        >
-                            <ComponentList
-                                shouldRenderProjectType={
-                                    subProjects && subProjects.length > 0
-                                }
-                                projectId={subProject._id}
-                                projectType={'subproject'}
-                                projectName={subProject.name}
-                                components={subProjectComponent.components}
-                                skip={subProjectComponent.skip}
-                                limit={subProjectComponent.limit}
-                                count={subProjectComponent.count}
-                                page={this.state.page[subProject._id]}
-                                prevClicked={this.prevClicked}
-                                nextClicked={this.nextClicked}
-                                requestErrorObject={
-                                    this.props.component.componentList[
-                                        subProject._id
-                                    ]
-                                }
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    false
-                );
-            });
 
         // Add Project Components to Components List
         let projectComponent = this.props.component.componentList.components.find(
@@ -231,9 +181,7 @@ class ComponentDashboardView extends Component {
                         style={{ overflow: 'visible' }}
                     >
                         <ComponentList
-                            shouldRenderProjectType={
-                                subProjects && subProjects.length > 0
-                            }
+                            shouldRenderProjectType={false}
                             projectId={currentProjectId}
                             projectType={'project'}
                             projectName={'Project'}
@@ -256,7 +204,7 @@ class ComponentDashboardView extends Component {
                 false
             );
 
-        components && projectComponent && components.unshift(projectComponent);
+        const components = projectComponent && [projectComponent];
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
 
@@ -541,6 +489,7 @@ const mapStateToProps = state => {
         monitorListRequesting: state.monitor.monitorsList.requesting,
         monitorsRequesting: state.monitor.monitorsList.monitors.requesting,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject?.activeSubProject,
     };
 };
 
@@ -561,7 +510,6 @@ ComponentDashboardView.propTypes = {
     destroy: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
     slug: PropTypes.string,
-    subProjects: PropTypes.array,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -578,6 +526,7 @@ ComponentDashboardView.propTypes = {
     monitorsRequesting: PropTypes.bool,
     switchToProjectViewerNav: PropTypes.bool,
     fetchPaginatedComponents: PropTypes.func,
+    activeProjectId: PropTypes.string,
 };
 
 ComponentDashboardView.displayName = 'ComponentDashboardView';

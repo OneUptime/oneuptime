@@ -131,15 +131,11 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => project._id)
-            : null;
-
         const { limit, skip } = req.query;
 
         // Call the ComponentService.
         const components = await ComponentService.getComponentsBySubprojects(
-            subProjectIds,
+            [req.params.projectId],
             limit || 0,
             skip || 0
         );
@@ -440,8 +436,8 @@ router.get(
                 monitors,
                 containerSecurity,
                 applicationSecurity,
-                applicationLogs,
-                errorTrackers,
+                applicationLogObj,
+                errorTrackerObj,
                 performanceTrackers,
             ] = await Promise.all([
                 MonitorService.findBy({
@@ -574,7 +570,7 @@ router.get(
             );
 
             await Promise.all(
-                applicationLogs.map(async elem => {
+                applicationLogObj.applicationLogs.map(async elem => {
                     let logStatus = 'No logs yet';
                     // confirm if the application log has started collecting logs or not
                     const logs = await LogService.getLogsByApplicationLogId(
@@ -600,7 +596,7 @@ router.get(
             );
 
             await Promise.all(
-                errorTrackers.map(async errorTracker => {
+                errorTrackerObj.errorTrackers.map(async errorTracker => {
                     let errorStatus = 'No Errors yet';
 
                     const populateIssue = [

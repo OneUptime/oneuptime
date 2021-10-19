@@ -46,8 +46,7 @@ ScheduledEvent.displayName = 'ScheduledEvent';
 
 const mapStateToProps = state => {
     return {
-        projectId:
-            state.project.currentProject && state.project.currentProject._id,
+        projectId: state.subProject.activeSubProject,
         requesting: state.scheduledEvent.scheduledEventList.requesting,
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

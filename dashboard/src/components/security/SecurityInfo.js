@@ -415,14 +415,14 @@ const mapStateToProps = state => {
         scanningApplication: state.security.scanApplicationSecurity.requesting,
         scanningContainer: state.security.scanContainerSecurity.requesting,
         applicationSecurities: state.security.applicationSecurities,
-        containerSecurities: state.security.containerSecurities,
+        containerSecurities: state.security.containerSecurities.securities,
         scanApplicationError: state.security.scanApplicationSecurity.error,
         scanContainerError: state.security.scanContainerSecurity.error,
         activeApplicationSecurity: state.security.activeApplicationSecurity,
         activeContainerSecurity: state.security.activeContainerSecurity,
         slug: state.project.currentProject && state.project.currentProject.slug,
         scannedStatus: state.security.applicationSecurities,
-        containerScannedStatus: state.security.containerSecurities,
+        containerScannedStatus: state.security.containerSecurities.securities,
     };
 };
 
