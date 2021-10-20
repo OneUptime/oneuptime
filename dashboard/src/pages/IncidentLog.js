@@ -301,7 +301,7 @@ class IncidentLog extends React.Component {
                                 />
                             </ShouldRender>
 
-                            {allIncidents}
+                            {!this.props.incidents.requesting && allIncidents}
                             <ShouldRender if={this.props.incidents.requesting}>
                                 <LoadingState />
                             </ShouldRender>
