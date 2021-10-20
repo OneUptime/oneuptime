@@ -18,6 +18,7 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { LoadingState } from '../components/basic/Loader';
 
 export class OnCall extends Component {
     constructor(props) {
@@ -229,10 +230,13 @@ export class OnCall extends Component {
                                 />
                             </ShouldRender>
 
-                            {allSchedules}
+                            {!this.props.isRequesting && allSchedules}
                         </div>
                     </div>
                 </div>
+                <ShouldRender if={this.props.isRequesting}>
+                    <LoadingState />
+                </ShouldRender>
             </Fade>
         );
     }

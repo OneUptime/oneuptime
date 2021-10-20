@@ -11,6 +11,8 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import { LoadingState } from '../components/basic/Loader';
+import ShouldRender from '../components/basic/ShouldRender';
 
 class AlertLog extends Component {
     constructor(props) {
@@ -169,18 +171,23 @@ class AlertLog extends Component {
                     name="On-Call Duty"
                 />
                 <BreadCrumbItem route={pathname} name="Alert Log" />
-                <div className="Box-root">
-                    <div>
+                <ShouldRender if={!this.props.isRequesting}>
+                    <div className="Box-root">
                         <div>
-                            <div
-                                id="alertLogPage"
-                                className="Margin-vertical--12"
-                            >
-                                {allAlerts}
+                            <div>
+                                <div
+                                    id="alertLogPage"
+                                    className="Margin-vertical--12"
+                                >
+                                    {allAlerts}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </ShouldRender>
+                <ShouldRender if={this.props.isRequesting}>
+                    <LoadingState />
+                </ShouldRender>
             </Fade>
         );
     }

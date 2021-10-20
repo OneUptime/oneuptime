@@ -55,8 +55,8 @@ class IncidentLog extends React.Component {
             activeProjectId,
         } = this.props;
 
-        if (activeProjectId && componentSlug) {
-            fetchComponent(activeProjectId, componentSlug);
+        if (this.props.currentProject && componentSlug) {
+            fetchComponent(this.props.currentProject._id, componentSlug);
         }
 
         if (componentSlug && component && componentId) {
@@ -240,7 +240,11 @@ class IncidentLog extends React.Component {
                                         createIncidentModalId
                                     }
                                     openModal={this.props.openModal}
-                                    subProjectName={currentProject.name}
+                                    subProjectName={
+                                        subProjects.find(
+                                            obj => obj._id === currentProjectId
+                                        )?.name || currentProject.name
+                                    }
                                     currentProjectId={currentProjectId}
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
@@ -301,7 +305,7 @@ class IncidentLog extends React.Component {
                                 />
                             </ShouldRender>
 
-                            {allIncidents}
+                            {!this.props.incidents.requesting && allIncidents}
                             <ShouldRender if={this.props.incidents.requesting}>
                                 <LoadingState />
                             </ShouldRender>
@@ -342,6 +346,16 @@ const mapStateToProps = (state, ownProps) => {
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
+
+    let activeProjectId = state.subProject.activeSubProject;
+    if (componentSlug) {
+        activeProjectId =
+            state.component.currentComponent &&
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.projectId &&
+            (state.component.currentComponent.component.projectId._id ||
+                state.component.currentComponent.component.projectId);
+    }
     return {
         componentId:
             state.component.currentComponent.component &&
@@ -359,7 +373,7 @@ const mapStateToProps = (state, ownProps) => {
         projectId,
         componentSlug,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-        activeProjectId: state.subProject?.activeSubProject,
+        activeProjectId,
     };
 };
 
