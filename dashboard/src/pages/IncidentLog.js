@@ -240,7 +240,11 @@ class IncidentLog extends React.Component {
                                         createIncidentModalId
                                     }
                                     openModal={this.props.openModal}
-                                    subProjectName={currentProject.name}
+                                    subProjectName={
+                                        subProjects.find(
+                                            obj => obj._id === currentProjectId
+                                        )?.name || currentProject.name
+                                    }
                                     currentProjectId={currentProjectId}
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
