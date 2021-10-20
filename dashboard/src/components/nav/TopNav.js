@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import FeedBackModal from '../FeedbackModal';
-jj;
 import { showProfileMenu, updateProfileSetting } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
 import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
