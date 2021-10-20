@@ -371,12 +371,12 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // /**
-    //  * NOTE TO TEAM
-    //  *
-    //  * This particular test case is no longer needed in our codebase
-    //  * If the need arises in the future, then we refactor this
-    //  */
+    /**
+     * NOTE TO TEAM
+     *
+     * This particular test case is no longer needed in our codebase
+     * If the need arises in the future, then we refactor this
+     */
 
     // test(
     //     'should get incident timeline and paginate for incident timeline in sub-project',
