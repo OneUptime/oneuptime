@@ -342,6 +342,16 @@ const mapStateToProps = (state, ownProps) => {
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
+
+    let activeProjectId = state.subProject.activeSubProject;
+    if (componentSlug) {
+        activeProjectId =
+            state.component.currentComponent &&
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.projectId &&
+            (state.component.currentComponent.component.projectId._id ||
+                state.component.currentComponent.component.projectId);
+    }
     return {
         componentId:
             state.component.currentComponent.component &&
@@ -359,12 +369,7 @@ const mapStateToProps = (state, ownProps) => {
         projectId,
         componentSlug,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-        activeProjectId:
-            state.component.currentComponent &&
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.projectId &&
-            (state.component.currentComponent.component.projectId._id ||
-                state.component.currentComponent.component.projectId),
+        activeProjectId,
     };
 };
 
