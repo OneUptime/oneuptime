@@ -5,6 +5,7 @@ import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
+import Markdown from 'markdown-to-jsx';
 import Notes from './Notes';
 import ShouldRender from './ShouldRender';
 import SubscribeBox from './Subscribe/SubscribeBox';
@@ -319,8 +320,25 @@ class NotesMain extends Component {
                                     >
                                         <b>{note.title}</b>
                                     </div>
-                                    <div className="incident_desc" id="note">
-                                        {note.description}
+                                    <div
+                                        className="incident_desc"
+                                        id="note"
+                                        style={{
+                                            whiteSpace: 'pre-wrap',
+                                        }}
+                                    >
+                                        {note.description
+                                            .split('\n')
+                                            .map((elem, index) => (
+                                                <Markdown
+                                                    key={`${elem}-${index}`}
+                                                    options={{
+                                                        forceBlock: true,
+                                                    }}
+                                                >
+                                                    {elem}
+                                                </Markdown>
+                                            ))}
                                     </div>
                                     <div
                                         className="incident-date"
@@ -361,6 +379,8 @@ class NotesMain extends Component {
                                                         className="incident_desc"
                                                         style={{
                                                             marginBottom: 5,
+                                                            whiteSpace:
+                                                                'pre-wrap',
                                                         }}
                                                         key={message._id}
                                                     >
@@ -369,7 +389,23 @@ class NotesMain extends Component {
                                                                 message.incident_state
                                                             }
                                                         </b>{' '}
-                                                        - {message.content}
+                                                        {message.content
+                                                            .split('\n')
+                                                            .map(
+                                                                (
+                                                                    elem,
+                                                                    index
+                                                                ) => (
+                                                                    <Markdown
+                                                                        key={`${elem}-${index}`}
+                                                                        options={{
+                                                                            forceBlock: true,
+                                                                        }}
+                                                                    >
+                                                                        {elem}
+                                                                    </Markdown>
+                                                                )
+                                                            )}
                                                     </div>
                                                     <div className="incident-date">
                                                         <span>
