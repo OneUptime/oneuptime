@@ -24,6 +24,51 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 });
 
 class ErrorTracking extends Component {
+    state = {
+        showNewErrorTrackerForm: false,
+        page: 1,
+        requesting: false,
+    };
+
+    prevClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .fetchErrorTrackers(
+                projectId,
+                componentId,
+                (skip || 0) > (limit || 5) ? skip - limit : 0,
+                limit,
+                true
+            )
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page:
+                            prevState.page === 1
+                                ? prevState.page
+                                : prevState.page - 1,
+                    };
+                });
+            });
+    };
+
+    nextClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .fetchErrorTrackers(
+                projectId,
+                componentId,
+                skip + limit,
+                limit,
+                true
+            )
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page: prevState.page + 1,
+                    };
+                });
+            });
+    };
+
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -55,12 +100,18 @@ class ErrorTracking extends Component {
         }
 
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
-            this.props.fetchErrorTrackers(
-                this.props.currentProject._id,
-                this.props.componentId
-            );
+            this.setRequesting();
+            this.props
+                .fetchErrorTrackers(
+                    this.props.currentProject._id,
+                    this.props.componentId,
+                    0,
+                    5
+                )
+                .then(() => this.setState({ requesting: false }));
         }
     }
+    setRequesting = () => this.setState({ requesting: true });
     ready = () => {
         const { componentSlug, fetchComponent, componentId } = this.props;
         const projectId = this.props.currentProject
@@ -69,10 +120,18 @@ class ErrorTracking extends Component {
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
         }
+
+        this.setState({ requesting: true });
         if (projectId && componentId) {
-            this.props.fetchErrorTrackers(projectId, componentId);
+            this.props
+                .fetchErrorTrackers(projectId, componentId, 0, 5)
+                .then(() => this.setState({ requesting: false }));
         }
     };
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showNewErrorTrackerForm: !prevState.showNewErrorTrackerForm,
+        }));
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -110,6 +169,16 @@ class ErrorTracking extends Component {
                             errorTrackers={
                                 this.props.errorTracker.errorTrackers
                             }
+                            prevClicked={this.prevClicked}
+                            nextClicked={this.nextClicked}
+                            skip={errorTracker.skip}
+                            limit={errorTracker.limit}
+                            count={errorTracker.count}
+                            page={this.state.page}
+                            requesting={errorTracker.requesting}
+                            error={errorTracker.error}
+                            projectId={this.props.activeProjectId}
+                            fetchingPage={errorTracker.fetchingPage}
                         />
                     </div>
                 </div>
@@ -133,13 +202,29 @@ class ErrorTracking extends Component {
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Error Tracking" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Error Tracking"
+                    addBtn={errorTrackersList}
+                    btnText="Create New Error Tracker"
+                    toggleForm={this.toggleForm}
+                />
                 <div>
                     <div>
-                        <ShouldRender if={this.props.errorTracker.requesting}>
+                        <ShouldRender
+                            if={
+                                this.props.errorTracker.requesting ||
+                                this.state.requesting
+                            }
+                        >
                             <LoadingState />
                         </ShouldRender>
-                        <ShouldRender if={!this.props.errorTracker.requesting}>
+                        <ShouldRender
+                            if={
+                                !this.props.errorTracker.requesting &&
+                                !this.state.requesting
+                            }
+                        >
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
                                     if={
@@ -155,11 +240,23 @@ class ErrorTracking extends Component {
                                     />
                                 </ShouldRender>
                             </div>
-                            {errorTrackersList}
-                            <NewErrorTracker
-                                componentId={this.props.componentId}
-                                componentSlug={this.props.componentSlug}
-                            />
+                            {!this.state.showNewErrorTrackerForm &&
+                                errorTrackersList &&
+                                errorTrackersList}
+
+                            <ShouldRender
+                                if={
+                                    this.state.showNewErrorTrackerForm ||
+                                    !errorTrackersList
+                                }
+                            >
+                                <NewErrorTracker
+                                    componentId={this.props.componentId}
+                                    componentSlug={this.props.componentSlug}
+                                    toggleForm={this.toggleForm}
+                                    showCancelBtn={errorTrackersList}
+                                />
+                            </ShouldRender>
                         </ShouldRender>
                     </div>
                 </div>
@@ -211,6 +308,7 @@ const mapStateToProps = (state, ownProps) => {
         errorTracker,
         tutorialStat,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 ErrorTracking.propTypes = {
@@ -224,5 +322,6 @@ ErrorTracking.propTypes = {
     tutorialStat: PropsType.object,
     errorTracker: PropsType.object,
     switchToProjectViewerNav: PropsType.bool,
+    activeProjectId: PropsType.string,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTracking);

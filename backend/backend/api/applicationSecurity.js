@@ -3,6 +3,7 @@ const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
@@ -239,6 +240,7 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const { skip, limit } = req.query;
             const populateApplicationSecurity = [
                 { path: 'componentId', select: '_id slug name slug' },
 
@@ -252,17 +254,20 @@ router.get(
             const selectApplicationSecurity =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-            const applicationSecurities = await ApplicationSecurityService.findBy(
-                {
+            const [applicationSecurities, count] = await Promise.all([
+                ApplicationSecurityService.findBy({
                     query: {
                         componentId,
                     },
+                    skip,
+                    limit,
                     select: selectApplicationSecurity,
                     populate: populateApplicationSecurity,
-                }
-            );
+                }),
+                ApplicationSecurityService.countBy({ componentId }),
+            ]);
 
-            return sendItemResponse(req, res, applicationSecurities);
+            return sendListResponse(req, res, applicationSecurities, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

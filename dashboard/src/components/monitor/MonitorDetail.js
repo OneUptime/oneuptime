@@ -278,17 +278,20 @@ export class MonitorDetail extends Component {
 
         monitor.error = null;
         if (
-            monitorState.monitorsList.error &&
-            monitorState.monitorsList.error.monitorId &&
+            monitorState.paginatedMonitorsList.error &&
+            monitorState.paginatedMonitorsList.error.monitorId &&
             monitor &&
             monitor._id
         ) {
-            if (monitorState.monitorsList.error.monitorId === monitor._id) {
-                monitor.error = monitorState.monitorsList.error.error;
+            if (
+                monitorState.paginatedMonitorsList.error.monitorId ===
+                monitor._id
+            ) {
+                monitor.error = monitorState.paginatedMonitorsList.error.error;
             }
         }
-        monitor.success = monitorState.monitorsList.success;
-        monitor.requesting = monitorState.monitorsList.requesting;
+        monitor.success = monitorState.paginatedMonitorsList.success;
+        monitor.requesting = monitorState.paginatedMonitorsList.requesting;
 
         let badgeColor;
         switch (monitor.type) {

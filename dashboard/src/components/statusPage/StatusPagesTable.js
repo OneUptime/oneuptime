@@ -11,10 +11,8 @@ import {
     paginate,
 } from '../../actions/statusPage';
 import { openModal, closeModal } from '../../actions/modal';
-import Badge from '../common/Badge';
 import StatuspageProjectBox from './StatuspageProjectBox';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
-import ShouldRender from '../basic/ShouldRender';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
@@ -24,7 +22,7 @@ class StatusPagesTable extends Component {
         this.state = { statusPageModalId: uuidv4() };
     }
 
-    componentDidMount() {
+    ready = () => {
         if (this.props.projectId) {
             this.props
                 .fetchSubProjectStatusPages(this.props.projectId)
@@ -36,18 +34,27 @@ class StatusPagesTable extends Component {
                     }
                 });
         }
+    };
+
+    componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE'
             );
         }
+
+        this.ready();
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps) {
         if (!this.state[this.props.projectId]) {
             this.props.subProjectStatusPages.forEach(proj => {
                 this.setState({ [proj._id]: 1 });
             });
+        }
+
+        if (prevProps.projectId !== this.props.projectId) {
+            this.ready();
         }
     }
 
@@ -93,89 +100,7 @@ class StatusPagesTable extends Component {
             subProjectStatusPages,
             currentProject,
         } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
-        // SubProject StatusPages List
-        const allStatusPages =
-            subProjects &&
-            subProjects.map((subProject, i) => {
-                const subProjectStatusPage = subProjectStatusPages.find(
-                    subProjectStatusPage =>
-                        subProjectStatusPage._id === subProject._id
-                );
-                let { skip, limit } = subProjectStatusPage;
-                const { count } = subProjectStatusPage;
-                skip = parseInt(skip);
-                limit = parseInt(limit);
-                const statusPages = subProjectStatusPage.statusPages;
-                let canPaginateForward =
-                    statusPages && count && count > skip + limit ? true : false;
-                let canPaginateBackward =
-                    statusPages && skip <= 0 ? false : true;
-
-                if (subProjectStatusPage && (isRequesting || !statusPages)) {
-                    canPaginateForward = false;
-                    canPaginateBackward = false;
-                }
-                return subProjectStatusPage &&
-                    subProjectStatusPage.statusPages ? (
-                    <RenderIfUserInSubProject
-                        subProjectId={subProjectStatusPage._id}
-                        key={i}
-                    >
-                        <div
-                            id={'statusPageTable_' + i}
-                            className="bs-BIM"
-                            key={i}
-                        >
-                            <div className="Box-root Margin-bottom--12">
-                                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                    <ShouldRender if={subProjects.length > 0}>
-                                        <div className="Box-root Padding-top--20 Padding-left--20">
-                                            <Badge color={'blue'}>
-                                                {subProject.name}
-                                            </Badge>
-                                        </div>
-                                    </ShouldRender>
-                                    <StatuspageProjectBox
-                                        switchStatusPages={
-                                            this.switchStatusPages
-                                        }
-                                        subProjectStatusPage={
-                                            subProjectStatusPage
-                                        }
-                                        statusPages={statusPages}
-                                        canPaginateBackward={
-                                            canPaginateBackward
-                                        }
-                                        canPaginateForward={canPaginateForward}
-                                        skip={skip}
-                                        limit={limit}
-                                        subProjectName={subProject.name}
-                                        currentProjectId={currentProjectId}
-                                        statusPageModalId={
-                                            this.state.statusPageModalId
-                                        }
-                                        openModal={this.props.openModal}
-                                        statusPage={this.props.statusPage}
-                                        prevClicked={this.prevClicked}
-                                        nextClicked={this.nextClicked}
-                                        allStatusPageLength={
-                                            subProjectStatusPages.length
-                                        }
-                                        modalList={this.props.modalList}
-                                        project={currentProject}
-                                        pages={
-                                            this.state[subProjectStatusPage._id]
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </RenderIfUserInSubProject>
-                ) : (
-                    false
-                );
-            });
+        const currentProjectId = this.props.projectId;
 
         // Add Project Statuspages to All Statuspages List
         let projectStatusPage = subProjectStatusPages.find(
@@ -204,11 +129,6 @@ class StatusPagesTable extends Component {
                     <div id="statusPageTable" className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                <ShouldRender if={subProjects.length > 0}>
-                                    <div className="Box-root Padding-top--20 Padding-left--20">
-                                        <Badge color={'red'}>Project</Badge>
-                                    </div>
-                                </ShouldRender>
                                 <StatuspageProjectBox
                                     switchStatusPages={this.switchStatusPages}
                                     subProjectStatusPage={projectStatusPage}
@@ -249,7 +169,7 @@ class StatusPagesTable extends Component {
                 false
             );
 
-        allStatusPages && allStatusPages.unshift(projectStatusPage);
+        const allStatusPages = projectStatusPage && [projectStatusPage];
 
         return allStatusPages;
     }
@@ -268,9 +188,10 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
     const currentProject = state.project.currentProject;
-    const currentProjectId = currentProject && currentProject._id;
+    const currentProjectId =
+        ownProps.projectId || (currentProject && currentProject._id);
     const statusPages = state.statusPage.subProjectStatusPages;
 
     let subProjects = state.subProject.subProjects.subProjects;
@@ -287,7 +208,7 @@ function mapStateToProps(state) {
 
     // find project statuspages or assign default value
     let projectStatusPage = statusPages.find(
-        statusPage => statusPage._id === currentProject._id
+        statusPage => statusPage._id === currentProjectId
     );
     projectStatusPage = projectStatusPage
         ? projectStatusPage

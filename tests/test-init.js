@@ -551,7 +551,12 @@ const _this = {
             e.click()
         );
     },
-    addMonitorToStatusPage: async function(componentName, monitorName, page) {
+    addMonitorToStatusPage: async function(
+        componentName,
+        monitorName,
+        additionalMonitor,
+        page
+    ) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         const description = utils.generateRandomString();
         await _this.pageWaitForSelector(page, '#statusPages');
@@ -565,22 +570,22 @@ const _this = {
         });
         await _this.pageClick(page, '#addMoreMonitors');
         await _this.selectDropdownValue(
-            'ul > li:last-of-type #monitor-name',
+            `#monitor-name-${additionalMonitor}`,
             `${componentName} / ${monitorName}`,
             page
         );
         await _this.pageClick(
             page,
-            'ul > li:last-of-type #monitor-description'
+            `#monitor-description-${additionalMonitor}`
         );
         await _this.pageType(
             page,
-            'ul > li:last-of-type #monitor-description',
+            `#monitor-description-${additionalMonitor}`,
             description
         );
         await _this.pageClick(
             page,
-            'ul > li:last-of-type #manual-monitor-checkbox'
+            `#manual-monitor-checkbox-${additionalMonitor}`
         );
         await _this.pageClick(page, '#btnAddStatusPageMonitors');
     },
@@ -712,6 +717,35 @@ const _this = {
         await _this.pageClickNavigate(page, '#components');
 
         // Fill and submit New Component form
+        await _this.pageWaitForSelector(page, '#form-new-component');
+        await _this.pageClick(page, 'input[id=name]');
+        await page.focus('input[id=name]');
+        await _this.pageType(page, 'input[id=name]', component);
+
+        if (projectName) {
+            await _this.selectDropdownValue('#subProjectId', projectName, page);
+        }
+
+        await Promise.all([
+            page.$eval('button[type=submit]', e => e.click()),
+            page.waitForNavigation(),
+        ]);
+    },
+    addAdditionalComponent: async function(
+        component,
+        page,
+        projectName = null
+    ) {
+        await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
+        await _this.pageWaitForSelector(page, '#components', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClickNavigate(page, '#components');
+
+        // Fill and submit New Component form
+        await _this.pageWaitForSelector(page, '#cbComponents');
+        await _this.pageClick(page, '#newFormId');
         await _this.pageWaitForSelector(page, '#form-new-component');
         await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
@@ -939,6 +973,39 @@ const _this = {
         await _this.pageWaitForSelector(page, '#component0');
         await _this.pageWaitForSelector(page, `#more-details-${componentName}`);
         await _this.pageClickNavigate(page, `#more-details-${componentName}`);
+        await _this.pageWaitForSelector(page, '#form-new-monitor');
+        await _this.pageWaitForSelector(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
+        await page.focus('input[id=name]');
+        await _this.pageType(page, 'input[id=name]', monitorName);
+        await _this.pageClick(page, '[data-testId=type_url]');
+        await _this.pageWaitForSelector(page, '#url', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#url');
+        await _this.pageType(page, '#url', 'https://google.com');
+        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
+            visible: true,
+        });
+    },
+    addAdditionalMonitorToComponent: async function(
+        page,
+        componentName,
+        monitorName
+    ) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: 'networkidle2',
+            timeout: _this.timeout,
+        });
+        await _this.pageWaitForSelector(page, '#components');
+        await _this.pageClickNavigate(page, '#components');
+        await _this.pageWaitForSelector(page, '#component0');
+        await _this.pageWaitForSelector(page, `#more-details-${componentName}`);
+        await _this.pageClickNavigate(page, `#more-details-${componentName}`);
+        await _this.pageWaitForSelector(page, '#cbMonitors');
+        await _this.pageClick(page, '#newFormId');
         await _this.pageWaitForSelector(page, '#form-new-monitor');
         await _this.pageWaitForSelector(page, 'input[id=name]');
         await _this.pageClick(page, 'input[id=name]');

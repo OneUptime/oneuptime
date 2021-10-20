@@ -24,7 +24,13 @@ import _ from 'lodash';
 import moment from 'moment-timezone';
 import Search from './Search';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
+import { setActiveSubProject } from '../../actions/subProject';
+import SubProjectDropDown from '../basic/SubProjectDropDown';
 class TopContent extends Component {
+    handleChange = value => {
+        this.props.setActiveSubProject(value, true);
+    };
+
     componentDidMount() {
         const {
             userSettings,
@@ -403,6 +409,13 @@ class TopContent extends Component {
         const { project } = this.props;
         const renderSearch =
             project.projects.success && project.projects.projects.length !== 0;
+
+        let activeSubProject;
+        this.props.subProjects.forEach(subProject => {
+            if (subProject._id === this.props.activeSubProject) {
+                activeSubProject = subProject.name;
+            }
+        });
         return (
             <div
                 tabIndex="0"
@@ -418,13 +431,34 @@ class TopContent extends Component {
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <ShouldRender if={isNotViewer && renderSearch}>
-                    <div className="db-Search-wrapper">
-                        <Search />
-                    </div>
-                </ShouldRender>
+                <SubProjectDropDown
+                    value={activeSubProject || 'Select SubProject'}
+                    options={[
+                        {
+                            value: this.props.currentProject?._id,
+                            label: `${this.props.currentProject?.name}`,
+                        },
+                        ...(this.props.subProjects &&
+                        this.props.subProjects.length > 0
+                            ? this.props.subProjects.map(subProject => ({
+                                  value: subProject._id,
+                                  label: subProject.name,
+                              }))
+                            : []),
+                    ]}
+                    updateState={this.handleChange}
+                    ready={!this.props.fetchingSubProjects}
+                />
                 <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                        <ShouldRender if={isNotViewer && renderSearch}>
+                            <div
+                                className="db-Search-wrapper"
+                                style={{ marginRight: 15 }}
+                            >
+                                <Search />
+                            </div>
+                        </ShouldRender>
                         <div
                             className="Box-root"
                             onClick={this.props.openSideNav}
@@ -619,6 +653,9 @@ const mapStateToProps = (state, props) => {
         user: state.profileSettings.profileSetting.data,
         subProjectOngoingScheduledEvents:
             state.scheduledEvent.subProjectOngoingScheduledEvent.events,
+        subProjects: state.subProject?.subProjects?.subProjects,
+        fetchingSubProjects: state.subProject?.subProjects?.requesting,
+        activeSubProject: state.subProject?.activeSubProject,
     };
 };
 
@@ -637,6 +674,7 @@ const mapDispatchToProps = dispatch =>
             fetchSubProjectOngoingScheduledEvents,
             openModal,
             updateProfileSetting,
+            setActiveSubProject,
         },
         dispatch
     );
@@ -674,6 +712,10 @@ TopContent.propTypes = {
     currentProjectSlug: PropTypes.string.isRequired,
     updateProfileSetting: PropTypes.func.isRequired,
     project: PropTypes.object,
+    subProjects: PropTypes.array,
+    fetchingSubProjects: PropTypes.bool,
+    setActiveSubProject: PropTypes.func,
+    activeSubProject: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

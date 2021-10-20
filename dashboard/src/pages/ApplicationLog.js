@@ -26,8 +26,54 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 });
 
 class ApplicationLog extends Component {
+    state = {
+        showNewLogContainerForm: false,
+        page: 1,
+        requesting: false,
+    };
+
+    prevClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .fetchApplicationLogs(
+                projectId,
+                componentId,
+                (skip || 0) > (limit || 5) ? skip - limit : 0,
+                limit,
+                true
+            )
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page:
+                            prevState.page === 1
+                                ? prevState.page
+                                : prevState.page - 1,
+                    };
+                });
+            });
+    };
+
+    nextClicked = (projectId, componentId, skip, limit) => {
+        this.props
+            .fetchApplicationLogs(
+                projectId,
+                componentId,
+                skip + limit,
+                limit,
+                true
+            )
+            .then(() => {
+                this.setState(prevState => {
+                    return {
+                        page: prevState.page + 1,
+                    };
+                });
+            });
+    };
+
     componentDidMount() {
         this.props.loadPage('Logs');
+        this.setState({ requesting: true });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER LIST'
@@ -51,23 +97,32 @@ class ApplicationLog extends Component {
                 componentSlug,
             } = this.props;
             if (currentProject) {
+                this.setRequesting();
+
                 fetchComponent(currentProject._id, componentSlug).then(() => {
                     this.ready();
                 });
             }
         }
     }
+    setRequesting = () => this.setState({ requesting: true });
     ready = () => {
         const componentId = this.props.componentId;
         const projectId =
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
-            this.props.fetchApplicationLogs(projectId, componentId);
+            this.props
+                .fetchApplicationLogs(projectId, componentId, 0, 5)
+                .then(() => this.setState({ requesting: false }));
         }
     };
     componentWillUnmount() {
         socket.removeListener(`createApplicationLog-${this.props.componentId}`);
     }
+    toggleForm = () =>
+        this.setState(prevState => ({
+            showNewLogContainerForm: !prevState.showNewLogContainerForm,
+        }));
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
@@ -109,6 +164,16 @@ class ApplicationLog extends Component {
                                 this.props.applicationLog.applicationLogs
                             }
                             componentSlug={this.props.componentSlug}
+                            prevClicked={this.prevClicked}
+                            nextClicked={this.nextClicked}
+                            skip={appLogs.skip}
+                            limit={appLogs.limit}
+                            count={appLogs.count}
+                            page={this.state.page}
+                            requesting={appLogs.requesting}
+                            error={appLogs.error}
+                            projectId={this.props.activeProjectId}
+                            fetchingPage={appLogs.paginatedRequest}
                         />
                     </div>
                 </div>
@@ -132,14 +197,28 @@ class ApplicationLog extends Component {
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
-                <BreadCrumbItem route={pathname} name="Logs" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Logs"
+                    addBtn={applicationLogsList}
+                    btnText="Create New Log Container"
+                    toggleForm={this.toggleForm}
+                />
                 <div>
                     <div>
-                        <ShouldRender if={this.props.applicationLog.requesting}>
+                        <ShouldRender
+                            if={
+                                this.props.applicationLog.requesting ||
+                                this.state.requesting
+                            }
+                        >
                             <LoadingState />
                         </ShouldRender>
                         <ShouldRender
-                            if={!this.props.applicationLog.requesting}
+                            if={
+                                !this.props.applicationLog.requesting &&
+                                !this.state.requesting
+                            }
                         >
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
@@ -155,13 +234,25 @@ class ApplicationLog extends Component {
                                         }
                                     />
                                 </ShouldRender>
-                                {applicationLogsList}
-                                <NewApplicationLog
-                                    index={2000}
-                                    formKey="NewApplicationLogForm"
-                                    componentId={this.props.componentId}
-                                    componentSlug={this.props.componentSlug}
-                                />
+                                {!this.state.showNewLogContainerForm &&
+                                    applicationLogsList &&
+                                    applicationLogsList}
+
+                                <ShouldRender
+                                    if={
+                                        this.state.showNewLogContainerForm ||
+                                        !applicationLogsList
+                                    }
+                                >
+                                    <NewApplicationLog
+                                        index={2000}
+                                        formKey="NewApplicationLogForm"
+                                        componentId={this.props.componentId}
+                                        componentSlug={this.props.componentSlug}
+                                        toggleForm={this.toggleForm}
+                                        showCancelBtn={applicationLogsList}
+                                    />
+                                </ShouldRender>
                             </div>
                         </ShouldRender>
                     </div>
@@ -216,6 +307,7 @@ const mapStateToProps = (state, props) => {
         currentProject,
         tutorialStat,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 ApplicationLog.propTypes = {
@@ -239,5 +331,6 @@ ApplicationLog.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ApplicationLog);

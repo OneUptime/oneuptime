@@ -96,6 +96,7 @@ export function fetchSubProjectSchedules(projectId) {
     return function(dispatch) {
         let promise = null;
         promise = getApi(`schedule/${projectId}/schedules`);
+        dispatch(subProjectScheduleRequest());
         promise.then(
             function(schedule) {
                 dispatch(subProjectScheduleSuccess(schedule.data));

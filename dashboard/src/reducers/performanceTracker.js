@@ -14,6 +14,7 @@ const INITIAL_STATE = {
         skip: 0,
         limit: 0,
         count: 0,
+        fetchingPage: false,
     },
     updatePerformanceTracker: {
         requesting: false,
@@ -172,9 +173,10 @@ export default function(state = INITIAL_STATE, action) {
                 ...state,
                 performanceTrackerList: {
                     ...state.performanceTrackerList,
-                    requesting: true,
+                    requesting: action.payload ? false : true,
                     success: false,
                     error: null,
+                    fetchingPage: true,
                 },
             };
 
@@ -189,6 +191,7 @@ export default function(state = INITIAL_STATE, action) {
                     skip: action.payload.skip,
                     limit: action.payload.limit,
                     count: action.payload.count,
+                    fetchingPage: false,
                 },
             };
 
@@ -200,6 +203,7 @@ export default function(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                    fetchingPage: false,
                 },
             };
 

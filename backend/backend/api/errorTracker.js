@@ -111,10 +111,12 @@ router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
                 message: "Component ID can't be null",
             });
         }
+
+        const { skip, limit } = req.query;
         const errorTrackers = await ErrorTrackerService.getErrorTrackersByComponentId(
             componentId,
-            req.query.limit || 0,
-            req.query.skip || 0
+            limit,
+            skip
         );
         return sendItemResponse(req, res, errorTrackers);
     } catch (error) {

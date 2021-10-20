@@ -17,7 +17,6 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import IncidentProjectBox from '../components/incident/IncidentProjectBox';
-import Badge from '../components/common/Badge';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
@@ -53,40 +52,37 @@ class IncidentLog extends React.Component {
             fetchComponent,
             componentSlug,
             component,
-            currentProject,
+            activeProjectId,
         } = this.props;
 
-        if (currentProject && currentProject._id && componentSlug) {
-            fetchComponent(currentProject._id, componentSlug);
+        if (this.props.currentProject && componentSlug) {
+            fetchComponent(this.props.currentProject._id, componentSlug);
         }
 
         if (componentSlug && component && componentId) {
             const projectId = component.projectId._id || component.projectId;
             this.props.getComponentIncidents(projectId, componentId);
         } else {
-            this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
+            this.props.getIncidents(activeProjectId, 0, 10); //0 -> skip, 10-> limit.
         }
 
-        if (this.props.currentProject) {
-            this.props.fetchIncidentPriorities(
-                this.props.currentProject._id,
-                0,
-                0
-            );
+        if (activeProjectId) {
+            this.props.fetchIncidentPriorities(activeProjectId, 0, 0);
             this.props.fetchIncidentTemplates({
-                projectId:
-                    this.props.currentProject._id || this.props.currentProject,
+                projectId: activeProjectId,
                 skip: 0,
                 limit: 0,
             });
             this.props.fetchDefaultTemplate({
-                projectId:
-                    this.props.currentProject._id || this.props.currentProject,
+                projectId: activeProjectId,
             });
         }
     };
 
     componentDidUpdate(prevProps) {
+        if (prevProps?.activeProjectId !== this.props?.activeProjectId) {
+            this.ready();
+        }
         if (
             String(prevProps.componentSlug) !==
                 String(this.props.componentSlug) ||
@@ -210,75 +206,9 @@ class IncidentLog extends React.Component {
             location: { pathname },
             component,
             switchToProjectViewerNav,
+            activeProjectId,
         } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
-
-        // SubProject Incidents List
-        const allIncidents =
-            subProjects &&
-            subProjects.map((subProject, i) => {
-                const subProjectIncident =
-                    subProjectIncidents &&
-                    subProjectIncidents.find(
-                        subProjectIncident =>
-                            subProjectIncident._id === subProject._id
-                    );
-                if (subProjectIncident && incidents) {
-                    subProjectIncident.requesting = incidents.requesting;
-                    subProjectIncident.error = incidents.error;
-                    subProjectIncident.success = incidents.success;
-                }
-
-                return subProjectIncident && subProjectIncident.incidents ? (
-                    <RenderIfUserInSubProject
-                        subProjectId={subProjectIncident._id}
-                        key={i}
-                    >
-                        <div className="bs-BIM" key={i}>
-                            <div className="Box-root Margin-bottom--12">
-                                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                    <ShouldRender if={subProjects.length > 0}>
-                                        <div className="Box-root Padding-top--20 Padding-left--20">
-                                            <Badge color={'blue'}>
-                                                {subProject.name}
-                                            </Badge>
-                                        </div>
-                                    </ShouldRender>
-                                    <IncidentProjectBox
-                                        componentId={componentId}
-                                        subProjectIncident={subProjectIncident}
-                                        creating={creating}
-                                        createIncidentModalId={
-                                            createIncidentModalId
-                                        }
-                                        openModal={this.props.openModal}
-                                        subProjectName={subProject.name}
-                                        currentProjectId={currentProjectId}
-                                        prevClicked={this.prevClicked}
-                                        nextClicked={this.nextClicked}
-                                        allProjectLength={
-                                            subProjectIncidents.length
-                                        }
-                                        modalList={this.props.modalList}
-                                        page={
-                                            !this.state.page[
-                                                subProjectIncident._id
-                                            ]
-                                                ? 1
-                                                : this.state.page[
-                                                      subProjectIncident._id
-                                                  ]
-                                        }
-                                        componentSlug={this.props.componentSlug}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </RenderIfUserInSubProject>
-                ) : (
-                    false
-                );
-            });
+        const currentProjectId = activeProjectId;
 
         // Add Project Incidents to All Incidents List
         let projectIncident =
@@ -302,11 +232,6 @@ class IncidentLog extends React.Component {
                     <div className="bs-BIM">
                         <div className="Box-root Margin-bottom--12">
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                <ShouldRender if={subProjects.length > 0}>
-                                    <div className="Box-root Padding-top--20 Padding-left--20">
-                                        <Badge color={'red'}>Project</Badge>
-                                    </div>
-                                </ShouldRender>
                                 <IncidentProjectBox
                                     componentId={componentId}
                                     subProjectIncident={projectIncident}
@@ -315,7 +240,11 @@ class IncidentLog extends React.Component {
                                         createIncidentModalId
                                     }
                                     openModal={this.props.openModal}
-                                    subProjectName={currentProject.name}
+                                    subProjectName={
+                                        subProjects.find(
+                                            obj => obj._id === currentProjectId
+                                        )?.name || currentProject.name
+                                    }
                                     currentProjectId={currentProjectId}
                                     prevClicked={this.prevClicked}
                                     nextClicked={this.nextClicked}
@@ -341,7 +270,7 @@ class IncidentLog extends React.Component {
                 false
             );
 
-        allIncidents && allIncidents.unshift(projectIncident);
+        const allIncidents = projectIncident && [projectIncident];
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
@@ -376,7 +305,7 @@ class IncidentLog extends React.Component {
                                 />
                             </ShouldRender>
 
-                            {allIncidents}
+                            {!this.props.incidents.requesting && allIncidents}
                             <ShouldRender if={this.props.incidents.requesting}>
                                 <LoadingState />
                             </ShouldRender>
@@ -417,6 +346,16 @@ const mapStateToProps = (state, ownProps) => {
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
+
+    let activeProjectId = state.subProject.activeSubProject;
+    if (componentSlug) {
+        activeProjectId =
+            state.component.currentComponent &&
+            state.component.currentComponent.component &&
+            state.component.currentComponent.component.projectId &&
+            (state.component.currentComponent.component.projectId._id ||
+                state.component.currentComponent.component.projectId);
+    }
     return {
         componentId:
             state.component.currentComponent.component &&
@@ -434,6 +373,7 @@ const mapStateToProps = (state, ownProps) => {
         projectId,
         componentSlug,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId,
     };
 };
 
@@ -494,6 +434,7 @@ IncidentLog.propTypes = {
     ]),
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
 };
 
 IncidentLog.displayName = 'IncidentLog';

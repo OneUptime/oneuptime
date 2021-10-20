@@ -233,6 +233,7 @@ class EditIncidentTemplate extends React.Component {
                                                                     component={
                                                                         RenderCodeEditor
                                                                     }
+                                                                    id="description"
                                                                     mode="markdown"
                                                                     height="150px"
                                                                     width="100%"

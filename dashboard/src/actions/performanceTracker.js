@@ -120,8 +120,9 @@ export const fetchPerformanceTracker = ({
 };
 
 // fetch performance tracker list
-export const fetchPerformanceTrackersRequest = () => ({
+export const fetchPerformanceTrackersRequest = fetchingPage => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_REQUEST,
+    payload: fetchingPage,
 });
 
 export const fetchPerformanceTrackersSuccess = payload => ({
@@ -141,10 +142,11 @@ export const fetchPerformanceTrackersReset = () => ({
 export const fetchPerformanceTrackers = ({
     projectId,
     componentId,
-    skip,
-    limit,
+    skip = 0,
+    limit = 0,
+    fetchingPage = false,
 }) => dispatch => {
-    dispatch(fetchPerformanceTrackersRequest());
+    dispatch(fetchPerformanceTrackersRequest(fetchingPage));
     const promise = getApi(
         `performanceTracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
     );
