@@ -333,7 +333,7 @@ class NotesMain extends Component {
                                         <span style={{ marginRight: 10 }}>
                                             <Translate>Created at </Translate>
                                             {moment(note.createdAt).format(
-                                                'LT'
+                                                'LLL'
                                             )}
                                         </span>
                                         {this.handleIncidentStatus(
@@ -375,7 +375,7 @@ class NotesMain extends Component {
                                                         <span>
                                                             {moment(
                                                                 message.createdAt
-                                                            ).format('LT')}
+                                                            ).format('LLL')}
                                                         </span>
                                                     </div>
                                                 </>
