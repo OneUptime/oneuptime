@@ -198,7 +198,7 @@ class TeamApp extends Component {
 
     render() {
         const {
-            team: { subProjectTeamLoading, teamMembers, pages },
+            team: { teamLoading, teamMembers, pages },
             location: { pathname },
             currentProject,
             switchToProjectViewerNav,
@@ -231,7 +231,7 @@ class TeamApp extends Component {
                                         overflow: 'visible',
                                     }}
                                 >
-                                    {subProjectTeamLoading.requesting ? (
+                                    {teamLoading.requesting ? (
                                         <LoadingState />
                                     ) : (
                                         <LoadedTeam
