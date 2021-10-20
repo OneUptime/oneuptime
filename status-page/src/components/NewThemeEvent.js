@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import Markdown from 'markdown-to-jsx';
 import ShouldRender from './ShouldRender';
 import moment from 'moment';
 import { capitalize } from '../config';
@@ -249,8 +250,20 @@ class NewThemeEvent extends Component {
                                     <div
                                         className="incident_desc"
                                         id={`event-description-${event.description}`}
+                                        style={{ whiteSpace: 'pre-wrap' }}
                                     >
-                                        {event.description}
+                                        {event.description
+                                            .split('\n')
+                                            .map((elem, index) => (
+                                                <Markdown
+                                                    key={`${elem}-${index}`}
+                                                    options={{
+                                                        forceBlock: true,
+                                                    }}
+                                                >
+                                                    {elem}
+                                                </Markdown>
+                                            ))}
                                     </div>
                                 </ShouldRender>
                                 {AffectedResources({

@@ -77,18 +77,20 @@ class AddNoteModal extends Component {
 
     handleKeyBoard = e => {
         const { closeThisDialog, data } = this.props;
-        switch (e.key) {
-            case 'Escape':
-                return closeThisDialog();
-            case 'Enter':
-                if (e.target.localName !== 'textarea') {
-                    return document
-                        .getElementById(`${data.type}-addButton`)
-                        .click();
-                }
-                return;
-            default:
-                return false;
+        if (e.target.localName !== 'textarea' && e.key) {
+            switch (e.key) {
+                case 'Escape':
+                    return closeThisDialog();
+                case 'Enter':
+                    if (e.target.localName !== 'textarea') {
+                        return document
+                            .getElementById(`${data.type}-addButton`)
+                            .click();
+                    }
+                    return;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -230,6 +232,7 @@ class AddNoteModal extends Component {
                                                                 component={
                                                                     RenderCodeEditor
                                                                 }
+                                                                id="new-internal"
                                                                 mode="markdown"
                                                                 height="150px"
                                                                 width="100%"

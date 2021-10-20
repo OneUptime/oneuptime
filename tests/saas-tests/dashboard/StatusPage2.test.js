@@ -54,7 +54,11 @@ describe('Status Page', () => {
         await init.addComponent(componentName, page);
         await init.addNewMonitorToComponent(page, componentName, monitorName);
         // Creates the second monitor
-        await init.addNewMonitorToComponent(page, componentName, monitorName1);
+        await init.addAdditionalMonitorToComponent(
+            page,
+            componentName,
+            monitorName1
+        );
     });
 
     afterAll(async done => {
@@ -277,7 +281,10 @@ describe('Status Page', () => {
             await init.pageWaitForSelector(page, '#editMoreDomainModal', {
                 hidden: true,
             });
-            await page.reload({ waitUntil: 'networkidle2' });
+            await page.reload({
+                waitUntil: 'networkidle2',
+                timeout: init.timeout,
+            });
 
             await init.pageClick(page, '.custom-domains-tab');
             let finalInputValue;

@@ -48,7 +48,7 @@ const DropDownMenu = ({ options, value, updateState, ready }) => {
                 onClick={() => setOpen(!open)}
                 style={{ minWidth: 250 }}
             >
-                <div id="filterToggle">{value}</div>
+                <div id="projectFilterToggle">{value}</div>
                 <div className="caret-icon--down"></div>
             </button>
             {open && ready && (
