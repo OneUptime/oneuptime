@@ -57,25 +57,25 @@ export class MonitorDetail extends Component {
         this.setLastAlive();
     }
 
-    componentDidUpdate(prevProps) {
-        const { fetchMonitorLogs, monitor } = this.props;
-        const { startDate, endDate } = this.state;
+    // componentDidUpdate(prevProps) {
+    //     const { fetchMonitorLogs, monitor } = this.props;
+    //     const { startDate, endDate } = this.state;
 
-        if (prevProps.probes !== this.props.probes) {
-            if (this.state.nowHandler) {
-                clearTimeout(this.state.nowHandler);
-            }
+    //     if (prevProps.probes !== this.props.probes) {
+    //         if (this.state.nowHandler) {
+    //             clearTimeout(this.state.nowHandler);
+    //         }
 
-            fetchMonitorLogs(
-                monitor.projectId._id || monitor.projectId,
-                monitor._id,
-                startDate,
-                endDate
-            );
+    //         fetchMonitorLogs(
+    //             monitor.projectId._id || monitor.projectId,
+    //             monitor._id,
+    //             startDate,
+    //             endDate
+    //         );
 
-            this.setLastAlive();
-        }
-    }
+    //         this.setLastAlive();
+    //     }
+    // }
 
     setLastAlive = () => {
         this.setState({ now: Date.now() });
