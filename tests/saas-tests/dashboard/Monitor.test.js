@@ -41,6 +41,8 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
 
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
                 timeout: init.timeout,
@@ -84,6 +86,8 @@ describe('Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
 
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -150,6 +154,8 @@ describe('Monitor API', () => {
         await init.navigateToComponentDetails(componentName, page);
         const monitorName = utils.generateRandomString();
 
+        await init.pageWaitForSelector(page, '#cbMonitors');
+        await init.pageClick(page, '#newFormId');
         await init.pageWaitForSelector(page, '#form-new-monitor');
         await init.pageWaitForSelector(page, 'input[id=name]', {
             visible: true,
