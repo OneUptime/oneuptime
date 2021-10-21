@@ -46,6 +46,10 @@ export class OnCall extends Component {
         ) {
             this.ready();
         }
+
+        if (prevProps.projectId !== this.props.projectId) {
+            this.ready();
+        }
     }
 
     componentWillUnmount() {
@@ -354,6 +358,7 @@ OnCall.propTypes = {
     }),
     modalList: PropTypes.array,
     switchToProjectViewerNav: PropTypes.bool,
+    projectId: PropTypes.string,
 };
 
 OnCall.displayName = 'OnCall';
