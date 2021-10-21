@@ -432,11 +432,11 @@ class TopContent extends Component {
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
                 <SubProjectDropDown
-                    value={activeSubProject || 'Select Sub-Project'}
+                    value={activeSubProject || 'Select SubProject'}
                     options={[
                         {
                             value: this.props.currentProject?._id,
-                            label: `${this.props.currentProject?.name} (main project)`,
+                            label: `${this.props.currentProject?.name}`,
                         },
                         ...(this.props.subProjects &&
                         this.props.subProjects.length > 0

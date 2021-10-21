@@ -129,15 +129,17 @@ class UpdateSchedule extends React.Component {
     };
 
     handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.handleCloseModal();
-            case 'Enter':
-                return document
-                    .getElementById('updateScheduledEventButton')
-                    .click();
-            default:
-                return false;
+        if (e.target.localName !== 'textarea' && e.key) {
+            switch (e.key) {
+                case 'Escape':
+                    return this.handleCloseModal();
+                case 'Enter':
+                    return document
+                        .getElementById('updateScheduledEventButton')
+                        .click();
+                default:
+                    return false;
+            }
         }
     };
 

@@ -150,7 +150,7 @@ export class MonitorViewHeader extends Component {
             subProjects,
             monitorState,
             activeProbe,
-            currentProject,
+            // currentProject,
             probes,
             creating,
         } = this.props;
@@ -197,7 +197,7 @@ export class MonitorViewHeader extends Component {
                 onKeyDown={this.handleKeyBoard}
             >
                 <div className="Flex-flex Flex-direction--row">
-                    {currentProject._id === subProjectId ? (
+                    {/* {currentProject._id === subProjectId ? (
                         subProjects.length > 0 ? (
                             <div className="Box-root Padding-top--20 Padding-left--20">
                                 <Badge color={'red'}>Project</Badge>
@@ -209,7 +209,7 @@ export class MonitorViewHeader extends Component {
                                 {subProject && subProject.name}
                             </Badge>
                         </div>
-                    )}
+                    )} */}
                     <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
                             className={`Box-root Padding-top--20 ${

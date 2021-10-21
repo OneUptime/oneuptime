@@ -6429,7 +6429,7 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
 .bs-TextArea {
   height: auto;
   width: 100%;
-  white-space: normal;
+  white-space: pre-wrap;
 }
 
 .bs-TextArea--tall {

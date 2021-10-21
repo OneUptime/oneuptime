@@ -53,6 +53,8 @@ describe('Incident API With SubProjects', () => {
             );
             await page.goto(utils.DASHBOARD_URL);
             // add new user to sub-project
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.addUserToProject(
                 {
                     email: newUser.email,
@@ -177,6 +179,8 @@ describe('Incident API With SubProjects', () => {
             }
 
             // Navigate to details page of monitor
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
             // create incident
             await init.pageWaitForSelector(
