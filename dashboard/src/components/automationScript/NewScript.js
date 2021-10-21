@@ -90,19 +90,17 @@ class NewScript extends Component {
         }
 
         const { type, script } = this.state;
-        const { currentProject } = this.props;
+        const { activeProject } = this.props;
         const payload = { ...values, scriptType: type, script };
-        this.props
-            .createAutomatedScript(currentProject._id, payload)
-            .then(() => {
-                this.props.fetchAutomatedScript(currentProject._id, 0, 10);
-                dispatch(reset('newScript'));
-                this.setState({
-                    type: 'JavaScript',
-                    script: defaultScript,
-                });
-                this.props.toggleNewScript();
+        this.props.createAutomatedScript(activeProject, payload).then(() => {
+            this.props.fetchAutomatedScript(activeProject, 0, 10);
+            dispatch(reset('newScript'));
+            this.setState({
+                type: 'JavaScript',
+                script: defaultScript,
             });
+            this.props.toggleNewScript();
+        });
     };
 
     renderSuccessEvent = ({ fields }) => {
@@ -798,7 +796,7 @@ const mapStateToProps = state => {
         });
     });
     return {
-        currentProject: state.project.currentProject,
+        activeProject: state.subProject.activeSubProject,
         addScriptsError: state.automatedScripts.addScripts.error,
         requesting: state.automatedScripts.addScripts.requesting,
         script: state.automatedScripts.fetchScripts.scripts,
@@ -819,7 +817,6 @@ const mapStateToProps = state => {
 NewScript.propTypes = {
     createAutomatedScript: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
-    currentProject: PropTypes.object,
     addScriptsError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -832,6 +829,7 @@ NewScript.propTypes = {
     successEventValues: PropTypes.array,
     failureEventValues: PropTypes.array,
     toggleNewScript: PropTypes.func,
+    activeProject: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewScriptForm);
