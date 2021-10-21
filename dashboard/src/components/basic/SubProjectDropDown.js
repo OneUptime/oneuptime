@@ -64,6 +64,7 @@ const DropDownMenu = ({ options, value, updateState, ready }) => {
                                 className="ddm-dropdown-menu__item"
                                 onClick={() => onClick(options[0]?.value)}
                                 style={menuStyle}
+                                id={`project-${options[0]?.label}`}
                             >
                                 {options[0]?.label}
                             </span>
@@ -78,6 +79,7 @@ const DropDownMenu = ({ options, value, updateState, ready }) => {
                                             className="ddm-dropdown-menu__item"
                                             onClick={() => onClick(data.value)}
                                             style={menuStyle}
+                                            id={`project-${data.label}`}
                                         >
                                             {data.label}
                                         </span>
