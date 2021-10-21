@@ -53,7 +53,10 @@ const DropDownMenu = ({ options, value, updateState, ready }) => {
             </button>
             {open && ready && (
                 <div className="ddm-dropdown-wrapper" style={{ minWidth: 300 }}>
-                    <div className="ddm-dropdown-menu">
+                    <div
+                        className="ddm-dropdown-menu"
+                        style={{ maxHeight: '26em', overflowY: 'auto' }}
+                    >
                         <section>
                             <span style={sectionStyle}>Main Project</span>
                             <span
