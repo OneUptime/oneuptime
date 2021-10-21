@@ -66,6 +66,13 @@ class Schedule extends Component {
                 }
             }
         }
+
+        if (prevProps.activeProjectId !== this.props.activeProjectId) {
+            // navigate back to main section
+            this.props.history.push(
+                `/dashboard/project/${this.props.currentProject.slug}/on-call`
+            );
+        }
     }
 
     handleError = e => {
@@ -210,6 +217,7 @@ const mapStateToProps = (state, props) => {
         requestingEscalations: state.schedule.escalation.requesting,
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 
@@ -233,6 +241,8 @@ Schedule.propTypes = {
     requestingEscalations: PropTypes.bool,
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
+    history: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Schedule);
