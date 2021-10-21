@@ -699,7 +699,7 @@ TopContent.propTypes = {
     incidents: PropTypes.shape({ incidents: PropTypes.array }),
     length: PropTypes.number,
     map: PropTypes.func,
-    currentProject: PropTypes.shape({ _id: PropTypes.string }),
+    currentProject: PropTypes.object,
     fetchSubProjectOngoingScheduledEvents: PropTypes.func,
     monitors: PropTypes.shape({ count: PropTypes.number }),
     subProjectOngoingScheduledEvents: PropTypes.array,
