@@ -12,8 +12,6 @@ const componentName = utils.generateRandomString();
 const testServerMonitorName = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    //const operationTimeOut = init.timeout;
-
     beforeAll(async () => {
         jest.setTimeout(600000);
 
