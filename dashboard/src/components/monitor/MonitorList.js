@@ -30,7 +30,7 @@ function MonitorList(props) {
                     subProjectId={monitor.projectId._id || monitor.projectId}
                 >
                     <MonitorDetail
-                        shouldRenderProjectType={props.shouldRenderProjectType}
+                        shouldRenderProjectType={false}
                         projectName={props.projectName}
                         projectType={props.projectType}
                         componentId={props.componentId}
@@ -158,7 +158,7 @@ MonitorList.propTypes = {
     skip: PropTypes.number,
     limit: PropTypes.number,
     count: PropTypes.number,
-    shouldRenderProjectType: PropTypes.bool,
+    // shouldRenderProjectType: PropTypes.bool,
     projectId: PropTypes.string,
     projectName: PropTypes.string,
     projectType: PropTypes.string,
