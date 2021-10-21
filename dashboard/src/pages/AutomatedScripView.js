@@ -43,9 +43,15 @@ const AutomatedScripView = props => {
     });
 
     useEffect(() => {
-        const projectId = props.activeProject;
-        if (prevProjectIdRef.current !== projectId) {
-            history.goBack();
+        const { activeProject, subProjects, currentProject } = props;
+        if (
+            prevProjectIdRef.current &&
+            prevProjectIdRef.current !== activeProject
+        ) {
+            const { slug } = [...subProjects, currentProject].find(
+                project => project._id === activeProject
+            );
+            history.push(`/dashboard/project/${slug}/automation-scripts`);
         }
     }, [props.activeProject]);
 
@@ -682,6 +688,7 @@ AutomatedScripView.propTypes = {
     details: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
     activeProject: PropTypes.string,
+    subProjects: PropTypes.array,
 };
 
 const mapStateToProps = state => ({
@@ -691,6 +698,7 @@ const mapStateToProps = state => ({
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
     switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+    subProjects: state.subProject.subProjects.subProjects,
 });
 
 const mapDispatchToProps = dispatch =>
