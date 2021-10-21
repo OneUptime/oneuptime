@@ -94,6 +94,14 @@ class Incident extends React.Component {
                 limit: 0,
             });
         }
+
+        if (prevProps.activeProjectId !== this.props.activeProjectId) {
+            if (!this.props.componentSlug) {
+                this.props.history.push(
+                    `/dashboard/project/${this.props.currentProject.slug}/incidents`
+                );
+            }
+        }
     }
 
     nextAlerts = () => {
@@ -853,6 +861,7 @@ const mapStateToProps = (state, props) => {
         allMonitors,
         projectSlug,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 
@@ -930,6 +939,7 @@ Incident.propTypes = {
     errorIncident: PropTypes.bool,
     successIncident: PropTypes.bool,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
 };
 
 Incident.displayName = 'Incident';

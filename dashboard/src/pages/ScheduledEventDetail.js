@@ -94,6 +94,13 @@ class ScheduledEventDetail extends Component {
                 event => deleteScheduledEventNoteSuccess(event)
             );
         }
+
+        if (prevProps.activeProjectId !== this.props.activeProjectId) {
+            // navigate back to main section
+            this.props.history.push(
+                `/dashboard/project/${this.props.currentProject.slug}/scheduledEvents`
+            );
+        }
     }
     ready = () => {
         resetIdCounter();
@@ -302,6 +309,8 @@ ScheduledEventDetail.propTypes = {
     monitorList: PropTypes.array,
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProjectId: PropTypes.string,
+    history: PropTypes.object,
 };
 
 const mapStateToProps = (state, props) => {
@@ -332,6 +341,7 @@ const mapStateToProps = (state, props) => {
             state.scheduledEvent.currentScheduledEvent.scheduledEvent._id,
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject.activeSubProject,
     };
 };
 

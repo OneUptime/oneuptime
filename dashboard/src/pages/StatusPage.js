@@ -145,6 +145,13 @@ class StatusPage extends Component {
                 }
             }
         }
+
+        if (prevProps.activeProjectId !== this.props.activeProjectId) {
+            // navigate back to the parent section
+            this.props.history.push(
+                `/dashboard/project/${this.props.currentProject.slug}/status-pages`
+            );
+        }
     }
 
     validateMonitors = monitors => {
@@ -786,6 +793,7 @@ StatusPage.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    history: PropTypes.object,
     projectId: PropTypes.string,
     subProjectId: PropTypes.string,
     currentProject: PropTypes.object,
