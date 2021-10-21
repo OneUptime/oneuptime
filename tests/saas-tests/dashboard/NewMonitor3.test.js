@@ -39,11 +39,20 @@ describe('New Monitor API', () => {
             // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
+            // This the first monitor
+            const firstMonitorName = utils.generateRandomString();
+            await init.addNewMonitorToComponent(
+                page,
+                componentName,
+                firstMonitorName
+            );
 
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 14; i++) {
+                // This adds 14 more monitors
+                // The Interface for adding additional monitor has been updated
                 const monitorName = utils.generateRandomString();
 
-                await init.addNewMonitorToComponent(
+                await init.addAdditionalMonitorToComponent(
                     page,
                     componentName,
                     monitorName
@@ -68,6 +77,8 @@ describe('New Monitor API', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]');
             await init.pageWaitForSelector(page, 'input[id=name]', {

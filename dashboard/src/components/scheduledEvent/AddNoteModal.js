@@ -232,6 +232,7 @@ class AddNoteModal extends Component {
                                                                 component={
                                                                     RenderCodeEditor
                                                                 }
+                                                                id="new-internal"
                                                                 mode="markdown"
                                                                 height="150px"
                                                                 width="100%"

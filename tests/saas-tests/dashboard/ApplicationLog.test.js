@@ -271,13 +271,11 @@ describe('Log Containers', () => {
             logTypeElement.should.be.exactly('');
 
             // click on the warning tab
-            await init.pageWaitForSelector(
-                page,
-                `#${applicationLogName}-warning`
-            );
-            await init.pageClick(page, `#${applicationLogName}-warning`);
-
-            // confim that thee drop down current value is warning
+            await init.pageClick(page, '#log_type_selector', { hidden: true });
+            await init.pageType(page, '#log_type_selector', 'Warning', {
+                hidden: true,
+            });
+            await page.keyboard.press('Tab');
             logTypeElement = await init.pageWaitForSelector(
                 page,
                 'input[name=log_type_selector]',
@@ -289,8 +287,11 @@ describe('Log Containers', () => {
             logTypeElement.should.be.exactly('warning');
 
             // click on the info tab
-            await init.pageWaitForSelector(page, `#${applicationLogName}-info`);
-            await init.pageClick(page, `#${applicationLogName}-info`);
+            await init.pageClick(page, '#log_type_selector', { hidden: true });
+            await init.pageType(page, '#log_type_selector', 'Info', {
+                hidden: true,
+            });
+            await page.keyboard.press('Tab');
 
             // confim that thee drop down current value is info
             logTypeElement = await init.pageWaitForSelector(
@@ -304,11 +305,11 @@ describe('Log Containers', () => {
             logTypeElement.should.be.exactly('info');
 
             // click on the error tab
-            await init.pageWaitForSelector(
-                page,
-                `#${applicationLogName}-error`
-            );
-            await init.pageClick(page, `#${applicationLogName}-error`);
+            await init.pageClick(page, '#log_type_selector', { hidden: true });
+            await init.pageType(page, '#log_type_selector', 'Error', {
+                hidden: true,
+            });
+            await page.keyboard.press('Tab');
 
             // confim that thee drop down current value is error
             logTypeElement = await init.pageWaitForSelector(
@@ -322,8 +323,11 @@ describe('Log Containers', () => {
             logTypeElement.should.be.exactly('error');
 
             // click on the all tab
-            await init.pageWaitForSelector(page, `#${applicationLogName}-all`);
-            await init.pageClick(page, `#${applicationLogName}-all`);
+            await init.pageClick(page, '#log_type_selector', { hidden: true });
+            await init.pageType(page, '#log_type_selector', 'All Logs', {
+                hidden: true,
+            });
+            await page.keyboard.press('Tab');
 
             // confim that thee drop down current value is all
             logTypeElement = await init.pageWaitForSelector(

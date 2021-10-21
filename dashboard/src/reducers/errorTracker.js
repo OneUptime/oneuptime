@@ -63,6 +63,7 @@ const INITIAL_STATE = {
         error: null,
         requesting: false,
         success: false,
+        fetchingPage: false,
     },
     errorTrackerIssues: {},
     errorEvents: {},
@@ -126,7 +127,11 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    errorTrackers: action.payload,
+                    errorTrackers: action.payload.errorTrackers,
+                    count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    fetchingPage: false,
                 },
             });
 
@@ -137,6 +142,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                    fetchingPage: false,
                 },
             });
 
@@ -149,9 +155,10 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 errorTrackersList: {
                     ...state.errorTrackersList,
-                    requesting: true,
+                    requesting: action.payload ? false : true,
                     error: null,
                     success: false,
+                    fetchingPage: true,
                 },
             });
         case FETCH_ISSUES_SUCCESS:

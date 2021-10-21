@@ -8,8 +8,19 @@ import { ErrorTrackerList } from '../errorTracker/ErrorTrackerList';
 
 class ComponentIssue extends Component {
     componentDidMount() {
-        const { component, currentProjectId, fetchErrorTrackers } = this.props;
-        fetchErrorTrackers(currentProjectId, component._id);
+        const {
+            component,
+            currentProjectId,
+            fetchErrorTrackers,
+            trackerSkip,
+            trackerLimit,
+        } = this.props;
+        fetchErrorTrackers(
+            currentProjectId,
+            component._id,
+            trackerSkip,
+            trackerLimit
+        );
     }
     generateUrlLink(componentIssue) {
         const { component, currentProject } = this.props;
@@ -61,6 +72,8 @@ function mapStateToProps(state, ownProps) {
         subProject: state.subProject,
         componentIssueList,
         errorTrackers,
+        trackerSkip: state.errorTracker.errorTrackersList.skip || 0,
+        trackerLimit: state.errorTracker.errorTrackersList.limit || 5,
     };
 }
 ComponentIssue.displayName = 'ComponentIssue';
@@ -70,5 +83,7 @@ ComponentIssue.propTypes = {
     currentProject: PropTypes.object.isRequired,
     fetchErrorTrackers: PropTypes.func,
     errorTrackers: PropTypes.array,
+    trackerSkip: PropTypes.number,
+    trackerLimit: PropTypes.number,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentIssue);

@@ -71,8 +71,10 @@ class ApplicationLogDetailView extends Component {
                 </ShouldRender>
                 <ShouldRender if={stats && !stats.requesting}>
                     <div
-                        className="db-TrendRow db-ListViewItem-header db-Trends-header"
+                        className="db-ListViewItem-header db-Trends-header"
                         style={{
+                            position: 'relative',
+                            display: 'flex',
                             justifyContent: 'center',
                             backgroundColor: '#202839',
                         }}

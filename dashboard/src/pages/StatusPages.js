@@ -10,7 +10,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
-class StatusPage extends Component {
+class StatusPages extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST');
@@ -23,6 +23,7 @@ class StatusPage extends Component {
             location: { pathname },
             currentProject,
             switchToProjectViewerNav,
+            activeProjectId,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
         return (
@@ -42,7 +43,7 @@ class StatusPage extends Component {
                     />
                 </ShouldRender>
 
-                <StatusPagesTable projectId={projectId} />
+                <StatusPagesTable projectId={activeProjectId} />
             </Fade>
         );
     }
@@ -76,10 +77,11 @@ function mapStateToProps(state) {
         currentProject:
             state.project.currentProject && state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeProjectId: state.subProject?.activeSubProject,
     };
 }
 
-StatusPage.propTypes = {
+StatusPages.propTypes = {
     projectId: PropTypes.string.isRequired,
     tutorialStat: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
@@ -87,8 +89,9 @@ StatusPage.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    activeProjectId: PropTypes.string,
 };
 
-StatusPage.displayName = 'StatusPage';
+StatusPages.displayName = 'StatusPages';
 
-export default connect(mapStateToProps, mapDispatchToProps)(StatusPage);
+export default connect(mapStateToProps, mapDispatchToProps)(StatusPages);

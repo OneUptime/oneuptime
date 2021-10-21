@@ -122,6 +122,8 @@ describe('Error Trackers', () => {
             await init.pageClick(page, '#errorTracking');
             // create a new error tracker and select the category
             // Fill and submit New Error Tracker form
+            await init.pageWaitForSelector(page, '#cbErrorTracking');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-error-tracker');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -167,6 +169,8 @@ describe('Error Trackers', () => {
             await init.pageClick(page, '#errorTracking');
 
             // Fill and submit New Error Tracker form
+            await init.pageWaitForSelector(page, '#cbErrorTracking');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-error-tracker');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,

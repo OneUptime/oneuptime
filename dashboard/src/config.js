@@ -78,6 +78,14 @@ export const User = {
         return localStorage.getItem('current_project_id');
     },
 
+    setActiveSubProjectId(id) {
+        return localStorage.setItem('active_subproject_id', id);
+    },
+
+    getActiveSubProjectId() {
+        return localStorage.getItem('active_subproject_id');
+    },
+
     setAccessToken(token) {
         localStorage.setItem('access_token', token);
     },

@@ -13,6 +13,7 @@ import {
     readStatusPage,
 } from '../../actions/statusPage';
 import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values) {
     const errors = {};
@@ -38,8 +39,13 @@ export class StatusPageForm extends React.Component {
     }
 
     submitForm = values => {
-        const { data } = this.props;
+        const { data, subProjects } = this.props;
         this.props.readStatusPage(data.statusPageSlug, values).then(res => {
+            if (subProjects && values.statuspageId) {
+                res.data.projectId._id = values.statuspageId;
+                res.data.monitors = [];
+                res.data.monitorsData = [];
+            }
             this.props.createDuplicateStatusPage(res).then(res => {
                 this.props.closeModal({
                     id: this.props.duplicateModalId,
@@ -74,7 +80,7 @@ export class StatusPageForm extends React.Component {
     };
 
     render() {
-        const { handleSubmit } = this.props;
+        const { handleSubmit, subProjects } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -134,6 +140,39 @@ export class StatusPageForm extends React.Component {
                                             autoFocus={true}
                                         />
                                     </div>
+                                    <ShouldRender
+                                        if={
+                                            subProjects &&
+                                            subProjects.length > 0
+                                        }
+                                    >
+                                        <div className="bs-Modal-body">
+                                            <Field
+                                                className="db-select-nw"
+                                                component={RenderSelect}
+                                                name="statuspageId"
+                                                id="statuspageId"
+                                                required="required"
+                                                options={[
+                                                    {
+                                                        value: '',
+                                                        label:
+                                                            'Select a Sub Project',
+                                                    },
+                                                    ...(subProjects.length > 0
+                                                        ? subProjects.map(
+                                                              statusPage => ({
+                                                                  value:
+                                                                      statusPage._id,
+                                                                  label:
+                                                                      statusPage.name,
+                                                              })
+                                                          )
+                                                        : []),
+                                                ]}
+                                            />
+                                        </div>
+                                    </ShouldRender>
                                     <div className="bs-Modal-footer">
                                         <div className="bs-Modal-footer-actions">
                                             <button
@@ -212,6 +251,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         duplicateModalId: state.modal.modals[0].id,
         statusPage: state.statusPage,
+        subProjects: state.subProject.subProjects.subProjects,
     };
 };
 
@@ -232,6 +272,7 @@ StatusPageForm.propTypes = {
     statusPage: PropTypes.object,
     currentProject: PropTypes.object,
     data: PropTypes.object.isRequired,
+    subProjects: PropTypes.array,
 };
 
 export default connect(

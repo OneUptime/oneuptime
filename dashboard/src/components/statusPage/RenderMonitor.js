@@ -60,7 +60,8 @@ let RenderMonitor = ({
     const { monitor: currentMonitorID } = currentMonitorForm;
     const getParentComponent = monitor =>
         allComponents.filter(
-            component => component._id === monitor.componentId._id
+            component =>
+                component._id === monitor.componentId._id || monitor.componentId
         )[0];
 
     const selectedMonitor = allMonitors.filter(
@@ -109,7 +110,7 @@ let RenderMonitor = ({
                             <Field
                                 className="db-select-nw"
                                 name={`${monitor}.monitor`}
-                                id="monitor-name"
+                                id={`monitor-name-${monitorIndex}`}
                                 component={RenderSelect}
                                 options={[
                                     ...allMonitors
@@ -138,7 +139,7 @@ let RenderMonitor = ({
                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                     component="input"
                                     name={`${monitor}.description`}
-                                    id="monitor-description"
+                                    id={`monitor-description-${monitorIndex}`}
                                 />
                             </div>
                         )}
@@ -186,7 +187,7 @@ let RenderMonitor = ({
                                             label="Uptime"
                                             name={`${monitor}.uptime`}
                                             disabled={!shouldEdit}
-                                            id="manual-monitor-checkbox"
+                                            id={`manual-monitor-checkbox-${monitorIndex}`}
                                         />
                                     )}
                                     {type === 'incomingHttpRequest' && (

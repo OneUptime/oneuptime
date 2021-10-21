@@ -235,6 +235,7 @@ class EditNoteModal extends Component {
                                                                 component={
                                                                     RenderCodeEditor
                                                                 }
+                                                                id="update-internal"
                                                                 mode="markdown"
                                                                 height="150px"
                                                                 width="100%"

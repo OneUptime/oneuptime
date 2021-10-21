@@ -152,14 +152,18 @@ module.exports = {
 
             const selectAppLogs =
                 'componentId name slug resourceCategory showQuickStart createdById key';
-            const applicationLogs = await _this.findBy({
-                query: { componentId: componentId },
-                limit,
-                skip,
-                populate: populateAppLogs,
-                select: selectAppLogs,
-            });
-            return applicationLogs;
+            const [applicationLogs, count] = await Promise.all([
+                _this.findBy({
+                    query: { componentId: componentId },
+                    limit,
+                    skip,
+                    populate: populateAppLogs,
+                    select: selectAppLogs,
+                }),
+                _this.countBy({ componentId }),
+            ]);
+
+            return { applicationLogs, count, skip, limit };
         } catch (error) {
             ErrorService.log(
                 'applicationLogService.getApplicationLogsByComponentId',
