@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
@@ -27,14 +27,27 @@ const AutomatedScripView = props => {
     const [viewJsonModalId] = useState(uuidv4());
     const [automatedId] = useState(uuidv4);
     const [showUpdate, setShowUpdate] = useState(false);
+    const [prevProjectId] = useState(props.activeProject);
 
     useEffect(() => {
-        const projectId = props.currentProject?._id;
+        const projectId = props.activeProject;
         const automatedSlug = props.match.params.automatedScriptslug;
         if (projectId) {
             props.fetchSingleAutomatedScript(projectId, automatedSlug, 0, 10);
         }
-    }, [props.currentProject]);
+    }, []);
+
+    const prevProjectIdRef = useRef();
+    useEffect(() => {
+        prevProjectIdRef.current = prevProjectId;
+    });
+
+    useEffect(() => {
+        const projectId = props.activeProject;
+        if (prevProjectIdRef.current !== projectId) {
+            history.goBack();
+        }
+    }, [props.activeProject]);
 
     const tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -69,7 +82,7 @@ const AutomatedScripView = props => {
     }
 
     const nextClicked = async () => {
-        const projectId = props.currentProject && props.currentProject._id;
+        const projectId = props.activeProject;
         const automatedSlug = props.match.params.automatedScriptslug;
         const skip = props.script && props.script.skip;
         await props.fetchSingleAutomatedScript(
@@ -81,7 +94,7 @@ const AutomatedScripView = props => {
     };
 
     const prevClicked = async () => {
-        const projectId = props.currentProject && props.currentProject._id;
+        const projectId = props.activeProject;
         const automatedSlug = props.match.params.automatedScriptslug;
         const skip = props.script && props.script.skip;
         await props.fetchSingleAutomatedScript(
@@ -668,10 +681,12 @@ AutomatedScripView.propTypes = {
     requesting: PropTypes.bool,
     details: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProject: PropTypes.string,
 };
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
+    activeProject: state.subProject.activeSubProject,
     script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
