@@ -91,7 +91,6 @@ describe('Monitor API With SubProjects', () => {
             });
             expect(newMonitorForm).toEqual(null);
             await init.saasLogout(page);
-            // });
 
             done();
         },
