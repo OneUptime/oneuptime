@@ -15,7 +15,7 @@ describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(init.timeout);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -34,7 +34,7 @@ describe('Monitor API', () => {
         await init.pageWaitForSelector(
             page,
             `#ssl-status-${testServerMonitorName}`,
-            { visible: true, timeout: operationTimeOut }
+            { visible: true, timeout: 600000 }
         );
     });
 
@@ -88,7 +88,10 @@ describe('Monitor API', () => {
             visbile: true,
             timeout: 360000,
         });
-
+        await init.pageWaitForSelector(
+            page,
+            `#${testServerMonitorName}-degraded`
+        );
         let monitorStatusElement = await init.pageWaitForSelector(
             page,
             `#monitor-status-${testServerMonitorName}`,
@@ -101,5 +104,5 @@ describe('Monitor API', () => {
         monitorStatusElement.should.be.exactly('Degraded');
 
         done();
-    }, 500000);
+    }, 600000);
 });
