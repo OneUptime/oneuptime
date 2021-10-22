@@ -45,7 +45,9 @@ describe('Enterprise Monitor API', function() {
             _id: { $in: [projectId, newProjectId] },
         });
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await UserService.hardDeleteBy({ email: userData.user.email });
+        await UserService.hardDeleteBy({
+            email: userData.user.email.toLowerCase(),
+        });
     });
 
     it('should create a new monitor for project with no billing plan', function(done) {
