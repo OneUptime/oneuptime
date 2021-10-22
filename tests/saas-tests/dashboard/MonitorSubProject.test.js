@@ -45,6 +45,8 @@ describe('Monitor API With SubProjects', () => {
             waitUntil: ['networkidle2'],
         });
         // add new user to sub-project
+        await init.pageClick(page, '#projectFilterToggle');
+        await init.pageClick(page, `#project-${subProjectName}`);
         await init.addUserToProject(
             {
                 email: newEmail,
@@ -70,6 +72,8 @@ describe('Monitor API With SubProjects', () => {
             await init.saasLogout(page);
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
 
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
@@ -100,6 +104,8 @@ describe('Monitor API With SubProjects', () => {
             const user = { email: email, password };
             await init.loginUser(user, page);
             // Navigate to details page of component created
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
             // switch to invited project for new user
             await init.pageWaitForSelector(page, '#monitors');
@@ -142,8 +148,11 @@ describe('Monitor API With SubProjects', () => {
                 waitUntil: ['networkidle2'],
             });
             // Navigate to details page of component created
+
             await init.navigateToComponentDetails(componentName, page);
 
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
                 timeout: init.timeout,
@@ -185,28 +194,26 @@ describe('Monitor API With SubProjects', () => {
             });
             await init.pageClick(page, '#components');
 
-            const projectBadgeSelector = await init.page$(
-                page,
-                `#badge_${projectName}`,
-                { hidden: true }
-            );
+            /* UI CHANGES */
 
-            expect(projectBadgeSelector).toEqual(null);
-
-            await init.pageWaitForSelector(page, `#badge_${subProjectName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const subProjectBadgeSelector = await init.page$(
+            // This confirms that we have switched to the Subproject section
+            let subProject = await init.pageWaitForSelector(
                 page,
-                `#badge_${subProjectName}`
+                '#projectFilterToggle'
             );
-            let textContent = await subProjectBadgeSelector.getProperty(
+            subProject = await subProject.getProperty('innerText');
+            subProject = await subProject.jsonValue();
+            expect(subProject).toEqual(subProjectName);
+
+            let subProjectComponent = await init.pageWaitForSelector(
+                page,
+                `#component-title-${componentName}`
+            );
+            subProjectComponent = await subProjectComponent.getProperty(
                 'innerText'
             );
-
-            textContent = await textContent.jsonValue();
-            expect(textContent).toEqual(subProjectName.toUpperCase());
+            subProjectComponent = await subProjectComponent.jsonValue();
+            expect(subProjectComponent).toEqual(componentName);
 
             done();
         },
@@ -222,6 +229,8 @@ describe('Monitor API With SubProjects', () => {
             });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -240,6 +249,7 @@ describe('Monitor API With SubProjects', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
                 timeout: init.timeout,
@@ -261,19 +271,18 @@ describe('Monitor API With SubProjects', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#cbMonitors');
-            await init.pageWaitForSelector(page, `#badge_${subProjectName}`);
-            const subProjectBadgeSelector = await init.page$(
+            /* UI CHANGES: Badge has been removed! */
+            const additionalMonitor1 = await init.pageWaitForSelector(
                 page,
-                `#badge_${subProjectName}`
+                `#monitor-title-${monitorName}`
             );
 
-            let textContent = await subProjectBadgeSelector.getProperty(
-                'innerText'
+            expect(additionalMonitor1).toBeDefined();
+            const additionalMonitor2 = await init.pageWaitForSelector(
+                page,
+                `#monitor-title-${monitorName}1`
             );
-            textContent = await textContent.jsonValue();
-            expect(textContent.toUpperCase()).toEqual(
-                subProjectName.toUpperCase()
-            );
+            expect(additionalMonitor2).toBeDefined();
 
             done();
         },
