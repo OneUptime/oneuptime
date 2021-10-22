@@ -41,7 +41,9 @@ describe('Enterprise Team API', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
         });
-        await UserService.hardDeleteBy({ email: userData.user.email });
+        await UserService.hardDeleteBy({
+            email: userData.user.email.toLowerCase(),
+        });
     });
 
     it('should add new user with valid details for project with no billing plan', function(done) {
@@ -54,7 +56,7 @@ describe('Enterprise Team API', function() {
                 role: 'Member',
             })
             .end(function(err, res) {
-                expect(res.body[0].team[0].userId).to.be.truthy();
+                expect(res.body[0].team[0].userId).to.be.a('string');
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
