@@ -41,7 +41,10 @@ describe('Enterprise User API', function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
-                $in: [data.user.email, data.newUser.email],
+                $in: [
+                    data.user.email.toLowerCase(),
+                    data.newUser.email.toLowerCase(),
+                ],
             },
         });
         await ProjectService.hardDeleteBy({
@@ -68,7 +71,9 @@ describe('Enterprise User API', function() {
             const project = res.body.project;
             newProjectId = project._id;
             expect(res).to.have.status(200);
-            expect(res.body.email).to.equal(data.newUser.email);
+            expect(res.body.email).to.equal(
+                data.newUser.email.toLocaleLowerCase()
+            );
             expect(res.body.role).to.equal('user');
             done();
         });
@@ -83,7 +88,9 @@ describe('Enterprise User API', function() {
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.email).to.equal(data.newUser.email);
+                expect(res.body.email).to.equal(
+                    data.newUser.email.toLocaleLowerCase()
+                );
                 expect(res.body).include.keys('tokens');
                 done();
             });
@@ -99,7 +106,9 @@ describe('Enterprise User API', function() {
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body.email).to.equal(data.newUser.email);
+                expect(res.body.email).to.equal(
+                    data.newUser.email.toLocaleLowerCase()
+                );
                 expect(res.body).have.property('redirect');
                 expect(res.body.redirect).to.eql('http://fyipe.com');
                 done();
@@ -147,7 +156,7 @@ describe('Enterprise User API', function() {
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${token}`)
                             .send({
-                                email: data.newUser.email,
+                                email: data.newUser.email.toLocaleLowerCase(),
                                 twoFactorAuthEnabled: !res.body
                                     .twoFactorAuthEnabled,
                             })
