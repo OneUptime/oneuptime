@@ -13,6 +13,7 @@ import {
     closeIncident,
     getIncidentTimeline,
     updateIncident,
+    fetchIncidentMessages,
 } from '../../actions/incident';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -177,6 +178,13 @@ export class IncidentStatus extends Component {
                     parseInt(0),
                     parseInt(10)
                 );
+                this.props.fetchIncidentMessages(
+                    projectId,
+                    this.props.incident.slug,
+                    0,
+                    10,
+                    'internal'
+                );
             });
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -215,6 +223,13 @@ export class IncidentStatus extends Component {
                     this.props.incident._id,
                     parseInt(0),
                     parseInt(10)
+                );
+                this.props.fetchIncidentMessages(
+                    projectId,
+                    this.props.incident.slug,
+                    0,
+                    10,
+                    'internal'
                 );
             });
         if (SHOULD_LOG_ANALYTICS) {
@@ -2522,6 +2537,7 @@ const mapDispatchToProps = dispatch => {
             getIncidentTimeline,
             animateSidebar,
             updateIncident,
+            fetchIncidentMessages,
         },
         dispatch
     );
@@ -2553,6 +2569,7 @@ IncidentStatus.propTypes = {
     editable: PropTypes.bool,
     incidentPriorities: PropTypes.array.isRequired,
     incidentId: PropTypes.string,
+    fetchIncidentMessages: PropTypes.func,
 };
 
 export default withRouter(

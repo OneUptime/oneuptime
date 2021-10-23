@@ -1302,8 +1302,8 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incidentMessages: {
                     ...state.incidentMessages,
-                    [action.payload.incidentId]: {
-                        ...state.incidentMessages[action.payload.incidentId],
+                    [action.payload.incidentSlug]: {
+                        ...state.incidentMessages[action.payload.incidentSlug],
                         [action.payload.type]: {
                             incidentMessages: action.payload.incidentMessages,
                             error: null,
@@ -1324,13 +1324,13 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_FAILURE:
             failureIncidentMessage = {
                 ...state.incidentMessages,
-                [action.payload.incidentId]: state.incidentMessages[
-                    action.payload.incidentId
+                [action.payload.incidentSlug]: state.incidentMessages[
+                    action.payload.incidentSlug
                 ][action.payload.type]
                     ? {
-                          ...state.incidentMessages[action.payload.incidentId][
-                              action.payload.type
-                          ],
+                          ...state.incidentMessages[
+                              action.payload.incidentSlug
+                          ][action.payload.type],
                           error: action.payload.error,
                       }
                     : {
@@ -1349,17 +1349,17 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_REQUEST:
             requestIncidentMessage = {
                 ...state.incidentMessages,
-                [action.payload.incidentId]: {
-                    ...state.incidentMessages[action.payload.incidentId],
+                [action.payload.incidentSlug]: {
+                    ...state.incidentMessages[action.payload.incidentSlug],
                     [action.payload.type]: state.incidentMessages[
-                        action.payload.incidentId
+                        action.payload.incidentSlug
                     ]
-                        ? state.incidentMessages[action.payload.incidentId][
+                        ? state.incidentMessages[action.payload.incidentSlug][
                               action.payload.type
                           ]
                             ? {
                                   ...state.incidentMessages[
-                                      action.payload.incidentId
+                                      action.payload.incidentSlug
                                   ][action.payload.type],
                                   requesting: true,
                               }
