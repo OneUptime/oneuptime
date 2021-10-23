@@ -107,15 +107,15 @@ router.get('/:projectId', async (req, res) => {
     }
 });
 
-//get subscribers by incidentId
-// req.params-> {projectId, incidentId};
+//get subscribers by incidentSlug
+// req.params-> {projectId, incidentSlug};
 // Returns: response subscriber alerts, error message
-router.get('/:projectId/incident/:incidentId', async (req, res) => {
+router.get('/:projectId/incident/:incidentSlug', async (req, res) => {
     try {
         const projectId = req.params.projectId;
-        const idNumber = req.params.incidentId;
+        const incidentSlug = req.params.incidentSlug;
         let incidentId = await IncidentService.findOneBy({
-            query: { projectId, idNumber },
+            query: { slug: incidentSlug },
             select: '_id',
         });
         const skip = req.query.skip || 0;
@@ -138,15 +138,15 @@ router.get('/:projectId/incident/:incidentId', async (req, res) => {
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
             const [alerts, alertCount] = await Promise.all([
                 SubscriberAlertService.findBy({
-                    query: { incidentId: incidentId, projectId: projectId },
+                    query: { incidentId, projectId },
                     skip,
                     limit,
                     select,
                     populate,
                 }),
                 SubscriberAlertService.countBy({
-                    incidentId: incidentId,
-                    projectId: projectId,
+                    incidentId,
+                    projectId,
                 }),
             ]);
             subscriberAlerts = alerts;

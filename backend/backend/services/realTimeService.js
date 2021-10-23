@@ -42,7 +42,7 @@ module.exports = {
                 : timeline.projectId;
             const { idNumber } = await IncidentService.findOneBy({
                 query: { _id: timeline.incidentId },
-                select: 'idNumber',
+                select: 'idNumber slug',
             });
 
             const data = {
