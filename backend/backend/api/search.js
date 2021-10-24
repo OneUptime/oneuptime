@@ -391,6 +391,7 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
                     return {
                         name: `Incident #${incident.idNumber}`,
                         idNumber: incident.idNumber,
+                        incidentSlug: incident.slug,
                         parentProject:
                             parentProjectId === String(incident.projectId._id),
                         projectName: incident.projectId.name,

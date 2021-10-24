@@ -186,7 +186,7 @@ module.exports = {
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];
@@ -800,6 +800,7 @@ module.exports = {
                     incidentObj.id = incident._id;
                     incidentObj.incidentId = incident._id;
                     incidentObj.idNumber = incident.idNumber;
+                    incidentObj.slug = incident.slug;
                     incidentObj.acknowledged = incident.acknowledged;
                     incidentObj.resolved = incident.resolved;
                     incidentObj.internalNote = incident.internalNote;

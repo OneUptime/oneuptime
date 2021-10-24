@@ -301,7 +301,7 @@ class NotesMain extends Component {
                                     style={{ width: '100%' }}
                                 ></div>
                             </ShouldRender>
-                            {note.idNumber ? (
+                            {note.slug ? (
                                 <span
                                     style={{
                                         margin: 10,
@@ -314,7 +314,7 @@ class NotesMain extends Component {
                                         style={{ cursor: 'pointer' }}
                                         onClick={() =>
                                             this.props.history.push(
-                                                `/status-page/${this.props.statusPageSlug}/incident/${note.idNumber}`
+                                                `/status-page/${this.props.statusPageSlug}/incident/${note.slug}`
                                             )
                                         }
                                     >

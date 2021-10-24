@@ -858,7 +858,7 @@ module.exports = {
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];

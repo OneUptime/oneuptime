@@ -563,7 +563,7 @@ router.post(
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];
@@ -727,7 +727,7 @@ router.post(
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];
@@ -949,7 +949,7 @@ router.post(
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];
@@ -1320,7 +1320,7 @@ router.delete(
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
             const populateIncidentMessage = [
-                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'incidentId', select: 'idNumber name slug' },
                 { path: 'createdById', select: 'name' },
             ];
 
@@ -1524,7 +1524,7 @@ router.get(
                 const populateIncidentMessage = [
                     {
                         path: 'incidentId',
-                        select: 'idNumber name',
+                        select: 'idNumber name slug',
                     },
                     { path: 'createdById', select: 'name' },
                 ];
@@ -1741,7 +1741,7 @@ router.get(
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {
@@ -1783,7 +1783,7 @@ router.get(
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
-                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {

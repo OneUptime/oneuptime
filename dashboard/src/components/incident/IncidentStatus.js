@@ -365,9 +365,9 @@ export class IncidentStatus extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : '';
-        const incidentIdNumber = this.props.incident
-            ? this.props.incident.idNumber
-            : '';
+        // const incidentIdNumber = this.props.incident
+        //     ? this.props.incident.idNumber
+        //     : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
@@ -2354,7 +2354,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.incident.projectId.slug}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.incident.projectId.slug}/incidents/${this.props.incident.slug}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false

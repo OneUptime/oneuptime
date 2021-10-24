@@ -193,7 +193,7 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
             { path: 'alertId', select: 'alertVia' },
             { path: 'subscriberAlertId', select: 'alertVia' },
             { path: 'monitorId', select: 'name slug' },
-            { path: 'incidentId', select: 'idNumber' },
+            { path: 'incidentId', select: 'idNumber slug' },
         ];
 
         const select =

@@ -79,7 +79,7 @@ const App = () => (
                     />
                     <Route
                         exact
-                        path="/status-page/:statusPageSlug/incident/:incidentId"
+                        path="/status-page/:statusPageSlug/incident/:incidentSlug"
                         component={Incident}
                     />
                     <Route
