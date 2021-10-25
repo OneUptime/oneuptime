@@ -701,6 +701,7 @@ module.exports = {
                 { path: 'incidentCommunicationSla', select: '_id' },
                 { path: 'resourceCategory', select: 'name' },
                 { path: 'statusPageCategory', select: 'name' },
+                { path: 'projectId', select: 'name' },
             ];
             const subProjectMonitors = await Promise.all(
                 subProjectIds.map(async id => {
