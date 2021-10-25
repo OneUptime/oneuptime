@@ -282,7 +282,7 @@ class CreateSchedule extends React.Component {
                                                 ? this.props.monitors.map(
                                                       monitor => ({
                                                           value: monitor._id,
-                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                          label: `${monitor.projectId?.name} / ${monitor.componentId.name} / ${monitor.name}`,
                                                       })
                                                   )
                                                 : []),
@@ -1053,14 +1053,14 @@ const mapDispatchToProps = dispatch =>
 
 const selector = formValueSelector('newCreateSchedule');
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = state => {
     const minStartDate = selector(state, 'startDate');
     const currentDate = moment().format();
 
-    const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(ownProps.data.projectId)
-    );
-    const monitors = monitorData.monitors;
+    const monitors = [];
+    state.monitor.monitorsList.monitors.forEach(monitorObj => {
+        monitorObj.monitors.forEach(monitor => monitors.push(monitor));
+    });
 
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,

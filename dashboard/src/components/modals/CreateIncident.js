@@ -308,7 +308,7 @@ class CreateIncident extends Component {
                                             allMonitors.length > 0
                                                 ? allMonitors.map(monitor => ({
                                                       value: monitor._id,
-                                                      label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                      label: `${monitor.projectId?.name} / ${monitor.componentId.name} / ${monitor.name}`,
                                                       show: renderIfUserInSubProject(
                                                           currentProject,
                                                           subProjects,
@@ -892,17 +892,12 @@ function mapStateToProps(state, props) {
     const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
     const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
 
-    let monitorsList = [];
+    const monitorsList = [];
     state.monitor.monitorsList.monitors.forEach(item => {
         item.monitors.forEach(m => {
             monitorsList.push(m);
         });
     });
-    monitorsList = monitorsList.filter(
-        monitor =>
-            String(monitor.projectId._id || monitor.projectId) ===
-            String(subProjectId)
-    );
 
     let projectName = '';
     for (const project of projects) {

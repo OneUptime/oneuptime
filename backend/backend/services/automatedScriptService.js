@@ -146,7 +146,7 @@ module.exports = {
                 .skip(skip)
                 .populate('automationScriptId', 'name')
                 .populate('triggerByUser', 'name')
-                .populate('triggerByIncident', 'idNumber')
+                .populate('triggerByIncident', 'idNumber slug')
                 .populate('triggerByScript', 'name');
             return response;
         } catch (error) {

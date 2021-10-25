@@ -451,9 +451,10 @@ export default function incident(state = initialState, action) {
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            let idNumber =
-                action.payload.incidentId && action.payload.incidentId.idNumber;
-            idNumber = idNumber - 1;
+            // let idNumber =
+            //     action.payload.incidentId && action.payload.incidentId.idNumber;
+            // idNumber = idNumber - 1;
+            const incidentSlug = action.payload.incidentId.slug;
             if (!action || !action.payload) {
                 return state;
             }
@@ -462,7 +463,7 @@ export default function incident(state = initialState, action) {
                 return {
                     ...state,
                     incidentMessages: {
-                        [idNumber]: {
+                        [incidentSlug]: {
                             internal: {
                                 incidentMessages: [action.payload],
                             },
@@ -470,12 +471,12 @@ export default function incident(state = initialState, action) {
                     },
                 };
             }
-            if (!state.incidentMessages[idNumber]) {
+            if (!state.incidentMessages[incidentSlug]) {
                 return {
                     ...state,
                     incidentMessages: {
                         ...state.incidentMessages,
-                        [idNumber]: {
+                        [incidentSlug]: {
                             internal: {
                                 incidentMessages: [action.payload],
                             },
@@ -487,14 +488,14 @@ export default function incident(state = initialState, action) {
                 ...state,
                 incidentMessages: {
                     ...state.incidentMessages,
-                    [idNumber]: {
-                        ...state.incidentMessages[idNumber],
+                    [incidentSlug]: {
+                        ...state.incidentMessages[incidentSlug],
                         internal: {
-                            ...state.incidentMessages[idNumber]?.internal,
+                            ...state.incidentMessages[incidentSlug]?.internal,
                             incidentMessages: [
                                 action.payload,
-                                ...(state.incidentMessages[idNumber]?.internal
-                                    ?.incidentMessages || []),
+                                ...(state.incidentMessages[incidentSlug]
+                                    ?.internal?.incidentMessages || []),
                             ],
                         },
                     },
@@ -939,9 +940,9 @@ export default function incident(state = initialState, action) {
         case 'ADD_INCIDENT_NOTE': {
             let incidentFound = false;
             let incidentMessages = [];
-            if (state.incidentMessages[action.payload.incidentId.idNumber]) {
+            if (state.incidentMessages[action.payload.incidentId.slug]) {
                 let msg =
-                    state.incidentMessages[action.payload.incidentId.idNumber];
+                    state.incidentMessages[action.payload.incidentId.slug];
                 msg = msg ? msg[action.payload.type] : null;
                 msg = msg ? msg.incidentMessages : null;
                 incidentMessages =
@@ -962,37 +963,33 @@ export default function incident(state = initialState, action) {
                     incidentMessages = [action.payload, ...incidentMessages];
                 }
                 const type =
-                    state.incidentMessages[
-                        action.payload.incidentId.idNumber
-                    ] &&
-                    state.incidentMessages[action.payload.incidentId.idNumber][
+                    state.incidentMessages[action.payload.incidentId.slug] &&
+                    state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ]
                         ? state.incidentMessages[
-                              action.payload.incidentId.idNumber
+                              action.payload.incidentId.slug
                           ][action.payload.type]
                         : null;
                 const count =
-                    state.incidentMessages[
-                        action.payload.incidentId.idNumber
-                    ] &&
-                    state.incidentMessages[action.payload.incidentId.idNumber][
+                    state.incidentMessages[action.payload.incidentId.slug] &&
+                    state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ] &&
-                    state.incidentMessages[action.payload.incidentId.idNumber][
+                    state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ].count
                         ? state.incidentMessages[
-                              action.payload.incidentId.idNumber
+                              action.payload.incidentId.slug
                           ][action.payload.type].count
                         : 0;
                 return {
                     ...state,
                     incidentMessages: {
                         ...state.incidentMessages,
-                        [action.payload.incidentId.idNumber]: {
+                        [action.payload.incidentId.slug]: {
                             ...state.incidentMessages[
-                                action.payload.incidentId.idNumber
+                                action.payload.incidentId.slug
                             ],
                             [action.payload.type]: {
                                 ...type,
@@ -1302,8 +1299,8 @@ export default function incident(state = initialState, action) {
             return Object.assign({}, state, {
                 incidentMessages: {
                     ...state.incidentMessages,
-                    [action.payload.incidentId]: {
-                        ...state.incidentMessages[action.payload.incidentId],
+                    [action.payload.incidentSlug]: {
+                        ...state.incidentMessages[action.payload.incidentSlug],
                         [action.payload.type]: {
                             incidentMessages: action.payload.incidentMessages,
                             error: null,
@@ -1324,13 +1321,13 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_FAILURE:
             failureIncidentMessage = {
                 ...state.incidentMessages,
-                [action.payload.incidentId]: state.incidentMessages[
-                    action.payload.incidentId
+                [action.payload.incidentSlug]: state.incidentMessages[
+                    action.payload.incidentSlug
                 ][action.payload.type]
                     ? {
-                          ...state.incidentMessages[action.payload.incidentId][
-                              action.payload.type
-                          ],
+                          ...state.incidentMessages[
+                              action.payload.incidentSlug
+                          ][action.payload.type],
                           error: action.payload.error,
                       }
                     : {
@@ -1349,17 +1346,17 @@ export default function incident(state = initialState, action) {
         case types.FETCH_INCIDENT_MESSAGES_REQUEST:
             requestIncidentMessage = {
                 ...state.incidentMessages,
-                [action.payload.incidentId]: {
-                    ...state.incidentMessages[action.payload.incidentId],
+                [action.payload.incidentSlug]: {
+                    ...state.incidentMessages[action.payload.incidentSlug],
                     [action.payload.type]: state.incidentMessages[
-                        action.payload.incidentId
+                        action.payload.incidentSlug
                     ]
-                        ? state.incidentMessages[action.payload.incidentId][
+                        ? state.incidentMessages[action.payload.incidentSlug][
                               action.payload.type
                           ]
                             ? {
                                   ...state.incidentMessages[
-                                      action.payload.incidentId
+                                      action.payload.incidentSlug
                                   ][action.payload.type],
                                   requesting: true,
                               }

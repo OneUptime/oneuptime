@@ -244,7 +244,7 @@ export class IncidentList extends Component {
                                                                 this.props
                                                                     .componentSlug +
                                                                 '/incidents/' +
-                                                                incident.idNumber
+                                                                incident.slug
                                                         );
                                                     } else {
                                                         history.push(
@@ -253,7 +253,7 @@ export class IncidentList extends Component {
                                                                     .projectId
                                                                     .slug +
                                                                 '/incidents/' +
-                                                                incident.idNumber
+                                                                incident.slug
                                                         );
                                                     }
                                                     this.props.animateSidebar(

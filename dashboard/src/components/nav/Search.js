@@ -209,7 +209,7 @@ class Search extends Component {
                 '/dashboard/project/' +
                     currentProject.slug +
                     '/incidents/' +
-                    searchObj.idNumber
+                    searchObj.incidentSlug
             );
             this.props.addIncident(searchObj.incident);
             this.props.animateSidebar(false);

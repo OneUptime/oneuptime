@@ -152,10 +152,10 @@ export function incidentAlertSuccess(alert) {
 
 // Calls the API to fetch Alerts.
 
-export function fetchIncidentAlert(projectId, incidentId, skip, limit) {
+export function fetchIncidentAlert(projectId, incidentSlug, skip, limit) {
     return function(dispatch) {
         const promise = getApi(
-            `alert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`
+            `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
 
         dispatch(incidentAlertRequest());
@@ -214,7 +214,7 @@ export function subscriberAlertSuccess(alert) {
 
 // Calls the API to fetch Subscriber Alerts.
 
-export function fetchSubscriberAlert(projectId, incidentId, skip, limit) {
+export function fetchSubscriberAlert(projectId, incidentSlug, skip, limit) {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function(dispatch) {
@@ -223,11 +223,11 @@ export function fetchSubscriberAlert(projectId, incidentId, skip, limit) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
-                `subscriberAlert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`
+                `subscriberAlert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
             );
         } else {
             promise = getApi(
-                `subscriberAlert/${projectId}/incident/${incidentId}`
+                `subscriberAlert/${projectId}/incident/${incidentSlug}`
             );
         }
 

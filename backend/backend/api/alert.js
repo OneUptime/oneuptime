@@ -89,15 +89,16 @@ router.get('/:projectId/alert', getUser, isAuthorized, async function(
 });
 
 router.get(
-    '/:projectId/incident/:incidentId',
+    '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
-            const idNumber = req.params.incidentId;
-            const projectId = req.params.projectId;
+            const incidentSlug = req.params.incidentSlug;
+            // const projectId = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
-                query: { projectId, idNumber },
+                // query: { projectId, slug: incidentSlug },
+                query: { slug: incidentSlug },
                 select: '_id',
             });
             const skip = req.query.skip || 0;
@@ -192,7 +193,7 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
             { path: 'alertId', select: 'alertVia' },
             { path: 'subscriberAlertId', select: 'alertVia' },
             { path: 'monitorId', select: 'name slug' },
-            { path: 'incidentId', select: 'idNumber' },
+            { path: 'incidentId', select: 'idNumber slug' },
         ];
 
         const select =
