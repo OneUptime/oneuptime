@@ -344,11 +344,11 @@ class NotesMain extends Component {
                                             .sort((a, b) => {
                                                 (a = moment(a.createdAt)),
                                                     (b = moment(b.createdAt));
-                                                // order in descending order
+                                                // order in ascending order
                                                 if (b.diff(a) > 0) {
-                                                    return 1;
-                                                } else if (b.diff(a) < 0) {
                                                     return -1;
+                                                } else if (b.diff(a) < 0) {
+                                                    return 1;
                                                 } else {
                                                     return 0;
                                                 }
