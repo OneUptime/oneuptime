@@ -63,12 +63,12 @@ class Incident extends React.Component {
         this.ready();
     }
     componentDidUpdate(prevProps) {
-        if (
-            // When multiple incidents are created and 'ViewIncident' is clicked for each of them, this allows the proper incident to load.
-            prevProps.incidentId !== this.props.incidentId
-        ) {
-            return this.ready();
-        }
+        // if (
+        //     // When multiple incidents are created and 'ViewIncident' is clicked for each of them, this allows the proper incident to load.
+        //     prevProps.incidentId !== this.props.incidentId
+        // ) {
+        //     return this.ready();
+        // }
         if (
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
@@ -107,7 +107,7 @@ class Incident extends React.Component {
     nextAlerts = () => {
         this.props.fetchIncidentAlert(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
         );
@@ -119,7 +119,7 @@ class Incident extends React.Component {
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
                 {
                     projectId: this.props.projectId,
-                    incidentId: this.props.incidentId,
+                    incidentSlug: this.props.incidentSlug,
                 }
             );
         }
@@ -128,7 +128,7 @@ class Incident extends React.Component {
     previousAlerts = () => {
         this.props.fetchIncidentAlert(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10),
             parseInt(this.props.limit, 10)
         );
@@ -140,45 +140,7 @@ class Incident extends React.Component {
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
                 {
                     projectId: this.props.projectId,
-                    incidentId: this.props.incidentId,
-                }
-            );
-        }
-    };
-
-    nextTimeline = () => {
-        this.props.getIncidentTimeline(
-            this.props.projectId,
-            this.props.incidentId,
-            parseInt(this.props.incidentTimeline.skip, 10) +
-                parseInt(this.props.incidentTimeline.limit, 10),
-            parseInt(this.props.incidentTimeline.limit, 10)
-        );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT TIMELINE CLICKED',
-                {
-                    projectId: this.props.projectId,
-                    incidentId: this.props.incidentId,
-                }
-            );
-        }
-    };
-
-    previousTimeline = () => {
-        this.props.getIncidentTimeline(
-            this.props.projectId,
-            this.props.incidentId,
-            parseInt(this.props.incidentTimeline.skip, 10) -
-                parseInt(this.props.incidentTimeline.limit, 10),
-            parseInt(this.props.incidentTimeline.limit, 10)
-        );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS TIMELINE CLICKED',
-                {
-                    projectId: this.props.projectId,
-                    incidentId: this.props.incidentId,
+                    incidentSlug: this.props.incidentSlug,
                 }
             );
         }
@@ -187,7 +149,7 @@ class Incident extends React.Component {
     nextSubscribers = () => {
         this.props.fetchSubscriberAlert(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             parseInt(this.props.subscribersAlerts.skip, 10) +
                 parseInt(this.props.subscribersAlerts.limit, 10),
             parseInt(this.props.subscribersAlerts.limit, 10)
@@ -200,7 +162,7 @@ class Incident extends React.Component {
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
                 {
                     projectId: this.props.projectId,
-                    incidentId: this.props.incidentId,
+                    incidentSlug: this.props.incidentSlug,
                 }
             );
         }
@@ -209,7 +171,7 @@ class Incident extends React.Component {
     previousSubscribers = () => {
         this.props.fetchSubscriberAlert(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             parseInt(this.props.subscribersAlerts.skip, 10) -
                 parseInt(this.props.subscribersAlerts.limit, 10),
             parseInt(this.props.subscribersAlerts.limit, 10)
@@ -222,7 +184,7 @@ class Incident extends React.Component {
                 'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
                 {
                     projectId: this.props.projectId,
-                    incidentId: this.props.incidentId,
+                    incidentSlug: this.props.incidentSlug,
                 }
             );
         }
@@ -236,13 +198,13 @@ class Incident extends React.Component {
         if (index === 2) {
             this.props.fetchIncidentAlert(
                 this.props.projectId,
-                this.props.incidentId,
+                this.props.incidentSlug,
                 0,
                 10
             );
             this.props.fetchSubscriberAlert(
                 this.props.projectId,
-                this.props.incidentId,
+                this.props.incidentSlug,
                 0,
                 10
             );
@@ -269,24 +231,26 @@ class Incident extends React.Component {
         }
 
         this.props
-            .getIncident(this.props.projectId, this.props.incidentId)
-            .then(() => {
-                this.props.getIncidentTimeline(
-                    this.props.projectId,
-                    this.props.incidentId,
-                    0,
-                    10
-                );
+            .getIncident(this.props.projectId, this.props.incidentSlug)
+            .then(data => {
+                if (data.data && data.data._id) {
+                    this.props.getIncidentTimeline(
+                        this.props.projectId,
+                        data.data._id,
+                        0,
+                        10
+                    );
+                }
             });
         this.props.fetchIncidentAlert(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             0,
             10
         );
         this.props.fetchSubscriberAlert(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             0,
             10
         );
@@ -304,19 +268,19 @@ class Incident extends React.Component {
                 null,
                 null,
                 null,
-                this.props.incidentId,
+                null,
                 monitor.type
             );
         }
         this.props.fetchIncidentMessages(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             0,
             10
         );
         this.props.fetchIncidentMessages(
             this.props.projectId,
-            this.props.incidentId,
+            this.props.incidentSlug,
             0,
             10,
             'internal'
@@ -324,7 +288,7 @@ class Incident extends React.Component {
     }
 
     ready = () => {
-        const incidentId = this.props.incidentId;
+        // const incidentId = this.props.incidentId;
         const {
             projectId,
             currentProject,
@@ -332,6 +296,7 @@ class Incident extends React.Component {
             fetchComponent,
             projectSlug,
             fetchProjectSlug,
+            incidentSlug,
         } = this.props;
 
         fetchProjectSlug(projectSlug);
@@ -341,7 +306,7 @@ class Incident extends React.Component {
         }
         if (projectId) {
             this.fetchAllIncidentData();
-            this.props.fetchIncidentStatusPages(projectId, incidentId);
+            this.props.fetchIncidentStatusPages(projectId, incidentSlug);
             this.props.fetchDefaultCommunicationSla(projectId);
         }
     };
@@ -792,7 +757,11 @@ class Incident extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const { componentSlug, incidentId, slug: projectSlug } = props.match.params;
+    const {
+        componentSlug,
+        incidentSlug,
+        slug: projectSlug,
+    } = props.match.params;
 
     const projectId = componentSlug
         ? state.component.currentComponent.component &&
@@ -836,7 +805,7 @@ const mapStateToProps = (state, props) => {
         requestingIncident: state.incident.incident.requesting,
         errorIncident: state.incident.incident.error,
         successIncident: state.incident.incident.success,
-        incidentId: incidentId,
+        incidentSlug,
         projectId,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
@@ -899,7 +868,6 @@ Incident.propTypes = {
     getIncidentTimeline: PropTypes.func,
     getMonitorLogs: PropTypes.func,
     incident: PropTypes.object,
-    incidentTimeline: PropTypes.object,
     limit: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     subscribersAlerts: PropTypes.object.isRequired,
@@ -926,7 +894,7 @@ Incident.propTypes = {
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
-    incidentId: PropTypes.string,
+    incidentSlug: PropTypes.string,
     projectId: PropTypes.string,
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,

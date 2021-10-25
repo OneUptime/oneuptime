@@ -40,9 +40,9 @@ module.exports = {
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : timeline.projectId;
-            const { idNumber } = await IncidentService.findOneBy({
+            const { idNumber, slug } = await IncidentService.findOneBy({
                 query: { _id: timeline.incidentId },
-                select: 'idNumber',
+                select: 'idNumber slug',
             });
 
             const data = {
@@ -50,6 +50,7 @@ module.exports = {
                 incidentMessages: timeline.data,
                 count: timeline.data.length,
                 type: 'internal',
+                incidentSlug: slug,
             };
 
             postApi(`${realtimeBaseUrl}/send-incident-timeline`, {

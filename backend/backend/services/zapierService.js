@@ -79,7 +79,7 @@ module.exports = {
                 const incidents = await IncidentService.findBy({
                     query: findquery,
                     select:
-                        '_id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                        'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                     populate: [
                         { path: 'acknowledgedBy', select: 'name' },
                         { path: 'resolvedBy', select: 'name' },
@@ -146,7 +146,7 @@ module.exports = {
                 const populateIncidentMessage = [
                     {
                         path: 'incidentId',
-                        select: 'idNumber name',
+                        select: 'idNumber name slug',
                     },
                     { path: 'createdById', select: 'name' },
                 ];
@@ -186,7 +186,7 @@ module.exports = {
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];
@@ -251,7 +251,7 @@ module.exports = {
                 const incidents = await IncidentService.findBy({
                     query: findquery,
                     select:
-                        '_id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                        'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                     populate: [
                         { path: 'acknowledgedBy', select: 'name' },
                         { path: 'resolvedBy', select: 'name' },
@@ -314,7 +314,7 @@ module.exports = {
                 const incidents = await IncidentService.findBy({
                     query: findquery,
                     select:
-                        '_id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                        'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                     populate: [
                         { path: 'acknowledgedBy', select: 'name' },
                         { path: 'resolvedBy', select: 'name' },
@@ -523,7 +523,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'name _id' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
             incidents.map(async incident => {
@@ -587,7 +587,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'name _id' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
             monitors.map(async monitor => {
@@ -654,7 +654,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'name _id' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
             monitors.map(async monitor => {
@@ -725,7 +725,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'name _id' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
             incidents.map(async incident => {
@@ -800,6 +800,7 @@ module.exports = {
                     incidentObj.id = incident._id;
                     incidentObj.incidentId = incident._id;
                     incidentObj.idNumber = incident.idNumber;
+                    incidentObj.slug = incident.slug;
                     incidentObj.acknowledged = incident.acknowledged;
                     incidentObj.resolved = incident.resolved;
                     incidentObj.internalNote = incident.internalNote;
