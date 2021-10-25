@@ -308,7 +308,7 @@ class CreateIncident extends Component {
                                             allMonitors.length > 0
                                                 ? allMonitors.map(monitor => ({
                                                       value: monitor._id,
-                                                      label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                      label: `${monitor.projectId?.name} / ${monitor.componentId.name} / ${monitor.name}`,
                                                       show: renderIfUserInSubProject(
                                                           currentProject,
                                                           subProjects,
