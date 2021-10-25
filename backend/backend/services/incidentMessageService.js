@@ -17,7 +17,7 @@ module.exports = {
             }
 
             const populate = [
-                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'incidentId', select: 'idNumber name slug' },
                 { path: 'createdById', select: 'name' },
             ];
 
@@ -58,7 +58,7 @@ module.exports = {
             );
 
             const populate = [
-                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'incidentId', select: 'idNumber name slug' },
                 { path: 'createdById', select: 'name' },
             ];
 

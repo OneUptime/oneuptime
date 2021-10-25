@@ -40,7 +40,7 @@ class IncidentHeaderModal extends Component {
                     '/component/' +
                     componentSlug +
                     '/incidents/' +
-                    incident.idNumber
+                    incident.slug
             );
             this.props.addIncident(incident.incident);
             this.props.animateSidebar(false);

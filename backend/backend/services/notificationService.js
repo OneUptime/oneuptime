@@ -60,7 +60,7 @@ module.exports = {
                 {
                     path: 'meta.incidentId',
                     model: 'Incident',
-                    select: '_id idNumber',
+                    select: '_id idNumber slug',
                 },
                 {
                     path: 'meta.componentId',

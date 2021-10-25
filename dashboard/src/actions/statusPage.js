@@ -873,10 +873,10 @@ export function fetchIncidentStatusPagesError(error) {
 }
 
 // Gets status pages pointing to the incident
-export function fetchIncidentStatusPages(projectId, incidentId, skip, limit) {
+export function fetchIncidentStatusPages(projectId, incidentSlug, skip, limit) {
     return function(dispatch) {
         const promise = getApi(
-            `incident/${projectId}/${incidentId}/statuspages?skip=${skip}&limit=${limit}`
+            `incident/${projectId}/${incidentSlug}/statuspages?skip=${skip}&limit=${limit}`
         );
 
         promise.then(

@@ -194,7 +194,7 @@ module.exports = {
         const populateIncidentMessage = [
             {
                 path: 'incidentId',
-                select: 'idNumber name',
+                select: 'idNumber name slug',
             },
             {
                 path: 'createdById',
@@ -244,7 +244,7 @@ module.exports = {
                 path: 'probeId',
                 select: 'probeName probeImage',
             },
-            { path: 'incidentId', select: 'idNumber' },
+            { path: 'incidentId', select: 'idNumber slug' },
         ];
         const selectIncTimeline =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
@@ -1152,7 +1152,7 @@ module.exports = {
         const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -1321,8 +1321,8 @@ module.exports = {
                 const reason = incident.reason;
                 // const componentSlug = monitor.componentId.slug;
                 // const componentName = monitor.componentId.name;
-                // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
-                const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.idNumber}`;
+                // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
+                const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1342,6 +1342,7 @@ module.exports = {
                             incidentId,
                             reason,
                             incidentSlaTimeline,
+                            incidentSlug: incident.slug,
                         });
                     }
                 } else {
@@ -2274,7 +2275,7 @@ module.exports = {
         const projectId = incident.projectId._id || incident.projectId;
         const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -2361,6 +2362,7 @@ module.exports = {
                         : null,
 
                 incidentId: `#${incident.idNumber}`,
+                incidentSlug: incident.slug,
                 reason: incident.reason
                     ? incident.reason.split('\n')
                     : [`This incident was created by ${incidentcreatedBy}`],
@@ -2638,7 +2640,7 @@ module.exports = {
 
         const projectId = incident.projectId._id || incident.projectId;
         const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -2723,6 +2725,7 @@ module.exports = {
                         ? monitor.data.url
                         : null,
                 incidentId: `#${incident.idNumber}`,
+                incidentSlug: incident.slug,
                 reason: incident.reason
                     ? incident.reason.split('\n')
                     : [`This incident was created by ${incidentcreatedBy}`],
@@ -3085,7 +3088,7 @@ module.exports = {
 
             let statusUrl;
             if (statusPageSlug) {
-                statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.idNumber}`;
+                statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.slug}`;
             }
 
             const monitorCustomFields = {},
