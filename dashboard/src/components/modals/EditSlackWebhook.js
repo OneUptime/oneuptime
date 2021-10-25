@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -98,7 +97,6 @@ class EditWebHook extends React.Component {
             postObj.monitors = [];
             return;
         }
-        console.log('Post Obj: ', postObj);
         updateSlack(currentProject._id, data._id, postObj).then(() => {
             if (this.props.newSlack && !this.props.newSlack.error) {
                 closeThisDialog();
