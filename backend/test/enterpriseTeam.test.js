@@ -12,6 +12,8 @@ const ProjectService = require('../backend/services/projectService');
 
 let token, projectId, newProjectId;
 
+const teamEmail = 'noreply1@fyipe.com';
+
 describe('Enterprise Team API', function() {
     this.timeout(30000);
 
@@ -41,7 +43,11 @@ describe('Enterprise Team API', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
         });
-        await UserService.hardDeleteBy({ email: userData.user.email });
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [userData.user.email.toLowerCase(), teamEmail],
+            },
+        });
     });
 
     it('should add new user with valid details for project with no billing plan', function(done) {
@@ -50,11 +56,11 @@ describe('Enterprise Team API', function() {
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                emails: 'noreply1@fyipe.com',
+                emails: teamEmail,
                 role: 'Member',
             })
             .end(function(err, res) {
-                expect(res.body[0].team[0].userId).to.be.truthy();
+                expect(res.body[0].team[0].userId).to.be.a('string');
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
