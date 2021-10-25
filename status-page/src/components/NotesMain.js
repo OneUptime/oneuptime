@@ -321,26 +321,6 @@ class NotesMain extends Component {
                                         <b>{note.title}</b>
                                     </div>
                                     <div
-                                        className="incident_desc"
-                                        id="note"
-                                        style={{
-                                            whiteSpace: 'pre-wrap',
-                                        }}
-                                    >
-                                        {note.description
-                                            .split('\n')
-                                            .map((elem, index) => (
-                                                <Markdown
-                                                    key={`${elem}-${index}`}
-                                                    options={{
-                                                        forceBlock: true,
-                                                    }}
-                                                >
-                                                    {elem}
-                                                </Markdown>
-                                            ))}
-                                    </div>
-                                    <div
                                         className="incident-date"
                                         style={{
                                             marginBottom: 12,
