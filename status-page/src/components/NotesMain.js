@@ -321,26 +321,6 @@ class NotesMain extends Component {
                                         <b>{note.title}</b>
                                     </div>
                                     <div
-                                        className="incident_desc"
-                                        id="note"
-                                        style={{
-                                            whiteSpace: 'pre-wrap',
-                                        }}
-                                    >
-                                        {note.description
-                                            .split('\n')
-                                            .map((elem, index) => (
-                                                <Markdown
-                                                    key={`${elem}-${index}`}
-                                                    options={{
-                                                        forceBlock: true,
-                                                    }}
-                                                >
-                                                    {elem}
-                                                </Markdown>
-                                            ))}
-                                    </div>
-                                    <div
                                         className="incident-date"
                                         style={{
                                             marginBottom: 12,
@@ -364,11 +344,11 @@ class NotesMain extends Component {
                                             .sort((a, b) => {
                                                 (a = moment(a.createdAt)),
                                                     (b = moment(b.createdAt));
-                                                // order in descending order
+                                                // order in ascending order
                                                 if (b.diff(a) > 0) {
-                                                    return 1;
-                                                } else if (b.diff(a) < 0) {
                                                     return -1;
+                                                } else if (b.diff(a) < 0) {
+                                                    return 1;
                                                 } else {
                                                     return 0;
                                                 }
