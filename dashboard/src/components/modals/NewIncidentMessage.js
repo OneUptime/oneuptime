@@ -10,6 +10,7 @@ import {
     setInvestigationNote,
     editIncidentMessageSwitch,
     setInternalNote,
+    fetchIncidentMessages,
 } from '../../actions/incident';
 import { closeModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
@@ -68,10 +69,14 @@ class NewIncidentMessage extends Component {
             mode = 'EDIT';
         }
 
+        const projectId =
+            this.props.data.incident.projectId._id ||
+            this.props.data.incident.projectId ||
+            this.props.currentProject._id;
         if (this.props.data.type === 'investigation') {
             this.props
                 .setInvestigationNote(
-                    this.props.currentProject._id,
+                    projectId,
                     this.props.data.incident._id,
                     postObj
                 )
@@ -94,12 +99,19 @@ class NewIncidentMessage extends Component {
         } else {
             this.props
                 .setInternalNote(
-                    this.props.currentProject._id,
+                    projectId,
                     this.props.data.incident._id,
                     postObj
                 )
                 .then(
                     () => {
+                        this.props.fetchIncidentMessages(
+                            projectId,
+                            this.props.data.incident.slug,
+                            0,
+                            10,
+                            'internal'
+                        );
                         thisObj.props.reset();
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
@@ -621,6 +633,7 @@ const mapDispatchToProps = dispatch =>
             setInternalNote,
             closeModal,
             change,
+            fetchIncidentMessages,
         },
         dispatch
     );
@@ -690,6 +703,7 @@ NewIncidentMessage.propTypes = {
     change: PropTypes.func,
     closeThisDialog: PropTypes.func,
     noteTemplates: PropTypes.object,
+    fetchIncidentMessages: PropTypes.func,
 };
 export default connect(
     mapStateToProps,

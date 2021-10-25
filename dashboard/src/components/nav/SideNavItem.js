@@ -68,7 +68,7 @@ export class SidebarNavItem extends Component {
             .replace(':componentSlug', match.params.componentSlug)
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleSlug/, match.params.scheduleSlug)
-            .replace(/:incidentId/, match.params.incidentId)
+            .replace(/:incidentSlug/, match.params.incidentSlug)
             .replace(/:monitorSlug/, match.params.monitorSlug)
             .replace(/:automatedScriptslug/, match.params.automatedScriptslug);
         const projectSettingsSubRoutes =
@@ -143,11 +143,11 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                /project\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
             ) &&
                 route.title === 'Incidents') ||
             (location.pathname.match(
@@ -188,7 +188,10 @@ export class SidebarNavItem extends Component {
                 /:scheduleSlug/,
                 match.params.scheduleSlug
             );
-            newPath = newPath.replace(/:incidentId/, match.params.incidentId);
+            newPath = newPath.replace(
+                /:incidentSlug/,
+                match.params.incidentSlug
+            );
             newPath = newPath.replace(/:monitorSlug/, match.params.monitorSlug);
             newPath = newPath.replace(
                 /:componentSlug/,
@@ -215,11 +218,11 @@ export class SidebarNavItem extends Component {
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                          /project\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
                       ) &&
                           link.title === 'Incident detail') ||
                       (location.pathname.match(
@@ -435,7 +438,7 @@ export class SidebarNavItem extends Component {
                         ? link.replace(':scheduleSlug', schedule.slug)
                         : link;
                 const incidentLogLink = active.match(
-                    /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                    /project\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
                 )
                     ? active
                     : false;

@@ -30,6 +30,7 @@ import {
     fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
 import { fetchComponent } from '../actions/component';
+import { fetchMonitors } from '../actions/monitor';
 
 class IncidentLog extends React.Component {
     constructor(props) {
@@ -81,6 +82,7 @@ class IncidentLog extends React.Component {
 
     componentDidUpdate(prevProps) {
         if (prevProps?.activeProjectId !== this.props?.activeProjectId) {
+            this.props.fetchMonitors(this.props.activeProjectId);
             this.ready();
         }
         if (
@@ -394,6 +396,7 @@ const mapDispatchToProps = dispatch => {
             getProjectComponentIncidents,
             fetchComponent,
             fetchDefaultTemplate,
+            fetchMonitors,
         },
         dispatch
     );
@@ -435,6 +438,7 @@ IncidentLog.propTypes = {
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
     activeProjectId: PropTypes.string,
+    fetchMonitors: PropTypes.func,
 };
 
 IncidentLog.displayName = 'IncidentLog';

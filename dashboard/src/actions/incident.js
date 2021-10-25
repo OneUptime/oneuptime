@@ -347,11 +347,11 @@ export function resolveIncidentSuccess(incident) {
 }
 
 // Calls the API to get the incident to show
-export function getIncident(projectId, incidentId) {
-    //This fucntion will switch to incidentId of the params beig passed.
+export function getIncident(projectId, incidentSlug) {
+    //This fucntion will switch to incidentSlug of the params beig passed.
     return function(dispatch) {
         let promise = null;
-        promise = getApi(`incident/${projectId}/incident/${incidentId}`);
+        promise = getApi(`incident/${projectId}/incident/${incidentSlug}`);
         dispatch(incidentRequest(promise));
 
         promise.then(
@@ -490,6 +490,7 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
                         incidentMessages: result.data.data,
                         count: result.data.data.length,
                         type: result.data.type,
+                        incidentSlug: result.data.incident.incidentSlug,
                     })
                 );
             },
@@ -579,6 +580,7 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
                         incidentMessages: result.data.data,
                         count: result.data.data.length,
                         type: result.data.type,
+                        incidentSlug: result.data.incident.incidentSlug,
                     })
                 );
             },
@@ -835,6 +837,7 @@ export function setInternalNote(projectId, incidentId, body) {
                             incidentMessages: incidents.data.data,
                             count: incidents.data.data.length,
                             type: incidents.data.type,
+                            incidentSlug: incidents.data.incidentSlug,
                         })
                     );
                 } else {
@@ -966,7 +969,7 @@ export function hideIncident(data) {
 
 export function fetchIncidentMessages(
     projectId,
-    incidentId,
+    incidentSlug,
     skip,
     limit,
     type = 'investigation'
@@ -975,20 +978,27 @@ export function fetchIncidentMessages(
     limit = parseInt(limit);
     return function(dispatch) {
         const promise = getApi(
-            `incident/${projectId}/incident/${incidentId}/message?type=${type}&limit=${limit}&skip=${skip}`
+            `incident/${projectId}/incident/${incidentSlug}/message?type=${type}&limit=${limit}&skip=${skip}`
         );
-        dispatch(fetchIncidentMessagesRequest({ incidentId, type }));
+        dispatch(
+            fetchIncidentMessagesRequest({
+                incidentId: incidentSlug,
+                type,
+                incidentSlug,
+            })
+        );
 
         promise.then(
             function(response) {
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        incidentId,
+                        incidentId: incidentSlug,
                         incidentMessages: response.data.data,
                         skip,
                         limit,
                         count: response.data.count,
                         type,
+                        incidentSlug: incidentSlug,
                     })
                 );
             },
@@ -1005,8 +1015,9 @@ export function fetchIncidentMessages(
                 }
                 dispatch(
                     fetchIncidentMessagesFailure({
-                        incidentId,
+                        incidentId: incidentSlug,
                         error: errors(error),
+                        incidentSlug,
                     })
                 );
             }
@@ -1069,6 +1080,7 @@ export function deleteIncidentMessage(
                             incidentMessages: incidentMessage.data.data,
                             count: incidentMessage.data.data.length,
                             type: incidentMessage.data.type,
+                            incidentSlug: incidentMessage.data.incidentSlug,
                         })
                     );
                 } else {

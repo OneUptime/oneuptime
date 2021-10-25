@@ -984,12 +984,12 @@ export function fetchIncidentFailure(error) {
     };
 }
 
-export function fetchIncident(projectId, incidentId) {
+export function fetchIncident(projectId, incidentSlug) {
     return async function(dispatch) {
         try {
             dispatch(fetchIncidentRequest());
             const response = await getApi(
-                `statusPage/${projectId}/incident/${incidentId}`
+                `statusPage/${projectId}/incident/${incidentSlug}`
             );
 
             dispatch(fetchIncidentSuccess(response.data));
@@ -1072,7 +1072,7 @@ export function moreIncidentNotesFailure(error) {
 
 export function moreIncidentNotes(
     projectId,
-    incidentId,
+    incidentSlug,
     postOnStatusPage,
     skip
 ) {
@@ -1081,7 +1081,7 @@ export function moreIncidentNotes(
             dispatch(moreIncidentNotesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
+                `statusPage/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
             dispatch(moreIncidentNotesSuccess(response.data));
         } catch (error) {
@@ -1118,13 +1118,13 @@ export function fetchLastIncidentTimelineFailure(error) {
     };
 }
 
-export function fetchLastIncidentTimeline(projectId, incidentId) {
+export function fetchLastIncidentTimeline(projectId, incidentSlug) {
     return async function(dispatch) {
         try {
             dispatch(fetchLastIncidentTimelineRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/timeline/${incidentId}`
+                `statusPage/${projectId}/timeline/${incidentSlug}`
             );
             dispatch(fetchLastIncidentTimelineSuccess(response.data));
         } catch (error) {

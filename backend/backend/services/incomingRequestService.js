@@ -3,6 +3,7 @@ const IncidentService = require('../services/incidentService');
 const MonitorService = require('../services/monitorService');
 const AlertService = require('../services/alertService');
 const ErrorService = require('../services/errorService');
+const ProjectService = require('../services/projectService');
 const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
@@ -1007,6 +1008,20 @@ module.exports = {
                 (incomingRequest.updateIncidentNote ||
                     incomingRequest.updateInternalNote)
             ) {
+                let subProjectIds = [];
+                const subProjects = await ProjectService.findBy({
+                    query: {
+                        parentProjectId:
+                            incomingRequest.projectId._id ||
+                            incomingRequest.projectId,
+                    },
+                    select: '_id',
+                });
+                if (subProjects && subProjects.length > 0) {
+                    subProjectIds = subProjects.map(project => project._id);
+                }
+                subProjectIds.push(incomingRequest.projectId);
+
                 const noteResponse = [],
                     incidentsWithNote = [];
 
@@ -1041,11 +1056,13 @@ module.exports = {
                     { path: 'probes.probeId', select: 'name _id' },
                 ];
                 const select =
-                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                    'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
                 if (!filters || filters.length === 0) {
                     incidents = await IncidentService.findBy({
-                        query: { projectId: incomingRequest.projectId },
+                        query: {
+                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                        },
                         select,
                         populate,
                     });
@@ -1101,8 +1118,7 @@ module.exports = {
                                 ) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             idNumber: data.incidentId,
                                         },
                                         select,
@@ -1113,8 +1129,7 @@ module.exports = {
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue':
@@ -1133,8 +1148,7 @@ module.exports = {
                                 ) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             idNumber: { $ne: data.incidentId },
                                         },
                                         select,
@@ -1145,8 +1159,7 @@ module.exports = {
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1171,8 +1184,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $lt: data.incidentId,
                                                     },
@@ -1187,8 +1201,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1208,8 +1223,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $gt: data.incidentId,
                                                     },
@@ -1224,8 +1240,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1247,8 +1264,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $lte: data.incidentId,
                                                     },
@@ -1263,8 +1281,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1286,8 +1305,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $gte: data.incidentId,
                                                     },
@@ -1302,8 +1322,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1533,6 +1554,20 @@ module.exports = {
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {
+                let subProjectIds = [];
+                const subProjects = await ProjectService.findBy({
+                    query: {
+                        parentProjectId:
+                            incomingRequest.projectId._id ||
+                            incomingRequest.projectId,
+                    },
+                    select: '_id',
+                });
+                if (subProjects && subProjects.length > 0) {
+                    subProjectIds = subProjects.map(project => project._id);
+                }
+                subProjectIds.push(incomingRequest.projectId);
+
                 const resolveResponse = [],
                     acknowledgeResponse = [],
                     resolvedIncidents = [],
@@ -1633,8 +1668,7 @@ module.exports = {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             idNumber: data.incidentId,
                                             ...incidentQuery,
                                         },
@@ -1646,8 +1680,7 @@ module.exports = {
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue':
@@ -1664,8 +1697,7 @@ module.exports = {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             idNumber: { $ne: data.incidentId },
                                             ...incidentQuery,
                                         },
@@ -1677,8 +1709,7 @@ module.exports = {
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
                                         query: {
-                                            projectId:
-                                                incomingRequest.projectId,
+                                            projectId: { $in: subProjectIds }, // handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1704,8 +1735,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $lt: data.incidentId,
                                                     },
@@ -1721,8 +1753,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1743,8 +1776,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $gt: data.incidentId,
                                                     },
@@ -1760,8 +1794,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1784,8 +1819,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $lte: data.incidentId,
                                                     },
@@ -1801,8 +1837,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {
@@ -1822,8 +1859,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     idNumber: {
                                                         $gte: data.incidentId,
                                                     },
@@ -1839,8 +1877,9 @@ module.exports = {
                                         incidents = await IncidentService.findBy(
                                             {
                                                 query: {
-                                                    projectId:
-                                                        incomingRequest.projectId,
+                                                    projectId: {
+                                                        $in: subProjectIds,
+                                                    }, // handle for both project and subProjects
                                                     'customFields.fieldName':
                                                         data.fieldName,
                                                     'customFields.fieldValue': {

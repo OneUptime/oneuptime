@@ -809,7 +809,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle multipleNotificationTypes';
 
         const [statusPage, count] = await Promise.all([
             StatusPageService.findBy({
@@ -1045,15 +1045,15 @@ router.get(
     }
 );
 
-router.get('/:projectId/incident/:incidentId', checkUser, async function(
+router.get('/:projectId/incident/:incidentSlug', checkUser, async function(
     req,
     res
 ) {
     try {
-        const { incidentId, projectId } = req.params;
+        const { incidentSlug } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            query: { projectId, idNumber: incidentId },
+            query: { slug: incidentSlug },
             select: '_id',
         });
 
@@ -1066,15 +1066,15 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
     }
 });
 
-router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
+router.get('/:projectId/:incidentSlug/incidentNotes', checkUser, async function(
     req,
     res
 ) {
     try {
-        const { incidentId, projectId } = req.params;
+        const { incidentSlug } = req.params;
 
         const incident = await IncidentService.findOneBy({
-            query: { projectId, idNumber: incidentId },
+            query: { slug: incidentSlug },
             select: '_id',
         });
         const { skip, limit, postOnStatusPage } = req.query;
@@ -1464,15 +1464,15 @@ router.delete(
     }
 );
 
-router.get('/:projectId/timeline/:incidentId', checkUser, async function(
+router.get('/:projectId/timeline/:incidentSlug', checkUser, async function(
     req,
     res
 ) {
     try {
-        const { incidentId, projectId } = req.params;
+        const { incidentSlug } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            query: { projectId, idNumber: incidentId },
+            query: { slug: incidentSlug },
             select: '_id',
         });
         // setting limit to one

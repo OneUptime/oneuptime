@@ -26,7 +26,7 @@ class Incident extends Component {
             fetchIncidentNotes,
             fetchLastIncidentTimeline,
         } = this.props;
-        const { incidentId } = params;
+        const { incidentSlug } = params;
 
         if (
             window.location.search.substring(1) &&
@@ -65,9 +65,9 @@ class Incident extends Component {
         });
 
         if (statusData && statusData._id) {
-            fetchLastIncidentTimeline(statusData.projectId._id, incidentId);
-            fetchIncident(statusData.projectId._id, incidentId);
-            fetchIncidentNotes(statusData.projectId._id, incidentId, true);
+            fetchLastIncidentTimeline(statusData.projectId._id, incidentSlug);
+            fetchIncident(statusData.projectId._id, incidentSlug);
+            fetchIncidentNotes(statusData.projectId._id, incidentSlug, true);
         }
     }
 
@@ -79,12 +79,12 @@ class Incident extends Component {
             fetchIncidentNotes,
             fetchLastIncidentTimeline,
         } = this.props;
-        const { incidentId } = params;
+        const { incidentSlug } = params;
 
         if (prevProps.statusData._id !== statusData._id) {
-            fetchLastIncidentTimeline(statusData.projectId._id, incidentId);
-            fetchIncident(statusData.projectId._id, incidentId);
-            fetchIncidentNotes(statusData.projectId._id, incidentId, true);
+            fetchLastIncidentTimeline(statusData.projectId._id, incidentSlug);
+            fetchIncident(statusData.projectId._id, incidentSlug);
+            fetchIncidentNotes(statusData.projectId._id, incidentSlug, true);
         }
     }
 
@@ -95,9 +95,14 @@ class Incident extends Component {
             skip,
             moreIncidentNotes,
         } = this.props;
-        const { incidentId } = params;
+        const { incidentSlug } = params;
 
-        moreIncidentNotes(statusData.projectId._id, incidentId, true, skip + 1);
+        moreIncidentNotes(
+            statusData.projectId._id,
+            incidentSlug,
+            true,
+            skip + 1
+        );
     }
 
     renderError = () => {

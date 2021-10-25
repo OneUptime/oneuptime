@@ -71,7 +71,7 @@ class EditWebHook extends React.Component {
         postObj.endpoint = values.endpoint;
         postObj.endpointType = values.endpointType;
         postObj.type = 'msteams';
-        postObj.monitors = monitors;
+        postObj.monitors = values.monitors.map(id => ({ monitorId: id }));
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
             : false;
@@ -870,8 +870,6 @@ const mapStateToProps = (state, props) => {
     const allComponents = state.component.componentList.components
         .map(component => component.components)
         .flat();
-    // eslint-disable-next-line no-console
-    console.log(props.data.data.monitors, 'ms monitor id');
     const monitors = props.data.data.monitors.map(monitor => monitor.monitorId);
 
     if (props.data && props.data.monitorId) {

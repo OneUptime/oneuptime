@@ -4368,6 +4368,7 @@ const _this = {
                 projectId,
                 incidentType: incident.incidentType,
                 incidentId: incident.idNumber,
+                incidentSlug: incident.slug,
                 componentName: UppercaseFirstLetter(componentName),
                 incidentNote,
                 noteType: UppercaseFirstLetter(noteType),
