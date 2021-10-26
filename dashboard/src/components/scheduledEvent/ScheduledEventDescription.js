@@ -177,22 +177,26 @@ function ScheduledEventDescription({
                                                         }}
                                                     >
                                                         {scheduledEvent.description
-                                                            .split('\n')
-                                                            .map(
-                                                                (
-                                                                    elem,
-                                                                    index
-                                                                ) => (
-                                                                    <Markdown
-                                                                        key={`${elem}-${index}`}
-                                                                        options={{
-                                                                            forceBlock: true,
-                                                                        }}
-                                                                    >
-                                                                        {elem}
-                                                                    </Markdown>
-                                                                )
-                                                            )}
+                                                            ? scheduledEvent.description
+                                                                  .split('\n')
+                                                                  .map(
+                                                                      (
+                                                                          elem,
+                                                                          index
+                                                                      ) => (
+                                                                          <Markdown
+                                                                              key={`${elem}-${index}`}
+                                                                              options={{
+                                                                                  forceBlock: true,
+                                                                              }}
+                                                                          >
+                                                                              {
+                                                                                  elem
+                                                                              }
+                                                                          </Markdown>
+                                                                      )
+                                                                  )
+                                                            : null}
                                                     </span>
                                                 </div>
                                             </div>
