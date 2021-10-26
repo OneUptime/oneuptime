@@ -65,7 +65,9 @@ describe('Enterprise Alert API', function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
-        await UserService.hardDeleteBy({ email: userData.user.email });
+        await UserService.hardDeleteBy({
+            email: userData.user.email.toLowerCase(),
+        });
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await AlertService.hardDeleteBy({ _id: alertId });
     });

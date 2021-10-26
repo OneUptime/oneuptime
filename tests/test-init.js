@@ -536,6 +536,33 @@ const _this = {
             timeout: _this.timeout,
         });
     },
+    addAdditionalMonitor: async function(monitorName, description, page) {
+        await _this.pageWaitForSelector(page, '#cbMonitors');
+        await _this.pageClick(page, '#newFormId');
+        await _this.pageWaitForSelector(page, '#form-new-monitor', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageWaitForSelector(page, 'input[id=name]', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, 'input[id=name]');
+        await page.focus('input[id=name]');
+        await _this.pageType(page, 'input[id=name]', monitorName);
+        await _this.pageClick(page, '[data-testId=type_manual]');
+        await _this.pageWaitForSelector(page, '#description', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#description');
+        await _this.pageType(page, '#description', description);
+        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageWaitForSelector(page, `#cb${monitorName}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+    },
     navigateToComponentDetails: async function(component, page) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });

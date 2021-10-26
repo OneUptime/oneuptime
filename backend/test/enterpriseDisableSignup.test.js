@@ -8,6 +8,7 @@ const GlobalConfig = require('./utils/globalConfig');
 const request = chai.request.agent(app);
 const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
 
 describe('Disable Sign up test', function() {
     this.timeout(200000);
@@ -29,6 +30,7 @@ describe('Disable Sign up test', function() {
     this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
+        await ProjectService.hardDeleteBy({});
         process.env.DISABLE_SIGNUP = undefined;
     });
 
