@@ -1,9 +1,9 @@
 try {
     require('./adminCredentials.test');
-    // require('./alert.test');
-    // require('./applicationLog.test');
+    require('./alert.test');
+    require('./applicationLog.test');
     // require('./applicationSecurity.test');
-    // require('./auditLogs.test');
+    require('./auditLogs.test');
     // require('./component.test');
     // require('./containerSecurity.test');
     // require('./customField.test');
