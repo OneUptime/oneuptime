@@ -43,6 +43,8 @@ describe('Monitor Detail API', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
 
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.page$Eval(page, 'input[id=name]', e => e.click());
             await init.pageType(page, 'input[id=name]', urlMonitorName);

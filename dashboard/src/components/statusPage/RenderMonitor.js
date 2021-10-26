@@ -309,7 +309,6 @@ const mapStateToProps = (state, ownProps) => {
         .map(component => component.components)
         .flat();
     const allMonitors = state.monitor.monitorsList.monitors
-        .filter(monitor => String(monitor._id) === String(subProjectId))
         .map(monitor => monitor.monitors)
         .flat();
     const monitors = selector(state, 'monitors');

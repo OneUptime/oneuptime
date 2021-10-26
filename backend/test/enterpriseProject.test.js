@@ -41,7 +41,9 @@ describe('Enterprise Project API', function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
         });
-        await UserService.hardDeleteBy({ email: userData.user.email });
+        await UserService.hardDeleteBy({
+            email: userData.user.email.toLowerCase(),
+        });
     });
 
     it('should create a project when `planId` is not given', function(done) {

@@ -8,10 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import {
-    createDuplicateStatusPage,
-    readStatusPage,
-} from '../../actions/statusPage';
+import { createDuplicateStatusPage } from '../../actions/statusPage';
 import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
 import { RenderSelect } from '../basic/RenderSelect';
 
@@ -39,14 +36,17 @@ export class StatusPageForm extends React.Component {
     }
 
     submitForm = values => {
-        const { data, subProjects } = this.props;
-        this.props.readStatusPage(data.statusPageSlug, values).then(res => {
-            if (subProjects && values.statuspageId) {
-                res.data.projectId._id = values.statuspageId;
-                res.data.monitors = [];
-                res.data.monitorsData = [];
-            }
-            this.props.createDuplicateStatusPage(res).then(res => {
+        const { data, currentProject } = this.props;
+        const subProjectId = values.statuspageId || null;
+        const name = values.name;
+        this.props
+            .createDuplicateStatusPage(
+                currentProject._id,
+                subProjectId,
+                data.statusPageSlug,
+                { name }
+            )
+            .then(res => {
                 this.props.closeModal({
                     id: this.props.duplicateModalId,
                 });
@@ -57,7 +57,6 @@ export class StatusPageForm extends React.Component {
                     slug: this.props.currentProject.slug,
                 });
             });
-        });
     };
 
     handleKeyBoard = e => {
@@ -122,7 +121,6 @@ export class StatusPageForm extends React.Component {
                                     </div>
                                     <div className="bs-Modal-body">
                                         <Field
-                                            required={true}
                                             component="input"
                                             name="name"
                                             placeholder="Status Page Name?"
@@ -152,7 +150,6 @@ export class StatusPageForm extends React.Component {
                                                 component={RenderSelect}
                                                 name="statuspageId"
                                                 id="statuspageId"
-                                                required="required"
                                                 options={[
                                                     {
                                                         value: '',
@@ -161,11 +158,11 @@ export class StatusPageForm extends React.Component {
                                                     },
                                                     ...(subProjects.length > 0
                                                         ? subProjects.map(
-                                                              statusPage => ({
+                                                              subProject => ({
                                                                   value:
-                                                                      statusPage._id,
+                                                                      subProject._id,
                                                                   label:
-                                                                      statusPage.name,
+                                                                      subProject.name,
                                                               })
                                                           )
                                                         : []),
@@ -257,7 +254,7 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { openModal, closeModal, readStatusPage, createDuplicateStatusPage },
+        { openModal, closeModal, createDuplicateStatusPage },
         dispatch
     );
 };
@@ -266,7 +263,6 @@ StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
-    readStatusPage: PropTypes.func,
     createDuplicateStatusPage: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,
     statusPage: PropTypes.object,
