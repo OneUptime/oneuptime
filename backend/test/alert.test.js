@@ -177,7 +177,7 @@ describe('Alert API', function() {
                 .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
                 .end(function(err, res) {
-                    expect(res).to.have.status(404);
+                    expect(res).to.have.status(400);
                     done();
                 });
         });
