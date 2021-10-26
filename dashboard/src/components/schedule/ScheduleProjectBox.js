@@ -36,8 +36,7 @@ const ScheduleProjectBox = props => {
             }
         }
     };
-    // eslint-disable-next-line no-console
-    console.log('Props: ', props);
+
     useEffect(() => {
         window.addEventListener('keydown', handleKeyboard);
 
