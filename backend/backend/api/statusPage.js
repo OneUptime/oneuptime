@@ -895,6 +895,44 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
     }
 });
 
+router.post(
+    '/:projectId/:statusPageSlug/duplicateStatusPage',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageSlug } = req.params;
+            const { subProjectId } = req.query;
+            const { name } = req.body;
+
+            if (!name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page name is empty',
+                });
+            }
+
+            let statusPageProjectId = projectId;
+            let filterMonitors = false;
+            if (subProjectId) {
+                statusPageProjectId = subProjectId;
+                filterMonitors = true;
+            }
+
+            const response = await StatusPageService.duplicateStatusPage(
+                statusPageProjectId,
+                statusPageSlug,
+                name,
+                filterMonitors
+            );
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
