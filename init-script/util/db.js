@@ -7,11 +7,12 @@ async function connectToDb() {
     return global.client.connect(url, { useUnifiedTopology: true });
 }
 
-async function find(collection, query = {}, sort = null) {
+async function find(collection, query = {}, sort = null, limit = 0) {
     if (sort) {
         return global.db
             .collection(collection)
             .find(query)
+            .limit(limit)
             .sort(sort)
             .toArray();
     }
@@ -19,6 +20,7 @@ async function find(collection, query = {}, sort = null) {
     return global.db
         .collection(collection)
         .find(query)
+        .limit(limit)
         .toArray();
 }
 

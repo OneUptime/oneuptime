@@ -4,10 +4,15 @@ const getSlug = require('../util/getSlug');
 const incidentCollection = 'incidents';
 
 async function run() {
-    const incidents = await find(incidentCollection, {
-        deleted: false,
-        slug: { $exists: false },
-    });
+    const incidents = await find(
+        incidentCollection,
+        {
+            deleted: false,
+            slug: { $exists: false },
+        },
+        null,
+        8000 // limit to 8k items
+    );
 
     for (const incident of incidents) {
         const slug = getSlug(incident.idNumber);
