@@ -1062,12 +1062,17 @@ export function readStatusPage(statusPageSlug, data) {
     };
 }
 
-export function createDuplicateStatusPage(statusPageData) {
+export function createDuplicateStatusPage(
+    projectId,
+    subProjectId = null,
+    statusPageSlug,
+    data
+) {
     return function(dispatch) {
-        const promise = postApi(
-            `statusPage/${statusPageData.data.projectId._id}`,
-            statusPageData.data
-        );
+        const url = subProjectId
+            ? `statusPage/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
+            : `statusPage/${projectId}/${statusPageSlug}/duplicateStatusPage`;
+        const promise = postApi(url, data);
         promise.then(
             function(response) {
                 return response;
