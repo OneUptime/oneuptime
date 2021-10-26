@@ -4,7 +4,7 @@ try {
     require('./applicationLog.test');
     // require('./applicationSecurity.test');
     require('./auditLogs.test');
-    // require('./component.test');
+    require('./component.test');
     // require('./containerSecurity.test');
     // require('./customField.test');
     // require('./disableSignup.test');
