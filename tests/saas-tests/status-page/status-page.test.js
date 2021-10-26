@@ -266,7 +266,7 @@ describe('Check status-page up', () => {
                 await init.navigateToComponentDetails(componentName, page);
                 const monitorName = utils.generateRandomString();
                 const description = utils.generateRandomString();
-                await init.addMonitor(monitorName, description, page);
+                await init.addAdditionalMonitor(monitorName, description, page);
                 await init.pageWaitForSelector(
                     page,
                     `#monitor-title-${monitorName}`,
@@ -541,7 +541,7 @@ describe('Check status-page up', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await init.pageWaitForSelector(page, '#note', {
+            let spanElement = await init.pageWaitForSelector(page, '#note-0', {
                 visible: true,
                 timeout: init.timeout,
             });
