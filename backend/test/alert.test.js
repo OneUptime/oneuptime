@@ -30,6 +30,9 @@ const monitor = {
 };
 
 describe('Alert API', function() {
+    after(async function() {
+        await UserService.hardDeleteBy({});
+    });
     describe('Alert API without subprojects', function() {
         this.timeout(30000);
 
@@ -96,6 +99,9 @@ describe('Alert API', function() {
             await AlertService.hardDeleteBy({ _id: alertId });
             await GlobalConfig.removeTestConfig();
             await AirtableService.deleteAll({ tableName: 'User' });
+            await UserService.hardDeleteBy({
+                email: userData.user.email,
+            });
         });
 
         // 'post /:projectId'
@@ -107,9 +113,9 @@ describe('Alert API', function() {
                 .send(incidentData)
                 .end(function(err, res) {
                     incidentId = res.body._id;
-                    monitorId = res.body.monitorId._id;
+                    monitorId = res.body.monitors[0].monitorId._id;
                     request
-                        .post(`/alert/${res.body.projectId}`)
+                        .post(`/alert/${res.body.projectId._id}`)
                         .set('Authorization', authorization)
                         .send({
                             monitorId,
@@ -171,7 +177,7 @@ describe('Alert API', function() {
                 .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
                 .end(function(err, res) {
-                    expect(res).to.have.status(400);
+                    expect(res).to.have.status(404);
                     done();
                 });
         });
