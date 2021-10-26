@@ -458,6 +458,65 @@ module.exports = {
         }
     },
 
+    duplicateStatusPage: async function(
+        statusPageProjectId,
+        statusPageSlug,
+        statusPageName,
+        filterMonitors
+    ) {
+        try {
+            const populate = [
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                    populate: { path: 'projectId', select: '_id' },
+                },
+            ];
+
+            const select =
+                '_id projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist deleted incidentHistoryDays scheduleHistoryDays announcementLogsHistory onlineText offlineText degradedText deletedAt deletedById theme multipleLanguages enableMultipleLanguage twitterHandle';
+            const statusPage = await this.findOneBy({
+                query: { slug: statusPageSlug },
+                select,
+                populate,
+            });
+
+            const data = { ...statusPage };
+            data.projectId = statusPageProjectId;
+            data.name = statusPageName;
+            if (filterMonitors && data.monitors) {
+                data.monitors = data.monitors
+                    .filter(monitorObj => {
+                        // values.statuspageId is sub project id selected on the dropdown
+                        if (
+                            String(monitorObj.monitor.projectId._id) ===
+                            String(statusPageProjectId)
+                        ) {
+                            return true;
+                        }
+                        return false;
+                    })
+                    .map(monitorObj => {
+                        monitorObj.monitor = monitorObj.monitor._id;
+                        return monitorObj;
+                    });
+            }
+            if (!filterMonitors && data.monitors) {
+                // just filter and use only ids
+                data.monitors = data.monitors.map(monitorObj => {
+                    monitorObj.monitor =
+                        monitorObj.monitor._id || monitorObj.monitor;
+                    return monitorObj;
+                });
+            }
+
+            return this.create(data);
+        } catch (error) {
+            ErrorService.log('statusPageService.duplicateStatusPage', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function(query, userId) {
         try {
             if (!query) {
