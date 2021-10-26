@@ -282,7 +282,7 @@ class CreateSchedule extends React.Component {
                                                 ? this.props.monitors.map(
                                                       monitor => ({
                                                           value: monitor._id,
-                                                          label: `${monitor.projectId?.name} / ${monitor.componentId.name} / ${monitor.name}`,
+                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
                                                       })
                                                   )
                                                 : []),
