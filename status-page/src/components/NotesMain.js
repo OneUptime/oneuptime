@@ -381,6 +381,7 @@ class NotesMain extends Component {
                                                                         options={{
                                                                             forceBlock: true,
                                                                         }}
+                                                                        id={`note-${i}`}
                                                                     >
                                                                         {elem}
                                                                     </Markdown>
