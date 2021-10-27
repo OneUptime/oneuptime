@@ -77,58 +77,6 @@ class ScheduledEventBox extends Component {
             modalList,
         } = this.props;
 
-        const subProjectEvents =
-            subProjects &&
-            subProjects.length > 0 &&
-            !fetchingMonitors &&
-            subProjects.map(subProject => {
-                const scheduledEvent = subProjectScheduledEvents.find(
-                    event => String(subProject._id) === String(event.project)
-                );
-                let event = null;
-
-                if (scheduledEvent) {
-                    const {
-                        project,
-                        limit,
-                        skip,
-                        count,
-                        scheduledEvents,
-                    } = scheduledEvent;
-
-                    event =
-                        scheduledEvent && scheduledEvent.project ? (
-                            <EventBox
-                                key={project}
-                                projectId={project}
-                                prevClicked={this.prevClicked}
-                                nextClicked={this.nextClicked}
-                                scheduledEvents={scheduledEvents}
-                                limit={limit}
-                                count={count}
-                                skip={skip}
-                                profileSettings={profileSettings}
-                                currentSubProject={subProject}
-                                subProjects={subProjects}
-                                error={error}
-                                requesting={requesting}
-                                fetchingMonitors={fetchingMonitors}
-                                parentProjectId={
-                                    subProject.parentProjectId._id ||
-                                    subProject.parentProjectId
-                                }
-                                modalList={modalList}
-                                allScheduleEventLength={
-                                    subProjectScheduledEvents.length
-                                }
-                                page={this.state[project]}
-                            />
-                        ) : null;
-                }
-
-                return event;
-            });
-
         const projectEvent = subProjectScheduledEvents.find(
             event => String(event.project) === String(projectId)
         );
@@ -157,7 +105,7 @@ class ScheduledEventBox extends Component {
                         page={this.state[projectId]}
                     />
                 )}
-                {subProjectEvents}
+                {/* {subProjectEvents} */}
             </>
         );
     }

@@ -3,6 +3,7 @@ const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendListResponse = require('../middlewares/response').sendListResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
@@ -147,6 +148,7 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const { skip, limit } = req.query;
             const populate = [
                 { path: 'componentId', select: 'name slug _id' },
                 { path: 'resourceCategory', select: 'name' },
@@ -158,13 +160,19 @@ router.get(
             ];
             const select =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-            const containerSecurities = await ContainerSecurityService.findBy({
-                query: { componentId },
-                select,
-                populate,
-            });
 
-            return sendItemResponse(req, res, containerSecurities);
+            const [containerSecurities, count] = await Promise.all([
+                ContainerSecurityService.findBy({
+                    query: { componentId },
+                    skip,
+                    limit,
+                    select,
+                    populate,
+                }),
+                ContainerSecurityService.countBy({ componentId }),
+            ]);
+
+            return sendListResponse(req, res, containerSecurities, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

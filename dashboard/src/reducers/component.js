@@ -34,6 +34,9 @@ import {
     FETCH_COMPONENT_REQUEST,
     FETCH_COMPONENT_SUCCESS,
     FETCH_COMPONENT_FAILURE,
+    FETCH_PAGINATED_COMPONENTS_FAILURE,
+    FETCH_PAGINATED_COMPONENTS_REQUEST,
+    FETCH_PAGINATED_COMPONENTS_SUCCESS,
 } from '../constants/component';
 
 const INITIAL_STATE = {
@@ -193,6 +196,28 @@ export default function component(state = INITIAL_STATE, action) {
                 },
             });
 
+        case FETCH_PAGINATED_COMPONENTS_SUCCESS: {
+            const updatedComponents = state.componentList.components.map(
+                componentObj => {
+                    if (componentObj._id === action.payload._id) {
+                        componentObj = action.payload;
+                    }
+                    return componentObj;
+                }
+            );
+            return {
+                ...state,
+                componentList: {
+                    ...state.componentList,
+                    components: updatedComponents,
+                    [action.payload._id]: {
+                        error: null,
+                        requesting: false,
+                    },
+                },
+            };
+        }
+
         case FETCH_COMPONENTS_FAILURE:
             return Object.assign({}, state, {
                 componentList: {
@@ -202,6 +227,18 @@ export default function component(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case FETCH_PAGINATED_COMPONENTS_FAILURE:
+            return {
+                ...state,
+                componentList: {
+                    ...state.componentList,
+                    [action.payload.projectId]: {
+                        error: action.payload.error,
+                        requesting: false,
+                    },
+                },
+            };
 
         case FETCH_COMPONENTS_RESET:
             return Object.assign({}, state, {
@@ -217,6 +254,18 @@ export default function component(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
+        case FETCH_PAGINATED_COMPONENTS_REQUEST:
+            return {
+                ...state,
+                componentList: {
+                    ...state.componentList,
+                    [action.payload]: {
+                        error: null,
+                        requesting: true,
+                    },
+                },
+            };
 
         case EDIT_COMPONENT_SUCCESS:
             return Object.assign({}, state, {

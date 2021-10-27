@@ -194,7 +194,7 @@ module.exports = {
         const populateIncidentMessage = [
             {
                 path: 'incidentId',
-                select: 'idNumber name',
+                select: 'idNumber name slug',
             },
             {
                 path: 'createdById',
@@ -244,7 +244,7 @@ module.exports = {
                 path: 'probeId',
                 select: 'probeName probeImage',
             },
-            { path: 'incidentId', select: 'idNumber' },
+            { path: 'incidentId', select: 'idNumber slug' },
         ];
         const selectIncTimeline =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
@@ -1152,7 +1152,7 @@ module.exports = {
         const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
         const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -1321,8 +1321,8 @@ module.exports = {
                 const reason = incident.reason;
                 // const componentSlug = monitor.componentId.slug;
                 // const componentName = monitor.componentId.name;
-                // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
-                const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.idNumber}`;
+                // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
+                const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1342,6 +1342,7 @@ module.exports = {
                             incidentId,
                             reason,
                             incidentSlaTimeline,
+                            incidentSlug: incident.slug,
                         });
                     }
                 } else {
@@ -1866,6 +1867,7 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const track = {};
 
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
@@ -1876,6 +1878,31 @@ module.exports = {
                 $or: [{ monitorId: { $in: monitorIds } }, { monitorId: null }],
                 projectId,
             });
+
+            const sendSubscriberAlert = async ({
+                subscriber,
+                monitor,
+                statusPageSlug,
+                subscribers,
+            }) => {
+                await _this.sendSubscriberAlert(
+                    subscriber,
+                    incident,
+                    'Investigation note is created',
+                    null,
+                    {
+                        note: data.content,
+                        incidentState: data.incident_state,
+                        noteType: data.incident_state,
+                        statusNoteStatus,
+                        statusPageSlug,
+                    },
+                    subscribers.length,
+                    uuid,
+                    monitor
+                );
+            };
+
             for (const monitor of monitors) {
                 if (incident) {
                     for (const subscriber of subscribers) {
@@ -1893,22 +1920,25 @@ module.exports = {
                                 ? statusPage.slug
                                 : null;
                         }
-                        await _this.sendSubscriberAlert(
-                            subscriber,
-                            incident,
-                            'Investigation note is created',
-                            null,
-                            {
-                                note: data.content,
-                                incidentState: data.incident_state,
-                                noteType: data.incident_state,
-                                statusNoteStatus,
+                        if (subscriber.alertVia === AlertType.Email) {
+                            if (!track[subscriber.contactEmail]) {
+                                track[subscriber.contactEmail] =
+                                    subscriber.contactEmail;
+                                sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    statusPageSlug,
+                                    subscribers,
+                                });
+                            }
+                        } else {
+                            sendSubscriberAlert({
+                                subscriber,
+                                monitor,
                                 statusPageSlug,
-                            },
-                            subscribers.length,
-                            uuid,
-                            monitor
-                        );
+                                subscribers,
+                            });
+                        }
                     }
                 }
             }
@@ -1997,16 +2027,25 @@ module.exports = {
                                 }
                             }
                         } else {
-                            await _this.sendSubscriberAlert(
-                                subscriber,
-                                incident,
-                                'Subscriber Incident Created',
-                                null,
-                                {},
-                                subscribers.length,
-                                uuid,
-                                monitor
-                            );
+                            if (subscriber.alertVia === AlertType.Email) {
+                                if (!track[subscriber.contactEmail]) {
+                                    track[subscriber.contactEmail] =
+                                        subscriber.contactEmail;
+                                    sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage: null,
+                                        subscribers,
+                                    });
+                                }
+                            } else {
+                                sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    enabledStatusPage: null,
+                                    subscribers,
+                                });
+                            }
                         }
                     }
                 }
@@ -2236,7 +2275,7 @@ module.exports = {
         const projectId = incident.projectId._id || incident.projectId;
         const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
         const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -2323,6 +2362,7 @@ module.exports = {
                         : null,
 
                 incidentId: `#${incident.idNumber}`,
+                incidentSlug: incident.slug,
                 reason: incident.reason
                     ? incident.reason.split('\n')
                     : [`This incident was created by ${incidentcreatedBy}`],
@@ -2600,7 +2640,7 @@ module.exports = {
 
         const projectId = incident.projectId._id || incident.projectId;
         const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
         const firstName = user.name;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -2685,6 +2725,7 @@ module.exports = {
                         ? monitor.data.url
                         : null,
                 incidentId: `#${incident.idNumber}`,
+                incidentSlug: incident.slug,
                 reason: incident.reason
                     ? incident.reason.split('\n')
                     : [`This incident was created by ${incidentcreatedBy}`],
@@ -2747,10 +2788,11 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident, monitor) {
+    sendAcknowledgedIncidentToSubscribers: async function(incident, monitors) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const track = {};
             const populateStatusPage = [
                 { path: 'projectId', select: 'parentProjectId' },
                 { path: 'monitorIds', select: 'name' },
@@ -2764,48 +2806,86 @@ module.exports = {
             const selectStatusPage =
                 'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-            if (incident) {
-                const subscribers = await SubscriberService.subscribersForAlert(
-                    {
-                        monitorId: monitor._id,
-                        subscribed: true,
-                    }
+            const sendSubscriberAlert = async ({
+                subscriber,
+                monitor,
+                enabledStatusPage,
+                subscribers,
+            }) => {
+                await _this.sendSubscriberAlert(
+                    subscriber,
+                    incident,
+                    'Subscriber Incident Acknowledged',
+                    enabledStatusPage,
+                    {},
+                    subscribers.length,
+                    uuid,
+                    monitor
                 );
-                for (const subscriber of subscribers) {
-                    if (subscriber.statusPageId) {
-                        const enabledStatusPage = await StatusPageService.findOneBy(
-                            {
-                                query: {
-                                    _id: subscriber.statusPageId,
-                                    isSubscriberEnabled: true,
-                                },
-                                populate: populateStatusPage,
-                                select: selectStatusPage,
-                            }
-                        );
-                        if (enabledStatusPage) {
-                            await _this.sendSubscriberAlert(
-                                subscriber,
-                                incident,
-                                'Subscriber Incident Acknowledged',
-                                enabledStatusPage,
-                                {},
-                                subscribers.length,
-                                uuid,
-                                monitor
-                            );
+            };
+
+            if (incident) {
+                for (const monitor of monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor._id,
+                            subscribed: true,
                         }
-                    } else {
-                        await _this.sendSubscriberAlert(
-                            subscriber,
-                            incident,
-                            'Subscriber Incident Acknowledged',
-                            null,
-                            {},
-                            subscribers.length,
-                            uuid,
-                            monitor
-                        );
+                    );
+                    for (const subscriber of subscribers) {
+                        if (subscriber.statusPageId) {
+                            const enabledStatusPage = await StatusPageService.findOneBy(
+                                {
+                                    query: {
+                                        _id: subscriber.statusPageId,
+                                        isSubscriberEnabled: true,
+                                    },
+                                    populate: populateStatusPage,
+                                    select: selectStatusPage,
+                                }
+                            );
+                            if (enabledStatusPage) {
+                                if (subscriber.alertVia === AlertType.Email) {
+                                    if (!track[subscriber.contactEmail]) {
+                                        track[subscriber.contactEmail] =
+                                            subscriber.contactEmail;
+                                        await sendSubscriberAlert({
+                                            subscriber,
+                                            monitor,
+                                            enabledStatusPage,
+                                            subscribers,
+                                        });
+                                    }
+                                } else {
+                                    await sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage,
+                                        subscribers,
+                                    });
+                                }
+                            }
+                        } else {
+                            if (subscriber.alertVia === AlertType.Email) {
+                                if (!track[subscriber.contactEmail]) {
+                                    track[subscriber.contactEmail] =
+                                        subscriber.contactEmail;
+                                    await sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage: null,
+                                        subscribers,
+                                    });
+                                }
+                            } else {
+                                await sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    enabledStatusPage: null,
+                                    subscribers,
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -2818,10 +2898,11 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident, monitor) {
+    sendResolvedIncidentToSubscribers: async function(incident, monitors) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const track = {};
             const populateStatusPage = [
                 { path: 'projectId', select: 'parentProjectId' },
                 { path: 'monitorIds', select: 'name' },
@@ -2835,48 +2916,86 @@ module.exports = {
             const selectStatusPage =
                 'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-            if (incident) {
-                const subscribers = await SubscriberService.subscribersForAlert(
-                    {
-                        monitorId: monitor._id,
-                        subscribed: true,
-                    }
+            const sendSubscriberAlert = async ({
+                subscriber,
+                monitor,
+                enabledStatusPage,
+                subscribers,
+            }) => {
+                await _this.sendSubscriberAlert(
+                    subscriber,
+                    incident,
+                    'Subscriber Incident Resolved',
+                    enabledStatusPage,
+                    {},
+                    subscribers.length,
+                    uuid,
+                    monitor
                 );
-                for (const subscriber of subscribers) {
-                    if (subscriber.statusPageId) {
-                        const enabledStatusPage = await StatusPageService.findOneBy(
-                            {
-                                query: {
-                                    _id: subscriber.statusPageId,
-                                    isSubscriberEnabled: true,
-                                },
-                                select: selectStatusPage,
-                                populate: populateStatusPage,
-                            }
-                        );
-                        if (enabledStatusPage) {
-                            await _this.sendSubscriberAlert(
-                                subscriber,
-                                incident,
-                                'Subscriber Incident Resolved',
-                                enabledStatusPage,
-                                {},
-                                subscribers.length,
-                                uuid,
-                                monitor
-                            );
+            };
+
+            if (incident) {
+                for (const monitor of monitors) {
+                    const subscribers = await SubscriberService.subscribersForAlert(
+                        {
+                            monitorId: monitor._id,
+                            subscribed: true,
                         }
-                    } else {
-                        await _this.sendSubscriberAlert(
-                            subscriber,
-                            incident,
-                            'Subscriber Incident Resolved',
-                            null,
-                            {},
-                            subscribers.length,
-                            uuid,
-                            monitor
-                        );
+                    );
+                    for (const subscriber of subscribers) {
+                        if (subscriber.statusPageId) {
+                            const enabledStatusPage = await StatusPageService.findOneBy(
+                                {
+                                    query: {
+                                        _id: subscriber.statusPageId,
+                                        isSubscriberEnabled: true,
+                                    },
+                                    select: selectStatusPage,
+                                    populate: populateStatusPage,
+                                }
+                            );
+                            if (enabledStatusPage) {
+                                if (subscriber.alertVia === AlertType.Email) {
+                                    if (!track[subscriber.contactEmail]) {
+                                        track[subscriber.contactEmail] =
+                                            subscriber.contactEmail;
+                                        sendSubscriberAlert({
+                                            subscriber,
+                                            monitor,
+                                            enabledStatusPage,
+                                            subscribers,
+                                        });
+                                    }
+                                } else {
+                                    sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage,
+                                        subscribers,
+                                    });
+                                }
+                            }
+                        } else {
+                            if (subscriber.alertVia === AlertType.Email) {
+                                if (!track[subscriber.contactEmail]) {
+                                    track[subscriber.contactEmail] =
+                                        subscriber.contactEmail;
+                                    sendSubscriberAlert({
+                                        subscriber,
+                                        monitor,
+                                        enabledStatusPage: null,
+                                        subscribers,
+                                    });
+                                }
+                            } else {
+                                sendSubscriberAlert({
+                                    subscriber,
+                                    monitor,
+                                    enabledStatusPage: null,
+                                    subscribers,
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -2969,7 +3088,7 @@ module.exports = {
 
             let statusUrl;
             if (statusPageSlug) {
-                statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.idNumber}`;
+                statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.slug}`;
             }
 
             const monitorCustomFields = {},
@@ -4084,6 +4203,21 @@ module.exports = {
             const _this = this;
             const uuid = new Date().getTime();
             if (schedule) {
+                const track = {};
+                const sendSubscribersAlert = async ({
+                    subscriber,
+                    component,
+                    subscribers,
+                }) => {
+                    await _this.sendSubscriberScheduledEventAlert(
+                        subscriber,
+                        schedule,
+                        'Subscriber Scheduled Maintenance Resolved',
+                        component,
+                        subscribers.length,
+                        uuid
+                    );
+                };
                 for (const monitor of schedule.monitors) {
                     const component = monitor.monitorId.componentId.name;
                     const subscribers = await SubscriberService.subscribersForAlert(
@@ -4094,14 +4228,23 @@ module.exports = {
                     );
 
                     for (const subscriber of subscribers) {
-                        await _this.sendSubscriberScheduledEventAlert(
-                            subscriber,
-                            schedule,
-                            'Subscriber Scheduled Maintenance Resolved',
-                            component,
-                            subscribers.length,
-                            uuid
-                        );
+                        if (subscriber.alertVia === AlertType.Email) {
+                            if (!track[subscriber.contactEmail]) {
+                                track[subscriber.contactEmail] =
+                                    subscriber.contactEmail;
+                                await sendSubscribersAlert({
+                                    subscriber,
+                                    component,
+                                    subscribers,
+                                });
+                            }
+                        } else {
+                            await sendSubscribersAlert({
+                                subscriber,
+                                component,
+                                subscribers,
+                            });
+                        }
                     }
                 }
             }

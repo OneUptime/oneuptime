@@ -51,7 +51,7 @@ export class IncidentInternal extends Component {
     olderInternalMessage = () => {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
-            this.props.incident._id,
+            this.props.incident.slug,
             parseInt(this.props.incidentMessages.skip, 10) -
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10),
@@ -71,7 +71,7 @@ export class IncidentInternal extends Component {
     newerInternalMessage = () => {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
-            this.props.incident._id,
+            this.props.incident.slug,
             parseInt(this.props.incidentMessages.skip, 10) +
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10),
@@ -190,8 +190,8 @@ const mapDispatchToProps = dispatch =>
 
 function mapStateToProps(state, ownProps) {
     const incidentMessages = state.incident.incidentMessages
-        ? state.incident.incidentMessages[ownProps.incident.idNumber]
-            ? state.incident.incidentMessages[ownProps.incident.idNumber][
+        ? state.incident.incidentMessages[ownProps.incident.slug]
+            ? state.incident.incidentMessages[ownProps.incident.slug][
                   'internal'
               ]
             : {}

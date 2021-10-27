@@ -90,7 +90,7 @@ module.exports = {
                 },
             ];
             const selectStatusPage =
-                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
+                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
             const newStatusPage = await this.findOneBy({
                 _id: statusPage._id,
@@ -458,6 +458,65 @@ module.exports = {
         }
     },
 
+    duplicateStatusPage: async function(
+        statusPageProjectId,
+        statusPageSlug,
+        statusPageName,
+        filterMonitors
+    ) {
+        try {
+            const populate = [
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                    populate: { path: 'projectId', select: '_id' },
+                },
+            ];
+
+            const select =
+                '_id projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist deleted incidentHistoryDays scheduleHistoryDays announcementLogsHistory onlineText offlineText degradedText deletedAt deletedById theme multipleLanguages enableMultipleLanguage twitterHandle';
+            const statusPage = await this.findOneBy({
+                query: { slug: statusPageSlug },
+                select,
+                populate,
+            });
+
+            const data = { ...statusPage };
+            data.projectId = statusPageProjectId;
+            data.name = statusPageName;
+            if (filterMonitors && data.monitors) {
+                data.monitors = data.monitors
+                    .filter(monitorObj => {
+                        // values.statuspageId is sub project id selected on the dropdown
+                        if (
+                            String(monitorObj.monitor.projectId._id) ===
+                            String(statusPageProjectId)
+                        ) {
+                            return true;
+                        }
+                        return false;
+                    })
+                    .map(monitorObj => {
+                        monitorObj.monitor = monitorObj.monitor._id;
+                        return monitorObj;
+                    });
+            }
+            if (!filterMonitors && data.monitors) {
+                // just filter and use only ids
+                data.monitors = data.monitors.map(monitorObj => {
+                    monitorObj.monitor =
+                        monitorObj.monitor._id || monitorObj.monitor;
+                    return monitorObj;
+                });
+            }
+
+            return this.create(data);
+        } catch (error) {
+            ErrorService.log('statusPageService.duplicateStatusPage', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function(query, userId) {
         try {
             if (!query) {
@@ -480,11 +539,16 @@ module.exports = {
             );
 
             if (statusPage) {
+                const populateSubscriber = [
+                    { path: 'projectId', select: 'name' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'statusPageId', select: 'name' },
+                ];
                 const subscribers = await SubscriberService.findBy({
                     query: { statusPageId: statusPage._id },
                     select: '_id',
+                    populate: populateSubscriber,
                 });
-
                 await Promise.all(
                     subscribers.map(async subscriber => {
                         await SubscriberService.deleteBy(
@@ -648,7 +712,7 @@ module.exports = {
             ];
 
             const selectStatusPage =
-                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
             updatedStatusPage = await this.findOneBy({
                 query: { _id: updatedStatusPage._id },
@@ -690,7 +754,7 @@ module.exports = {
             ];
 
             const selectStatusPage =
-                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
             updatedData = await this.findBy({
                 query,
@@ -766,7 +830,7 @@ module.exports = {
                     { path: 'probes.probeId', select: 'name _id' },
                 ];
                 const select =
-                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber createdAt';
+                    'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber createdAt';
 
                 const [notes, count] = await Promise.all([
                     IncidentService.findBy({
@@ -822,7 +886,7 @@ module.exports = {
                 { path: 'probes.probeId', select: 'name _id' },
             ];
             const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             const incident = await IncidentService.findOneBy({
                 query,
@@ -853,7 +917,7 @@ module.exports = {
             const populateIncidentMessage = [
                 {
                     path: 'incidentId',
-                    select: 'idNumber name',
+                    select: 'idNumber name slug',
                 },
                 { path: 'createdById', select: 'name' },
             ];
@@ -901,7 +965,7 @@ module.exports = {
                 { path: 'probes.probeId', select: 'name _id' },
             ];
             const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             const [incidents, count] = await Promise.all([
                 IncidentService.findBy({
@@ -1505,7 +1569,7 @@ module.exports = {
                     { path: 'probes.probeId', select: 'name _id' },
                 ];
                 const select =
-                    'createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                    'slug createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
                 const [incidents, count] = await Promise.all([
                     IncidentService.findBy({
@@ -1584,7 +1648,7 @@ module.exports = {
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
+            'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
         const subProjectStatusPages = await Promise.all(
             subProjectIds.map(async id => {
@@ -1633,7 +1697,7 @@ module.exports = {
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+            'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
         const statusPage = await _this.findBy({
             query,
@@ -2267,5 +2331,5 @@ const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
 const axios = require('axios');
-const greenlock = global.greenlock;
+const greenlock = require('../../greenlock');
 const bearer = process.env.TWITTER_BEARER_TOKEN;

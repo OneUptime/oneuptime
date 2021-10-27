@@ -26,7 +26,7 @@ export class IncidentInvestigation extends Component {
     olderInvestigationMessage = () => {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
-            this.props.incident._id,
+            this.props.incident.slug,
             parseInt(this.props.incidentMessages.skip, 10) -
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10)
@@ -48,7 +48,7 @@ export class IncidentInvestigation extends Component {
     newerInvestigationMessage = () => {
         this.props.fetchIncidentMessages(
             this.props.currentProject._id,
-            this.props.incident._id,
+            this.props.incident.slug,
             parseInt(this.props.incidentMessages.skip, 10) +
                 parseInt(this.props.incidentMessages.limit, 10),
             parseInt(this.props.incidentMessages.limit, 10)
@@ -172,8 +172,8 @@ const mapDispatchToProps = dispatch =>
 
 function mapStateToProps(state, ownProps) {
     const incidentMessages = state.incident.incidentMessages
-        ? state.incident.incidentMessages[ownProps.incident._id]
-            ? state.incident.incidentMessages[ownProps.incident._id][
+        ? state.incident.incidentMessages[ownProps.incident.slug]
+            ? state.incident.incidentMessages[ownProps.incident.slug][
                   'investigation'
               ]
             : {}

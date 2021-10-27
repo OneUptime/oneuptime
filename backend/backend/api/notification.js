@@ -29,7 +29,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
             {
                 path: 'meta.incidentId',
                 model: 'Incident',
-                select: '_id idNumber',
+                select: '_id idNumber slug',
             },
             {
                 path: 'meta.componentId',

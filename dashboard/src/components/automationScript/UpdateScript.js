@@ -38,9 +38,7 @@ class UpdateScript extends Component {
     }
 
     componentDidMount() {
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
+        const projectId = this.props.activeProject;
         if (projectId) {
             this.props.fetchAutomatedScript(projectId, 0, 10);
         }
@@ -91,20 +89,16 @@ class UpdateScript extends Component {
 
         const { type, script } = this.state;
         const {
-            currentProject,
+            activeProject,
             details: { _id, slug },
         } = this.props;
         const automatedScriptId = _id;
         const payload = { ...values, scriptType: type, script };
         this.props
-            .updateAutomatedScript(
-                currentProject._id,
-                automatedScriptId,
-                payload
-            )
+            .updateAutomatedScript(activeProject, automatedScriptId, payload)
             .then(() => {
                 this.props.fetchSingleAutomatedScript(
-                    currentProject._id,
+                    activeProject,
                     slug,
                     0,
                     10
@@ -815,7 +809,7 @@ const mapStateToProps = (state, ownProps) => {
     initialValues.successEvent = ownProps?.details?.successEvent;
     initialValues.failureEvent = ownProps?.details?.failureEvent;
     return {
-        currentProject: state.project.currentProject,
+        activeProject: state.subProject.activeSubProject,
         addScriptsError: state.automatedScripts.addScripts.error,
         requesting: state.automatedScripts.addScripts.requesting,
         script: state.automatedScripts.fetchScripts.scripts,
@@ -837,7 +831,6 @@ const mapStateToProps = (state, ownProps) => {
 UpdateScript.propTypes = {
     updateAutomatedScript: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
-    currentProject: PropTypes.object,
     addScriptsError: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -851,6 +844,7 @@ UpdateScript.propTypes = {
     failureEventValues: PropTypes.array,
     details: PropTypes.object,
     fetchSingleAutomatedScript: PropTypes.func,
+    activeProject: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(UpdateScriptForm);

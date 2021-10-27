@@ -222,6 +222,25 @@ class NewPerformanceTracker extends Component {
                                 </div>
                                 <ShouldRender if={!edit}>
                                     <div>
+                                        <ShouldRender
+                                            if={
+                                                this.props.showCancelBtn &&
+                                                this.props.toggleForm
+                                            }
+                                        >
+                                            <button
+                                                className="bs-Button"
+                                                disabled={
+                                                    this.props
+                                                        .performanceTrackerUpdate
+                                                        .requesting
+                                                }
+                                                onClick={this.props.toggleForm}
+                                                type="button"
+                                            >
+                                                <span>Cancel</span>
+                                            </button>
+                                        </ShouldRender>
                                         <button
                                             id="addPerformanceTrackerButton"
                                             className="bs-Button bs-Button--blue"
@@ -342,6 +361,8 @@ NewPerformanceTracker.propTypes = {
     performanceTrackerUpdate: PropTypes.object,
     createPerformanceTracker: PropTypes.func,
     updatePerformanceTracker: PropTypes.func,
+    toggleForm: PropTypes.func,
+    showCancelBtn: PropTypes.bool,
 };
 
 export default connect(

@@ -34,7 +34,9 @@ class ScheduledEvent extends Component {
                 <div id="scheduleEventsPage">
                     <ScheduledEventBox projectId={this.props.projectId} />
                 </div>
-                <ShouldRender if={this.props.requesting}>
+                <ShouldRender
+                    if={this.props.requesting || this.props.fetchingMonitors}
+                >
                     <LoadingState />
                 </ShouldRender>
             </Fade>
@@ -46,11 +48,12 @@ ScheduledEvent.displayName = 'ScheduledEvent';
 
 const mapStateToProps = state => {
     return {
-        projectId:
-            state.project.currentProject && state.project.currentProject._id,
-        requesting: state.scheduledEvent.scheduledEventList.requesting,
+        projectId: state.subProject.activeSubProject,
+        requesting:
+            state.scheduledEvent.subProjectScheduledEventList.requesting,
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        fetchingMonitors: state.monitor.monitorsList.requesting,
     };
 };
 
@@ -60,6 +63,7 @@ ScheduledEvent.propTypes = {
         pathname: PropTypes.string,
     }),
     requesting: PropTypes.bool,
+    fetchingMonitors: PropTypes.bool,
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
 };

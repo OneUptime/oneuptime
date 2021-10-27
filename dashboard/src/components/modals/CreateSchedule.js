@@ -118,15 +118,17 @@ class CreateSchedule extends React.Component {
     };
 
     handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.handleCloseModal();
-            case 'Enter':
-                return document
-                    .getElementById('createScheduledEventButton')
-                    .click();
-            default:
-                return false;
+        if (e.target.localName !== 'textarea' && e.key) {
+            switch (e.key) {
+                case 'Escape':
+                    return this.handleCloseModal();
+                case 'Enter':
+                    return document
+                        .getElementById('createScheduledEventButton')
+                        .click();
+                default:
+                    return false;
+            }
         }
     };
 
@@ -1051,14 +1053,14 @@ const mapDispatchToProps = dispatch =>
 
 const selector = formValueSelector('newCreateSchedule');
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = state => {
     const minStartDate = selector(state, 'startDate');
     const currentDate = moment().format();
 
-    const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(ownProps.data.projectId)
-    );
-    const monitors = monitorData.monitors;
+    const monitors = [];
+    state.monitor.monitorsList.monitors.forEach(monitorObj => {
+        monitorObj.monitors.forEach(monitor => monitors.push(monitor));
+    });
 
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,

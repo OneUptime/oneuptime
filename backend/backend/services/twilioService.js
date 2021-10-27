@@ -85,7 +85,9 @@ const _this = {
             smsBody = options.body;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select: 'phoneNumber accountSid authToken',
+                select:
+                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
                 options.from = customTwilioSettings.phoneNumber;
@@ -214,7 +216,9 @@ const _this = {
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select: 'phoneNumber accountSid authToken',
+                select:
+                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                populate: [{ path: 'projectId', select: 'name' }],
             });
 
             if (customTwilioSettings) {
@@ -475,7 +479,9 @@ const _this = {
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select: 'phoneNumber accountSid authToken',
+                select:
+                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                populate: [{ path: 'projectId', select: 'name' }],
             });
 
             if (customTwilioSettings) {
@@ -604,7 +610,9 @@ const _this = {
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select: 'phoneNumber accountSid authToken',
+                select:
+                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
                 const options = {

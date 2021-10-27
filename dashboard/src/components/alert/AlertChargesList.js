@@ -203,7 +203,7 @@ export class AlertChargesList extends Component {
                                                                     '/incidents/' +
                                                                     alertCharge
                                                                         .incidentId
-                                                                        ._idNumber
+                                                                        .slug
                                                             );
                                                         }}
                                                         className="Box-root Margin-right--16"

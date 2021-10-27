@@ -131,7 +131,6 @@ module.exports = {
             subscriberQuery = handlePopulate(populate, subscriberQuery);
 
             const subscribers = await subscriberQuery;
-
             const subscribersArr = [];
             for (const result of subscribers) {
                 const temp = {};

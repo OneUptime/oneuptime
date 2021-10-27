@@ -276,6 +276,21 @@ class NewErrorTracker extends Component {
                                 </div>
                                 <ShouldRender if={!edit}>
                                     <div>
+                                        <ShouldRender
+                                            if={
+                                                this.props.showCancelBtn &&
+                                                this.props.toggleForm
+                                            }
+                                        >
+                                            <button
+                                                className="bs-Button"
+                                                disabled={requesting}
+                                                onClick={this.props.toggleForm}
+                                                type="button"
+                                            >
+                                                <span>Cancel</span>
+                                            </button>
+                                        </ShouldRender>
                                         <button
                                             id="addErrorTrackerButton"
                                             className="bs-Button bs-Button--blue"
@@ -297,6 +312,7 @@ class NewErrorTracker extends Component {
                                             className="bs-Button"
                                             disabled={requesting}
                                             onClick={this.cancelEdit}
+                                            type="button"
                                         >
                                             <span>Cancel</span>
                                         </button>
@@ -383,6 +399,8 @@ NewErrorTracker.propTypes = {
     editErrorTrackerSwitch: PropTypes.func,
     editErrorTracker: PropTypes.func,
     resourceCategoryList: PropTypes.array,
+    showCancelBtn: PropTypes.bool,
+    toggleForm: PropTypes.func,
 };
 
 export default connect(

@@ -172,6 +172,9 @@ module.exports = {
                     parentCount +
                     deletedParentCount +
                     1;
+
+                incident.slug = getSlug(incident.idNumber); // create incident slug from the idNumber
+
                 incident.customFields = data.customFields;
                 incident.createdByIncomingHttpRequest =
                     data.createdByIncomingHttpRequest;
@@ -325,7 +328,7 @@ module.exports = {
                     content: incident.description,
                     incidentId: incident._id,
                     createdById:
-                        incident.createdById._id || incident.createdById,
+                        incident.createdById?._id || incident.createdById,
                     type: 'investigation',
                     incident_state: 'Identified',
                     post_statuspage: true,
@@ -394,6 +397,16 @@ module.exports = {
                     const { _id } = monitorStatus;
                     await MonitorStatusService.deleteBy({ _id }, userId);
                 }
+
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId._id || monitor.monitorId
+                );
+
+                // update all monitor status in the background to match incident type
+                MonitorService.updateAllMonitorStatus(
+                    { _id: { $in: monitors } },
+                    { monitorStatus: 'online' }
+                );
 
                 const populateIncTimeline = [
                     { path: 'createdById', select: 'name' },
@@ -509,7 +522,7 @@ module.exports = {
                 { path: 'probes.probeId', select: 'probeName _id probeImage' },
             ];
             const select =
-                'notifications reason hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'slug notifications reason hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             updatedIncident = await _this.findOneBy({
                 query: { _id: updatedIncident._id },
@@ -560,7 +573,7 @@ module.exports = {
                 { path: 'probes.probeId', select: 'probeName _id probeImage' },
             ];
             const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             updatedData = await this.findBy({ query, populate, select });
             return updatedData;
@@ -768,6 +781,11 @@ module.exports = {
 
                 _this.refreshInterval(incidentId);
 
+                AlertService.sendAcknowledgedIncidentToSubscribers(
+                    incident,
+                    monitors
+                );
+
                 for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
                         incident.projectId._id || incident.projectId,
@@ -796,10 +814,6 @@ module.exports = {
                         downtimestring
                     );
 
-                    AlertService.sendAcknowledgedIncidentToSubscribers(
-                        incident,
-                        monitor
-                    );
                     AlertService.sendAcknowledgedIncidentMail(
                         incident,
                         monitor
@@ -835,7 +849,7 @@ module.exports = {
                     },
                 ];
                 const select =
-                    'notifications reason acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                    'slug notifications reason acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
                 incident = await _this.findOneBy({
                     query: { _id: incidentId, acknowledged: true },
@@ -936,6 +950,8 @@ module.exports = {
             _this.clearInterval(incidentId);
 
             const statusData = [];
+            // send notificaton to subscribers
+            AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
@@ -1028,7 +1044,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
-            'createdAt notifications reason acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug createdAt notifications reason acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         incidentsUnresolved = await _this.findBy({
             query: { projectId: { $in: subProjectIds }, resolved: false },
@@ -1050,7 +1066,7 @@ module.exports = {
             : incidentsUnresolved.concat(incidentsResolved);
     },
 
-    getSubProjectIncidents: async function(subProjectIds) {
+    getSubProjectIncidents: async function(projectId) {
         const _this = this;
         const populate = [
             {
@@ -1075,22 +1091,30 @@ module.exports = {
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const subProjectIncidents = await Promise.all(
-            subProjectIds.map(async id => {
-                const incidents = await _this.findBy({
-                    query: { projectId: id },
-                    limit: 10,
-                    skip: 0,
-                    select,
-                    populate,
-                });
-                const count = await _this.countBy({ projectId: id });
-                return { incidents, count, _id: id, skip: 0, limit: 10 };
-            })
-        );
-        return subProjectIncidents;
+        const monitors = await MonitorService.findBy({
+            query: { projectId },
+            select: '_id',
+        });
+        const monitorIds = monitors.map(monitor => monitor._id);
+
+        const query = {
+            'monitors.monitorId': { $in: monitorIds },
+        };
+
+        const [incidents, count] = await Promise.all([
+            _this.findBy({
+                query,
+                limit: 10,
+                skip: 0,
+                select,
+                populate,
+            }),
+            _this.countBy(query),
+        ]);
+
+        return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     },
 
     getComponentIncidents: async function(projectId, componentId) {
@@ -1128,7 +1152,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         const [incidents, count] = await Promise.all([
             _this.findBy({ query, limit: 10, skip: 0, select, populate }),
@@ -1181,7 +1205,7 @@ module.exports = {
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         const [incidents, count] = await Promise.all([
             _this.findBy({ query, limit, skip, select, populate }),
@@ -1246,8 +1270,6 @@ module.exports = {
                 downtimestring
             );
 
-            // send notificaton to subscribers
-            AlertService.sendResolvedIncidentToSubscribers(incident, monitor);
             AlertService.sendResolveIncidentMail(incident, monitor);
 
             const msg = `${
@@ -1444,7 +1466,7 @@ module.exports = {
                         },
                     ];
                     const select =
-                        'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                        'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
                     updatedIncident = await _this.findOneBy({
                         query: { _id: updatedIncident._id, deleted: true },
@@ -1649,3 +1671,4 @@ const { isEmpty } = require('lodash');
 const joinNames = require('../utils/joinNames');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const getSlug = require('../utils/getSlug');

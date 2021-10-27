@@ -526,7 +526,7 @@ describe('Incident Created test', () => {
             const componentName = 'NewComponent';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.addComponent(componentName, page);
+            await init.addAdditionalComponent(componentName, page);
             await init.addMonitorToComponent(
                 null,
                 monitorName2,

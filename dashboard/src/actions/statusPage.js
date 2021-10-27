@@ -873,10 +873,10 @@ export function fetchIncidentStatusPagesError(error) {
 }
 
 // Gets status pages pointing to the incident
-export function fetchIncidentStatusPages(projectId, incidentId, skip, limit) {
+export function fetchIncidentStatusPages(projectId, incidentSlug, skip, limit) {
     return function(dispatch) {
         const promise = getApi(
-            `incident/${projectId}/${incidentId}/statuspages?skip=${skip}&limit=${limit}`
+            `incident/${projectId}/${incidentSlug}/statuspages?skip=${skip}&limit=${limit}`
         );
 
         promise.then(
@@ -1062,12 +1062,17 @@ export function readStatusPage(statusPageSlug, data) {
     };
 }
 
-export function createDuplicateStatusPage(statusPageData) {
+export function createDuplicateStatusPage(
+    projectId,
+    subProjectId = null,
+    statusPageSlug,
+    data
+) {
     return function(dispatch) {
-        const promise = postApi(
-            `statusPage/${statusPageData.data.projectId._id}`,
-            statusPageData.data
-        );
+        const url = subProjectId
+            ? `statusPage/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
+            : `statusPage/${projectId}/${statusPageSlug}/duplicateStatusPage`;
+        const promise = postApi(url, data);
         promise.then(
             function(response) {
                 return response;

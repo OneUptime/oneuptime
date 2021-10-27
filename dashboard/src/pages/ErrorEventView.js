@@ -48,7 +48,9 @@ class ErrorEventView extends Component {
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
             this.props.fetchErrorTrackers(
                 this.props.currentProject._id,
-                this.props.componentId
+                this.props.componentId,
+                this.props.trackerSkip,
+                this.props.trackerLimit
             );
             this.props.fetchErrorEvent(
                 this.props.currentProject._id,
@@ -69,13 +71,23 @@ class ErrorEventView extends Component {
         const errorEventId = this.props.match.params.errorEventId
             ? this.props.match.params.errorEventId
             : null;
-        const { componentSlug, fetchComponent } = this.props;
+        const {
+            componentSlug,
+            fetchComponent,
+            trackerLimit,
+            trackerSkip,
+        } = this.props;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
         }
 
         // fetching error trackers is necessary incase a reload is done on error event details page
-        this.props.fetchErrorTrackers(projectId, componentId);
+        this.props.fetchErrorTrackers(
+            projectId,
+            componentId,
+            trackerSkip,
+            trackerLimit
+        );
 
         // TODO fetch the current issues based on the limit and skip in the redux
         this.props.fetchErrorEvent(
@@ -236,6 +248,8 @@ const mapStateToProps = (state, ownProps) => {
         errorEvent,
         currentErrorEvent,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        trackerSkip: state.errorTracker.errorTrackersList.skip || 0,
+        trackerLimit: state.errorTracker.errorTrackersList.limit || 5,
     };
 };
 ErrorEventView.propTypes = {
@@ -252,5 +266,7 @@ ErrorEventView.propTypes = {
     errorEvent: PropsType.object,
     setCurrentErrorEvent: PropsType.func,
     switchToProjectViewerNav: PropsType.bool,
+    trackerSkip: PropsType.number,
+    trackerLimit: PropsType.number,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventView);

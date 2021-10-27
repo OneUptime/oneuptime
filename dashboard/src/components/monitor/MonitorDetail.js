@@ -57,25 +57,25 @@ export class MonitorDetail extends Component {
         this.setLastAlive();
     }
 
-    componentDidUpdate(prevProps) {
-        const { fetchMonitorLogs, monitor } = this.props;
-        const { startDate, endDate } = this.state;
+    // componentDidUpdate(prevProps) {
+    //     const { fetchMonitorLogs, monitor } = this.props;
+    //     const { startDate, endDate } = this.state;
 
-        if (prevProps.probes !== this.props.probes) {
-            if (this.state.nowHandler) {
-                clearTimeout(this.state.nowHandler);
-            }
+    //     if (prevProps.probes !== this.props.probes) {
+    //         if (this.state.nowHandler) {
+    //             clearTimeout(this.state.nowHandler);
+    //         }
 
-            fetchMonitorLogs(
-                monitor.projectId._id || monitor.projectId,
-                monitor._id,
-                startDate,
-                endDate
-            );
+    //         fetchMonitorLogs(
+    //             monitor.projectId._id || monitor.projectId,
+    //             monitor._id,
+    //             startDate,
+    //             endDate
+    //         );
 
-            this.setLastAlive();
-        }
-    }
+    //         this.setLastAlive();
+    //     }
+    // }
 
     setLastAlive = () => {
         this.setState({ now: Date.now() });
@@ -278,17 +278,20 @@ export class MonitorDetail extends Component {
 
         monitor.error = null;
         if (
-            monitorState.monitorsList.error &&
-            monitorState.monitorsList.error.monitorId &&
+            monitorState.paginatedMonitorsList.error &&
+            monitorState.paginatedMonitorsList.error.monitorId &&
             monitor &&
             monitor._id
         ) {
-            if (monitorState.monitorsList.error.monitorId === monitor._id) {
-                monitor.error = monitorState.monitorsList.error.error;
+            if (
+                monitorState.paginatedMonitorsList.error.monitorId ===
+                monitor._id
+            ) {
+                monitor.error = monitorState.paginatedMonitorsList.error.error;
             }
         }
-        monitor.success = monitorState.monitorsList.success;
-        monitor.requesting = monitorState.monitorsList.requesting;
+        monitor.success = monitorState.paginatedMonitorsList.success;
+        monitor.requesting = monitorState.paginatedMonitorsList.requesting;
 
         let badgeColor;
         switch (monitor.type) {
