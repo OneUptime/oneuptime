@@ -257,6 +257,21 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - backend
+    nginx:
+        depends_on:
+            - mongo
+            - backend
+            - home
+            - dashboard
+            - accounts
+            - admin-dashboard
+        restart: always
+        build:
+            dockerfile: Dockerfile
+            context: ./nginx
+        ports:
+            - '80:80'
+            - '443:443'
 
 volumes:
     mongodata:
