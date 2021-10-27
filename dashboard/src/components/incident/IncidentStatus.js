@@ -2344,7 +2344,7 @@ export class IncidentStatus extends Component {
                                     if={
                                         this.props.incident &&
                                         this.props.route &&
-                                        !this.props.incidentId
+                                        !this.props.incident.slug
                                     }
                                 >
                                     <button
