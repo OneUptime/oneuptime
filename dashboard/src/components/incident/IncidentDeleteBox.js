@@ -8,56 +8,13 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteIncident from '../modals/DeleteIncident';
 import { deleteIncident } from '../../actions/incident';
-import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export class IncidentDeleteBox extends Component {
     constructor(props) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
     }
-
-    deleteIncident = () => {
-        const projectId =
-            this.props.incident.projectId._id || this.props.incident.projectId;
-        const incidentId = this.props.incident._id;
-        // const monitorSlug = this.props.monitorSlug;
-        const componentSlug = this.props.componentSlug;
-
-        const promise = this.props.deleteIncident(projectId, incidentId);
-        promise.then(() => {
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > INCIDENT > DELETE INCIDENT',
-                    {
-                        projectId,
-                        incidentId,
-                    }
-                );
-            }
-            const monitors = this.props.incident.monitors;
-            if (this.props.componentSlug) {
-                if (monitors.length > 1) {
-                    history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring`
-                    );
-                } else {
-                    history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring/${monitors[0].monitorId.slug}`
-                    );
-                }
-            } else {
-                history.push(
-                    '/dashboard/project/' +
-                        this.props.currentProject.slug +
-                        '/incidents'
-                );
-            }
-        });
-        return promise;
-    };
 
     handleKeyBoard = e => {
         switch (e.key) {
@@ -106,7 +63,25 @@ export class IncidentDeleteBox extends Component {
                                                     this.deleteIncident(),
                                                 content: DataPathHoC(
                                                     DeleteIncident,
-                                                    { deleting }
+                                                    {
+                                                        projectId:
+                                                            this.props.incident
+                                                                .projectId
+                                                                ._id ||
+                                                            this.props.incident
+                                                                .projectId,
+                                                        incidentId: this.props
+                                                            .incident._id,
+                                                        componentSlug: this
+                                                            .props
+                                                            .componentSlug,
+                                                        monitors: this.props
+                                                            .incident.monitors,
+                                                        currentProjectSlug: this
+                                                            .props
+                                                            .currentProject
+                                                            .slug,
+                                                    }
                                                 ),
                                             })
                                         }
@@ -139,9 +114,7 @@ IncidentDeleteBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     incident: PropTypes.object.isRequired,
-    deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
-    // monitorSlug: PropTypes.string,
     currentProject: PropTypes.object,
     componentSlug: PropTypes.string,
 };
