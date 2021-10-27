@@ -433,6 +433,13 @@ export function incidentTimelineError(error) {
     };
 }
 
+export function setActiveIncident(incidentId) {
+    return {
+        type: 'SET_ACTIVE_INCIDENT',
+        payload: incidentId,
+    };
+}
+
 // calls the api to post acknowledgement data to the database
 export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
     //This fucntion will switch to incidentId of the params beig passed.
@@ -443,6 +450,9 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
             projectId,
             incidentId,
         };
+
+        dispatch(setActiveIncident(incidentId));
+
         promise = postApi(
             `incident/${projectId}/acknowledge/${incidentId}`,
             data
@@ -536,6 +546,9 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
             projectId,
             incidentId,
         };
+
+        dispatch(setActiveIncident(incidentId));
+
         promise = postApi(`incident/${projectId}/resolve/${incidentId}`, data);
         if (multiple) {
             dispatch(
