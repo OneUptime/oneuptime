@@ -101,6 +101,7 @@ class StatusPagesTable extends Component {
             currentProject,
         } = this.props;
         const currentProjectId = this.props.projectId;
+
         // Add Project Statuspages to All Statuspages List
         let projectStatusPage = subProjectStatusPages.find(
             subProjectStatusPage =>
