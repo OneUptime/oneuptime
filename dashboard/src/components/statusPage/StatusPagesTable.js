@@ -138,9 +138,16 @@ class StatusPagesTable extends Component {
                                     skip={skip}
                                     limit={limit}
                                     subProjectName={
-                                        currentProject
+                                        // This helps to select the correct name when in subproject or main project
+                                        currentProject &&
+                                        currentProject._id ===
+                                            this.props.projectId
                                             ? currentProject.name
-                                            : null
+                                            : this.props.subProjects.map(e =>
+                                                  e._id === this.props.projectId
+                                                      ? e.name
+                                                      : null
+                                              )
                                     }
                                     currentProjectId={currentProjectId}
                                     statusPageModalId={
