@@ -260,7 +260,6 @@ export function createNewIncident(
 
         promise.then(
             function(createIncident) {
-                dispatch(createIncidentSuccess(createIncident.data));
                 dispatch({
                     type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
                     payload: createIncident.data,
@@ -269,6 +268,7 @@ export function createNewIncident(
                     type: 'ADD_NEW_INCIDENT_TO_MONITORS',
                     payload: createIncident.data,
                 });
+                dispatch(createIncidentSuccess(createIncident.data));
             },
             function(error) {
                 if (error && error.response && error.response.data)

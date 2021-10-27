@@ -19,6 +19,7 @@ class CreateManualIncident extends Component {
         super(props);
         this.state = {
             incidentType: '',
+            loading: false,
         };
     }
 
@@ -44,6 +45,7 @@ class CreateManualIncident extends Component {
         const { projectId, monitorId } = this.props.data;
         const monitor = [monitorId];
         this.setState({ incidentType: values.incidentType });
+        const thisObj = this;
 
         const customFields = this.props.customFields.map(field => ({
             fieldName: field.fieldName,
@@ -54,6 +56,8 @@ class CreateManualIncident extends Component {
                     ? parseFloat(values[field.fieldName])
                     : values[field.fieldName],
         }));
+
+        this.setState({ loading: true });
 
         createNewIncident(
             projectId,
@@ -66,6 +70,7 @@ class CreateManualIncident extends Component {
         )
             .then(() => {
                 createIncidentReset();
+                thisObj.setState({ loading: false });
                 closeModal({
                     id: createIncidentModalId,
                 });
@@ -73,6 +78,7 @@ class CreateManualIncident extends Component {
             .catch(() => {
                 // added this to fix
                 // unhandled error bug
+                thisObj.setState({ loading: false });
             });
     };
 
@@ -496,7 +502,8 @@ class CreateManualIncident extends Component {
                                                 type="submit"
                                             >
                                                 {newIncident &&
-                                                    !newIncident.requesting && (
+                                                    !newIncident.requesting &&
+                                                    !this.state.loading && (
                                                         <>
                                                             <span>Create</span>
                                                             <span className="create-btn__keycode">
@@ -505,7 +512,8 @@ class CreateManualIncident extends Component {
                                                         </>
                                                     )}
                                                 {newIncident &&
-                                                    newIncident.requesting && (
+                                                    (newIncident.requesting ||
+                                                        this.state.loading) && (
                                                         <FormLoader />
                                                     )}
                                             </button>
