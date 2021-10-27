@@ -101,8 +101,6 @@ export class IncidentList extends Component {
         });
         incidents = updatedIncidents;
 
-        // eslint-disable-next-line no-console
-        console.log('This Props: ', this.props);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
