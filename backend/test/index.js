@@ -33,7 +33,7 @@ try {
     require('./notification.test');
     require('./probe.test');
     require('./project.test');
-    require('./rateLimit.test');
+    // require('./rateLimit.test');
     require('./reports.test');
     require('./resourceCategory.test');
     require('./schedule.test');

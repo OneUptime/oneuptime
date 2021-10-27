@@ -4,10 +4,10 @@ const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));
 
+const app = require('../server');
 const request = chai.request.agent(app);
 const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
-const app = require('../server');
 const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
@@ -16,7 +16,7 @@ let token, projectId, anotherUser, log = obj => console.log(obj);
 describe('Slack API', function() {
     this.timeout(20000);
 
-    beforeAll(function(done) {
+    this.beforeAll(function(done) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             request
@@ -38,7 +38,7 @@ describe('Slack API', function() {
         });
     });
 
-    afterAll(async function() {
+    this.afterAll(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.deleteProject(projectId);
         await UserService.removeUserByEmail([

@@ -5,6 +5,7 @@ import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
+import Markdown from 'markdown-to-jsx';
 import Notes from './Notes';
 import ShouldRender from './ShouldRender';
 import SubscribeBox from './Subscribe/SubscribeBox';
@@ -300,7 +301,7 @@ class NotesMain extends Component {
                                     style={{ width: '100%' }}
                                 ></div>
                             </ShouldRender>
-                            {note.idNumber ? (
+                            {note.slug ? (
                                 <span
                                     style={{
                                         margin: 10,
@@ -313,14 +314,11 @@ class NotesMain extends Component {
                                         style={{ cursor: 'pointer' }}
                                         onClick={() =>
                                             this.props.history.push(
-                                                `/status-page/${this.props.statusPageSlug}/incident/${note.idNumber}`
+                                                `/status-page/${this.props.statusPageSlug}/incident/${note.slug}`
                                             )
                                         }
                                     >
                                         <b>{note.title}</b>
-                                    </div>
-                                    <div className="incident_desc" id="note">
-                                        {note.description}
                                     </div>
                                     <div
                                         className="incident-date"
@@ -333,7 +331,7 @@ class NotesMain extends Component {
                                         <span style={{ marginRight: 10 }}>
                                             <Translate>Created at </Translate>
                                             {moment(note.createdAt).format(
-                                                'LT'
+                                                'LLL'
                                             )}
                                         </span>
                                         {this.handleIncidentStatus(
@@ -346,11 +344,11 @@ class NotesMain extends Component {
                                             .sort((a, b) => {
                                                 (a = moment(a.createdAt)),
                                                     (b = moment(b.createdAt));
-                                                // order in descending order
+                                                // order in ascending order
                                                 if (b.diff(a) > 0) {
-                                                    return 1;
-                                                } else if (b.diff(a) < 0) {
                                                     return -1;
+                                                } else if (b.diff(a) < 0) {
+                                                    return 1;
                                                 } else {
                                                     return 0;
                                                 }
@@ -361,6 +359,8 @@ class NotesMain extends Component {
                                                         className="incident_desc"
                                                         style={{
                                                             marginBottom: 5,
+                                                            whiteSpace:
+                                                                'pre-wrap',
                                                         }}
                                                         key={message._id}
                                                     >
@@ -369,13 +369,30 @@ class NotesMain extends Component {
                                                                 message.incident_state
                                                             }
                                                         </b>{' '}
-                                                        - {message.content}
+                                                        {message.content
+                                                            .split('\n')
+                                                            .map(
+                                                                (
+                                                                    elem,
+                                                                    index
+                                                                ) => (
+                                                                    <Markdown
+                                                                        key={`${elem}-${index}`}
+                                                                        options={{
+                                                                            forceBlock: true,
+                                                                        }}
+                                                                        id={`note-${i}`}
+                                                                    >
+                                                                        {elem}
+                                                                    </Markdown>
+                                                                )
+                                                            )}
                                                     </div>
                                                     <div className="incident-date">
                                                         <span>
                                                             {moment(
                                                                 message.createdAt
-                                                            ).format('LT')}
+                                                            ).format('LLL')}
                                                         </span>
                                                     </div>
                                                 </>

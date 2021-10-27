@@ -47,6 +47,7 @@ const INITIAL_STATE = {
         success: false,
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),
+        paginatedRequest: false,
     },
     logs: {},
     editApplicationLog: {
@@ -104,7 +105,11 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    applicationLogs: action.payload,
+                    applicationLogs: action.payload.applicationLogs,
+                    count: action.payload.count,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
+                    paginatedRequest: false,
                 },
             });
 
@@ -115,6 +120,7 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                     requesting: false,
                     error: action.payload,
                     success: false,
+                    paginatedRequest: false,
                 },
             });
 
@@ -127,9 +133,10 @@ export default function applicationLog(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 applicationLogsList: {
                     ...state.applicationLogsList,
-                    requesting: true,
+                    requesting: action.payload ? false : true,
                     error: null,
                     success: false,
+                    paginatedRequest: true,
                 },
             });
 

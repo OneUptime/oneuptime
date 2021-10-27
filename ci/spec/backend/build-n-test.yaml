@@ -9,12 +9,14 @@ test_backend:
         - sudo apt-get install wget apt-transport-https gnupg lsb-release
         - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
         - echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
         - sudo apt-get update
         - sudo apt-get install trivy
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker run --name realtime --env-file ./realtime/.env -e PORT=3300 --net=host -d fyipeproject/realtime:latest
         - sudo docker run --name=samlIdp -p 9876:8080 -p 8443:8443 -e SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io -e SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback -e SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp -v $PWD/saml/users.php:/var/www/simplesamlphp/config/authsources.php -d kristophjunge/test-saml-idp
         - sudo docker build -t fyipeproject/init-script:3.0.$CI_PIPELINE_IID ./init-script
         - sudo docker run -e NODE_ENV=development -e IS_SAAS_SERVICE=true -e IS_TESTING=true --net=host -d fyipeproject/init-script:3.0.$CI_PIPELINE_IID
@@ -34,6 +36,12 @@ test_backend:
         - ./ci/scripts/storehash.sh test_backend backend init-script probe http-test-server
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
+    artifacts:
+        name: 'coverage-$CI_COMMIT_SHORT_SHA'
+        when: always
+        paths:
+            - backend/coverage/lcov-report/
+        expire_in: 1 week
     except:
         refs:
             - hotfix-master
@@ -47,10 +55,12 @@ test_enterprise_backend:
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - chmod +x ./ci/scripts/docker-install.sh
         - ./ci/scripts/docker-install.sh
+        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name bredis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker run --name realtime --env-file ./realtime/.env -e PORT=3300 --net=host -d fyipeproject/realtime:latest
         - sudo docker ps
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
         - sudo apt-get install -y nodejs
@@ -62,6 +72,12 @@ test_enterprise_backend:
         - ./ci/scripts/storehash.sh test_enterprise_backend backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
+    artifacts:
+        name: 'coverage-$CI_COMMIT_SHORT_SHA'
+        when: always
+        paths:
+            - backend/coverage/lcov-report/
+        expire_in: 1 week
     except:
         refs:
             - hotfix-master

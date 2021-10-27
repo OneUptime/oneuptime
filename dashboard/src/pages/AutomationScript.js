@@ -18,17 +18,15 @@ class AutomationScript extends Component {
         };
     }
     componentDidMount() {
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
+        const projectId = this.props.activeProject;
         if (projectId) {
             this.props.fetchAutomatedScript(projectId, 0, 10);
         }
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.currentProject !== this.props.currentProject) {
-            const projectId = this.props.currentProject._id;
+        if (prevProps.activeProject !== this.props.activeProject) {
+            const projectId = this.props.activeProject;
             this.props.fetchAutomatedScript(projectId, 0, 10);
         }
     }
@@ -42,6 +40,7 @@ class AutomationScript extends Component {
 
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
+
         return (
             <Fade>
                 <BreadCrumbItem
@@ -115,6 +114,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        activeProject: state.subProject.activeSubProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
@@ -127,6 +127,7 @@ AutomationScript.propTypes = {
     }),
     currentProject: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
+    activeProject: PropTypes.string,
 };
 
 AutomationScript.displayName = 'AutomationScript';

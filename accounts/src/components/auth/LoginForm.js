@@ -47,7 +47,11 @@ export class LoginForm extends Component {
         const loginError = this.props.login.error;
         let header;
         if (loginError) {
-            header = <span style={errorStyle}>{loginError}</span>;
+            header = (
+                <span id="loginError" style={errorStyle}>
+                    {loginError}
+                </span>
+            );
         } else if (serverResponse) {
             header = <span>{serverResponse}</span>;
         } else {

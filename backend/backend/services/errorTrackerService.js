@@ -161,17 +161,21 @@ module.exports = {
             const select =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
-            const errorTrackers = await _this.findBy({
-                query: { componentId: componentId },
-                limit,
-                skip,
-                select,
-                populate: [
-                    { path: 'componentId', select: 'name' },
-                    { path: 'resourceCategory', select: 'name' },
-                ],
-            });
-            return errorTrackers;
+            const [errorTrackers, count] = await Promise.all([
+                _this.findBy({
+                    query: { componentId: componentId },
+                    limit,
+                    skip,
+                    select,
+                    populate: [
+                        { path: 'componentId', select: 'name' },
+                        { path: 'resourceCategory', select: 'name' },
+                    ],
+                }),
+                _this.countBy({ componentId }),
+            ]);
+
+            return { errorTrackers, count, skip, limit };
         } catch (error) {
             ErrorService.log(
                 'errorTrackerService.getErrorTrackersByComponentId',

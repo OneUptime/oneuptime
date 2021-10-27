@@ -129,5 +129,7 @@ const monitorSchema = new Schema({
     resolvedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
     createdByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
     hideIncident: { type: Boolean, default: false },
+
+    slug: String,
 });
 module.exports = mongoose.model('Incident', monitorSchema);

@@ -129,15 +129,17 @@ class UpdateSchedule extends React.Component {
     };
 
     handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.handleCloseModal();
-            case 'Enter':
-                return document
-                    .getElementById('updateScheduledEventButton')
-                    .click();
-            default:
-                return false;
+        if (e.target.localName !== 'textarea' && e.key) {
+            switch (e.key) {
+                case 'Escape':
+                    return this.handleCloseModal();
+                case 'Enter':
+                    return document
+                        .getElementById('updateScheduledEventButton')
+                        .click();
+                default:
+                    return false;
+            }
         }
     };
 
@@ -1011,11 +1013,10 @@ const selector = formValueSelector('newUpdateSchedule');
 
 const mapStateToProps = state => {
     const scheduledEventToBeUpdated = state.modal.modals[0].event;
-
-    const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(state.modal.modals[0].projectId)
-    );
-    const monitors = monitorData.monitors;
+    const monitors = [];
+    state.monitor.monitorsList.monitors.forEach(monitorObj => {
+        monitorObj.monitors.forEach(monitor => monitors.push(monitor));
+    });
 
     const initialValues = {};
     const startDate = selector(state, 'startDate');

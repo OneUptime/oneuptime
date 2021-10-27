@@ -122,7 +122,7 @@ export const groups = [
                     {
                         title: 'Incident',
                         path:
-                            '/dashboard/project/:slug/component/:componentSlug/incidents/:incidentId',
+                            '/dashboard/project/:slug/component/:componentSlug/incidents/:incidentSlug',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],
@@ -370,7 +370,8 @@ export const groups = [
                 subRoutes: [
                     {
                         title: 'Incident detail',
-                        path: '/dashboard/project/:slug/incidents/:incidentId',
+                        path:
+                            '/dashboard/project/:slug/incidents/:incidentSlug',
                         icon: 'info',
                         visible: true,
                         subRoutes: [],

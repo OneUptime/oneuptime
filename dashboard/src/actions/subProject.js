@@ -1,6 +1,7 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/subProject';
 import errors from '../errors';
+import { User } from '../config';
 
 export function subProjectsRequest(promise) {
     return {
@@ -434,5 +435,17 @@ export function markSubProjectForDelete(projectId, subProjectId, feedback) {
         );
 
         return promise;
+    };
+}
+
+export function setActiveSubProject(subproject, updateStorage = false) {
+    if (updateStorage) {
+        // store to localstorage
+        User.setActiveSubProjectId(subproject);
+    }
+
+    return {
+        type: types.SET_ACTIVE_SUBPROJECT,
+        payload: subproject,
     };
 }

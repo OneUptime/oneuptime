@@ -116,6 +116,8 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const newMonitorName = `another-${monitorName}`;
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]');
             await init.pageType(page, 'input[id=name]', newMonitorName);
@@ -237,6 +239,8 @@ describe('Components', () => {
             await init.page$Eval(page, '#components', e => e.click());
 
             // Fill and submit New Component form
+            await init.pageWaitForSelector(page, '#cbComponents');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-component');
             await init.pageType(page, 'input[id=name]', newComponentName);
             await init.page$Eval(page, 'button[type=submit]', e => e.click());

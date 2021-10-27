@@ -54,6 +54,64 @@ async function run() {
                         statusPageCategoryCollection,
                         {
                             name: resourceCategory.name,
+                            statusPageId: String(statusPage._id),
+                        }
+                    );
+
+                    let monitorIds = monitors.map(monitor =>
+                        ObjectId(monitor._id)
+                    );
+                    await updateMany(
+                        monitorCollection,
+                        { _id: { $in: monitorIds } },
+                        { statusPageCategory: ObjectId(statusPageCategory._id) }
+                    );
+
+                    // stringify the ids
+                    monitorIds = monitorIds.map(id => String(id));
+                    updatedMonitors = statusPage.monitors.map(monitorObj => {
+                        if (monitorIds.includes(String(monitorObj.monitor))) {
+                            monitorObj.statusPageCategory = ObjectId(
+                                statusPageCategory._id
+                            );
+                        }
+
+                        return monitorObj;
+                    });
+
+                    // update the status page category
+                    await update(
+                        statusPageCollection,
+                        { _id: statusPage._id },
+                        { monitors: updatedMonitors }
+                    );
+                }
+            }
+        } else {
+            // we need to fix the initial migration script
+            const resourceCategories = await find(resourceCategoryCollection, {
+                projectId: String(statusPage.projectId),
+                deleted: false,
+            });
+
+            let updatedMonitors = statusPage.monitors;
+            const monitorIds = statusPage.monitors.map(monitorObj =>
+                ObjectId(monitorObj.monitor)
+            );
+            for (const resourceCategory of resourceCategories) {
+                // fetch monitors with this category
+                const monitors = await find(monitorCollection, {
+                    _id: { $in: monitorIds },
+                    resourceCategory: String(resourceCategory._id),
+                    deleted: false,
+                });
+                if (monitors && monitors.length > 0) {
+                    // update the status page with the category
+                    const statusPageCategory = await findOne(
+                        statusPageCategoryCollection,
+                        {
+                            name: resourceCategory.name,
+                            statusPageId: String(statusPage._id),
                         }
                     );
 

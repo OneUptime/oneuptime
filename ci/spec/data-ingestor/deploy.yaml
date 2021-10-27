@@ -9,11 +9,11 @@ production_data-ingestor:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/data-ingestor:latest ./data-ingestor
-        - sudo docker tag fyipeproject/data-ingestor:latest fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:latest
+        - sudo docker buildx create --use
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID --push ./data-ingestor
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/data-ingestor:latest --push ./data-ingestor
         - sudo kubectl set image deployment/fi-ingestor fi-ingestor=fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
@@ -39,12 +39,12 @@ staging_data-ingestor:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy data-ingestor.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/data-ingestor:master ./data-ingestor
-        - sudo docker tag fyipeproject/data-ingestor:master fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:master
+        - sudo docker buildx create --use
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID --push ./data-ingestor
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/data-ingestor:master --push ./data-ingestor
         - sudo kubectl set image deployment/fi-ingestor fi-ingestor=fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh

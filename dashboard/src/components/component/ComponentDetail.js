@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-    fetchComponents,
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
@@ -25,12 +24,6 @@ export class ComponentDetail extends Component {
 
     prevClicked = () => {
         const { component } = this.props;
-        this.props.fetchComponents(
-            component.projectId._id,
-            component._id,
-            component.skip ? parseInt(component.skip, 10) - 3 : 3,
-            3
-        );
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
@@ -53,12 +46,6 @@ export class ComponentDetail extends Component {
 
     nextClicked = () => {
         const { component } = this.props;
-        this.props.fetchComponents(
-            component.projectId._id,
-            component._id,
-            component.skip ? parseInt(component.skip, 10) + 3 : 3,
-            3
-        );
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
@@ -267,7 +254,6 @@ const mapDispatchToProps = dispatch => {
         {
             closeModal,
             deleteComponent,
-            fetchComponents,
             addCurrentComponent,
             fetchComponentResources,
             animateSidebar,
@@ -302,7 +288,6 @@ ComponentDetail.propTypes = {
     component: PropTypes.object.isRequired,
     componentState: PropTypes.object.isRequired,
     deleteComponent: PropTypes.func,
-    fetchComponents: PropTypes.func,
     addCurrentComponent: PropTypes.func,
     projectName: PropTypes.string,
     projectType: PropTypes.string,

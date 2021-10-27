@@ -43,7 +43,9 @@ describe('Enterprise Component API', function() {
             _id: { $in: [projectId, newProjectId] },
         });
         await ComponentService.hardDeleteBy({ _id: componentId });
-        await UserService.hardDeleteBy({ email: userData.user.email });
+        await UserService.hardDeleteBy({
+            email: userData.user.email.toLowerCase(),
+        });
     });
 
     it('should create a new component for project with no billing plan', function(done) {

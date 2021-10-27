@@ -4,6 +4,7 @@ import moment from 'moment';
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import Markdown from 'markdown-to-jsx';
 import { openModal } from '../../actions/modal';
 import { capitalize } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
@@ -134,7 +135,7 @@ function ScheduledEventDescription({
                                             <label
                                                 className="bs-Fieldset-label"
                                                 style={{
-                                                    width: '11rem',
+                                                    width: '15rem',
                                                     flex: 'none',
                                                     textAlign: 'left',
                                                 }}
@@ -159,7 +160,7 @@ function ScheduledEventDescription({
                                                 <label
                                                     className="bs-Fieldset-label"
                                                     style={{
-                                                        width: '11rem',
+                                                        width: '15rem',
                                                         flex: 'none',
                                                         textAlign: 'left',
                                                     }}
@@ -171,11 +172,31 @@ function ScheduledEventDescription({
                                                         className="value"
                                                         style={{
                                                             marginTop: '2px',
+                                                            whiteSpace:
+                                                                'pre-wrap',
                                                         }}
                                                     >
-                                                        {
-                                                            scheduledEvent.description
-                                                        }
+                                                        {scheduledEvent.description
+                                                            ? scheduledEvent.description
+                                                                  .split('\n')
+                                                                  .map(
+                                                                      (
+                                                                          elem,
+                                                                          index
+                                                                      ) => (
+                                                                          <Markdown
+                                                                              key={`${elem}-${index}`}
+                                                                              options={{
+                                                                                  forceBlock: true,
+                                                                              }}
+                                                                          >
+                                                                              {
+                                                                                  elem
+                                                                              }
+                                                                          </Markdown>
+                                                                      )
+                                                                  )
+                                                            : null}
                                                     </span>
                                                 </div>
                                             </div>
@@ -184,7 +205,7 @@ function ScheduledEventDescription({
                                             <label
                                                 className="bs-Fieldset-label"
                                                 style={{
-                                                    width: '11rem',
+                                                    width: '15rem',
                                                     flex: 'none',
                                                     textAlign: 'left',
                                                 }}
@@ -207,7 +228,7 @@ function ScheduledEventDescription({
                                             <label
                                                 className="bs-Fieldset-label"
                                                 style={{
-                                                    width: '11rem',
+                                                    width: '15rem',
                                                     flex: 'none',
                                                     textAlign: 'left',
                                                 }}
@@ -231,7 +252,7 @@ function ScheduledEventDescription({
                                             <label
                                                 className="bs-Fieldset-label"
                                                 style={{
-                                                    width: '11rem',
+                                                    width: '15rem',
                                                     flex: 'none',
                                                     textAlign: 'left',
                                                 }}
@@ -255,7 +276,7 @@ function ScheduledEventDescription({
                                             <label
                                                 className="bs-Fieldset-label"
                                                 style={{
-                                                    width: '11rem',
+                                                    width: '15rem',
                                                     flex: 'none',
                                                     textAlign: 'left',
                                                 }}

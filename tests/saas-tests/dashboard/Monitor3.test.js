@@ -16,7 +16,7 @@ describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(init.timeout);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -43,6 +43,8 @@ describe('Monitor API', () => {
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -102,6 +104,8 @@ describe('Monitor API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
@@ -125,26 +129,18 @@ describe('Monitor API', () => {
         operationTimeOut
     );
 
-    test(
-        'should display SSL enabled status',
-        async done => {
-            // Navigate to Component details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
-            await init.pageWaitForSelector(page, '#website_postscan');
-            let sslStatusElement = await init.pageWaitForSelector(
-                page,
-                `#ssl-status-${monitorName}`,
-                { visible: true, timeout: operationTimeOut }
-            );
-            sslStatusElement = await sslStatusElement.getProperty('innerText');
-            sslStatusElement = await sslStatusElement.jsonValue();
-            sslStatusElement.should.be.exactly('Enabled');
-            done();
-        },
-        operationTimeOut
-    );
+    test('should display SSL enabled status', async done => {
+        // Navigate to Component details
+        await init.navigateToMonitorDetails(componentName, monitorName, page);
+        //await init.pageWaitForSelector(page, '#website_postscan');
+        let sslStatusElement = await init.pageWaitForSelector(
+            page,
+            `#ssl-status-${monitorName}`,
+            { visible: true, timeout: 600000 }
+        );
+        sslStatusElement = await sslStatusElement.getProperty('innerText');
+        sslStatusElement = await sslStatusElement.jsonValue();
+        sslStatusElement.should.be.exactly('Enabled');
+        done();
+    }, 600000);
 });

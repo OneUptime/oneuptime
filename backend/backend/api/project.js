@@ -845,7 +845,7 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
         const limit = req.query.limit || 10;
         const populate = [{ path: 'parentProjectId', select: 'name' }];
         const select =
-            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes createdAt';
         const [subProjects, count] = await Promise.all([
             ProjectService.findBy({
                 query: { parentProjectId, 'users.userId': userId },

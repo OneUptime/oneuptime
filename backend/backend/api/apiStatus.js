@@ -55,12 +55,18 @@ router.get('/', async (req, res) => {
 
         // handle redis related operation to test the health
         try {
-            await global.redisClient.set('status', 'Redis status is online');
-            const value = await global.redisClient.get('status');
+            if (global.redisClient) {
+                await global.redisClient.set(
+                    'status',
+                    'Redis status is online'
+                );
+                const value = await global.redisClient.get('status');
 
-            if (!value) {
-                response.redis.status = 'Down';
-                response.redis.message = 'There is issue with redis CRUD api';
+                if (!value) {
+                    response.redis.status = 'Down';
+                    response.redis.message =
+                        'There is issue with redis CRUD api';
+                }
             }
         } catch (error) {
             response.redis.status = 'Down';

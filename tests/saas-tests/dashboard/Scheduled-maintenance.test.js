@@ -185,17 +185,17 @@ describe('Check scheduled maintenace', () => {
             });
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectDropdownValue(
-                '#monitor-name',
+                '#monitor-name-0',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            await init.pageClick(page, '#monitor-description');
+            await init.pageClick(page, '#monitor-description-0');
             await init.pageType(
                 page,
-                '#monitor-description',
+                '#monitor-description-0',
                 'Status Page Description'
             );
-            await init.pageClick(page, '#manual-monitor-checkbox');
+            await init.pageClick(page, '#manual-monitor-checkbox-0');
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl', {

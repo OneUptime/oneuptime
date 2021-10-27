@@ -236,6 +236,7 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
+
             let elementHandle = await init.pageWaitForSelector(
                 page,
                 '#boxTitle',
@@ -251,11 +252,12 @@ describe('API test', () => {
                 page,
                 '#errorMessage',
                 {
-                    visible: true,
+                    hidden: true,
                     timeout: init.timeout,
                 }
             );
-            expect(elementHandle).not.toBe(null);
+            // API Settings and Tutorial Box have been wrapped around a 'RENDERIFOWNER' HOC. Since the user here is a Team Member, the components are not visible.
+            expect(elementHandle).toEqual(null);
             done();
         },
         operationTimeOut

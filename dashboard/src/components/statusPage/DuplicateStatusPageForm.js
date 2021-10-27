@@ -8,11 +8,9 @@ import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
-import {
-    createDuplicateStatusPage,
-    readStatusPage,
-} from '../../actions/statusPage';
+import { createDuplicateStatusPage } from '../../actions/statusPage';
 import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
+import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values) {
     const errors = {};
@@ -38,9 +36,17 @@ export class StatusPageForm extends React.Component {
     }
 
     submitForm = values => {
-        const { data } = this.props;
-        this.props.readStatusPage(data.statusPageSlug, values).then(res => {
-            this.props.createDuplicateStatusPage(res).then(res => {
+        const { data, currentProject } = this.props;
+        const subProjectId = values.statuspageId || null;
+        const name = values.name;
+        this.props
+            .createDuplicateStatusPage(
+                currentProject._id,
+                subProjectId,
+                data.statusPageSlug,
+                { name }
+            )
+            .then(res => {
                 this.props.closeModal({
                     id: this.props.duplicateModalId,
                 });
@@ -51,7 +57,6 @@ export class StatusPageForm extends React.Component {
                     slug: this.props.currentProject.slug,
                 });
             });
-        });
     };
 
     handleKeyBoard = e => {
@@ -74,7 +79,7 @@ export class StatusPageForm extends React.Component {
     };
 
     render() {
-        const { handleSubmit } = this.props;
+        const { handleSubmit, subProjects } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -116,7 +121,6 @@ export class StatusPageForm extends React.Component {
                                     </div>
                                     <div className="bs-Modal-body">
                                         <Field
-                                            required={true}
                                             component="input"
                                             name="name"
                                             placeholder="Status Page Name?"
@@ -134,6 +138,38 @@ export class StatusPageForm extends React.Component {
                                             autoFocus={true}
                                         />
                                     </div>
+                                    <ShouldRender
+                                        if={
+                                            subProjects &&
+                                            subProjects.length > 0
+                                        }
+                                    >
+                                        <div className="bs-Modal-body">
+                                            <Field
+                                                className="db-select-nw"
+                                                component={RenderSelect}
+                                                name="statuspageId"
+                                                id="statuspageId"
+                                                options={[
+                                                    {
+                                                        value: '',
+                                                        label:
+                                                            'Select a Sub Project',
+                                                    },
+                                                    ...(subProjects.length > 0
+                                                        ? subProjects.map(
+                                                              subProject => ({
+                                                                  value:
+                                                                      subProject._id,
+                                                                  label:
+                                                                      subProject.name,
+                                                              })
+                                                          )
+                                                        : []),
+                                                ]}
+                                            />
+                                        </div>
+                                    </ShouldRender>
                                     <div className="bs-Modal-footer">
                                         <div className="bs-Modal-footer-actions">
                                             <button
@@ -212,12 +248,13 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         duplicateModalId: state.modal.modals[0].id,
         statusPage: state.statusPage,
+        subProjects: state.subProject.subProjects.subProjects,
     };
 };
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
-        { openModal, closeModal, readStatusPage, createDuplicateStatusPage },
+        { openModal, closeModal, createDuplicateStatusPage },
         dispatch
     );
 };
@@ -226,12 +263,12 @@ StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
-    readStatusPage: PropTypes.func,
     createDuplicateStatusPage: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,
     statusPage: PropTypes.object,
     currentProject: PropTypes.object,
     data: PropTypes.object.isRequired,
+    subProjects: PropTypes.array,
 };
 
 export default connect(

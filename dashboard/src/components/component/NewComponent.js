@@ -313,6 +313,23 @@ class NewComponent extends Component {
                                             className="bs-Button"
                                             disabled={requesting}
                                             onClick={this.cancelEdit}
+                                            type="button"
+                                        >
+                                            <span>Cancel</span>
+                                        </button>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !requesting &&
+                                            this.props.toggleForm &&
+                                            this.props.showCancelBtn
+                                        }
+                                    >
+                                        <button
+                                            className="bs-Button"
+                                            disabled={requesting}
+                                            onClick={this.props.toggleForm}
+                                            type="button"
                                         >
                                             <span>Cancel</span>
                                         </button>
@@ -428,6 +445,8 @@ NewComponent.propTypes = {
     name: PropTypes.string,
     subProjects: PropTypes.array,
     showUpgradeForm: PropTypes.func,
+    toggleForm: PropTypes.func,
+    showCancelBtn: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewComponentForm);

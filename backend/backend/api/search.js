@@ -373,7 +373,7 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
             { path: 'probes.probeId', select: 'name _id' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber notifications';
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber notifications';
 
         const incidents = await IncidentService.findBy({
             query: {
@@ -391,6 +391,7 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
                     return {
                         name: `Incident #${incident.idNumber}`,
                         idNumber: incident.idNumber,
+                        incidentSlug: incident.slug,
                         parentProject:
                             parentProjectId === String(incident.projectId._id),
                         projectName: incident.projectId.name,

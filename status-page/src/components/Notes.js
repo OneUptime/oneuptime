@@ -62,10 +62,10 @@ class Notes extends Component {
 
         return timelineStatus;
     };
-    handleNavigation = (statusPageSlug, noteIdNumber) => {
+    handleNavigation = (statusPageSlug, noteSlug) => {
         const { history } = this.props;
 
-        history.push(`/status-page/${statusPageSlug}/incident/${noteIdNumber}`);
+        history.push(`/status-page/${statusPageSlug}/incident/${noteSlug}`);
     };
 
     handleMonitorList = monitors => {
@@ -111,10 +111,7 @@ class Notes extends Component {
                             className="incidentlist feed-item clearfix"
                             key={i}
                             onClick={() =>
-                                this.handleNavigation(
-                                    statusPageSlug,
-                                    note.idNumber
-                                )
+                                this.handleNavigation(statusPageSlug, note.slug)
                             }
                         >
                             <div
