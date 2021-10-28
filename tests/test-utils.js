@@ -22,7 +22,7 @@ if (
 }
 
 const puppeteerLaunchConfig = {
-    headless: process.env.HEADLESS === 'false' ? false : false,
+    headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: null,
     slowMo: slomo,
     args: [
@@ -144,23 +144,23 @@ const updatedScheduledEventDescription = 'event description updated';
 const updatedScheduledEventName = 'event name updated';
 
 const dockerCredential = {
-    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'adeoluwadavid',
-    dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || 'talodabijesu',
+    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'fyipetest',
+    dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || '4G76c2aavPHa',
     dockerRegistryUrl:
         process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL ||
         'https://registry.hub.docker.com',
     imagePath:
-        process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH ||
-        'adeoluwadavid/docker101tutorial',
+        process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH || 'fyipeproject/home',
     imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS || 'latest',
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'adeoluwadavid',
-    gitPassword: process.env.GITHUB_UNMASKED_PASSWORD || 'talodabijesu1',
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'fyipetest',
+    gitPassword:
+        process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
     gitRepositoryUrl:
         process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL ||
-        'https://github.com/adeoluwadavid/SocketIO',
+        'https://github.com/twbs/bootstrap',
 };
 
 const smtpCredential = {
