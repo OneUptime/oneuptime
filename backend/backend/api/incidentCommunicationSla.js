@@ -14,7 +14,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         const { limit, skip } = req.query;
 
         const selectIncidentComSla =
-            'name projectId isDefault alertTime alertTime deleted';
+            'name projectId isDefault alertTime alertTime deleted duration';
 
         const populateIncidentComSla = [
             { path: 'projectId', select: 'name slug' },
@@ -167,7 +167,7 @@ router.get(
             const { projectId } = req.params;
 
             const selectIncidentComSla =
-                'name projectId isDefault alertTime alertTime deleted';
+                'name projectId isDefault alertTime alertTime deleted duration';
 
             const populateIncidentComSla = [
                 { path: 'projectId', select: 'name slug' },

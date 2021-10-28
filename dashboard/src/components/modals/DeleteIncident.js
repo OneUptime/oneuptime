@@ -1,8 +1,15 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { closeModal } from '../../actions/modal';
+import { deleteIncident } from '../../actions/incident';
+import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { logEvent } from '../../analytics';
+import { history } from '../../store';
 
 class DeleteIncident extends Component {
     componentDidMount() {
@@ -16,19 +23,58 @@ class DeleteIncident extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeThisDialog();
+                return this.props.closeModal();
             case 'Enter':
-                return this.props.confirmThisDialog();
+                return this.deleteIncident();
             default:
                 return false;
         }
     };
 
-    render() {
+    deleteIncident = () => {
         const {
-            data: { deleting },
-            closeThisDialog,
-        } = this.props;
+            projectId,
+            incidentId,
+            componentSlug,
+            currentProjectSlug,
+            monitors,
+        } = this.props.data;
+
+        const promise = this.props.deleteIncident(projectId, incidentId);
+        promise.then(() => {
+            this.props.closeModal();
+
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > INCIDENT > DELETE INCIDENT',
+                    {
+                        projectId,
+                        incidentId,
+                    }
+                );
+            }
+            if (componentSlug) {
+                if (monitors.length > 1) {
+                    history.push(
+                        `/dashboard/project/${currentProjectSlug}/component/${componentSlug}/monitoring`
+                    );
+                } else {
+                    history.push(
+                        `/dashboard/project/${currentProjectSlug}/component/${componentSlug}/monitoring/${monitors[0].monitorId.slug}`
+                    );
+                }
+            } else {
+                history.push(
+                    '/dashboard/project/' + currentProjectSlug + '/incidents'
+                );
+            }
+        });
+        return promise;
+    };
+
+    render() {
+        const { deleting, closeModal } = this.props;
+
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -38,7 +84,7 @@ class DeleteIncident extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <ClickOutside onClickOutside={closeThisDialog}>
+                            <ClickOutside onClickOutside={closeModal}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -57,7 +103,7 @@ class DeleteIncident extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            onClick={this.props.closeThisDialog}
+                                            onClick={closeModal}
                                         >
                                             <span>Cancel</span>
                                             <span className="cancel-btn__keycode">
@@ -69,9 +115,7 @@ class DeleteIncident extends Component {
                                                 id="confirmDeleteIncident"
                                                 className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                 type="button"
-                                                onClick={
-                                                    this.props.confirmThisDialog
-                                                }
+                                                onClick={this.deleteIncident}
                                                 autoFocus={true}
                                             >
                                                 <span>Delete</span>
@@ -102,9 +146,21 @@ class DeleteIncident extends Component {
 DeleteIncident.displayName = 'DeleteIncidentFormModal';
 
 DeleteIncident.propTypes = {
-    confirmThisDialog: PropTypes.func.isRequired,
-    closeThisDialog: PropTypes.func.isRequired,
     data: PropTypes.object.isRequired,
+    closeModal: PropTypes.func,
+    deleteIncident: PropTypes.func,
+    deleting: PropTypes.bool,
 };
 
-export default DeleteIncident;
+const mapStateToProps = state => {
+    return {
+        deleting: state.incident.incident.deleteIncident
+            ? state.incident.incident.deleteIncident.requesting
+            : false,
+    };
+};
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ closeModal, deleteIncident }, dispatch);
+
+export default connect(mapStateToProps, mapDispatchToProps)(DeleteIncident);

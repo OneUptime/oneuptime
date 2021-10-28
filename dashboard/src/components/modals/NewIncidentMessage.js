@@ -83,6 +83,7 @@ class NewIncidentMessage extends Component {
                 .then(
                     () => {
                         thisObj.props.reset();
+                        thisObj.props.closeModal();
                         if (SHOULD_LOG_ANALYTICS) {
                             logEvent(
                                 `EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > ${mode} INVESTIGATION MESSAGE`,
@@ -105,6 +106,7 @@ class NewIncidentMessage extends Component {
                 )
                 .then(
                     () => {
+                        this.props.closeModal();
                         this.props.fetchIncidentMessages(
                             projectId,
                             this.props.data.incident.slug,
@@ -127,14 +129,13 @@ class NewIncidentMessage extends Component {
                     }
                 );
         }
-        this.props.closeThisDialog();
     };
     handleKeyBoard = event => {
-        const { closeThisDialog, data } = this.props;
+        const { closeModal, data } = this.props;
         if (event.target.localName !== 'textarea' && event.key) {
             switch (event.key) {
                 case 'Escape':
-                    return closeThisDialog();
+                    return closeModal();
                 case 'Enter':
                     return data.edit
                         ? document
@@ -181,8 +182,8 @@ class NewIncidentMessage extends Component {
             handleSubmit,
             incidentMessageState,
             incident_state,
-            closeThisDialog,
             noteTemplates,
+            closeModal,
         } = this.props;
         const { edit, type } = this.props.data;
         return (
@@ -193,7 +194,7 @@ class NewIncidentMessage extends Component {
             >
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--large">
-                        <ClickOutside onClickOutside={closeThisDialog}>
+                        <ClickOutside onClickOutside={closeModal}>
                             <div className="bs-Modal-header">
                                 <div
                                     className="bs-Modal-header-copy"
@@ -506,29 +507,16 @@ class NewIncidentMessage extends Component {
                                             <button
                                                 className="bs-Button bs-DeprecatedButton btn__modal"
                                                 type="button"
-                                                onClick={
-                                                    this.props.closeThisDialog
+                                                onClick={closeModal}
+                                                disabled={
+                                                    incidentMessageState.create
+                                                        .requesting
                                                 }
                                             >
-                                                <ShouldRender
-                                                    if={
-                                                        !incidentMessageState
-                                                            .create.requesting
-                                                    }
-                                                >
-                                                    <span>Cancel</span>
-                                                    <span className="cancel-btn__keycode">
-                                                        Esc
-                                                    </span>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        incidentMessageState
-                                                            .create.requesting
-                                                    }
-                                                >
-                                                    <FormLoader />
-                                                </ShouldRender>
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </button>
                                             <button
                                                 id={`${type}-addButton`}
@@ -563,29 +551,16 @@ class NewIncidentMessage extends Component {
                                             <button
                                                 className="bs-Button bs-DeprecatedButton btn__modal"
                                                 type="button"
-                                                onClick={
-                                                    this.props.closeThisDialog
+                                                onClick={closeModal}
+                                                disabled={
+                                                    incidentMessageState.edit
+                                                        .requesting
                                                 }
                                             >
-                                                <ShouldRender
-                                                    if={
-                                                        !incidentMessageState
-                                                            .create.requesting
-                                                    }
-                                                >
-                                                    <span>Cancel</span>
-                                                    <span className="cancel-btn__keycode">
-                                                        Esc
-                                                    </span>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        incidentMessageState
-                                                            .create.requesting
-                                                    }
-                                                >
-                                                    <FormLoader />
-                                                </ShouldRender>
+                                                <span>Cancel</span>
+                                                <span className="cancel-btn__keycode">
+                                                    Esc
+                                                </span>
                                             </button>
                                             <button
                                                 id={`${type}-editButton`}
@@ -701,7 +676,7 @@ NewIncidentMessage.propTypes = {
     setInternalNote: PropTypes.func,
     incident_state: PropTypes.string,
     change: PropTypes.func,
-    closeThisDialog: PropTypes.func,
+    closeModal: PropTypes.func,
     noteTemplates: PropTypes.object,
     fetchIncidentMessages: PropTypes.func,
 };

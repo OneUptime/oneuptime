@@ -109,6 +109,7 @@ class NewMonitor extends Component {
                 degraded: true,
                 down: true,
             },
+            processingMonitor: false,
         };
 
         this.tabIndexRef = createRef();
@@ -410,6 +411,7 @@ class NewMonitor extends Component {
     submitForm = values => {
         const thisObj = this;
         const postObj = { data: {}, criteria: {} };
+        thisObj.setState({ processingMonitor: true });
 
         postObj.componentId = thisObj.props.componentId;
         postObj.projectId = this.props.projectId;
@@ -603,60 +605,68 @@ class NewMonitor extends Component {
         if (this.props.edit) {
             const { monitorId } = this.props;
             postObj._id = this.props.editMonitorProp._id;
-            this.props.editMonitor(postObj.projectId, postObj).then(data => {
-                this.props.toggleEdit(false);
-                thisObj.props.destroy();
-                if (monitorId === this.props.editMonitorProp._id) {
-                    this.props.fetchMonitorsIncidents(
-                        postObj.projectId,
-                        this.props.editMonitorProp._id,
-                        0,
-                        5
-                    );
-                    this.props.fetchMonitorsSubscribers(
-                        postObj.projectId,
-                        this.props.editMonitorProp._id,
-                        0,
-                        5
-                    );
-                } else {
-                    this.props.fetchMonitorsIncidents(
-                        postObj.projectId,
-                        this.props.editMonitorProp._id,
-                        0,
-                        3
-                    );
-                }
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR',
-                        values
-                    );
-                }
-                history.replace(
-                    `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
-                );
-            });
-        } else {
-            this.props.createMonitor(postObj.projectId, postObj).then(
-                data => {
-                    thisObj.props.reset();
+            this.props
+                .editMonitor(postObj.projectId, postObj)
+                .then(data => {
+                    this.props.toggleEdit(false);
+                    thisObj.props.destroy();
+                    if (monitorId === this.props.editMonitorProp._id) {
+                        this.props.fetchMonitorsIncidents(
+                            postObj.projectId,
+                            this.props.editMonitorProp._id,
+                            0,
+                            5
+                        );
+                        this.props.fetchMonitorsSubscribers(
+                            postObj.projectId,
+                            this.props.editMonitorProp._id,
+                            0,
+                            5
+                        );
+                    } else {
+                        this.props.fetchMonitorsIncidents(
+                            postObj.projectId,
+                            this.props.editMonitorProp._id,
+                            0,
+                            3
+                        );
+                    }
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent(
-                            'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
+                            'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR',
                             values
                         );
                     }
-                    history.push(
-                        `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring/${data.data.slug}`
+                    thisObj.setState({ processingMonitor: false });
+                    history.replace(
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
                     );
-                },
-                error => {
-                    if (error && error.message) {
-                        return error;
+                })
+                .finally(() => thisObj.setState({ processingMonitor: false }));
+        } else {
+            this.props
+                .createMonitor(postObj.projectId, postObj)
+                .then(
+                    data => {
+                        thisObj.props.reset();
+                        if (SHOULD_LOG_ANALYTICS) {
+                            logEvent(
+                                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
+                                values
+                            );
+                        }
+                        thisObj.setState({ processingMonitor: false });
+                        history.push(
+                            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring/${data.data.slug}`
+                        );
+                    },
+                    error => {
+                        if (error && error.message) {
+                            return error;
+                        }
                     }
-                }
-            );
+                )
+                .finally(() => thisObj.setState({ processingMonitor: false }));
         }
 
         this.setState({
@@ -2815,7 +2825,11 @@ class NewMonitor extends Component {
                                 </div>
                                 <div>
                                     <ShouldRender
-                                        if={!requesting && this.props.edit}
+                                        if={
+                                            !requesting &&
+                                            this.props.edit &&
+                                            !this.state.processingMonitor
+                                        }
                                     >
                                         <button
                                             className="bs-Button"
@@ -2830,7 +2844,8 @@ class NewMonitor extends Component {
                                         if={
                                             !requesting &&
                                             this.props.toggleForm &&
-                                            this.props.showCancelBtn
+                                            this.props.showCancelBtn &&
+                                            !this.state.processingMonitor
                                         }
                                     >
                                         <button
@@ -2864,19 +2879,30 @@ class NewMonitor extends Component {
                                             <ShouldRender
                                                 if={
                                                     !this.props.edit &&
-                                                    !requesting
+                                                    !requesting &&
+                                                    !this.state
+                                                        .processingMonitor
                                                 }
                                             >
                                                 <span>Add Monitor</span>
                                             </ShouldRender>
                                         </PricingPlan>
                                         <ShouldRender
-                                            if={this.props.edit && !requesting}
+                                            if={
+                                                this.props.edit &&
+                                                !requesting &&
+                                                !this.state.processingMonitor
+                                            }
                                         >
                                             <span>Edit Monitor </span>
                                         </ShouldRender>
 
-                                        <ShouldRender if={requesting}>
+                                        <ShouldRender
+                                            if={
+                                                requesting ||
+                                                this.state.processingMonitor
+                                            }
+                                        >
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
