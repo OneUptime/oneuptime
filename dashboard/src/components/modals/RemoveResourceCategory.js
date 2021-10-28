@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
+import { closeModal } from '../../actions/modal';
+import { deleteResourceCategory } from '../../actions/resourceCategories';
+import { bindActionCreators } from 'redux';
 
 class RemoveResourceCategory extends Component {
     componentDidMount() {
@@ -16,16 +19,25 @@ class RemoveResourceCategory extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
-                return this.props.closeThisDialog();
+                return this.props.closeModal();
             case 'Enter':
-                return this.props.confirmThisDialog();
+                return this.handleDeleteResourceCategory();
             default:
                 return false;
         }
     };
 
+    handleDeleteResourceCategory = () => {
+        const { resourceCategoryId } = this.props.data;
+        this.props
+            .deleteResourceCategory(resourceCategoryId, this.props.projectId)
+            .finally(() => {
+                this.props.closeModal();
+            });
+    };
+
     render() {
-        const { deleteResourceCategory, closeThisDialog } = this.props;
+        const { deleteResourceCategoryObj, closeModal } = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -36,7 +48,7 @@ class RemoveResourceCategory extends Component {
                 >
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
-                            <ClickOutside onClickOutside={closeThisDialog}>
+                            <ClickOutside onClickOutside={closeModal}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -55,7 +67,10 @@ class RemoveResourceCategory extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            onClick={this.props.closeThisDialog}
+                                            onClick={this.props.closeModal}
+                                            disabled={
+                                                deleteResourceCategoryObj.requesting
+                                            }
                                         >
                                             <span>Cancel</span>
                                             <span className="cancel-btn__keycode">
@@ -63,18 +78,19 @@ class RemoveResourceCategory extends Component {
                                             </span>
                                         </button>
                                         <button
-                                            id="deleteResourceCategory"
+                                            id="deleteResourceCategoryObj"
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={
-                                                this.props.confirmThisDialog
+                                                this
+                                                    .handleDeleteResourceCategory
                                             }
                                             disabled={
-                                                deleteResourceCategory.requesting
+                                                deleteResourceCategoryObj.requesting
                                             }
                                             autoFocus={true}
                                         >
-                                            {!deleteResourceCategory.requesting && (
+                                            {!deleteResourceCategoryObj.requesting && (
                                                 <>
                                                     <span>Delete</span>
                                                     <span className="delete-btn__keycode">
@@ -82,7 +98,7 @@ class RemoveResourceCategory extends Component {
                                                     </span>
                                                 </>
                                             )}
-                                            {deleteResourceCategory.requesting && (
+                                            {deleteResourceCategoryObj.requesting && (
                                                 <FormLoader />
                                             )}
                                         </button>
@@ -100,21 +116,24 @@ class RemoveResourceCategory extends Component {
 RemoveResourceCategory.displayName = 'RemoveResourceCategoryFormModal';
 
 RemoveResourceCategory.propTypes = {
-    confirmThisDialog: PropTypes.func.isRequired,
-    closeThisDialog: PropTypes.func.isRequired,
-    deleteResourceCategory: PropTypes.object.isRequired,
+    deleteResourceCategoryObj: PropTypes.object.isRequired,
+    projectId: PropTypes.string,
+    deleteResourceCategory: PropTypes.func,
+    closeModal: PropTypes.func,
+    data: PropTypes.object,
 };
 
 const mapStateToProps = state => {
     return {
-        deleteResourceCategory:
+        deleteResourceCategoryObj:
             state.resourceCategories.deletedResourceCategory,
+        projectId:
+            state.project.currentProject && state.project.currentProject._id,
     };
 };
 
-const mapDispatchToProps = () => {
-    return null;
-};
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
 
 export default connect(
     mapStateToProps,

@@ -4,10 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import {
-    fetchResourceCategories,
-    deleteResourceCategory,
-} from '../../actions/resourceCategories';
+import { fetchResourceCategories } from '../../actions/resourceCategories';
 import AddResourceCategoryForm from '../modals/AddResourceCategory';
 import RemoveResourceCategory from '../modals/RemoveResourceCategory';
 import EditResourceCategory from '../modals/EditResourceCategory';
@@ -56,10 +53,6 @@ export class ResourceCategories extends Component {
             }
         }
     };
-
-    handleDeleteResourceCategory(_id) {
-        this.props.deleteResourceCategory(_id, this.props.projectId);
-    }
     prevClicked = () => {
         this.props.fetchResourceCategories(
             this.props.projectId,
@@ -113,14 +106,9 @@ export class ResourceCategories extends Component {
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
                   id: this.state.removeResourceCategoryModalId,
-                  onClose: () => '',
-                  onConfirm: () => {
-                      return new Promise(resolve => {
-                          this.handleDeleteResourceCategory(_id);
-                          resolve(true);
-                      });
-                  },
-                  content: RemoveResourceCategory,
+                  content: DataPathHoC(RemoveResourceCategory, {
+                      resourceCategoryId: _id,
+                  }),
               })
             : openModal({
                   id: this.state.CreateResourceCategoryModalId,
@@ -433,7 +421,6 @@ ResourceCategories.propTypes = {
     projectId: PropTypes.string,
     resourceCategories: PropTypes.array,
     isRequesting: PropTypes.bool,
-    deleteResourceCategory: PropTypes.func.isRequired,
     fetchResourceCategories: PropTypes.func.isRequired,
     skip: PropTypes.number,
     count: PropTypes.number,
@@ -450,7 +437,6 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             fetchResourceCategories,
-            deleteResourceCategory,
             openModal,
             closeModal,
         },
