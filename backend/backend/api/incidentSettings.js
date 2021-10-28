@@ -236,7 +236,8 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
 
         const priority = await IncidentPrioritiesService.findOne({
-            _id: incidentPriority,
+            query: { _id: incidentPriority },
+            select: '_id',
         });
         if (!priority) {
             const error = new Error("Incident priority doesn't exist.");

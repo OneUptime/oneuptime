@@ -229,7 +229,7 @@ class EditIncidentTemplate extends React.Component {
                                                             </label>
                                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                                 <Field
-                                                                    name="content"
+                                                                    name="description"
                                                                     component={
                                                                         RenderCodeEditor
                                                                     }
