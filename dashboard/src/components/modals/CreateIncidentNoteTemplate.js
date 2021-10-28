@@ -63,10 +63,12 @@ class CreateIncidentNoteTemplate extends React.Component {
         } = values;
 
         const data = {
-            incidentNote: incidentNote.trim(),
             name,
             incidentState,
         };
+        if (incidentNote) {
+            data.incidentNote = incidentNote.trim();
+        }
         if (incidentState === 'Others') {
             data.incidentState = customIncidentState;
         }
@@ -259,7 +261,7 @@ class CreateIncidentNoteTemplate extends React.Component {
                                                             </label>
                                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                                 <Field
-                                                                    name="content"
+                                                                    name="incidentNote"
                                                                     component={
                                                                         RenderCodeEditor
                                                                     }
