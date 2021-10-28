@@ -2,15 +2,15 @@ try {
     require('./adminCredentials.test');
     require('./alert.test');
     require('./applicationLog.test');
-    // require('./applicationSecurity.test');
+    // require('./applicationSecurity.test'); 1
     require('./auditLogs.test');
     require('./component.test');
-    // require('./containerSecurity.test');
-    // require('./customField.test');
-    // require('./disableSignup.test');
-    // require('./dockerCredential.test');
-    // require('./emailAuthorization.test');
-    // require('./emailLogs.test');
+    // require('./containerSecurity.test'); 2
+    require('./customField.test');
+    require('./disableSignup.test');
+    // require('./dockerCredential.test'); 3
+    require('./emailAuthorization.test');
+    require('./emailLogs.test');
     // require('./emailSmtp.test');
     // require('./emailTemplate.test');
     // require('./errorTracker.test');
