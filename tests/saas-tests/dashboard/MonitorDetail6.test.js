@@ -14,7 +14,7 @@ describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(init.timeout);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -37,46 +37,45 @@ describe('Monitor Detail API', () => {
         done();
     });
 
-    test(
-        'Should navigate to monitor details and trigger website scan',
-        async done => {
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                urlMonitorName,
-                page
-            );
-
-            await init.pageWaitForSelector(
-                page,
-                `#lighthouse-performance-${urlMonitorName}`,
-                { visible: true, timeout: init.timeout }
-            );
-            await init.pageWaitForSelector(page, '#website_postscan');
-            await init.pageWaitForSelector(
-                page,
-                `#scanWebsites_${urlMonitorName}`
-            );
-            await init.page$Eval(page, `#scanWebsites_${urlMonitorName}`, e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, '#website_prescan');
-            await init.pageWaitForSelector(page, '#website_scanning');
-            await init.pageWaitForSelector(page, '#website_postscan');
-            let lighthousePerformanceElement = await init.pageWaitForSelector(
-                page,
-                `#performance_${urlMonitorName}_0`,
-                { visible: true, timeout: init.timeout }
-            );
-            lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
-                'innerText'
-            );
-            lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
-            lighthousePerformanceElement.should.endWith('%');
-            done();
-        },
-        operationTimeOut
-    );
+    test('Should navigate to monitor details and trigger website scan', async done => {
+        // Navigate to Monitor details
+        await init.navigateToMonitorDetails(
+            componentName,
+            urlMonitorName,
+            page
+        );
+        init.pageWaitForSelector(page, `#ssl-status-${urlMonitorName}`, {
+            timeout: 600000,
+        });
+        await init.pageWaitForSelector(
+            page,
+            `#lighthouse-performance-${urlMonitorName}`,
+            { visible: true, timeout: 600000 }
+        );
+        await init.pageWaitForSelector(page, '#website_postscan');
+        await init.pageWaitForSelector(page, `#scanWebsites_${urlMonitorName}`);
+        await init.page$Eval(page, `#scanWebsites_${urlMonitorName}`, e =>
+            e.click()
+        );
+        await init.pageWaitForSelector(page, '#website_prescan');
+        await init.pageWaitForSelector(page, '#website_scanning', {
+            timeout: 600000,
+        });
+        await init.pageWaitForSelector(page, '#website_postscan', {
+            timeout: 600000,
+        });
+        let lighthousePerformanceElement = await init.pageWaitForSelector(
+            page,
+            `#performance_${urlMonitorName}_0`,
+            { visible: true, timeout: init.timeout }
+        );
+        lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
+            'innerText'
+        );
+        lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+        lighthousePerformanceElement.should.endWith('%');
+        done();
+    }, 600000);
 
     test(
         'should display multiple probes and monitor chart on refresh',
