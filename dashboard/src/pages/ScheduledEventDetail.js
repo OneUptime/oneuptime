@@ -18,20 +18,20 @@ import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
-// import { REALTIME_URL } from '../config';
-// import io from 'socket.io-client';
+import { REALTIME_URL } from '../config';
+import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
 
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
-// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-//     path: '/realtime/socket.io',
-//     transports: ['websocket', 'polling'],
-// });
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
+    transports: ['websocket', 'polling'],
+});
 
 // override socket for test
-const socket = { on: () => {} };
+// const socket = { on: () => {} };
 
 class ScheduledEventDetail extends Component {
     constructor(props) {
