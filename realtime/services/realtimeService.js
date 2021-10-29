@@ -522,8 +522,7 @@ module.exports = {
                 return;
             }
 
-            return data;
-            // global.io.emit(`updateProbe`, data);
+            global.io.emit(`updateProbe`, data);
         } catch (error) {
             ErrorService.log('realtimeService.updateProbe', error);
             throw error;
