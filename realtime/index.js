@@ -40,6 +40,7 @@ const io = require('socket.io')(http, {
         clientNoContextTakeover: true, // defaults to negotiated value.
         serverNoContextTakeover: true, // defaults to negotiated value.
         serverMaxWindowBits: 10, // defaults to negotiated value.
+
         // concurrencyLimit: 20, // defaults to 10
     },
 });
