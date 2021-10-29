@@ -6,7 +6,7 @@ import { allRoutes } from './routes';
 import NotFound from './components/404';
 import './components/Dashboard';
 import BackboneModals from './containers/BackboneModals';
-import Socket from './components/basic/Socket';
+// import Socket from './components/basic/Socket';
 import ReactGA from 'react-ga';
 import { User, ACCOUNTS_URL } from './config';
 import Cookies from 'universal-cookie';
@@ -60,7 +60,7 @@ if (User.isLoggedIn()) {
 
 const App = () => (
     <div style={{ height: '100%' }}>
-        <Socket />
+        {/* <Socket /> */}
         <Router history={history}>
             <Dashboard>
                 <Suspense fallback={<LoadingState />}>

@@ -16,14 +16,17 @@ import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
-import { REALTIME_URL } from '../config';
-import io from 'socket.io-client';
+// import { REALTIME_URL } from '../config';
+// import io from 'socket.io-client';
 import { history } from '../store';
 
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+//     path: '/realtime/socket.io',
+//     transports: ['websocket', 'polling'],
+// });
+
+// override socket for test
+const socket = { on: () => {} };
 
 class ApplicationLog extends Component {
     state = {

@@ -24,15 +24,18 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import moment from 'moment';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
+// import { REALTIME_URL } from '../../config';
+// import io from 'socket.io-client';
 
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+//     path: '/realtime/socket.io',
+//     transports: ['websocket', 'polling'],
+// });
+
+// override socket for test
+const socket = { on: () => {} };
 class ErrorTrackerDetail extends Component {
     constructor(props) {
         super(props);

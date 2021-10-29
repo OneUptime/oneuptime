@@ -10,15 +10,18 @@ import { ListLoader } from '../basic/Loader';
 import { getLogSuccess } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
+// import { REALTIME_URL } from '../../config';
+// import io from 'socket.io-client';
 
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+//     path: '/realtime/socket.io',
+//     transports: ['websocket', 'polling'],
+// });
+
+// override socket for test
+const socket = { on: () => {} };
 
 class LogList extends Component {
     constructor(props) {
