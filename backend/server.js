@@ -61,18 +61,14 @@ const io = require('socket.io')(http, {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session
     perMessageDeflate: {
-        // threshold: 2048, // defaults to 1024
+        threshold: 1024, // defaults to 1024
         zlibDeflateOptions: {
-            chunkSize: 4 * 1024, // defaults to 16 * 1024
+            chunkSize: 1024, // defaults to 16 * 1024
         },
         zlibInflateOptions: {
             windowBits: 15, // defaults to 15
             memLevel: 8, // defaults to 8
         },
-        clientNoContextTakeover: true, // defaults to negotiated value.
-        serverNoContextTakeover: true, // defaults to negotiated value.
-        // serverMaxWindowBits: 10, // defaults to negotiated value.
-        // concurrencyLimit: 20, // defaults to 10
     },
 });
 // const redisAdapter = require('socket.io-redis');
