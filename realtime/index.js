@@ -31,7 +31,7 @@ const io = require('socket.io')(http, {
     perMessageDeflate: {
         threshold: 1024, // defaults to 1024
         zlibDeflateOptions: {
-            chunkSize: 1024, // defaults to 16 * 1024
+            chunkSize: 16 * 1024, // defaults to 16 * 1024
         },
         zlibInflateOptions: {
             windowBits: 15, // defaults to 15
