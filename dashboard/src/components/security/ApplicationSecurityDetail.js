@@ -18,20 +18,20 @@ import SecurityLog from './SecurityLog';
 import { getGitCredentials } from '../../actions/credential';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
-// import { REALTIME_URL } from '../../config';
-// import io from 'socket.io-client';
+import { REALTIME_URL } from '../../config';
+import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Fade from 'react-reveal/Fade';
 
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
-// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-//     path: '/realtime/socket.io',
-//     transports: ['websocket', 'polling'],
-// });
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
+    transports: ['websocket', 'polling'],
+});
 
 // override socket for test
-const socket = { on: () => {} };
+// const socket = { on: () => {} };
 class ApplicationSecurityDetail extends Component {
     constructor(props) {
         super(props);

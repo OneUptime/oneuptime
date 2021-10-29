@@ -6,10 +6,7 @@ import Fade from 'react-reveal/Fade';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
-import {
-    SHOULD_LOG_ANALYTICS,
-    // REALTIME_URL
-} from '../config';
+import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
 import {
     getContainerSecurities,
     getContainerSecurityLogs,
@@ -21,19 +18,19 @@ import { LargeSpinner, ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-// import io from 'socket.io-client';
+import io from 'socket.io-client';
 import sortByName from '../utils/sortByName';
 import { history } from '../store';
 
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
-// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-//     path: '/realtime/socket.io',
-//     transports: ['websocket', 'polling'],
-// });
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
+    transports: ['websocket', 'polling'],
+});
 
 // override socket for test
-const socket = { on: () => {} };
+// const socket = { on: () => {} };
 class Container extends Component {
     state = {
         showContainerSecurityForm: false,
