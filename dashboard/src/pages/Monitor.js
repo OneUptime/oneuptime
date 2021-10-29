@@ -33,14 +33,17 @@ import {
     fetchIncidentTemplates,
     fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
-import { REALTIME_URL } from '../config';
-import io from 'socket.io-client';
+// import { REALTIME_URL } from '../config';
+// import io from 'socket.io-client';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+//     path: '/realtime/socket.io',
+//     transports: ['websocket', 'polling'],
+// });
+
+// override socket for test
+const socket = { on: () => {} };
 class MonitorDashboardView extends Component {
     state = {
         showNewMonitorForm: false,
