@@ -8,6 +8,7 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const projectName = utils.generateRandomString();
 const callSchedule = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
@@ -27,7 +28,8 @@ describe('Monitor API', () => {
             password,
         };
         await init.registerUser(user, page);
-        await init.addSchedule(callSchedule, page);
+        await init.renameProject(projectName, page);
+        await init.addSchedule(callSchedule, projectName, page);
         await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required
     });
 

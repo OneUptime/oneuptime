@@ -14,7 +14,7 @@ describe('Application Security Page', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(operationTimeOut);
+        jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -123,60 +123,52 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    test(
-        'should scan an application security',
-        async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#components', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#components');
+    test('should scan an application security', async done => {
+        await page.goto(utils.DASHBOARD_URL);
+        await init.pageWaitForSelector(page, '#components', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, '#components');
 
-            await init.pageWaitForSelector(page, '#component0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, `#more-details-${component}`);
-            await init.pageWaitForSelector(page, '#security', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#security');
-            await init.pageWaitForSelector(page, '#application', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#application');
-            await init.pageWaitForSelector(
-                page,
-                `#applicationSecurityHeader_${applicationSecurityName}`,
-                { visible: true, timeout: init.timeout }
-            );
+        await init.pageWaitForSelector(page, '#component0', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, `#more-details-${component}`);
+        await init.pageWaitForSelector(page, '#security', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, '#security');
+        await init.pageWaitForSelector(page, '#application', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        await init.pageClick(page, '#application');
+        await init.pageWaitForSelector(
+            page,
+            `#applicationSecurityHeader_${applicationSecurityName}`,
+            { visible: true, timeout: 600000 }
+        );
 
-            await init.pageWaitForSelector(
-                page,
-                `#scanningApplicationSecurity_${applicationSecurityName}`,
-                { hidden: true, timeout: operationTimeOut }
-            );
-            await init.pageClick(
-                page,
-                `#moreApplicationSecurity_${applicationSecurityName}`
-            );
-            const issueCount = await init.pageWaitForSelector(
-                page,
-                '#issueCount',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
-            expect(issueCount).toBeDefined();
+        await init.pageWaitForSelector(
+            page,
+            `#scanningApplicationSecurity_${applicationSecurityName}`,
+            { hidden: true, timeout: 600000 }
+        );
+        await init.pageClick(
+            page,
+            `#moreApplicationSecurity_${applicationSecurityName}`
+        );
+        const issueCount = await init.pageWaitForSelector(page, '#issueCount', {
+            visible: true,
+            timeout: init.timeout,
+        });
+        expect(issueCount).toBeDefined();
 
-            done();
-        },
-        operationTimeOut
-    );
+        done();
+    }, 600000);
 
     test(
         'should view details of security log',
