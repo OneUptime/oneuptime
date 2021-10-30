@@ -506,9 +506,9 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
 
 router.post('/update-probe', isAuthorizedService, async function(req, res) {
     try {
-        // const { data } = req.body;
+        const { data } = req.body;
 
-        // RealtimeService.updateProbe({ data });
+        RealtimeService.updateProbe({ data });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
