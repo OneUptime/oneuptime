@@ -761,6 +761,12 @@ class MonitorView extends React.Component {
                                                                                 agentless={
                                                                                     agentless
                                                                                 }
+                                                                                projectId={
+                                                                                    monitor
+                                                                                        .projectId
+                                                                                        ._id ||
+                                                                                    monitor.projectId
+                                                                                }
                                                                             />
                                                                         </div>
                                                                     </ShouldRender>
