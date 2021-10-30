@@ -69,9 +69,9 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `incidentCreated-${this.props.project._id}`
                 );
-                socket.removeListener(
-                    `updateMonitorLog-${this.props.project._id}`
-                );
+                // socket.removeListener(
+                //     `updateMonitorLog-${this.props.project._id}`
+                // );
                 socket.removeListener(
                     `updateMonitorStatus-${this.props.project._id}`
                 );
@@ -87,7 +87,7 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `updateAllLighthouseLog-${this.props.project._id}`
                 );
-                socket.removeListener(`updateProbe`);
+                // socket.removeListener(`updateProbe`);
                 socket.removeListener(
                     `NewNotification-${this.props.project._id}`
                 );
@@ -283,29 +283,29 @@ class SocketApp extends Component {
                     }
                 }
             });
-            socket.on(`updateMonitorLog-${this.props.project._id}`, function(
-                data
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          user => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updatemonitorlogbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        subProject => subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
-                              user => user.userId === loggedInUser
-                          )
-                        : false;
-                    if (isUserInSubProject)
-                        thisObj.props.updatemonitorlogbysocket(data);
-                }
-            });
+            // socket.on(`updateMonitorLog-${this.props.project._id}`, function(
+            //     data
+            // ) {
+            //     const isUserInProject = thisObj.props.project
+            //         ? thisObj.props.project.users.some(
+            //               user => user.userId === loggedInUser
+            //           )
+            //         : false;
+            //     if (isUserInProject) {
+            //         thisObj.props.updatemonitorlogbysocket(data);
+            //     } else {
+            //         const subProject = thisObj.props.subProjects.find(
+            //             subProject => subProject._id === data.projectId
+            //         );
+            //         const isUserInSubProject = subProject
+            //             ? subProject.users.some(
+            //                   user => user.userId === loggedInUser
+            //               )
+            //             : false;
+            //         if (isUserInSubProject)
+            //             thisObj.props.updatemonitorlogbysocket(data);
+            //     }
+            // });
             socket.on(`updateMonitorStatus-${this.props.project._id}`, function(
                 data
             ) {
@@ -406,27 +406,27 @@ class SocketApp extends Component {
                     }
                 }
             );
-            socket.on(`updateProbe`, function(data) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          user => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updateprobebysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        subProject => subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
-                              user => user.userId === loggedInUser
-                          )
-                        : false;
-                    if (isUserInSubProject)
-                        thisObj.props.updateprobebysocket(data);
-                }
-            });
+            // socket.on(`updateProbe`, function(data) {
+            //     const isUserInProject = thisObj.props.project
+            //         ? thisObj.props.project.users.some(
+            //               user => user.userId === loggedInUser
+            //           )
+            //         : false;
+            //     if (isUserInProject) {
+            //         thisObj.props.updateprobebysocket(data);
+            //     } else {
+            //         const subProject = thisObj.props.subProjects.find(
+            //             subProject => subProject._id === data.projectId
+            //         );
+            //         const isUserInSubProject = subProject
+            //             ? subProject.users.some(
+            //                   user => user.userId === loggedInUser
+            //               )
+            //             : false;
+            //         if (isUserInSubProject)
+            //             thisObj.props.updateprobebysocket(data);
+            //     }
+            // });
             socket.on(`NewNotification-${this.props.project._id}`, function(
                 data
             ) {

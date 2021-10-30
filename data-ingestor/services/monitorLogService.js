@@ -267,9 +267,7 @@ module.exports = {
                 this.findOneBy({ _id: ObjectId(data._id) }),
             ]);
 
-            const negate = false; // REMEMBER TO REMOVE THIS AFTER DEBUGGING
-
-            if (monitor && monitor.projectId && negate) {
+            if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
                         _id: ObjectId(
