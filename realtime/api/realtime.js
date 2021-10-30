@@ -426,21 +426,21 @@ router.post('/update-monitor-log', isAuthorizedService, async function(
     res
 ) {
     try {
-        // const {
-        //     data,
-        //     logData,
-        //     projectId,
-        //     parentProjectId,
-        //     monitorId,
-        // } = req.body;
+        const {
+            data,
+            logData,
+            projectId,
+            parentProjectId,
+            monitorId,
+        } = req.body;
 
-        // RealtimeService.updateMonitorLog({
-        //     data,
-        //     logData,
-        //     projectId,
-        //     parentProjectId,
-        //     monitorId,
-        // });
+        RealtimeService.updateMonitorLog({
+            data,
+            logData,
+            projectId,
+            parentProjectId,
+            monitorId,
+        });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
