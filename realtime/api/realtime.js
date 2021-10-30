@@ -426,21 +426,21 @@ router.post('/update-monitor-log', isAuthorizedService, async function(
     res
 ) {
     try {
-        const {
-            data,
-            logData,
-            projectId,
-            parentProjectId,
-            monitorId,
-        } = req.body;
+        // const {
+        //     data,
+        //     logData,
+        //     projectId,
+        //     parentProjectId,
+        //     monitorId,
+        // } = req.body;
 
-        RealtimeService.updateMonitorLog({
-            data,
-            logData,
-            projectId,
-            parentProjectId,
-            monitorId,
-        });
+        // RealtimeService.updateMonitorLog({
+        //     data,
+        //     logData,
+        //     projectId,
+        //     parentProjectId,
+        //     monitorId,
+        // });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -506,9 +506,9 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
 
 router.post('/update-probe', isAuthorizedService, async function(req, res) {
     try {
-        const { data } = req.body;
+        // const { data } = req.body;
 
-        RealtimeService.updateProbe({ data });
+        // RealtimeService.updateProbe({ data });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
