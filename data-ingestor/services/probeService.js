@@ -706,7 +706,7 @@ module.exports = {
             });
 
             // realtime update for probe
-            // postApi(`${realtimeBaseUrl}/update-probe`, { data: probe }, true);
+            postApi(`${realtimeBaseUrl}/update-probe`, { data: probe }, true);
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);
@@ -6189,5 +6189,5 @@ const { ObjectId } = require('mongodb');
 const probeCollection = global.db.collection('probes');
 const { v1: uuidv1 } = require('uuid');
 const { postApi } = require('../utils/api');
-// const { realtimeUrl } = require('../utils/config');
-// const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const { realtimeUrl } = require('../utils/config');
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
