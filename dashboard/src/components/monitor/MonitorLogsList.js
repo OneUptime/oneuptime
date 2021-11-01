@@ -9,19 +9,23 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
-import { formatDecimal, formatBytes, REALTIME_URL } from '../../config';
+import {
+    formatDecimal,
+    formatBytes,
+    // REALTIME_URL
+} from '../../config';
 import ShouldRender from '../../components/basic/ShouldRender';
 import toPascalCase from 'to-pascal-case';
 import ViewScriptLogs from '../modals/ViewScriptLogs';
-import io from 'socket.io-client';
+// import io from 'socket.io-client';
 import { updatemonitorlogbysocket } from '../../actions/socket';
 
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+// // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// // '/realtime' is set as socket io namespace, so remove
+// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+//     path: '/realtime/socket.io',
+//     transports: ['websocket', 'polling'],
+// });
 
 export class MonitorLogsList extends Component {
     constructor(props) {
@@ -32,13 +36,13 @@ export class MonitorLogsList extends Component {
         };
     }
     componentDidMount() {
-        const { updatemonitorlogbysocket } = this.props;
-        socket.on(`updateMonitorLog-${this.props.projectId}`, function(data) {
-            updatemonitorlogbysocket(data);
-        });
+        // const { updatemonitorlogbysocket } = this.props;
+        // socket.on(`updateMonitorLog-${this.props.projectId}`, function(data) {
+        //     updatemonitorlogbysocket(data);
+        // });
     }
     componentWillUnmount() {
-        socket.removeListener(`updateMonitorLog-${this.props.projectId}`);
+        // socket.removeListener(`updateMonitorLog-${this.props.projectId}`);
     }
     render() {
         const { monitorLogs } = this.props;
@@ -1334,8 +1338,8 @@ MonitorLogsList.propTypes = {
     openModal: PropTypes.func,
     prevClicked: PropTypes.func.isRequired,
     page: PropTypes.number,
-    projectId: PropTypes.string,
-    updatemonitorlogbysocket: PropTypes.func,
+    // projectId: PropTypes.string,
+    // updatemonitorlogbysocket: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorLogsList);
