@@ -24,30 +24,34 @@ describe('Feedback API', function() {
     before(function(done) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+            GlobalConfig.enableEmailLog().then(function() {
+                createUser(request, userData.user, function(err, res) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
+                    VerificationTokenModel.findOne({ userId }, function(
+                        err,
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function() {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
+                                    .end(function(err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        done();
+                                    });
+                            });
+                    });
                 });
             });
         });
@@ -58,14 +62,15 @@ describe('Feedback API', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
+        await EmailStatusService.hardDeleteBy({});
     });
 
     it('should create feedback and check the sent emails to fyipe team and user', function(done) {
@@ -91,9 +96,11 @@ describe('Feedback API', function() {
                         'Thank you for your feedback!'
                     );
                 } else {
-                    expect(emailStatuses[0].subject).to.equal(
-                        'Welcome to Fyipe.'
+                    const subject = 'Welcome to Fyipe.';
+                    const status = emailStatuses.find(
+                        status => status.subject === subject
                     );
+                    expect(status.subject).to.equal(subject);
                 }
                 done();
             });

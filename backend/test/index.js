@@ -11,20 +11,20 @@ try {
     // require('./dockerCredential.test'); 3
     require('./emailAuthorization.test');
     require('./emailLogs.test');
-    // require('./emailSmtp.test');
-    // require('./emailTemplate.test');
-    // require('./errorTracker.test');
-    // require('./feedback.test');
-    // require('./gitCredential.test');
-    // require('./globalConfig.test');
-    // require('./incident.test');
-    // require('./incidentAlerts.test');
-    // require('./incidentCommunicationSla.test');
-    // require('./incidentPriority.test');
-    // require('./incidentSettings.test');
-    // require('./incomingHttpRequest.test');
-    // require('./invoice.test');
-    // require('./jwttoken.test');
+    require('./emailSmtp.test');
+    require('./emailTemplate.test');
+    // require('./errorTracker.test'); 4
+    require('./feedback.test');
+    require('./gitCredential.test');
+    require('./globalConfig.test');
+    // require('./incident.test'); 5
+    // require('./incidentAlerts.test'); 6
+    require('./incidentCommunicationSla.test');
+    // require('./incidentPriority.test'); hmm
+    require('./incidentSettings.test');
+    require('./incomingHttpRequest.test');
+    require('./invoice.test');
+    require('./jwttoken.test');
     // require('./lead.test');
     // require('./monitor.test');
     // require('./monitorCriteria.test');
