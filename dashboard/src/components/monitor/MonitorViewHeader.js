@@ -30,15 +30,15 @@ import CreateManualIncident from '../modals/CreateManualIncident';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import DisabledMessage from '../modals/DisabledMessage';
 import { updateprobebysocket } from '../../actions/socket';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
+// import { REALTIME_URL } from '../../config';
+// import io from 'socket.io-client';
 
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+// // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// // '/realtime' is set as socket io namespace, so remove
+// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+//     path: '/realtime/socket.io',
+//     transports: ['websocket', 'polling'],
+// });
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -59,13 +59,13 @@ export class MonitorViewHeader extends Component {
             fetchMonitorLogs,
             fetchMonitorStatuses,
             monitor,
-            updateprobebysocket,
+            // updateprobebysocket,
         } = this.props;
         const { startDate, endDate } = this.state;
 
-        socket.on(`updateProbe`, function(data) {
-            updateprobebysocket(data);
-        });
+        // socket.on(`updateProbe`, function(data) {
+        //     updateprobebysocket(data);
+        // });
 
         fetchMonitorLogs(
             monitor.projectId._id || monitor.projectId,
@@ -81,7 +81,7 @@ export class MonitorViewHeader extends Component {
         );
     }
     componentWillUnmount() {
-        socket.removeListener(`updateProbe`);
+        // socket.removeListener(`updateProbe`);
     }
     handleStartDateTimeChange = val => {
         const startDate = moment(val);
@@ -461,7 +461,7 @@ MonitorViewHeader.propTypes = {
     probes: PropTypes.array,
     creating: PropTypes.bool,
     toggleEdit: PropTypes.func,
-    updateprobebysocket: PropTypes.func,
+    // updateprobebysocket: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
