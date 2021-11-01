@@ -58,9 +58,9 @@ describe('Email Logs API', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
@@ -104,6 +104,14 @@ describe('Email Logs API', function() {
         await EmailLogsService.hardDeleteBy({
             query: deleteQuery,
         });
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
+                ],
+            },
+        });
     });
 
     it('should reject get email logs request of an unauthenticated user', function(done) {
@@ -116,17 +124,16 @@ describe('Email Logs API', function() {
             });
     });
 
-    it('should reject get email logs request of NON master-admin user', function(done) {
+    it('should reject get email logs request of NON master-admin user', async function() {
         const authorization = `Basic ${token}`;
+        await UserService.updateBy({ _id: userId }, { role: 'user' }); // Assigning user role
 
-        request
+        const res = await request
             .get('/email-logs/')
             .set('Authorization', authorization)
-            .send()
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
-            });
+            .send();
+
+        expect(res).to.have.status(400);
     });
 
     it('should send get email logs data for master-admin user', async function() {
@@ -150,11 +157,10 @@ describe('Email Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
-        // Just making three API request to make Logs.
-        await request.get('/version');
-        await request.get('/version');
-        await request.get('/version');
-
+        // Creating Email Logs.
+        await GlobalConfig.enableEmailLog();
+        await createUser(request, userData.newUser);
+        await createUser(request, userData.anotherUser);
         const res = await request
             .get('/email-logs/')
             .query({ limit: 2 })
@@ -174,10 +180,10 @@ describe('Email Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
-        // Just making three API request to make Logs.
-        await request.get('/version');
-        await request.get('/version');
-        await request.get('/version');
+        // Creating Email Logs.
+        await GlobalConfig.enableEmailLog();
+        await createUser(request, userData.newUser);
+        await createUser(request, userData.anotherUser);
 
         const noOfEmailLogsNow = await EmailLogsService.countBy({});
 

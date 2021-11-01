@@ -208,13 +208,12 @@ describe('Incident Alerts', function() {
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
-            // idNumber is what is been used to query subscriber and onCall
-            // The idNumber is gotten from the schema of the database
-            const idNumber =
-                incidentResolveEndpointResponse.body.incident.idNumber;
+            // slug is what is been used to query subscriber and onCall
+            // The slug is gotten from the schema of the database
+            const slug = incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse = await request
                 .get(
-                    `/subscriberAlert/${projectId}/incident/${idNumber}?skip=0&limit=999`
+                    `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
                 .set('Authorization', authorization);
             expect(subscribersAlertsEndpointReponse).to.have.status(200);
@@ -242,9 +241,7 @@ describe('Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
             const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${idNumber}?skip=0&limit=999`
-                )
+                .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
             expect(oncallAlertsEndpointReponse).to.have.status(200);
             expect(oncallAlertsEndpointReponse.body).to.an('object');
@@ -295,13 +292,12 @@ describe('Incident Alerts', function() {
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
-            // idNumber is what is been used to query subscriber and onCall
-            // The idNumber is gotten from the schema of the database
-            const idNumber =
-                incidentResolveEndpointResponse.body.incident.idNumber;
+            // slug is what is been used to query subscriber and onCall
+            // The slug is gotten from the schema of the database
+            const slug = incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse = await request
                 .get(
-                    `/subscriberAlert/${projectId}/incident/${idNumber}?skip=0&limit=999`
+                    `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
                 .set('Authorization', authorization);
             expect(subscribersAlertsEndpointReponse).to.have.status(200);
@@ -329,9 +325,7 @@ describe('Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
             const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${idNumber}?skip=0&limit=999`
-                )
+                .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
             expect(oncallAlertsEndpointReponse).to.have.status(200);
             expect(oncallAlertsEndpointReponse.body).to.an('object');
@@ -390,13 +384,12 @@ describe('Incident Alerts', function() {
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
-            // idNumber is what is been used to query subscriber and onCall
-            // The idNumber is gotten from the schema of the database
-            const idNumber =
-                incidentResolveEndpointResponse.body.incident.idNumber;
+            // slug is what is been used to query subscriber and onCall
+            // The slug is gotten from the schema of the database
+            const slug = incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse = await request
                 .get(
-                    `/subscriberAlert/${projectId}/incident/${idNumber}?skip=0&limit=999`
+                    `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
                 .set('Authorization', authorization);
             expect(subscribersAlertsEndpointReponse).to.have.status(200);
@@ -426,9 +419,7 @@ describe('Incident Alerts', function() {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
             const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${idNumber}?skip=0&limit=999`
-                )
+                .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
             expect(oncallAlertsEndpointReponse).to.have.status(200);
             expect(oncallAlertsEndpointReponse.body).to.an('object');
@@ -506,14 +497,13 @@ describe('Incident Alerts', function() {
 
             await sleep(10 * 1000);
 
-            // idNumber is what is been used to query subscriber and onCall
-            // The idNumber is gotten from the schema of the database
-            const idNumber =
-                incidentResolveEndpointResponse.body.incident.idNumber;
+            // slug is what is been used to query subscriber and onCall
+            // The slug is gotten from the schema of the database
+            const slug = incidentResolveEndpointResponse.body.incident.slug;
 
             const subscribersAlertsEndpointReponse = await request
                 .get(
-                    `/subscriberAlert/${projectId}/incident/${idNumber}?skip=0&limit=999`
+                    `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
                 .set('Authorization', authorization);
 
@@ -544,9 +534,7 @@ describe('Incident Alerts', function() {
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
             const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${idNumber}?skip=0&limit=999`
-                )
+                .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
 
             expect(oncallAlertsEndpointReponse).to.have.status(200);
@@ -611,14 +599,13 @@ describe('Incident Alerts', function() {
 
             await sleep(10 * 1000);
 
-            // idNumber is what is been used to query subscriber and onCall
-            // The idNumber is gotten from the schema of the database
-            const idNumber =
-                incidentResolveEndpointResponse.body.incident.idNumber;
+            // slug is what is been used to query subscriber and onCall
+            // The slug is gotten from the schema of the database
+            const slug = incidentResolveEndpointResponse.body.incident.slug;
 
             const subscribersAlertsEndpointReponse = await request
                 .get(
-                    `/subscriberAlert/${projectId}/incident/${idNumber}?skip=0&limit=999`
+                    `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
                 .set('Authorization', authorization);
 
@@ -651,9 +638,7 @@ describe('Incident Alerts', function() {
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
             const oncallAlertsEndpointReponse = await request
-                .get(
-                    `/alert/${projectId}/incident/${idNumber}?skip=0&limit=999`
-                )
+                .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
 
             expect(oncallAlertsEndpointReponse).to.have.status(200);

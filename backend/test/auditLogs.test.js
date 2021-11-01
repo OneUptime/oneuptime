@@ -58,9 +58,9 @@ describe('Audit Logs API', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
@@ -117,16 +117,27 @@ describe('Audit Logs API', function() {
     });
 
     it('should reject get audit logs request of NON master-admin user', function(done) {
-        const authorization = `Basic ${token}`;
+        createUser(request, userData.newUser, function() {
+            request
+                .post('/user/login')
+                .send({
+                    email: userData.newUser.email,
+                    password: userData.newUser.password,
+                })
+                .end(function(err, res) {
+                    const token = res.body.tokens.jwtAccessToken;
+                    const authorization = `Basic ${token}`;
 
-        request
-            .get('/audit-logs/')
-            .set('Authorization', authorization)
-            .send()
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                done();
-            });
+                    request
+                        .get('/audit-logs/')
+                        .set('Authorization', authorization)
+                        .send()
+                        .end(function(err, res) {
+                            expect(res).to.have.status(400);
+                            done();
+                        });
+                });
+        });
     });
 
     it('should send get audit logs data for master-admin user', async function() {
