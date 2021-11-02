@@ -58,13 +58,13 @@ describe('Notification API', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
-        await ProjectService.hardDeleteBy({ _id: projectId });
+        await ProjectService.hardDeleteBy({});
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
@@ -124,12 +124,13 @@ describe('Notification API', function() {
             .end(function(err, res) {
                 const notificationId = res.body._id;
                 request
-                    .put(`/notification/${projectId}/${notificationId}/read`)
+                    .put(`/notification/${projectId}/read`)
                     .set('Authorization', authorization)
+                    .send({ notificationIds: [notificationId] })
                     .end(function(err, res) {
                         expect(res).to.have.status(200);
-                        expect(res.body).to.be.an('object');
-                        expect(res.body._id).to.be.equal(notificationId);
+                        expect(res.body).to.be.an('array');
+                        expect(res.body).to.include(notificationId);
                         done();
                     });
             });
@@ -180,10 +181,8 @@ describe('Notification API', function() {
 
     it('should reject request if the notification param is invalid ', function(done) {
         request
-            .put(
-                `/notification/${projectId}/${projectData.fakeProject._id}/read`
-            )
-            .send()
+            .put(`/notification/${projectId}/read`)
+            .send({ notificationIds: [projectData.fakeProject._id] })
             .end(function(err, res) {
                 expect(res).to.have.status(401);
                 done();
