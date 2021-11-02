@@ -25,16 +25,16 @@ try {
     require('./incomingHttpRequest.test');
     require('./invoice.test');
     require('./jwttoken.test');
-    // require('./lead.test');
-    // require('./monitor.test');
-    // require('./monitorCriteria.test');
-    // require('./monitorCustomField.test');
-    // require('./monitorSla.test');
-    // require('./notification.test');
-    // require('./probe.test');
-    // require('./project.test');
-    // require('./rateLimit.test');
-    // require('./reports.test');
+    // require('./lead.test'); 7
+    // require('./monitor.test'); 8
+    require('./monitorCriteria.test');
+    require('./monitorCustomField.test');
+    require('./monitorSla.test');
+    require('./notification.test');
+    // require('./probe.test'); 9
+    // require('./project.test'); ---
+    // require('./rateLimit.test'); 10
+    require('./reports.test');
     // require('./resourceCategory.test');
     // require('./schedule.test');
     // require('./scheduledEvent.test');
