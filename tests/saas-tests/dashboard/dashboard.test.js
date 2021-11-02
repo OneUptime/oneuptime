@@ -195,6 +195,9 @@ describe('Monitor API', () => {
                 `#more-details-${componentName}`
             );
             await init.pageClick(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
+
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
                 timeout: init.timeout,
