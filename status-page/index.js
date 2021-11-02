@@ -95,8 +95,6 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     const env = {
         REACT_APP_FYIPE_HOST,
         REACT_APP_BACKEND_PROTOCOL,
-        REACT_APP_STATUSPAGE_CERT: process.env.STATUSPAGE_CERT,
-        REACT_APP_STATUSPAGE_PRIVATEKEY: process.env.STATUSPAGE_PRIVATEKEY,
         REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
         REACT_APP_SENTRY_DSN:
             process.env.SENTRY_DSN || process.env.REACT_APP_SENTRY_DSN,
