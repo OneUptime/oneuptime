@@ -70,39 +70,36 @@ describe('Feedback API', function() {
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
-        await EmailStatusService.hardDeleteBy({});
+        // await EmailStatusService.hardDeleteBy({});
     });
 
-    it('should create feedback and check the sent emails to fyipe team and user', function(done) {
+    it('should create feedback and check the sent emails to fyipe team and user', async function() {
         const authorization = `Basic ${token}`;
         const testFeedback = {
             feedback: 'test feedback',
             page: 'test page',
         };
-        request
+        const res = await request
             .post(`/feedback/${projectId}`)
             .set('Authorization', authorization)
-            .send(testFeedback)
-            .end(async function(err, res) {
-                expect(res).to.have.status(200);
-                FeedbackService.hardDeleteBy({ _id: res.body._id });
-                AirtableService.deleteFeedback(res.body.airtableId);
-                const emailStatuses = await EmailStatusService.findBy({
-                    query: {},
-                    select: selectEmailStatus,
-                });
-                if (emailStatuses[0].subject.includes('Thank you')) {
-                    expect(emailStatuses[0].subject).to.equal(
-                        'Thank you for your feedback!'
-                    );
-                } else {
-                    const subject = 'Welcome to Fyipe.';
-                    const status = emailStatuses.find(
-                        status => status.subject === subject
-                    );
-                    expect(status.subject).to.equal(subject);
-                }
-                done();
-            });
+            .send(testFeedback);
+        expect(res).to.have.status(200);
+        await FeedbackService.hardDeleteBy({ _id: res.body._id });
+        await AirtableService.deleteFeedback(res.body.airtableId);
+        const emailStatuses = await EmailStatusService.findBy({
+            query: {},
+            select: selectEmailStatus,
+        });
+        if (emailStatuses[0].subject.includes('Thank you')) {
+            expect(emailStatuses[0].subject).to.equal(
+                'Thank you for your feedback!'
+            );
+        } else {
+            const subject = 'Welcome to Fyipe.';
+            const status = emailStatuses.find(
+                status => status.subject === subject
+            );
+            expect(status.subject).to.equal(subject);
+        }
     });
 });
