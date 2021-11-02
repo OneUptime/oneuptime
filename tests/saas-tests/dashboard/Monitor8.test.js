@@ -247,7 +247,7 @@ describe('API Monitor API', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#url');
-            await init.pageType(page, '#url', 'http://localhost:3002');
+            await init.pageType(page, '#url', 'http://localhost:3002/api');
             await init.pageClick(page, 'button[type=submit]');
 
             let spanElement = await init.pageWaitForSelector(
