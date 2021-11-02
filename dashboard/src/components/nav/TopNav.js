@@ -431,24 +431,30 @@ class TopContent extends Component {
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <SubProjectDropDown
-                    value={activeSubProject || 'Select SubProject'}
-                    options={[
-                        {
-                            value: this.props.currentProject?._id,
-                            label: `${this.props.currentProject?.name}`,
-                        },
-                        ...(this.props.subProjects &&
-                        this.props.subProjects.length > 0
-                            ? this.props.subProjects.map(subProject => ({
-                                  value: subProject._id,
-                                  label: subProject.name,
-                              }))
-                            : []),
-                    ]}
-                    updateState={this.handleChange}
-                    ready={!this.props.fetchingSubProjects}
-                />
+                <div>
+                    <ShouldRender if={this.props.subProjects.length > 0}>
+                        <SubProjectDropDown
+                            value={activeSubProject || 'Select SubProject'}
+                            options={[
+                                {
+                                    value: this.props.currentProject?._id,
+                                    label: `${this.props.currentProject?.name}`,
+                                },
+                                ...(this.props.subProjects &&
+                                this.props.subProjects.length > 0
+                                    ? this.props.subProjects.map(
+                                          subProject => ({
+                                              value: subProject._id,
+                                              label: subProject.name,
+                                          })
+                                      )
+                                    : []),
+                            ]}
+                            updateState={this.handleChange}
+                            ready={!this.props.fetchingSubProjects}
+                        />
+                    </ShouldRender>
+                </div>
                 <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                         <ShouldRender if={isNotViewer && renderSearch}>
