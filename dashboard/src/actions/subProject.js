@@ -302,6 +302,7 @@ export function deleteSubProject(projectId, subProjectId) {
 
         promise.then(
             function() {
+                dispatch(setActiveSubProject(projectId, true));
                 dispatch(deleteSubProjectSuccess(subProjectId));
                 return subProjectId;
             },
