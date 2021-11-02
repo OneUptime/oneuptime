@@ -70,7 +70,6 @@ describe('Feedback API', function() {
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
-        // await EmailStatusService.hardDeleteBy({});
     });
 
     it('should create feedback and check the sent emails to fyipe team and user', async function() {
