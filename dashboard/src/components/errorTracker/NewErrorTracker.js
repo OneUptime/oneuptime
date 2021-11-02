@@ -179,6 +179,7 @@ class NewErrorTracker extends Component {
                                                 </div>
                                                 <ShouldRender
                                                     if={
+                                                        false &&
                                                         resourceCategoryList &&
                                                         resourceCategoryList.length >
                                                             0

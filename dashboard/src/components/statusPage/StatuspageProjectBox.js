@@ -53,12 +53,9 @@ const StatusPageProjectBox = props => {
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                             <span style={{ textTransform: 'capitalize' }}>
-                                {props.currentProjectId !==
-                                props.subProjectStatusPage._id
+                                {props.showProjectName
                                     ? props.subProjectName
-                                    : props.subProjects.length > 0
-                                    ? 'Project'
-                                    : ''}{' '}
+                                    : 'Project'}{' '}
                                 status page
                             </span>
                         </span>
@@ -331,12 +328,12 @@ StatusPageProjectBox.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     statusPageModalId: PropTypes.string.isRequired,
     statusPage: PropTypes.object.isRequired,
-    subProjects: PropTypes.array,
     allStatusPageLength: PropTypes.number,
     modalList: PropTypes.array,
     project: PropTypes.object,
     pages: PropTypes.number,
     switchToProjectViewerNav: PropTypes.bool,
+    showProjectName: PropTypes.bool,
 };
 
 export default StatusPageProjectBox;

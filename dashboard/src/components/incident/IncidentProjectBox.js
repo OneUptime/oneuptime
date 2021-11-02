@@ -83,12 +83,9 @@ const IncidentProjectBox = props => {
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span style={{ textTransform: 'capitalize' }}>
-                                    {props.currentProjectId !==
-                                    props.subProjectIncident._id
+                                    {props.showProjectName
                                         ? props.subProjectName
-                                        : props.subProjects.length > 0
-                                        ? 'Project'
-                                        : ''}{' '}
+                                        : 'Project'}{' '}
                                     Incidents
                                 </span>
                             </span>
@@ -218,11 +215,11 @@ IncidentProjectBox.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     creating: PropTypes.bool.isRequired,
     createIncidentModalId: PropTypes.string.isRequired,
-    subProjects: PropTypes.array,
     allProjectLength: PropTypes.number,
     modalList: PropTypes.array,
     page: PropTypes.number,
     componentSlug: PropTypes.string,
+    showProjectName: PropTypes.bool,
 };
 
 export default IncidentProjectBox;

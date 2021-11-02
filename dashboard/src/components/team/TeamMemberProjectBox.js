@@ -49,12 +49,9 @@ const TeamMemberProjectBox = props => {
                                 id={`project_${props.subProjectName}`}
                                 style={{ textTransform: 'capitalize' }}
                             >
-                                {props.currentProjectId !==
-                                props.teamMembers._id
+                                {props.showProjectName
                                     ? props.subProjectName
-                                    : props.subProjects.length > 0
-                                    ? 'Project'
-                                    : ''}{' '}
+                                    : 'Project'}{' '}
                                 Team Members
                             </span>
                         </span>
@@ -314,9 +311,9 @@ TeamMemberProjectBox.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     inviteModalId: PropTypes.string.isRequired,
     membersPerPage: PropTypes.number.isRequired,
-    subProjects: PropTypes.array,
     allTeamLength: PropTypes.number,
     modalList: PropTypes.array,
+    showProjectName: PropTypes.bool,
 };
 
 export default TeamMemberProjectBox;
