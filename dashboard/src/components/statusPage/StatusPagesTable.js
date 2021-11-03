@@ -143,7 +143,7 @@ class StatusPagesTable extends Component {
                                     limit={limit}
                                     subProjectName={subProjectName}
                                     showProjectName={
-                                        currentProject?.name !== subProjectName
+                                        currentProject?._id !== currentProjectId
                                     }
                                     currentProjectId={currentProjectId}
                                     statusPageModalId={

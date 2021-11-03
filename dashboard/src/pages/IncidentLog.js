@@ -247,7 +247,7 @@ class IncidentLog extends React.Component {
                                     openModal={this.props.openModal}
                                     subProjectName={subProjectName}
                                     showProjectName={
-                                        currentProject?.name !== subProjectName
+                                        currentProject?._id !== currentProjectId
                                     }
                                     currentProjectId={currentProjectId}
                                     prevClicked={this.prevClicked}

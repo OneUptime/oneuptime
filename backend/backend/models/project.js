@@ -13,6 +13,7 @@ const projectSchema = new Schema({
                 type: String,
                 enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
             },
+            show: { type: Boolean, default: true },
         },
     ],
 

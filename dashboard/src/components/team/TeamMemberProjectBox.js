@@ -167,6 +167,17 @@ const TeamMemberProjectBox = props => {
                                 } else return null;
                             })}
                         </div>
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                marginTop: '10px',
+                                padding: '0 10px',
+                                width: '100%',
+                            }}
+                        >
+                            {props.teamMembers.teamMembers.length === 0 &&
+                                'Team members are yet to be added'}
+                        </div>
                     </div>
                 </div>
             </div>
