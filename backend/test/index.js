@@ -35,12 +35,12 @@ try {
     // require('./project.test'); ---
     // require('./rateLimit.test'); 10
     require('./reports.test');
-    // require('./resourceCategory.test');
-    // require('./schedule.test');
-    // require('./scheduledEvent.test');
-    // require('./scheduledEventNote.test');
-    // require('./slack.test');
-    // require('./smsTemplate.test');
+    // require('./resourceCategory.test'); 11
+    require('./schedule.test');
+    require('./scheduledEvent.test');
+    require('./scheduledEventNote.test');
+    require('./slack.test');
+    require('./smsTemplate.test');
     // require('./sso.test');
     // require('./ssoDefaultRoles.test');
     // require('./statusPage.test');
