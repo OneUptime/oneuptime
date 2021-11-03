@@ -45,7 +45,7 @@ try {
     // require('./ssoDefaultRoles.test');
     // require('./statusPage.test');
     // require('./stripe.test');
-    // require('./subscriber.test');
+    require('./subscriber.test');
     // require('./subscriberAlert.test');
     // require('./team.test');
     // require('./tutorial.test');
