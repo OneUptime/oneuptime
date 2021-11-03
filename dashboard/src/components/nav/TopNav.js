@@ -430,10 +430,7 @@ class TopContent extends Component {
                     zIndex: '2',
                     width: '100%',
                     display: 'flex',
-                    justifyContent:
-                        isNotViewer && renderSearch
-                            ? 'space-between'
-                            : 'flex-end',
+                    justifyContent: 'space-between',
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
