@@ -69,7 +69,7 @@ class AutomationScript extends Component {
                             }
                             subProjectName={subProjectName}
                             showProjectName={
-                                currentProject?.name !== subProjectName
+                                currentProject?._id !== activeProject
                             }
                         />
                     </ShouldRender>

@@ -135,7 +135,7 @@ class AlertLog extends Component {
                                     subProjectAlert={projectAlert}
                                     subProjectName={subProjectName}
                                     showProjectName={
-                                        currentProject?.name !== subProjectName
+                                        currentProject?._id !== activeProjectId
                                     }
                                     currentProjectId={activeProjectId}
                                     prevClicked={this.prevClicked}

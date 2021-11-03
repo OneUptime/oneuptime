@@ -111,8 +111,8 @@ const LoadedTeam = props => {
                                 team={props.team}
                                 subProjectName={subProjectName}
                                 showProjectName={
-                                    props.currentProject?.name !==
-                                    subProjectName
+                                    props.currentProject?._id !==
+                                    currentProjectId
                                 }
                                 currentProjectId={currentProjectId}
                                 inviteModalId={inviteModalId}
