@@ -416,6 +416,12 @@ class TopContent extends Component {
                 activeSubProject = subProject.name;
             }
         });
+
+        const loggedInUser = User.getUserId();
+        const showMainProject = this.props.currentProject?.users.find(
+            user => (user.userId._id || user.userId) === loggedInUser
+        );
+
         return (
             <div
                 tabIndex="0"
@@ -452,6 +458,7 @@ class TopContent extends Component {
                             ]}
                             updateState={this.handleChange}
                             ready={!this.props.fetchingSubProjects}
+                            showMainProject={showMainProject}
                         />
                     </ShouldRender>
                 </div>

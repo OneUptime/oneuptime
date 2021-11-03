@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PropTypes } from 'prop-types';
 
-const DropDownMenu = ({ options, value, updateState, ready }) => {
+const DropDownMenu = ({
+    options,
+    value,
+    updateState,
+    ready,
+    showMainProject,
+}) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
@@ -57,18 +63,20 @@ const DropDownMenu = ({ options, value, updateState, ready }) => {
                         className="ddm-dropdown-menu"
                         style={{ maxHeight: '26em', overflowY: 'auto' }}
                     >
-                        <section>
-                            <span style={sectionStyle}>Main Project</span>
-                            <span
-                                key={options[0]?.value}
-                                className="ddm-dropdown-menu__item"
-                                onClick={() => onClick(options[0]?.value)}
-                                style={menuStyle}
-                                id={`project-${options[0]?.label}`}
-                            >
-                                {options[0]?.label}
-                            </span>
-                        </section>
+                        {showMainProject && (
+                            <section>
+                                <span style={sectionStyle}>Main Project</span>
+                                <span
+                                    key={options[0]?.value}
+                                    className="ddm-dropdown-menu__item"
+                                    onClick={() => onClick(options[0]?.value)}
+                                    style={menuStyle}
+                                    id={`project-${options[0]?.label}`}
+                                >
+                                    {options[0]?.label}
+                                </span>
+                            </section>
+                        )}
                         {options && options.length > 1 && (
                             <section>
                                 <span style={sectionStyle}>Sub Projects</span>
@@ -101,6 +109,7 @@ DropDownMenu.propTypes = {
     value: PropTypes.string,
     updateState: PropTypes.func,
     ready: PropTypes.bool,
+    showMainProject: PropTypes.bool,
 };
 
 export default DropDownMenu;
