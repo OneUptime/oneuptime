@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
@@ -87,18 +86,10 @@ app.use(Sentry.Handlers.errorHandler());
 global.Sentry = Sentry;
 
 // This cron runs every 30 minutes.
-if (NODE_ENV === 'development') {
-    cron.schedule('*/5 * * * *', () => {
-        setTimeout(() => {
-            Main.runJob();
-        }, cronMinuteStartTime * 1000);
-    });
-} else {
-    cron.schedule('*/30 * * * *', () => {
-        setTimeout(() => {
-            Main.runJob();
-        }, cronMinuteStartTime * 1000);
-    });
-}
+cron.schedule('*/30 * * * *', () => {
+    setTimeout(() => {
+        Main.runJob();
+    }, cronMinuteStartTime * 1000);
+});
 
 module.exports = app;
