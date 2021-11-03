@@ -313,6 +313,11 @@ export function switchProject(dispatch, project, subProjects = []) {
         projectSlug = match[1];
     }
 
+    const loggedInUser = User.getUserId();
+    const switchToMainProject = project?.users.find(
+        user => (user.userId._id || user.userId) === loggedInUser
+    );
+
     // if the path is already pointing to project slug we do not need to switch projects
     // esp. if this is from a redirectTo
     if (project.slug === projectSlug) {
@@ -342,12 +347,15 @@ export function switchProject(dispatch, project, subProjects = []) {
         }
         User.setCurrentProjectId(project._id);
 
-        dispatch(setActiveSubProject(project._id, true));
+        switchToMainProject && dispatch(setActiveSubProject(project._id, true));
     } else if (historyProjectId && historyProjectId === '/') {
         history.push(`/dashboard/project/${project.slug}`);
     }
 
-    if (!User.getActiveSubProjectId('active_subproject_id')) {
+    if (
+        !User.getActiveSubProjectId('active_subproject_id') &&
+        switchToMainProject
+    ) {
         dispatch(setActiveSubProject(project._id, true));
     }
 
@@ -368,7 +376,19 @@ export function switchProject(dispatch, project, subProjects = []) {
     dispatch(resetFetchComponentResources());
     dispatch(setActiveSubProject(activeSubProjectId));
 
-    getSubProjects(project._id)(dispatch);
+    if (!currentProjectId || project._id !== currentProjectId) {
+        getSubProjects(project._id)(dispatch).then(res => {
+            if (!switchToMainProject) {
+                const { data } = res.data;
+                const projectId = data[0]._id;
+                if (data.length > 0) {
+                    dispatch(setActiveSubProject(projectId));
+                }
+            }
+        });
+    } else {
+        getSubProjects(project._id)(dispatch);
+    }
     fetchAlert(activeSubProjectId)(dispatch);
     fetchSubProjectStatusPages(activeSubProjectId)(dispatch);
     fetchComponents({ projectId: activeSubProjectId })(dispatch); // default skip = 0, limit = 3
