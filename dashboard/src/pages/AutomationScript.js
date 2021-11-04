@@ -36,10 +36,16 @@ class AutomationScript extends Component {
             location: { pathname },
             currentProject,
             switchToProjectViewerNav,
+            subProjects,
+            activeProject,
         } = this.props;
 
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
+
+        const subProjectName =
+            subProjects.find(obj => obj._id === activeProject)?.name ||
+            currentProject.name;
 
         return (
             <Fade>
@@ -60,6 +66,10 @@ class AutomationScript extends Component {
                                     toggleNewScript: !this.state
                                         .toggleNewScript,
                                 })
+                            }
+                            subProjectName={subProjectName}
+                            showProjectName={
+                                currentProject?._id !== activeProject
                             }
                         />
                     </ShouldRender>
@@ -112,10 +122,21 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mapStateToProps = state => {
+    let subProjects = state.subProject.subProjects.subProjects;
+    // sort subprojects names for display in alphabetical order
+    const subProjectNames =
+        subProjects && subProjects.map(subProject => subProject.name);
+    subProjectNames && subProjectNames.sort();
+    subProjects =
+        subProjectNames &&
+        subProjectNames.map(name =>
+            subProjects.find(subProject => subProject.name === name)
+        );
     return {
         currentProject: state.project.currentProject,
         activeProject: state.subProject.activeSubProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        subProjects,
     };
 };
 
@@ -128,6 +149,7 @@ AutomationScript.propTypes = {
     currentProject: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
     activeProject: PropTypes.string,
+    subProjects: PropTypes.array,
 };
 
 AutomationScript.displayName = 'AutomationScript';

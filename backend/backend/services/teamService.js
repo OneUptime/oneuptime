@@ -48,13 +48,14 @@ module.exports = {
 
             const response = [];
             for (let i = 0; i < users.length; i++) {
-                if (users[i]) {
+                if (users[i] && projectMembers[i].show) {
                     response.push({
                         userId: users[i]._id,
                         email: users[i].email,
                         name: users[i].name,
                         role: projectMembers[i].role,
                         lastActive: users[i].lastActive,
+                        show: projectMembers[i].show,
                     });
                 }
             }
@@ -454,7 +455,9 @@ module.exports = {
                 ]);
                 // add user to all subProjects
                 for (const subProject of subProjects) {
-                    const subProjectMembers = members.concat(subProject.users);
+                    const subProjectMembers = members
+                        .map(user => ({ ...user, show: false }))
+                        .concat(subProject.users);
                     await ProjectService.updateOneBy(
                         { _id: subProject._id },
                         { users: subProjectMembers }

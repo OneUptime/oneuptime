@@ -416,6 +416,12 @@ class TopContent extends Component {
                 activeSubProject = subProject.name;
             }
         });
+
+        const loggedInUser = User.getUserId();
+        const showMainProject = this.props.currentProject?.users.find(
+            user => (user.userId._id || user.userId) === loggedInUser
+        );
+
         return (
             <div
                 tabIndex="0"
@@ -424,31 +430,35 @@ class TopContent extends Component {
                     zIndex: '2',
                     width: '100%',
                     display: 'flex',
-                    justifyContent:
-                        isNotViewer && renderSearch
-                            ? 'space-between'
-                            : 'flex-end',
+                    justifyContent: 'space-between',
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <SubProjectDropDown
-                    value={activeSubProject || 'Select SubProject'}
-                    options={[
-                        {
-                            value: this.props.currentProject?._id,
-                            label: `${this.props.currentProject?.name}`,
-                        },
-                        ...(this.props.subProjects &&
-                        this.props.subProjects.length > 0
-                            ? this.props.subProjects.map(subProject => ({
-                                  value: subProject._id,
-                                  label: subProject.name,
-                              }))
-                            : []),
-                    ]}
-                    updateState={this.handleChange}
-                    ready={!this.props.fetchingSubProjects}
-                />
+                <div>
+                    <ShouldRender if={this.props.subProjects.length > 0}>
+                        <SubProjectDropDown
+                            value={activeSubProject || 'Select SubProject'}
+                            options={[
+                                {
+                                    value: this.props.currentProject?._id,
+                                    label: `${this.props.currentProject?.name}`,
+                                },
+                                ...(this.props.subProjects &&
+                                this.props.subProjects.length > 0
+                                    ? this.props.subProjects.map(
+                                          subProject => ({
+                                              value: subProject._id,
+                                              label: subProject.name,
+                                          })
+                                      )
+                                    : []),
+                            ]}
+                            updateState={this.handleChange}
+                            ready={!this.props.fetchingSubProjects}
+                            showMainProject={showMainProject}
+                        />
+                    </ShouldRender>
+                </div>
                 <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                         <ShouldRender if={isNotViewer && renderSearch}>

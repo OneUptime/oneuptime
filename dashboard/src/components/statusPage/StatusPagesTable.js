@@ -120,6 +120,10 @@ class StatusPagesTable extends Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
+
+        const subProjectName =
+            subProjects.find(obj => obj._id === currentProjectId)?.name ||
+            currentProject.name;
         projectStatusPage =
             projectStatusPage && projectStatusPage.statusPages ? (
                 <RenderIfUserInSubProject
@@ -137,17 +141,9 @@ class StatusPagesTable extends Component {
                                     canPaginateForward={canPaginateForward}
                                     skip={skip}
                                     limit={limit}
-                                    subProjectName={
-                                        // This helps to select the correct name when in subproject or main project
-                                        currentProject &&
-                                        currentProject._id ===
-                                            this.props.projectId
-                                            ? currentProject.name
-                                            : this.props.subProjects.map(e =>
-                                                  e._id === this.props.projectId
-                                                      ? e.name
-                                                      : null
-                                              )
+                                    subProjectName={subProjectName}
+                                    showProjectName={
+                                        currentProject?._id !== currentProjectId
                                     }
                                     currentProjectId={currentProjectId}
                                     statusPageModalId={

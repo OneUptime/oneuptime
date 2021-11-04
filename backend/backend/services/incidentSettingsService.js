@@ -10,7 +10,7 @@ module.exports = {
                 name,
             } = data;
 
-            const query = { projectId };
+            const query = { projectId, name };
             const select =
                 '_id projectId title description incidentPriority name';
             const incidentSetting = await this.findOne({
@@ -123,8 +123,7 @@ module.exports = {
                         name: data.name,
                         _id: { $ne: query._id },
                     },
-                    select:
-                        'projectId title description incidentPriority isDefault name createdAt',
+                    select: '_id',
                 });
 
                 if (incidentSetting) {

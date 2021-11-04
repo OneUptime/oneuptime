@@ -122,6 +122,7 @@ export class TeamMember extends Component {
             team: { subProjectTeamMembers },
             updating,
             exitingProject,
+            currentProject,
         } = this.props;
         let teamMembers = subProjectTeamMembers.map(teamMembers => {
             return teamMembers.teamMembers;
@@ -143,6 +144,12 @@ export class TeamMember extends Component {
                 user.userId === loggedInUser &&
                 user.role === 'Administrator' &&
                 user.name
+        );
+
+        const mainUser = currentProject?.users.find(
+            user =>
+                (user.userId._id || user.userId) === loggedInUser &&
+                (user.role === 'Owner' || user.role === 'Administrator')
         );
 
         return (
@@ -236,7 +243,7 @@ export class TeamMember extends Component {
                                 Exit Project
                             </button>
                         </RenderIfSubProjectMember>
-                        <ShouldRender if={isAdmin || isOwner}>
+                        <ShouldRender if={isAdmin || isOwner || mainUser}>
                             <div className="Flex-flex Flex-alignContent--spaceBetween">
                                 <ShouldRender if={!updating}>
                                     <DropDownMenu
@@ -402,6 +409,7 @@ TeamMember.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     dispatch: PropTypes.func.isRequired,
+    currentProject: PropTypes.object,
 };
 
 const TeamMemberForm = reduxForm({

@@ -14,8 +14,8 @@ const AlertProjectBox = ({
     prevClicked,
     isRequesting,
     error,
-    subProjects,
     pages,
+    showProjectName,
 }) => {
     const numberOfPages = Math.ceil(parseInt(subProjectAlert.count) / 10);
     return (
@@ -26,11 +26,9 @@ const AlertProjectBox = ({
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span style={{ textTransform: 'capitalize' }}>
-                                    {currentProjectId !== subProjectAlert._id
+                                    {showProjectName
                                         ? subProjectName
-                                        : subProjects.length > 0
-                                        ? 'Project'
-                                        : ''}{' '}
+                                        : 'Project'}{' '}
                                     Alert Log
                                 </span>
                             </span>
@@ -210,8 +208,8 @@ AlertProjectBox.propTypes = {
     error: PropTypes.string,
     currentProjectId: PropTypes.string.isRequired,
     isRequesting: PropTypes.bool.isRequired,
-    subProjects: PropTypes.array,
     pages: PropTypes.number,
+    showProjectName: PropTypes.bool,
 };
 
 export default AlertProjectBox;

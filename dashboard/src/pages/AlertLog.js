@@ -118,6 +118,10 @@ class AlertLog extends Component {
             canNext = false;
             canPrev = false;
         }
+
+        const subProjectName =
+            subProjects.find(obj => obj._id === activeProjectId)?.name ||
+            currentProject.name;
         projectAlert =
             projectAlert && projectAlert.alerts ? (
                 <RenderIfUserInSubProject
@@ -129,13 +133,9 @@ class AlertLog extends Component {
                             <div className="bs-ContentSection Card-root Card-shadow--medium">
                                 <AlertProjectBox
                                     subProjectAlert={projectAlert}
-                                    subProjectName={
-                                        (subProjects &&
-                                            subProjects.find(
-                                                obj =>
-                                                    obj._id === activeProjectId
-                                            )?.name) ||
-                                        currentProject.name
+                                    subProjectName={subProjectName}
+                                    showProjectName={
+                                        currentProject?._id !== activeProjectId
                                     }
                                     currentProjectId={activeProjectId}
                                     prevClicked={this.prevClicked}

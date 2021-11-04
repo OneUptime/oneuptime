@@ -114,6 +114,7 @@ class ContainerSecurityForm extends Component {
                                                 </div>
                                                 <ShouldRender
                                                     if={
+                                                        false &&
                                                         resourceCategoryList &&
                                                         resourceCategoryList.length >
                                                             0
