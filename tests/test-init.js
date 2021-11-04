@@ -873,7 +873,7 @@ const _this = {
         await _this.pageClick(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, '#frmUser', { hidden: true });
     },
-    addSchedule: async function(callSchedule, page) {
+    addSchedule: async function(callSchedule, projectName, page) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -881,10 +881,8 @@ const _this = {
             visible: true,
         });
         await _this.pageClickNavigate(page, '#onCallDuty');
-        await page.evaluate(() => {
-            document.querySelector('.ActionIconParent').click();
-        });
-        page.waitForSelector('#name', { timeout: 2000 });
+        await _this.pageClick(page, `#btnCreateSchedule_${projectName}`);
+        page.waitForSelector('#name', { timeout: _this.timeout });
         await _this.pageType(page, '#name', callSchedule);
         await _this.pageClick(page, '#btnCreateSchedule');
         await _this.pageWaitForSelector(page, `#duty_${callSchedule}`, {

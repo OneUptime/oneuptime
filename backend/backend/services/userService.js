@@ -569,7 +569,7 @@ module.exports = {
                 if (
                     process.env.ADMIN_EMAIL &&
                     process.env.ADMIN_PASSWORD &&
-                    email === process.env.ADMIN_EMAIL &&
+                    email === process.env.ADMIN_EMAIL.toLowerCase() &&
                     process.env.ADMIN_PASSWORD === password
                 ) {
                     const count = await _this.countBy({});

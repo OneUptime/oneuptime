@@ -1,5 +1,6 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import store, { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
@@ -17,6 +18,7 @@ import { SHOULD_LOG_ANALYTICS } from './config';
 import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 import 'react-big-calendar/lib/sass/styles.scss';
+import isSubProjectViewer from './utils/isSubProjectViewer';
 
 if (!isServer) {
     history.listen(location => {
@@ -58,48 +60,135 @@ if (User.isLoggedIn()) {
     }
 }
 
-const App = () => (
-    <div style={{ height: '100%' }}>
-        <Socket />
-        <Router history={history}>
-            <Dashboard>
-                <Suspense fallback={<LoadingState />}>
-                    <Switch>
-                        {allRoutes
-                            .filter(route => route.visible)
-                            .map((route, index) => {
-                                return (
-                                    <Route
-                                        exact={route.exact}
-                                        path={route.path}
-                                        key={index}
-                                        render={props => (
-                                            <route.component
-                                                icon={route.icon}
-                                                {...props}
-                                            />
-                                        )}
-                                    />
-                                );
-                            })}
-                        <Route
-                            path={'/dashboard/:404_path'}
-                            key={'404'}
-                            component={NotFound}
-                        />
-                        <Redirect to="/dashboard/project/project" />
-                    </Switch>
-                </Suspense>
-            </Dashboard>
-        </Router>
-        <BackboneModals />
-    </div>
-);
+const App = props => {
+    const hideProjectNav =
+        props.currentProject?._id !== props.activeSubProjectId;
+    const titleToExclude = [
+        'Project Settings',
+        'Resources',
+        'Billing',
+        'Integrations',
+        'API',
+        'Advanced',
+        'More',
+        'Domains',
+        'Monitor',
+        'Incident Settings',
+        'Email',
+        'SMS & Calls',
+        'Call Routing',
+        'Webhooks',
+        'Probe',
+        'Git Credentials',
+        'Docker Credentials',
+        'Team Groups',
+    ];
+
+    let sortedRoutes = [...allRoutes];
+    if (hideProjectNav) {
+        sortedRoutes = sortedRoutes.filter(
+            router => !titleToExclude.includes(router.title)
+        );
+    }
+
+    useEffect(() => {
+        const user = User.getUserId();
+        const isViewer = isSubProjectViewer(user, props.activeProject);
+        if (isViewer && props.currentProject) {
+            history.replace(
+                `/dashboard/project/${props.currentProject.slug}/status-pages`
+            );
+        }
+    }, [
+        props.currentProject?.slug,
+        props.activeSubProjectId,
+        props.activeProject?._id,
+    ]);
+
+    return (
+        <div style={{ height: '100%' }}>
+            <Socket />
+            <Router history={history}>
+                <Dashboard>
+                    <Suspense fallback={<LoadingState />}>
+                        <Switch>
+                            {sortedRoutes
+                                .filter(route => route.visible)
+                                .map((route, index) => {
+                                    return (
+                                        <Route
+                                            exact={route.exact}
+                                            path={route.path}
+                                            key={index}
+                                            render={props => (
+                                                <route.component
+                                                    icon={route.icon}
+                                                    {...props}
+                                                />
+                                            )}
+                                        />
+                                    );
+                                })}
+                            {hideProjectNav &&
+                                props.currentProject &&
+                                allRoutes
+                                    .filter(route =>
+                                        titleToExclude.includes(route.title)
+                                    )
+                                    .map((route, index) => (
+                                        <Route
+                                            key={index}
+                                            exact
+                                            path={route.path}
+                                            render={() => (
+                                                <Redirect
+                                                    to={`/dashboard/project/${props.currentProject.slug}`}
+                                                />
+                                            )}
+                                        />
+                                    ))}
+                            <Route
+                                path={'/dashboard/:404_path'}
+                                key={'404'}
+                                component={NotFound}
+                            />
+                            <Redirect to="/dashboard/project/project" />
+                        </Switch>
+                    </Suspense>
+                </Dashboard>
+            </Router>
+            <BackboneModals />
+        </div>
+    );
+};
 
 App.displayName = 'App';
 
 function mapStateToProps(state) {
-    return state.login;
+    const currentProject = state.project.currentProject;
+    const subProjects = state.subProject.subProjects.subProjects;
+    const activeSubProjectId = state.subProject.activeSubProject;
+    const allProjects = [...subProjects];
+    if (currentProject) {
+        allProjects.push(currentProject);
+    }
+
+    const activeProject = allProjects.find(
+        project => String(project._id) === String(activeSubProjectId)
+    );
+
+    return {
+        ...state.login,
+        currentProject: state.project.currentProject,
+        activeSubProjectId: state.subProject.activeSubProject,
+        activeProject,
+    };
 }
+
+App.propTypes = {
+    currentProject: PropTypes.object,
+    activeSubProjectId: PropTypes.string,
+    activeProject: PropTypes.object,
+};
 
 export default connect(mapStateToProps)(App);

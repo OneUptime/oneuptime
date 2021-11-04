@@ -12,6 +12,7 @@ const UserService = require('../backend/services/userService');
 const ProjectService = require('../backend/services/projectService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AirtableService = require('../backend/services/airtableService');
+
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -26,11 +27,13 @@ describe('Email verification API', function() {
     before(function(done) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
-                userId = res.body.id;
-                projectId = res.body.project._id;
+            GlobalConfig.enableEmailLog().then(function() {
+                createUser(request, userData.user, function(err, res) {
+                    userId = res.body.id;
+                    projectId = res.body.project._id;
 
-                done();
+                    done();
+                });
             });
         });
     });
@@ -40,14 +43,15 @@ describe('Email verification API', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
+        await EmailStatusService.hardDeleteBy({});
     });
 
     it('should send email verification', async function() {
@@ -58,7 +62,7 @@ describe('Email verification API', function() {
             select: selectEmailStatus,
         });
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
-        expect(emailStatuses[0].status).to.equal('Email not enabled.');
+        expect(emailStatuses[0].status).to.equal('Success');
     });
 
     it('should not login non-verified user', async function() {

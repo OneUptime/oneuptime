@@ -41,6 +41,9 @@ describe('Schedule API With SubProjects', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
+        await init.pageClick(page, '#projectFilterToggle');
+        await init.pageClick(page, `#project-${subProjectName}`);
+
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -72,8 +75,9 @@ describe('Schedule API With SubProjects', () => {
                 { email: newEmail, password: newPassword },
                 page
             ); // This is for subproject
-            // switch to invited project for new user
-            // await init.switchProject(data.projectName, page);
+
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
 
             await init.pageWaitForSelector(page, '#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
@@ -97,6 +101,8 @@ describe('Schedule API With SubProjects', () => {
             const scheduleName = utils.generateRandomString();
 
             await init.loginUser(user, page);
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.addScheduleToProject(scheduleName, subProjectName, page);
             await init.pageWaitForSelector(
                 page,
@@ -130,6 +136,8 @@ describe('Schedule API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             // add 10 more schedules to sub-project to test for pagination
             for (let i = 0; i < 10; i++) {
                 const scheduleName = utils.generateRandomString();
@@ -185,6 +193,8 @@ describe('Schedule API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.pageWaitForSelector(page, '#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
@@ -218,6 +228,8 @@ describe('Schedule API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.pageWaitForSelector(page, '#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');

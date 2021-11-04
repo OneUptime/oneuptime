@@ -2053,6 +2053,7 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
+                                                        false &&
                                                         resourceCategoryList &&
                                                         resourceCategoryList.length >
                                                             0

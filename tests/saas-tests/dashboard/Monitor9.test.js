@@ -353,6 +353,8 @@ describe('API Monitor API', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             const newMonitorName = utils.generateRandomString();
+            await init.pageWaitForSelector(page, '#cbMonitors');
+            await init.pageClick(page, '#newFormId');
             await init.addAPIMonitorWithJSExpression(page, newMonitorName, {
                 createAlertForOnline: true,
             });
@@ -370,7 +372,7 @@ describe('API Monitor API', () => {
             );
             monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
             expect(monitorIncidentReportElement).toContain(
-                "did evaluate response.body.status === 'ok'."
+                'Response {"status":"not ok"} Did evaluate response.body.status === \'ok\'.'
             );
 
             await init.pageWaitForSelector(

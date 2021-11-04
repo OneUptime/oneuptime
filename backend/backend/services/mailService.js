@@ -1063,7 +1063,7 @@ const _this = {
         let smtpServer = 'internal';
         try {
             let accountMail = await _this.getSmtpSettings();
-            if (!isEmpty) {
+            if (!isEmpty(accountMail)) {
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }

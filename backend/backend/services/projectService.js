@@ -39,7 +39,10 @@ module.exports = {
                     query: { _id: data.parentProjectId },
                     select: 'users',
                 });
-                projectModel.users = parentProject.users;
+                projectModel.users = parentProject.users.map(user => ({
+                    ...user,
+                    show: false,
+                }));
             } else {
                 projectModel.users = [
                     {
@@ -174,7 +177,7 @@ module.exports = {
                 ];
 
                 const selectStatusPage =
-                    ' projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+                    '_id projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
                 const populateDefaultRoleSso = [
                     { path: 'domain', select: '_id domain' },
@@ -620,7 +623,8 @@ module.exports = {
 
     exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         try {
-            const _this = this;
+            const _this = this,
+                returnVal = 'User successfully exited the project';
             let teamMember = {};
             const userProject = await _this.findOneBy({
                 query: { _id: projectId },
@@ -742,16 +746,16 @@ module.exports = {
                         ) {
                             projectSeats = projectSeats - 1;
                             _this.updateSeatDetails(project, projectSeats);
-                            return;
+                            return returnVal;
                         }
                     } else if (teamMember.role !== 'Viewer' && isViewer) {
                         projectSeats = projectSeats - 1;
                         _this.updateSeatDetails(project, projectSeats);
-                        return;
+                        return returnVal;
                     }
                 }
             }
-            return 'User successfully exited the project';
+            return returnVal;
         } catch (error) {
             ErrorService.log('projectService.exitProject', error);
             throw error;

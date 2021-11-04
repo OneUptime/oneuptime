@@ -518,11 +518,18 @@ class SocketApp extends Component {
                     const subProjectUser = data.teamMembers.find(
                         member => member.userId === User.getUserId()
                     );
+                    const mainUser = thisObj.props.project?.users.find(
+                        user =>
+                            (user.userId._id || user.userId) ===
+                                User.getUserId() &&
+                            (user.role === 'Owner' ||
+                                user.role === 'Administrator')
+                    );
                     const subProject = thisObj.props.subProjects.find(
                         subProject => subProject._id === data.projectId
                     );
                     const subProjectName = subProject ? subProject.name : '';
-                    if (!subProjectUser) {
+                    if (!subProjectUser && !mainUser) {
                         thisObj.props.openModal({
                             id: uuidv4(),
                             onClose: () => '',

@@ -48,7 +48,7 @@ describe('Monitor SLA', function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
-            email: userData.user.email,
+            email: userData.user.email.toLowerCase(),
         });
         await MonitorSlaService.hardDelete({
             _id: slaId,
