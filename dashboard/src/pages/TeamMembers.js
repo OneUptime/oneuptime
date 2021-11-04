@@ -77,6 +77,11 @@ const LoadedTeam = props => {
         subProjectTeamMember => subProjectTeamMember._id === currentProjectId
     );
     const projectMembers = Object.assign({}, projectTeamMembers);
+    const subProjectName =
+        (props.subProjects &&
+            props.subProjects.find(obj => obj._id === currentProjectId)
+                ?.name) ||
+        props.currentProject?.name;
     projectTeamMembers =
         projectTeamMembers && projectTeamMembers.teamMembers ? (
             <RenderIfUserInSubProject
@@ -104,12 +109,10 @@ const LoadedTeam = props => {
                                 }
                                 teamMembers={projectTeamMembers}
                                 team={props.team}
-                                subProjectName={
-                                    (props.subProjects &&
-                                        props.subProjects.find(
-                                            obj => obj._id === currentProjectId
-                                        )?.name) ||
-                                    props.currentProject?.name
+                                subProjectName={subProjectName}
+                                showProjectName={
+                                    props.currentProject?._id !==
+                                    currentProjectId
                                 }
                                 currentProjectId={currentProjectId}
                                 inviteModalId={inviteModalId}

@@ -16,14 +16,18 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
 
                   if (schedule && monitor.criteria) {
                       [
-                          ...monitor.criteria.up,
-                          ...monitor.criteria.degraded,
-                          ...monitor.criteria.down,
+                          ...(monitor.criteria.up ? monitor.criteria.up : []),
+                          ...(monitor.criteria.degraded
+                              ? monitor.criteria.degraded
+                              : []),
+                          ...(monitor.criteria.down
+                              ? monitor.criteria.down
+                              : []),
                       ].forEach((criterion, index) => {
                           const monitorUpCriteriaCount =
-                              monitor.criteria.up.length;
+                              monitor.criteria.up?.length || 0;
                           const monitorDegradedCriteriaCount =
-                              monitor.criteria.degraded.length;
+                              monitor.criteria.degraded?.length || 0;
                           const type =
                               index < monitorUpCriteriaCount
                                   ? 'Up'

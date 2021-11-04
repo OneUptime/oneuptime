@@ -82,6 +82,9 @@ const AutomatedTabularList = props => {
                                                 textTransform: 'capitalize',
                                             }}
                                         >
+                                            {props.showProjectName
+                                                ? props.subProjectName
+                                                : 'Project'}{' '}
                                             Automation Script
                                         </span>
                                     </span>
@@ -358,6 +361,8 @@ AutomatedTabularList.propTypes = {
     currentProject: PropTypes.object,
     fetchAutomatedScript: PropTypes.func,
     toggleNewScript: PropTypes.func,
+    subProjectName: PropTypes.string,
+    showProjectName: PropTypes.bool,
 };
 
 const mapStateToProps = state => {

@@ -20,7 +20,6 @@ import AddSeats from '../modals/AddSeats';
 import { openModal, closeModal } from '../../actions/modal';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
-import SubProjectSelector from '../basic/SubProjectSelector';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
@@ -70,7 +69,7 @@ class NewComponent extends Component {
 
         const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
-        postObj.projectId = values[`subProject_${this.props.index}`];
+        postObj.projectId = this.props.activeSubProjectId;
         postObj.name = values[`name_${this.props.index}`];
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
         if (!postObj.projectId)
@@ -148,7 +147,7 @@ class NewComponent extends Component {
                 !this.props.edit) ||
             (this.props.component.editComponent.requesting && this.props.edit);
 
-        const { handleSubmit, subProjects } = this.props;
+        const { handleSubmit } = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -236,44 +235,6 @@ class NewComponent extends Component {
                                                         />
                                                     </div>
                                                 </div>
-                                                <ShouldRender
-                                                    if={
-                                                        subProjects &&
-                                                        subProjects.length > 0
-                                                    }
-                                                >
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Sub Project
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <Field
-                                                                name={`subProject_${this.props.index}`}
-                                                                id="subProjectId"
-                                                                required="required"
-                                                                disabled={
-                                                                    requesting
-                                                                }
-                                                                component={
-                                                                    SubProjectSelector
-                                                                }
-                                                                subProjects={
-                                                                    subProjects
-                                                                }
-                                                                // onChange={(
-                                                                //     e,
-                                                                //     v
-                                                                // ) =>
-                                                                //     this.scheduleChange(
-                                                                //         e,
-                                                                //         v
-                                                                //     )
-                                                                // }
-                                                                className="db-select-nw"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </ShouldRender>
                                             </div>
                                         </fieldset>
                                     </div>
@@ -395,7 +356,7 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = (state, ownProps) => {
     const name = selector(state, 'name_1000');
-    const subProject = selector(state, 'subProject_1000');
+    const activeSubProjectId = state.subProject.activeSubProject;
 
     if (ownProps.edit) {
         const componentSlug = ownProps.match
@@ -407,13 +368,13 @@ const mapStateToProps = (state, ownProps) => {
             component: state.component,
             currentProject: state.project.currentProject,
             name,
-            subProject,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
             componentId:
                 state.component.currentComponent.component &&
                 state.component.currentComponent.component._id,
             componentSlug,
+            activeSubProjectId,
         };
     } else {
         return {
@@ -421,9 +382,9 @@ const mapStateToProps = (state, ownProps) => {
             component: state.component,
             currentProject: state.project.currentProject,
             name,
-            subProject,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
+            activeSubProjectId,
         };
     }
 };
@@ -443,10 +404,10 @@ NewComponent.propTypes = {
     editComponentProp: PropTypes.object,
     edit: PropTypes.bool,
     name: PropTypes.string,
-    subProjects: PropTypes.array,
     showUpgradeForm: PropTypes.func,
     toggleForm: PropTypes.func,
     showCancelBtn: PropTypes.bool,
+    activeSubProjectId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewComponentForm);
