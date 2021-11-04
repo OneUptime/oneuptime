@@ -284,104 +284,110 @@ export class SidebarNavItem extends Component {
 
         const routes = route.shortcut && route.shortcut.split('+');
 
+        const hideProjectNav =
+            this.props.currentProject?._id !== this.props.activeSubProjectId &&
+            (route.title === 'Reports' || route.title === 'Project Settings');
+
         return (
             <div style={routeStyle}>
-                <ShouldRender if={!route.invisible}>
-                    <span
-                        id={this.camalize(route.title)}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => {
-                            this.props.toggleProjectSettingsMore(false);
-                            if (route.title === 'Back to Dashboard') {
-                                this.props.animateSidebar(true);
-                                setTimeout(() => {
+                <ShouldRender if={!hideProjectNav}>
+                    <ShouldRender if={!route.invisible}>
+                        <span
+                            id={this.camalize(route.title)}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                                this.props.toggleProjectSettingsMore(false);
+                                if (route.title === 'Back to Dashboard') {
+                                    this.props.animateSidebar(true);
+                                    setTimeout(() => {
+                                        loadPage(route.title);
+                                        this.props.animateSidebar(false);
+                                        history.push(path);
+                                    }, 200);
+                                } else {
                                     loadPage(route.title);
-                                    this.props.animateSidebar(false);
                                     history.push(path);
-                                }, 200);
-                            } else {
-                                loadPage(route.title);
-                                history.push(path);
-                            }
-                        }}
-                        {...(route.disabled
-                            ? { style: { pointerEvents: 'none' } }
-                            : {})}
-                    >
-                        <div style={{ outline: 'none' }}>
-                            <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
-                                <div className="Box-root Flex-flex Flex-alignItems--center tooltip">
-                                    {route.icon ? (
-                                        <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
-                                            <span
-                                                className={`db-SideNav-icon db-SideNav-icon--${
-                                                    route.icon
-                                                } ${
-                                                    isLinkActive ||
-                                                    isSubLinkActive ||
-                                                    isScheduleLinkActive
-                                                        ? 'db-SideNav-icon--selected'
-                                                        : null
-                                                }`}
-                                            />
-                                        </div>
-                                    ) : null}
-                                    <span
-                                        className={
-                                            'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
-                                            (isLinkActive ||
-                                            isSubLinkActive ||
-                                            isScheduleLinkActive
-                                                ? ' Text-color--fyipeblue Text-fontWeight--bold'
-                                                : ' Text-color--dark')
-                                        }
-                                    >
+                                }
+                            }}
+                            {...(route.disabled
+                                ? { style: { pointerEvents: 'none' } }
+                                : {})}
+                        >
+                            <div style={{ outline: 'none' }}>
+                                <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--4">
+                                    <div className="Box-root Flex-flex Flex-alignItems--center tooltip">
+                                        {route.icon ? (
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
+                                                <span
+                                                    className={`db-SideNav-icon db-SideNav-icon--${
+                                                        route.icon
+                                                    } ${
+                                                        isLinkActive ||
+                                                        isSubLinkActive ||
+                                                        isScheduleLinkActive
+                                                            ? 'db-SideNav-icon--selected'
+                                                            : null
+                                                    }`}
+                                                />
+                                            </div>
+                                        ) : null}
                                         <span
-                                            id={`${route.title.replace(
-                                                ' ',
-                                                ''
-                                            )}-text`}
-                                            style={route.textStyle}
+                                            className={
+                                                'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
+                                                (isLinkActive ||
+                                                isSubLinkActive ||
+                                                isScheduleLinkActive
+                                                    ? ' Text-color--fyipeblue Text-fontWeight--bold'
+                                                    : ' Text-color--dark')
+                                            }
                                         >
-                                            {route.title === 'Incident Log'
-                                                ? 'Incidents'
-                                                : route.title}
+                                            <span
+                                                id={`${route.title.replace(
+                                                    ' ',
+                                                    ''
+                                                )}-text`}
+                                                style={route.textStyle}
+                                            >
+                                                {route.title === 'Incident Log'
+                                                    ? 'Incidents'
+                                                    : route.title}
+                                            </span>
                                         </span>
-                                    </span>
-                                    {route.shortcut && (
-                                        <span className="tooltiptext">
-                                            <strong>{routes[0]}</strong>
-                                            <span> then </span>
-                                            <strong>{routes[1]}</strong>
-                                        </span>
-                                    )}
+                                        {route.shortcut && (
+                                            <span className="tooltiptext">
+                                                <strong>{routes[0]}</strong>
+                                                <span> then </span>
+                                                <strong>{routes[1]}</strong>
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </span>
-                </ShouldRender>
-                <div>
-                    <span>
-                        <ShouldRender
-                            if={
-                                (isLinkActive && route.subRoutes.length) ||
-                                isChildLinkActive
-                            }
-                        >
-                            <RenderListItems
-                                slug={this.props.currentProject?.slug}
-                                schedule={schedule}
-                                active={match.url}
-                                onLoad={title => loadPage(title)}
-                                componentSlug={match.params.componentSlug}
-                                showMore={toggleMoreBtn}
-                                handleShowMore={
-                                    this.props.toggleProjectSettingsMore
+                        </span>
+                    </ShouldRender>
+                    <div>
+                        <span>
+                            <ShouldRender
+                                if={
+                                    (isLinkActive && route.subRoutes.length) ||
+                                    isChildLinkActive
                                 }
-                            />
-                        </ShouldRender>
-                    </span>
-                </div>
+                            >
+                                <RenderListItems
+                                    slug={this.props.currentProject?.slug}
+                                    schedule={schedule}
+                                    active={match.url}
+                                    onLoad={title => loadPage(title)}
+                                    componentSlug={match.params.componentSlug}
+                                    showMore={toggleMoreBtn}
+                                    handleShowMore={
+                                        this.props.toggleProjectSettingsMore
+                                    }
+                                />
+                            </ShouldRender>
+                        </span>
+                    </div>
+                </ShouldRender>
             </div>
         );
     }
@@ -594,6 +600,7 @@ const mapStateToProps = state => ({
         state.schedule.schedules.data &&
         state.schedule.schedules.data[0],
     toggleMoreBtn: state.page.toggleProjectSettingsMore,
+    activeSubProjectId: state.subProject.activeSubProject,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -617,6 +624,7 @@ SidebarNavItem.propTypes = {
     toggleProjectSettingsMore: PropTypes.func.isRequired,
     closeMoreRoute: PropTypes.func.isRequired,
     toggleMoreBtn: PropTypes.bool.isRequired,
+    activeSubProjectId: PropTypes.string,
 };
 
 export default withRouter(

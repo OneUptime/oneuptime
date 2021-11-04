@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import store, { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
@@ -58,48 +59,89 @@ if (User.isLoggedIn()) {
     }
 }
 
-const App = () => (
-    <div style={{ height: '100%' }}>
-        <Socket />
-        <Router history={history}>
-            <Dashboard>
-                <Suspense fallback={<LoadingState />}>
-                    <Switch>
-                        {allRoutes
-                            .filter(route => route.visible)
-                            .map((route, index) => {
-                                return (
-                                    <Route
-                                        exact={route.exact}
-                                        path={route.path}
-                                        key={index}
-                                        render={props => (
-                                            <route.component
-                                                icon={route.icon}
-                                                {...props}
-                                            />
-                                        )}
-                                    />
-                                );
-                            })}
-                        <Route
-                            path={'/dashboard/:404_path'}
-                            key={'404'}
-                            component={NotFound}
-                        />
-                        <Redirect to="/dashboard/project/project" />
-                    </Switch>
-                </Suspense>
-            </Dashboard>
-        </Router>
-        <BackboneModals />
-    </div>
-);
+const App = props => {
+    const hideProjectNav =
+        props.currentProject?._id !== props.activeSubProjectId;
+    const titleToExclude = [
+        'Project Settings',
+        'Resources',
+        'Billing',
+        'Integrations',
+        'API',
+        'Advanced',
+        'More',
+        'Domains',
+        'Monitor',
+        'Incident Settings',
+        'Email',
+        'SMS & Calls',
+        'Call Routing',
+        'Webhooks',
+        'Probe',
+        'Git Credentials',
+        'Docker Credentials',
+        'Team Groups',
+    ];
+
+    let sortedRoutes = [...allRoutes];
+    if (hideProjectNav) {
+        sortedRoutes = sortedRoutes.filter(
+            router => !titleToExclude.includes(router.title)
+        );
+    }
+
+    return (
+        <div style={{ height: '100%' }}>
+            <Socket />
+            <Router history={history}>
+                <Dashboard>
+                    <Suspense fallback={<LoadingState />}>
+                        <Switch>
+                            {sortedRoutes
+                                .filter(route => route.visible)
+                                .map((route, index) => {
+                                    return (
+                                        <Route
+                                            exact={route.exact}
+                                            path={route.path}
+                                            key={index}
+                                            render={props => (
+                                                <route.component
+                                                    icon={route.icon}
+                                                    {...props}
+                                                />
+                                            )}
+                                        />
+                                    );
+                                })}
+                            <Route
+                                path={'/dashboard/:404_path'}
+                                key={'404'}
+                                component={NotFound}
+                            />
+                            <Redirect to="/dashboard/project/project" />
+                        </Switch>
+                    </Suspense>
+                </Dashboard>
+            </Router>
+            <BackboneModals />
+        </div>
+    );
+};
 
 App.displayName = 'App';
 
 function mapStateToProps(state) {
-    return state.login;
+    return {
+        ...state.login,
+        currentProject: state.project.currentProject,
+        activeSubProjectId: state.subProject.activeSubProject,
+    };
 }
+
+App.propTypes = {
+    currentProject: PropTypes.object,
+    activeSubProjectId: PropTypes.string,
+};
 
 export default connect(mapStateToProps)(App);

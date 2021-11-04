@@ -399,6 +399,7 @@ const mapStateToProps = function(state) {
         currentProject: state.project.currentProject,
         subProjects: state.subProject.subProjects.subProjects,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        activeSubProjectId: state.subProject.activeSubProject,
     };
 };
 
@@ -445,9 +446,40 @@ SideNav.propTypes = {
 // we rebuild the routes here to enable access to these properties
 
 const WrappedSideNav = props => {
+    const hideProjectNav =
+        props.currentProject?._id !== props.activeSubProjectId;
+
+    const titleToExclude = [
+        'Project Settings',
+        'Resources',
+        'Billing',
+        'Integrations',
+        'API',
+        'Advanced',
+        'More',
+        'Domains',
+        'Monitor',
+        'Incident Settings',
+        'Email',
+        'SMS & Calls',
+        'Call Routing',
+        'Webhooks',
+        'Probe',
+        'Git Credentials',
+        'Docker Credentials',
+        'Team Groups',
+    ];
+
+    let sortedRoutes = [...allRoutes];
+    if (hideProjectNav) {
+        sortedRoutes = sortedRoutes.filter(
+            router => !titleToExclude.includes(router.title)
+        );
+    }
+
     return (
         <Switch>
-            {allRoutes
+            {sortedRoutes
                 .filter(route => route.visible)
                 .map((route, index) => {
                     return (
@@ -463,6 +495,11 @@ const WrappedSideNav = props => {
                 })}
         </Switch>
     );
+};
+
+WrappedSideNav.propTypes = {
+    currentProject: PropTypes.object,
+    activeSubProjectId: PropTypes.string,
 };
 
 export default withRouter(
