@@ -593,7 +593,7 @@ module.exports = {
                 },
             ];
 
-            const selectStatusPage = 'monitors';
+            const selectStatusPage = 'monitors _id';
 
             const statusPages = await this.findBy({
                 query: { 'monitors.monitor': monitorId },
@@ -714,11 +714,13 @@ module.exports = {
             const selectStatusPage =
                 'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
-            updatedStatusPage = await this.findOneBy({
-                query: { _id: updatedStatusPage._id },
-                populate: populateStatusPage,
-                select: selectStatusPage,
-            });
+            if (updatedStatusPage) {
+                updatedStatusPage = await this.findOneBy({
+                    query: { _id: updatedStatusPage._id },
+                    populate: populateStatusPage,
+                    select: selectStatusPage,
+                });
+            }
             return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);

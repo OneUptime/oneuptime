@@ -45,6 +45,8 @@ export function loginSuccess(user) {
     cookies.set('data', user, {
         path: '/',
         maxAge: 8640000,
+        secure: true,
+        sameSite: 'none',
     });
 
     if (user.role === 'master-admin') {
@@ -53,6 +55,8 @@ export function loginSuccess(user) {
         cookies.set('admin-data', user, {
             path: '/',
             maxAge: 8640000,
+            secure: true,
+            sameSite: 'none',
         });
     }
 

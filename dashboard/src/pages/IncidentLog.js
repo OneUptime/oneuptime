@@ -225,6 +225,9 @@ class IncidentLog extends React.Component {
             projectIncident.success = incidents.success;
         }
 
+        const subProjectName =
+            subProjects.find(obj => obj._id === currentProjectId)?.name ||
+            currentProject.name;
         projectIncident =
             projectIncident && projectIncident.incidents ? (
                 <RenderIfUserInSubProject
@@ -242,10 +245,9 @@ class IncidentLog extends React.Component {
                                         createIncidentModalId
                                     }
                                     openModal={this.props.openModal}
-                                    subProjectName={
-                                        subProjects.find(
-                                            obj => obj._id === currentProjectId
-                                        )?.name || currentProject.name
+                                    subProjectName={subProjectName}
+                                    showProjectName={
+                                        currentProject?._id !== currentProjectId
                                     }
                                     currentProjectId={currentProjectId}
                                     prevClicked={this.prevClicked}
