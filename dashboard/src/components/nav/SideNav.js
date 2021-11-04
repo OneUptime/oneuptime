@@ -17,6 +17,7 @@ import {
 import { API_URL, User } from '../../config';
 import { getSubProjects } from '../../actions/subProject';
 import { Route, Switch, withRouter } from 'react-router-dom';
+import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 class SideNav extends Component {
     state = { navLoading: false };
@@ -208,7 +209,11 @@ class SideNav extends Component {
             location.pathname.match(/profile\/advanced/);
 
         let groupsToRender = [];
-        if (switchToProjectViewerNav && !switchToProfileNav) {
+
+        const user = User.getUserId();
+        const isViewer = isSubProjectViewer(user, this.props.activeProject);
+
+        if ((switchToProjectViewerNav || isViewer) && !switchToProfileNav) {
             groupsToRender = groups
                 .filter(group => group.visibleForProjectViewer)
                 .filter(group => group.visible);
@@ -389,6 +394,18 @@ const mapStateToProps = function(state) {
     const profilePic = settings ? settings.profilePic : '';
     const userName = settings ? settings.name : '';
 
+    const currentProject = state.project.currentProject;
+    const subProjects = state.subProject.subProjects.subProjects;
+    const activeSubProjectId = state.subProject.activeSubProject;
+    const allProjects = [...subProjects];
+    if (currentProject) {
+        allProjects.push(currentProject);
+    }
+
+    const activeProject = allProjects.find(
+        project => String(project._id) === String(activeSubProjectId)
+    );
+
     return {
         allIndividualComponents,
         project: state.project,
@@ -400,6 +417,7 @@ const mapStateToProps = function(state) {
         subProjects: state.subProject.subProjects.subProjects,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
         activeSubProjectId: state.subProject.activeSubProject,
+        activeProject,
     };
 };
 
@@ -440,6 +458,7 @@ SideNav.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
     switchToProjectViewer: PropTypes.func,
     getSubProjects: PropTypes.func,
+    activeProject: PropTypes.object,
 };
 
 // since sideNav is above page routes we have no access to the pages' props.match,
