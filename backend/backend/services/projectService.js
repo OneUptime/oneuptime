@@ -39,7 +39,10 @@ module.exports = {
                     query: { _id: data.parentProjectId },
                     select: 'users',
                 });
-                projectModel.users = parentProject.users;
+                projectModel.users = parentProject.users.map(user => ({
+                    ...user,
+                    show: false,
+                }));
             } else {
                 projectModel.users = [
                     {
