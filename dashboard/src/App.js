@@ -129,6 +129,24 @@ const App = props => {
                                         />
                                     );
                                 })}
+                            {hideProjectNav &&
+                                props.currentProject &&
+                                allRoutes
+                                    .filter(route =>
+                                        titleToExclude.includes(route.title)
+                                    )
+                                    .map((route, index) => (
+                                        <Route
+                                            key={index}
+                                            exact
+                                            path={route.path}
+                                            render={() => (
+                                                <Redirect
+                                                    to={`/dashboard/project/${props.currentProject.slug}`}
+                                                />
+                                            )}
+                                        />
+                                    ))}
                             <Route
                                 path={'/dashboard/:404_path'}
                                 key={'404'}
