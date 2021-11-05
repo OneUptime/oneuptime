@@ -426,7 +426,6 @@ class SocketApp extends Component {
                     if (isUserInSubProject)
                         return thisObj.props.updateprobebysocket(data);
                 }
-                thisObj.props.updateprobebysocket(data);
             });
             socket.on(`NewNotification-${this.props.project._id}`, function(
                 data
