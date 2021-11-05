@@ -18,9 +18,6 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-// override socket for test
-// const socket = { on: () => {} };
-
 class LogTail extends Component {
     render() {
         socket.on(`createLog-${this.props.applicationLogId}`, data => {

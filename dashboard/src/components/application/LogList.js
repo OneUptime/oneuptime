@@ -20,9 +20,6 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-// // override socket for test
-// const socket = { on: () => {} };
-
 class LogList extends Component {
     constructor(props) {
         super(props);
