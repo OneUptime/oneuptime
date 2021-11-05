@@ -55,7 +55,6 @@ describe('Team API', function() {
         const res = await request.get(`/team/${projectId}`).send({
             name: 'New Schedule',
         });
-        console.log('res', res);
         expect(res).to.have.status(401);
     });
 
