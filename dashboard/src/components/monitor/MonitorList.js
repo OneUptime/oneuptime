@@ -9,15 +9,6 @@ import MonitorDetail from './MonitorDetail';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { updateprobebysocket } from '../../actions/socket';
-// import { REALTIME_URL } from '../../config';
-// import io from 'socket.io-client';
-
-// // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// // '/realtime' is set as socket io namespace, so remove
-// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-//     path: '/realtime/socket.io',
-//     transports: ['websocket', 'polling'],
-// });
 
 function MonitorList(props) {
     const monitors = props.monitors ? props.monitors : [];

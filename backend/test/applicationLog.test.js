@@ -122,7 +122,7 @@ describe('Application Log API', function() {
             .set('Authorization', authorization)
             .end(function(err, res) {
                 expect(res).to.have.status(200);
-                expect(res.body).to.be.an('array');
+                expect(res.body.applicationLogs).to.be.an('array');
                 done();
             });
     });
@@ -546,7 +546,7 @@ describe('Application Log API', function() {
         });
         await UserService.hardDeleteBy({
             email: {
-                $in: [userData.user.email],
+                $in: [userData.user.email.toLowerCase()],
             },
         });
         await NotificationService.hardDeleteBy({ projectId: projectId });

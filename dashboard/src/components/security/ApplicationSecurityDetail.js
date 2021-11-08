@@ -18,20 +18,10 @@ import SecurityLog from './SecurityLog';
 import { getGitCredentials } from '../../actions/credential';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Fade from 'react-reveal/Fade';
+import { socket } from '../basic/Socket';
 
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
-
-// override socket for test
-// const socket = { on: () => {} };
 class ApplicationSecurityDetail extends Component {
     constructor(props) {
         super(props);
@@ -94,10 +84,15 @@ class ApplicationSecurityDetail extends Component {
             }
         }
     }
-    componentWillMount() {
-        resetIdCounter();
+    componentWillUnMount() {
+        socket.removeListener(`security_${this.props.applicationSecurityId}`);
+
+        socket.removeListener(
+            `securityLog_${this.props.applicationSecurityId}`
+        );
     }
     componentDidMount() {
+        resetIdCounter();
         const {
             projectId,
             componentId,
@@ -162,13 +157,18 @@ class ApplicationSecurityDetail extends Component {
             switchToProjectViewerNav,
         } = this.props;
 
-        socket.on(`security_${applicationSecurityId}`, data => {
-            getApplicationSecuritySuccess(data);
-        });
+        if (applicationSecurityId) {
+            // join room
+            socket.emit('security_switch', applicationSecurityId);
 
-        socket.on(`securityLog_${applicationSecurityId}`, data => {
-            scanApplicationSecuritySuccess(data);
-        });
+            socket.on(`security_${applicationSecurityId}`, data => {
+                getApplicationSecuritySuccess(data);
+            });
+
+            socket.on(`securityLog_${applicationSecurityId}`, data => {
+                scanApplicationSecuritySuccess(data);
+            });
+        }
 
         const componentName =
             components.length > 0 ? components[0].name : 'loading...';

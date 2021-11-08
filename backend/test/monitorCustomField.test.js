@@ -65,7 +65,7 @@ describe('Monitor Custom Field API', function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
-            email: userData.user.email,
+            email: userData.user.email.toLowerCase(),
         });
         await ComponentService.hardDeleteBy({ projectId });
         await MonitorCustomFieldService.hardDeleteBy({ projectId });

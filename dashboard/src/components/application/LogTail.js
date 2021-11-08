@@ -6,26 +6,23 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import ReactJson from 'react-json-view';
 import copyToClipboard from '../../utils/copyToClipboard';
-import { REALTIME_URL } from '../../config';
-import { io } from 'socket.io-client';
 import { bindActionCreators } from 'redux';
 import { getLogSuccess } from '../../actions/applicationLog';
-
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
-
-// override socket for test
-// const socket = { on: () => {} };
+import { socket } from '../basic/Socket';
 
 class LogTail extends Component {
+    componentWillUnmount() {
+        socket.removeListener(`createLog-${this.props.applicationLogId}`);
+    }
     render() {
-        socket.on(`createLog-${this.props.applicationLogId}`, data => {
-            this.props.getLogSuccess(data);
-        });
+        if (this.props.applicationLogId) {
+            // join application log room
+            socket.emit('application_log_switch', this.props.applicationLogId);
+
+            socket.on(`createLog-${this.props.applicationLogId}`, data => {
+                this.props.getLogSuccess(data);
+            });
+        }
         const { logs, applicationLog } = this.props;
         const firstItem = logs?.logs[0];
         const newDate = firstItem?.createdAt;

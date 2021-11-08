@@ -18,20 +18,9 @@ import { getDockerCredentials } from '../../actions/credential';
 import { fetchComponent } from '../../actions/component';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Fade from 'react-reveal/Fade';
-
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
-
-// override socket for test
-// const socket = { on: () => {} };
+import { socket } from '../basic/Socket';
 
 class ContainerSecurityDetail extends Component {
     constructor(props) {
@@ -90,10 +79,16 @@ class ContainerSecurityDetail extends Component {
             }
         }
     }
-    componentWillMount() {
-        resetIdCounter();
+    componentWillUnMount() {
+        socket.removeListener(`security_${this.props.containerSecurity._id}`);
+
+        socket.removeListener(
+            `securityLog_${this.props.containerSecurity._id}`
+        );
     }
+
     componentDidMount() {
+        resetIdCounter();
         const {
             fetchComponent,
             componentSlug,
@@ -159,13 +154,18 @@ class ContainerSecurityDetail extends Component {
             switchToProjectViewerNav,
         } = this.props;
 
-        socket.on(`security_${containerSecurity._id}`, data => {
-            getContainerSecuritySuccess(data);
-        });
+        if (containerSecurity) {
+            // join room
+            socket.emit('security_switch', containerSecurity._id);
 
-        socket.on(`securityLog_${containerSecurity._id}`, data => {
-            scanContainerSecuritySuccess(data);
-        });
+            socket.on(`security_${containerSecurity._id}`, data => {
+                getContainerSecuritySuccess(data);
+            });
+
+            socket.on(`securityLog_${containerSecurity._id}`, data => {
+                scanContainerSecuritySuccess(data);
+            });
+        }
 
         const componentName =
             components.length > 0 ? components[0].name : 'loading...';

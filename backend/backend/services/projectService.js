@@ -623,7 +623,8 @@ module.exports = {
 
     exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         try {
-            const _this = this;
+            const _this = this,
+                returnVal = 'User successfully exited the project';
             let teamMember = {};
             const userProject = await _this.findOneBy({
                 query: { _id: projectId },
@@ -745,16 +746,16 @@ module.exports = {
                         ) {
                             projectSeats = projectSeats - 1;
                             _this.updateSeatDetails(project, projectSeats);
-                            return;
+                            return returnVal;
                         }
                     } else if (teamMember.role !== 'Viewer' && isViewer) {
                         projectSeats = projectSeats - 1;
                         _this.updateSeatDetails(project, projectSeats);
-                        return;
+                        return returnVal;
                     }
                 }
             }
-            return 'User successfully exited the project';
+            return returnVal;
         } catch (error) {
             ErrorService.log('projectService.exitProject', error);
             throw error;

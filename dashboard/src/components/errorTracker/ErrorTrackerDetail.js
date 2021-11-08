@@ -24,18 +24,8 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import moment from 'moment';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
+import { socket } from '../basic/Socket';
 
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
-
-// override socket for test
-// const socket = { on: () => {} };
 class ErrorTrackerDetail extends Component {
     constructor(props) {
         super(props);
@@ -256,6 +246,11 @@ class ErrorTrackerDetail extends Component {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
     }
+    componentWillUnmount() {
+        socket.removeListener(
+            `createErrorEvent-${this.props.errorTracker._id}`
+        );
+    }
     render() {
         const {
             errorTracker,
@@ -269,9 +264,15 @@ class ErrorTrackerDetail extends Component {
             showComponentWithIssue,
         } = this.props;
         const { deleteModalId, trackerKeyModalId } = this.state;
-        socket.on(`createErrorEvent-${errorTracker._id}`, data => {
-            this.props.getErrorEventSuccess(data);
-        });
+
+        if (errorTracker) {
+            // join room
+            socket.emit('error_tracker_switch', errorTracker._id);
+
+            socket.on(`createErrorEvent-${errorTracker._id}`, data => {
+                this.props.getErrorEventSuccess(data);
+            });
+        }
         const shouldRender = showComponentWithIssue
             ? errorTrackerIssue
                 ? errorTrackerIssue.errorTrackerIssues.length > 0

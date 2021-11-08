@@ -57,7 +57,9 @@ describe('Global Config API', function() {
 
     after(async () => {
         await GlobalConfig.removeTestConfig();
-        await UserService.hardDeleteBy({ email: data.user.email });
+        await UserService.hardDeleteBy({
+            email: data.user.email.toLowerCase(),
+        });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfigService.hardDeleteBy({

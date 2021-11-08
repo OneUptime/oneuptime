@@ -452,9 +452,9 @@ describe('Component API with Sub-Projects', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
@@ -590,7 +590,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    it('should get both project and sub-project components for valid parent project user.', function(done) {
+    it('should get project components for valid parent project user.', function(done) {
         const authorization = `Basic ${token}`;
         request
             .get(`/component/${projectId}`)
@@ -600,8 +600,22 @@ describe('Component API with Sub-Projects', function() {
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('components');
                 expect(res.body[0]).to.have.property('count');
+                expect(res.body[0]._id).to.be.equal(projectId);
+                done();
+            });
+    });
+
+    it('should get sub-project components for valid parent project user.', function(done) {
+        const authorization = `Basic ${token}`;
+        request
+            .get(`/component/${subProjectId}`)
+            .set('Authorization', authorization)
+            .end(function(err, res) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                expect(res.body[0]).to.have.property('components');
+                expect(res.body[0]).to.have.property('count');
                 expect(res.body[0]._id).to.be.equal(subProjectId);
-                expect(res.body[1]._id).to.be.equal(projectId);
                 done();
             });
     });

@@ -38,6 +38,7 @@ import {
 import { resetFetchComponentResources } from './component';
 import errors from '../errors';
 import isMainProjectViewer from '../utils/isMainProjectViewer';
+import { socket } from '../components/basic/Socket';
 
 export function changeDeleteModal() {
     return {
@@ -362,6 +363,9 @@ export function switchProject(dispatch, project, subProjects = []) {
     const activeSubProjectId = User.getActiveSubProjectId(
         'active_subproject_id'
     );
+
+    // emit project id to connect to room in backend
+    socket?.emit('project_switch', activeSubProjectId);
 
     dispatch(resetSubProjects());
     dispatch(resetAlert());

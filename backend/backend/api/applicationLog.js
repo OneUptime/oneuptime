@@ -268,7 +268,7 @@ router.post(
                 infoCount,
                 warningCount,
             ] = await Promise.all([
-                LogService.countBy({ ...query, type: '' }),
+                LogService.countBy({ ...query }),
                 LogService.countBy({ ...query, type: 'error' }),
                 LogService.countBy({ ...query, type: 'info' }),
                 LogService.countBy({ ...query, type: 'warning' }),
