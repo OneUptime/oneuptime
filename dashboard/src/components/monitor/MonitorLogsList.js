@@ -9,23 +9,11 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
-import {
-    formatDecimal,
-    formatBytes,
-    // REALTIME_URL
-} from '../../config';
+import { formatDecimal, formatBytes } from '../../config';
 import ShouldRender from '../../components/basic/ShouldRender';
 import toPascalCase from 'to-pascal-case';
 import ViewScriptLogs from '../modals/ViewScriptLogs';
-// import io from 'socket.io-client';
 import { updatemonitorlogbysocket } from '../../actions/socket';
-
-// // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// // '/realtime' is set as socket io namespace, so remove
-// const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-//     path: '/realtime/socket.io',
-//     transports: ['websocket', 'polling'],
-// });
 
 export class MonitorLogsList extends Component {
     constructor(props) {

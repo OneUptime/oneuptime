@@ -19,18 +19,12 @@ import {
     updateTimeMetrics,
     updateErrorMetrics,
 } from '../actions/performanceTrackerMetric';
-import io from 'socket.io-client';
-import { REALTIME_URL } from '../config';
 import TransactionMetricsTable from '../components/performanceTracker/TransactionMetricsTable';
 import QuickStart from '../components/performanceTracker/QuickStart';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import PerformanceTrackerHeader from '../components/performanceTracker/PerformanceTrackerHeader';
-
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../components/basic/Socket';
 
 class PerformanceTrackerView extends Component {
     state = {
@@ -152,6 +146,12 @@ class PerformanceTrackerView extends Component {
             resetTrackerObj,
             switchToProjectViewerNav,
         } = this.props;
+
+        if (performanceTracker) {
+            // join performance tracker room
+            socket.emit('app_id_switch', performanceTracker._id);
+        }
+
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';

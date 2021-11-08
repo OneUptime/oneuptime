@@ -6,7 +6,7 @@ import Fade from 'react-reveal/Fade';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import {
     getContainerSecurities,
     getContainerSecurityLogs,
@@ -18,16 +18,9 @@ import { LargeSpinner, ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import io from 'socket.io-client';
 import sortByName from '../utils/sortByName';
 import { history } from '../store';
-
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../components/basic/Socket';
 
 class Container extends Component {
     state = {
@@ -138,6 +131,12 @@ class Container extends Component {
         }
     }
 
+    componentWillUnmount() {
+        socket.removeListener(
+            `createContainerSecurity-${this.props.componentId}`
+        );
+    }
+
     toggleForm = () =>
         this.setState(prevState => ({
             showContainerSecurityForm: !prevState.showContainerSecurityForm,
@@ -153,8 +152,8 @@ class Container extends Component {
             gettingSecurityLogs,
             location: { pathname },
             component,
-            scanContainerSecuritySuccess,
-            getContainerSecuritySuccess,
+            // scanContainerSecuritySuccess,
+            // getContainerSecuritySuccess,
             currentProject,
             switchToProjectViewerNav,
             skip,
@@ -173,6 +172,8 @@ class Container extends Component {
             ? numberOfPage
             : Math.ceil(parseInt(count) / limit);
 
+        socket.emit('component_switch', componentId);
+
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
                 `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/container/${data.slug}`
@@ -180,18 +181,21 @@ class Container extends Component {
         });
 
         const containerSecurities = securities ? sortByName(securities) : [];
-        containerSecurities.length > 0 &&
-            containerSecurities.map(containerSecurity => {
-                socket.on(`security_${containerSecurity._id}`, data => {
-                    getContainerSecuritySuccess(data);
-                });
+        // containerSecurities.length > 0 &&
+        //     containerSecurities.map(containerSecurity => {
+        //         // join room
+        //         socket.emit('security_switch', containerSecurity._id);
 
-                socket.on(`securityLog_${containerSecurity._id}`, data => {
-                    scanContainerSecuritySuccess(data);
-                });
+        //         socket.on(`security_${containerSecurity._id}`, data => {
+        //             getContainerSecuritySuccess(data);
+        //         });
 
-                return containerSecurity;
-            });
+        //         socket.on(`securityLog_${containerSecurity._id}`, data => {
+        //             scanContainerSecuritySuccess(data);
+        //         });
+
+        //         return containerSecurity;
+        //     });
 
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
@@ -477,8 +481,8 @@ Container.propTypes = {
         pathname: PropTypes.string,
     }),
     component: PropTypes.object,
-    scanContainerSecuritySuccess: PropTypes.func,
-    getContainerSecuritySuccess: PropTypes.func,
+    // scanContainerSecuritySuccess: PropTypes.func,
+    // getContainerSecuritySuccess: PropTypes.func,
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
     skip: PropTypes.number,
