@@ -141,9 +141,9 @@ describe('Scheduled event API', function() {
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });
@@ -404,9 +404,9 @@ describe('User from other project have access to read / write and delete API.', 
         await UserService.hardDeleteBy({
             email: {
                 $in: [
-                    userData.user.email,
-                    userData.newUser.email,
-                    userData.anotherUser.email,
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
                 ],
             },
         });

@@ -305,9 +305,11 @@ router.get('/:projectId', async function(req, res) {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
+        const select =
+            'monitorId projectId statusPageId alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod notificationType createdAt subscribed';
 
         const [subscribers, count] = await Promise.all([
-            SubscriberService.findBy({ projectId: projectId }, skip, limit),
+            SubscriberService.findBy({ projectId, skip, limit, select }),
             SubscriberService.countBy({ projectId: projectId }),
         ]);
         return sendListResponse(req, res, subscribers, count);
