@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -78,7 +79,8 @@ export class ScheduledEventNote extends Component {
                 projectId,
                 scheduledEventId,
                 this.limit,
-                skip ? Number(skip) - this.limit : this.limit
+                skip ? Number(skip) - this.limit : this.limit,
+                type.toLowerCase()
             );
             this.props.prevPage(scheduledEventId + 'internal');
         }
@@ -98,7 +100,8 @@ export class ScheduledEventNote extends Component {
                 projectId,
                 scheduledEventId,
                 this.limit,
-                skip ? Number(skip) + this.limit : this.limit
+                skip ? Number(skip) + this.limit : this.limit,
+                type.toLowerCase()
             );
             this.props.nextPage(scheduledEventId + 'internal');
         }
