@@ -5,7 +5,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`incidentCreated-${projectId}`, incident);
+            global.io
+                .to(projectId)
+                .emit(`incidentCreated-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realtimeService.sendCreatedIncident', error);
             throw error;
@@ -18,7 +20,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`incidentTimeline-${projectId}`, data);
+            global.io.to(projectId).emit(`incidentTimeline-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendIncidentTimeline', error);
             throw error;
@@ -31,7 +33,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`slaCountDown-${projectId}`, {
+            global.io.to(projectId).emit(`slaCountDown-${projectId}`, {
                 incident,
                 countDown,
             });
@@ -47,7 +49,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteIncident-${projectId}`, incident);
+            global.io
+                .to(projectId)
+                .emit(`deleteIncident-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realtimeService.deleteIncident', error);
             throw error;
@@ -60,7 +64,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`addIncidentNote-${projectId}`, incidentNote);
+            global.io
+                .to(projectId)
+                .emit(`addIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realtimeService.addIncidentNote', error);
             throw error;
@@ -73,7 +79,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateIncidentNote-${projectId}`, incidentNote);
+            global.io
+                .to(projectId)
+                .emit(`updateIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realtimeService.updateIncidentNote', error);
             throw error;
@@ -86,10 +94,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `updateIncidentTimeline-${projectId}`,
-                incidentTimeline
-            );
+            global.io
+                .to(projectId)
+                .emit(`updateIncidentTimeline-${projectId}`, incidentTimeline);
         } catch (error) {
             ErrorService.log('realtimeService.updateIncidentTimeline', error);
             throw error;
@@ -102,7 +109,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateIncident-${projectId}`, incident);
+            global.io
+                .to(projectId)
+                .emit(`updateIncident-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realtimeService.updateIncident', error);
             throw error;
@@ -115,7 +124,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteIncidentNote-${projectId}`, incidentNote);
+            global.io
+                .to(projectId)
+                .emit(`deleteIncidentNote-${projectId}`, incidentNote);
         } catch (error) {
             ErrorService.log('realtimeService.deleteIncidentNote', error);
             throw error;
@@ -128,7 +139,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`addScheduledEvent-${projectId}`, event);
+            global.io
+                .to(projectId)
+                .emit(`addScheduledEvent-${projectId}`, event);
         } catch (error) {
             ErrorService.log('realtimeService.addScheduledEvent', error);
             throw error;
@@ -141,7 +154,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteScheduledEvent-${projectId}`, event);
+            global.io
+                .to(projectId)
+                .emit(`deleteScheduledEvent-${projectId}`, event);
         } catch (error) {
             ErrorService.log('realtimeService.deleteScheduledEvent', error);
             throw error;
@@ -154,7 +169,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateScheduledEvent-${projectId}`, event);
+            global.io
+                .to(projectId)
+                .emit(`updateScheduledEvent-${projectId}`, event);
         } catch (error) {
             ErrorService.log('realtimeService.updateScheduledEvent', error);
             throw error;
@@ -167,7 +184,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`resolveScheduledEvent-${projectId}`, event);
+            global.io
+                .to(projectId)
+                .emit(`resolveScheduledEvent-${projectId}`, event);
         } catch (error) {
             ErrorService.log('realtimeService.resolveScheduledEvent', error);
             throw error;
@@ -180,10 +199,12 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `addScheduledEventInternalNote-${scheduledEventId}`,
-                note
-            );
+            global.io
+                .to(scheduledEventId)
+                .emit(
+                    `addScheduledEventInternalNote-${scheduledEventId}`,
+                    note
+                );
         } catch (error) {
             ErrorService.log(
                 'realtimeService.addScheduledEventInternalNote',
@@ -203,11 +224,13 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `addScheduledEventInvestigationNote-${scheduledEventId}`,
-                note
-            );
-            global.io.emit(`addEventNote-${projectId}`, note); // realtime update on status page
+            global.io
+                .to(scheduledEventId)
+                .emit(
+                    `addScheduledEventInvestigationNote-${scheduledEventId}`,
+                    note
+                );
+            global.io.to(projectId).emit(`addEventNote-${projectId}`, note); // realtime update on status page
         } catch (error) {
             ErrorService.log(
                 'realtimeService.addScheduledEventInvestigationNote',
@@ -223,10 +246,12 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `deleteScheduledEventInternalNote-${scheduledEventId}`,
-                note
-            );
+            global.io
+                .to(scheduledEventId)
+                .emit(
+                    `deleteScheduledEventInternalNote-${scheduledEventId}`,
+                    note
+                );
         } catch (error) {
             ErrorService.log(
                 'realtimeService.deleteScheduledEventInternalNote',
@@ -246,11 +271,13 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
-                note
-            );
-            global.io.emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
+            global.io
+                .to(scheduledEventId)
+                .emit(
+                    `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+                    note
+                );
+            global.io.to(projectId).emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
         } catch (error) {
             ErrorService.log(
                 'realtimeService.deleteScheduledEventInvestigationNote',
@@ -266,10 +293,12 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `updateScheduledEventInternalNote-${scheduledEventId}`,
-                note
-            );
+            global.io
+                .to(scheduledEventId)
+                .emit(
+                    `updateScheduledEventInternalNote-${scheduledEventId}`,
+                    note
+                );
         } catch (error) {
             ErrorService.log(
                 'realtimeService.updateScheduledEventInternalNote',
@@ -289,11 +318,13 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `updateScheduledEventInvestigationNote-${scheduledEventId}`,
-                note
-            );
-            global.io.emit(`updateEventNote-${projectId}`, note);
+            global.io
+                .to(scheduledEventId)
+                .emit(
+                    `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+                    note
+                );
+            global.io.to(projectId).emit(`updateEventNote-${projectId}`, note);
         } catch (error) {
             ErrorService.log(
                 'realtimeService.updateScheduledEventInvestigationNote',
@@ -309,7 +340,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`createComponent-${projectId}`, component);
+            global.io
+                .to(projectId)
+                .emit(`createComponent-${projectId}`, component);
         } catch (error) {
             ErrorService.log('realtimeService.sendComponentCreated', error);
             throw error;
@@ -322,7 +355,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`createMonitor-${projectId}`, monitor);
+            global.io.to(projectId).emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realtimeService.sendMonitorCreated', error);
             throw error;
@@ -335,7 +368,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteComponent-${projectId}`, component);
+            global.io
+                .to(projectId)
+                .emit(`deleteComponent-${projectId}`, component);
         } catch (error) {
             ErrorService.log('realtimeService.sendComponentDelete', error);
             throw error;
@@ -348,7 +383,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteMonitor-${projectId}`, monitor);
+            global.io.to(projectId).emit(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realtimeService.sendMonitorDelete', error);
             throw error;
@@ -361,7 +396,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`incidentResolved-${projectId}`, incident);
+            global.io
+                .to(projectId)
+                .emit(`incidentResolved-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realtimeService.incidentResolved', error);
             throw error;
@@ -374,7 +411,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`incidentAcknowledged-${projectId}`, incident);
+            global.io
+                .to(projectId)
+                .emit(`incidentAcknowledged-${projectId}`, incident);
         } catch (error) {
             ErrorService.log('realtimeService.incidentAcknowledged', error);
             throw error;
@@ -387,7 +426,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateStatusPage-${projectId}`, statusPage);
+            global.io
+                .to(projectId)
+                .emit(`updateStatusPage-${projectId}`, statusPage);
         } catch (error) {
             ErrorService.log('realtimeService.statusPageEdit', error);
             throw error;
@@ -400,7 +441,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateComponent-${projectId}`, component);
+            global.io
+                .to(projectId)
+                .emit(`updateComponent-${projectId}`, component);
         } catch (error) {
             ErrorService.log('realtimeService.componentEdit', error);
             throw error;
@@ -413,26 +456,20 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateMonitor-${projectId}`, monitor);
+            global.io.to(projectId).emit(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realtimeService.monitorEdit', error);
             throw error;
         }
     },
 
-    updateMonitorLog: ({
-        data,
-        logData,
-        projectId,
-        parentProjectId,
-        monitorId,
-    }) => {
+    updateMonitorLog: ({ data, logData, projectId, monitorId }) => {
         try {
             if (!global || !global.io) {
                 return;
             }
 
-            global.io.emit(`updateMonitorLog-${parentProjectId}`, {
+            global.io.to(projectId).emit(`updateMonitorLog-${projectId}`, {
                 projectId,
                 monitorId,
                 data,
@@ -444,13 +481,13 @@ module.exports = {
         }
     },
 
-    updateLighthouseLog: ({ data, projectId, monitorId, parentProjectId }) => {
+    updateLighthouseLog: ({ data, projectId, monitorId }) => {
         try {
             if (!global || !global.io) {
                 return;
             }
 
-            global.io.emit(`updateLighthouseLog-${parentProjectId}`, {
+            global.io.to(projectId).emit(`updateLighthouseLog-${projectId}`, {
                 projectId,
                 monitorId,
                 data,
@@ -461,35 +498,32 @@ module.exports = {
         }
     },
 
-    updateAllLighthouseLog: ({
-        projectId,
-        data,
-        parentProjectId,
-        monitorId,
-    }) => {
+    updateAllLighthouseLog: ({ projectId, data, monitorId }) => {
         try {
             if (!global || !global.io) {
                 return;
             }
 
-            global.io.emit(`updateAllLighthouseLog-${parentProjectId}`, {
-                projectId,
-                monitorId,
-                data,
-            });
+            global.io
+                .to(projectId)
+                .emit(`updateAllLighthouseLog-${projectId}`, {
+                    projectId,
+                    monitorId,
+                    data,
+                });
         } catch (error) {
             ErrorService.log('realtimeService.updateAllLighthouseLog', error);
             throw error;
         }
     },
 
-    updateMonitorStatus: ({ data, projectId, monitorId, parentProjectId }) => {
+    updateMonitorStatus: ({ data, projectId, monitorId }) => {
         try {
             if (!global || !global.io) {
                 return;
             }
 
-            global.io.emit(`updateMonitorStatus-${parentProjectId}`, {
+            global.io.to(projectId).emit(`updateMonitorStatus-${projectId}`, {
                 projectId,
                 monitorId,
                 data,
@@ -506,7 +540,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`updateTweets-${_projectId}`, {
+            global.io.to(_projectId).emit(`updateTweets-${_projectId}`, {
                 tweets,
                 statusPageId,
             });
@@ -535,7 +569,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`NewNotification-${projectId}`, data);
+            global.io.to(projectId).emit(`NewNotification-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendNotification', error);
             throw error;
@@ -548,7 +582,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
+            global.io
+                .to(projectId)
+                .emit(`TeamMemberRoleUpdate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.updateTeamMemberRole', error);
             throw error;
@@ -561,7 +597,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`TeamMemberCreate-${projectId}`, data);
+            global.io.to(projectId).emit(`TeamMemberCreate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.createTeamMember', error);
             throw error;
@@ -574,7 +610,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`TeamMemberDelete-${projectId}`, data);
+            global.io.to(projectId).emit(`TeamMemberDelete-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.deleteTeamMember', error);
             throw error;
@@ -587,10 +623,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `createApplicationLog-${componentId}`,
-                applicationLog
-            );
+            global.io
+                .to(componentId)
+                .emit(`createApplicationLog-${componentId}`, applicationLog);
         } catch (error) {
             ErrorService.log(
                 'realtimeService.sendApplicationLogCreated',
@@ -605,10 +640,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `deleteApplicationLog-${componentId}`,
-                applicationLog
-            );
+            global.io
+                .to(componentId)
+                .emit(`deleteApplicationLog-${componentId}`, applicationLog);
         } catch (error) {
             ErrorService.log('realtimeService.sendApplicationLogDelete', error);
             throw error;
@@ -620,7 +654,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`createLog-${applicationLogId}`, contentLog);
+            global.io
+                .to(applicationLogId)
+                .emit(`createLog-${applicationLogId}`, contentLog);
         } catch (error) {
             ErrorService.log('realtimeService.sendLogCreated', error);
             throw error;
@@ -632,10 +668,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `applicationLogKeyReset-${componentId}`,
-                applicationLog
-            );
+            global.io
+                .to(componentId)
+                .emit(`applicationLogKeyReset-${componentId}`, applicationLog);
         } catch (error) {
             ErrorService.log('realtimeService.applicationLogKeyReset', error);
             throw error;
@@ -647,10 +682,12 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `createContainerSecurity-${componentId}`,
-                containerSecurity
-            );
+            global.io
+                .to(componentId)
+                .emit(
+                    `createContainerSecurity-${componentId}`,
+                    containerSecurity
+                );
         } catch (error) {
             ErrorService.log(
                 'realtimeService.sendContainerSecurityCreated',
@@ -665,10 +702,12 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(
-                `createApplicationSecurity-${componentId}`,
-                applicationSecurity
-            );
+            global.io
+                .to(componentId)
+                .emit(
+                    `createApplicationSecurity-${componentId}`,
+                    applicationSecurity
+                );
         } catch (error) {
             ErrorService.log(
                 'realtimeService.sendApplicationSecurityCreated',
@@ -683,7 +722,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`createErrorTracker-${componentId}`, errorTracker);
+            global.io
+                .to(componentId)
+                .emit(`createErrorTracker-${componentId}`, errorTracker);
         } catch (error) {
             ErrorService.log('realtimeService.sendErrorTrackerCreated', error);
             throw error;
@@ -695,7 +736,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteErrorTracker-${componentId}`, errorTracker);
+            global.io
+                .to(componentId)
+                .emit(`deleteErrorTracker-${componentId}`, errorTracker);
         } catch (error) {
             ErrorService.log('realtimeService.sendErrorTrackerDelete', error);
             throw error;
@@ -707,7 +750,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
+            global.io
+                .to(componentId)
+                .emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
         } catch (error) {
             ErrorService.log('realtimeService.errorTrackerKeyReset', error);
             throw error;
@@ -719,7 +764,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`createErrorEvent-${errorTrackerId}`, data);
+            global.io
+                .to(errorTrackerId)
+                .emit(`createErrorEvent-${errorTrackerId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendErrorEventCreated', error);
             throw error;
@@ -731,7 +778,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`${type}Issue-${errorTrackerId}`, issue);
+            global.io
+                .to(errorTrackerId)
+                .emit(`${type}Issue-${errorTrackerId}`, issue);
         } catch (error) {
             ErrorService.log('realtimeService.sendIssueStatusChange', error);
             throw error;
@@ -743,7 +792,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`deleteErrorTrackerIssue-${errorTrackerId}`, issue);
+            global.io
+                .to(errorTrackerId)
+                .emit(`deleteErrorTrackerIssue-${errorTrackerId}`, issue);
         } catch (error) {
             ErrorService.log(
                 'realtimeService.sendErrorTrackerIssueDelete',
@@ -758,7 +809,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`timeMetrics-${appId}`, data);
+            global.io.to(appId).emit(`timeMetrics-${appId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendTimeMetrics', error);
             throw error;
@@ -770,7 +821,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`throughputMetrics-${appId}`, data);
+            global.io.to(appId).emit(`throughputMetrics-${appId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendThroughputMetrics', error);
             throw error;
@@ -782,7 +833,7 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`errorMetrics-${appId}`, data);
+            global.io.to(appId).emit(`errorMetrics-${appId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendErrorMetrics', error);
             throw error;
@@ -794,7 +845,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`security_${security._id}`, security);
+            global.io
+                .to(security._id)
+                .emit(`security_${security._id}`, security);
         } catch (error) {
             ErrorService.log('realtimeService.handleScanning', error);
             throw error;
@@ -806,7 +859,9 @@ module.exports = {
                 return;
             }
 
-            global.io.emit(`securityLog_${securityId}`, securityLog);
+            global.io
+                .to(securityId)
+                .emit(`securityLog_${securityId}`, securityLog);
         } catch (error) {
             ErrorService.log('realtimeService.handleLog', error);
             throw error;
