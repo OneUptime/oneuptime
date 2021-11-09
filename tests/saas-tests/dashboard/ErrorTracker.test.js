@@ -108,7 +108,7 @@ describe('Error Trackers', () => {
         },
         operationTimeOut
     );
-    test(
+    test.skip(
         'Should create new resource category then redirect to error tracker page to create a error tracker under that',
         async done => {
             const categoryName = 'Random-Category';
@@ -453,7 +453,7 @@ describe('Error Trackers', () => {
         },
         operationTimeOut
     );
-    test(
+    test.skip(
         'Should update category for created error tracker',
         async done => {
             const categoryName = 'Another-Category';
@@ -503,7 +503,7 @@ describe('Error Trackers', () => {
         },
         operationTimeOut
     );
-    test(
+    test.skip(
         'Should delete category for created log container and reflect',
         async done => {
             const categoryName = 'Another-Category';

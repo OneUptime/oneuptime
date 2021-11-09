@@ -44,17 +44,14 @@ describe('Incident API With SubProjects', () => {
         async done => {
             // add sub-project
             await init.addSubProject(subProjectName, page);
-            // Create Component
-            await init.addComponent(componentName, page, subProjectName);
-            await init.addAdditionalComponent(
-                newComponentName,
-                page,
-                subProjectName
-            );
-            await page.goto(utils.DASHBOARD_URL);
-            // add new user to sub-project
             await init.pageClick(page, '#projectFilterToggle');
             await init.pageClick(page, `#project-${subProjectName}`);
+            // Create Component
+            await init.addComponent(componentName, page);
+            await init.addAdditionalComponent(newComponentName, page);
+            await page.goto(utils.DASHBOARD_URL);
+            // add new user to sub-project
+
             await init.addUserToProject(
                 {
                     email: newUser.email,
