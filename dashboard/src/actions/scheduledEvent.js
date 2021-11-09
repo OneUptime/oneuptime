@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/scheduledEvent';
 
