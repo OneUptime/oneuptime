@@ -34,6 +34,7 @@ class ScheduledEventDetail extends Component {
     constructor(props) {
         super(props);
         this.limit = 10;
+        this.type = 'internal';
     }
     componentWillMount() {
         resetIdCounter();
@@ -66,7 +67,8 @@ class ScheduledEventDetail extends Component {
                     this.props.projectId,
                     scheduledEventId,
                     this.limit,
-                    0
+                    0,
+                    this.type
                 );
             }
             socket.on(
@@ -118,7 +120,8 @@ class ScheduledEventDetail extends Component {
                 this.props.projectId,
                 this.props.scheduledEventId,
                 this.limit,
-                0
+                0,
+                this.type
             );
         }
     };

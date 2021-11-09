@@ -78,7 +78,8 @@ export class ScheduledEventNote extends Component {
                 projectId,
                 scheduledEventId,
                 this.limit,
-                skip ? Number(skip) - this.limit : this.limit
+                skip ? Number(skip) - this.limit : this.limit,
+                type.toLowerCase()
             );
             this.props.prevPage(scheduledEventId + 'internal');
         }
@@ -98,7 +99,8 @@ export class ScheduledEventNote extends Component {
                 projectId,
                 scheduledEventId,
                 this.limit,
-                skip ? Number(skip) + this.limit : this.limit
+                skip ? Number(skip) + this.limit : this.limit,
+                type.toLowerCase()
             );
             this.props.nextPage(scheduledEventId + 'internal');
         }

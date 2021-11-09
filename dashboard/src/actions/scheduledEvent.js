@@ -417,7 +417,8 @@ export const fetchScheduledEventNotesInternal = (
     projectId,
     scheduledEventId,
     limit,
-    skip
+    skip,
+    type
 ) => async dispatch => {
     try {
         dispatch(fetchScheduledEventNotesInternalRequest());
@@ -427,7 +428,7 @@ export const fetchScheduledEventNotesInternal = (
         let response = {};
         if (skip >= 0 && limit >= 0) {
             response = await getApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}`
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`
             );
         } else {
             response = await getApi(
