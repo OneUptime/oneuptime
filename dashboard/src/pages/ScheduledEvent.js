@@ -29,7 +29,7 @@ class ScheduledEvent extends Component {
                     route={pathname}
                     name="Scheduled Maintenance Event"
                     pageTitle="Scheduled Event Detail"
-                    containerType="Scheduled Maintenance Event"
+                    // containerType="Scheduled Maintenance Event"
                 />
                 <div id="scheduleEventsPage">
                     <ScheduledEventBox projectId={this.props.projectId} />
