@@ -129,6 +129,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, '#logs');
             // create a new log and select the category
             // Fill and submit New Application  log form
+            await init.pageWaitForSelector(page, '#cbLogs');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -169,6 +171,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, '#logs');
 
             // Fill and submit New Application  log form
+            await init.pageWaitForSelector(page, '#cbLogs');
+            await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,

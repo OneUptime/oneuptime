@@ -49,7 +49,7 @@ describe('Email SMTP Api Test', function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
-                $in: [data.user.email],
+                $in: [data.user.email.toLowerCase()],
             },
         });
         await ProjectService.hardDeleteBy({

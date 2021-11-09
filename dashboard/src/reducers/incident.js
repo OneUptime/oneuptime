@@ -79,6 +79,7 @@ const initialState = {
         success: false,
         requesting: false,
     },
+    activeIncident: null,
 };
 
 export default function incident(state = initialState, action) {
@@ -648,6 +649,12 @@ export default function incident(state = initialState, action) {
                     },
                 });
             }
+
+        case 'SET_ACTIVE_INCIDENT':
+            return {
+                ...state,
+                activeIncident: action.payload,
+            };
 
         case types.ACKNOWLEDGE_INCIDENT_REQUEST:
             if (action.payload.multiple) {

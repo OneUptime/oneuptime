@@ -29,6 +29,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import DisabledMessage from '../modals/DisabledMessage';
+import { updateprobebysocket } from '../../actions/socket';
 
 export class MonitorViewHeader extends Component {
     constructor(props) {
@@ -45,8 +46,17 @@ export class MonitorViewHeader extends Component {
     }
 
     componentDidMount() {
-        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
+        const {
+            fetchMonitorLogs,
+            fetchMonitorStatuses,
+            monitor,
+            // updateprobebysocket,
+        } = this.props;
         const { startDate, endDate } = this.state;
+
+        // socket.on(`updateProbe`, function(data) {
+        //     updateprobebysocket(data);
+        // });
 
         fetchMonitorLogs(
             monitor.projectId._id || monitor.projectId,
@@ -60,6 +70,9 @@ export class MonitorViewHeader extends Component {
             startDate,
             endDate
         );
+    }
+    componentWillUnmount() {
+        // socket.removeListener(`updateProbe`);
     }
     handleStartDateTimeChange = val => {
         const startDate = moment(val);
@@ -439,6 +452,7 @@ MonitorViewHeader.propTypes = {
     probes: PropTypes.array,
     creating: PropTypes.bool,
     toggleEdit: PropTypes.func,
+    // updateprobebysocket: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -452,6 +466,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             toggleEdit,
+            updateprobebysocket,
         },
         dispatch
     );

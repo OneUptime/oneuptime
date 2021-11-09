@@ -241,6 +241,7 @@ export class MonitorViewLogsBox extends Component {
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                         page={this.state.page}
+                        projectId={this.props.projectId}
                     />
                 </div>
             </div>
@@ -260,6 +261,7 @@ MonitorViewLogsBox.propTypes = {
     monitorType: PropTypes.string,
     agentless: PropTypes.bool,
     probes: PropTypes.array,
+    projectId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>

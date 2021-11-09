@@ -266,6 +266,7 @@ module.exports = {
                 }),
                 this.findOneBy({ _id: ObjectId(data._id) }),
             ]);
+
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {

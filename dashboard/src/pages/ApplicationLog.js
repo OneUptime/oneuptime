@@ -16,14 +16,8 @@ import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
-import { REALTIME_URL } from '../config';
-import io from 'socket.io-client';
 import { history } from '../store';
-
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../components/basic/Socket';
 
 class ApplicationLog extends Component {
     state = {
@@ -111,6 +105,9 @@ class ApplicationLog extends Component {
         const projectId =
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
+            // join component room
+            socket.emit('component_switch', componentId);
+
             this.props
                 .fetchApplicationLogs(projectId, componentId, 0, 5)
                 .then(() => this.setState({ requesting: false }));

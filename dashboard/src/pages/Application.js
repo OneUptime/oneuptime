@@ -6,7 +6,7 @@ import Fade from 'react-reveal/Fade';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import {
     getApplicationSecurities,
     getApplicationSecurityLogs,
@@ -18,16 +18,9 @@ import { fetchComponent } from '../actions/component';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import io from 'socket.io-client';
 import sortByName from '../utils/sortByName';
 import { history } from '../store';
-
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../components/basic/Socket';
 
 class Application extends Component {
     state = {
@@ -135,6 +128,12 @@ class Application extends Component {
         }
     }
 
+    componentWillUnmount() {
+        socket.removeListener(
+            `createApplicationSecurity-${this.props.componentId}`
+        );
+    }
+
     toggleForm = () =>
         this.setState(prevState => ({
             showApplicationSecurityForm: !prevState.showApplicationSecurityForm,
@@ -150,8 +149,8 @@ class Application extends Component {
             location: { pathname },
             component,
             componentSlug,
-            scanApplicationSecuritySuccess,
-            getApplicationSecuritySuccess,
+            // scanApplicationSecuritySuccess,
+            // getApplicationSecuritySuccess,
             currentProject,
             switchToProjectViewerNav,
             skip,
@@ -170,6 +169,8 @@ class Application extends Component {
             ? numberOfPage
             : Math.ceil(parseInt(count) / limit);
 
+        socket.emit('component_switch', componentId);
+
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
                 `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/application/${data.slug}`
@@ -179,16 +180,19 @@ class Application extends Component {
             ? sortByName(appSecurities)
             : [];
 
-        applicationSecurities.length > 0 &&
-            applicationSecurities.forEach(applicationSecurity => {
-                socket.on(`security_${applicationSecurity._id}`, data => {
-                    getApplicationSecuritySuccess(data);
-                });
+        // applicationSecurities.length > 0 &&
+        //     applicationSecurities.forEach(applicationSecurity => {
+        //         // join room
+        //         socket.emit('security_switch', applicationSecurity._id);
 
-                socket.on(`securityLog_${applicationSecurity._id}`, data => {
-                    scanApplicationSecuritySuccess(data);
-                });
-            });
+        //         socket.on(`security_${applicationSecurity._id}`, data => {
+        //             getApplicationSecuritySuccess(data);
+        //         });
+
+        //         socket.on(`securityLog_${applicationSecurity._id}`, data => {
+        //             scanApplicationSecuritySuccess(data);
+        //         });
+        //     });
 
         const componentName = component ? component.name : '';
         const projectName = currentProject ? currentProject.name : '';
@@ -466,8 +470,8 @@ Application.propTypes = {
         pathname: PropTypes.string,
     }),
     component: PropTypes.object,
-    scanApplicationSecuritySuccess: PropTypes.func,
-    getApplicationSecuritySuccess: PropTypes.func,
+    // scanApplicationSecuritySuccess: PropTypes.func,
+    // getApplicationSecuritySuccess: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
     currentProject: PropTypes.object,
     skip: PropTypes.number,

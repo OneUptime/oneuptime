@@ -31,6 +31,13 @@ module.exports = {
         });
     },
 
+    enableEmailLog: async function() {
+        await GlobalConfigService.create({
+            name: 'emailLogMonitoringStatus',
+            value: true,
+        });
+    },
+
     removeTestConfig: async function() {
         await GlobalConfigService.hardDeleteBy({});
     },

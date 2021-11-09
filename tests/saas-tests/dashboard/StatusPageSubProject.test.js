@@ -42,6 +42,8 @@ describe('StatusPage API With SubProjects', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
+        await init.pageClick(page, '#projectFilterToggle');
+        await init.pageClick(page, `#project-${subProjectName}`);
         // add new user to sub-project
         await init.addUserToProject(
             {
@@ -76,7 +78,8 @@ describe('StatusPage API With SubProjects', () => {
 
             await init.saasLogout(page); // Needed for subproject team member to login
             await init.registerAndLoggingTeamMember(user, page);
-
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.pageWaitForSelector(page, '#statusPages');
             await init.pageClick(page, '#statusPages');
 
@@ -107,6 +110,8 @@ describe('StatusPage API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${subProjectName}`);
             await init.addStatusPageToProject(
                 statuspageName,
                 subProjectName,

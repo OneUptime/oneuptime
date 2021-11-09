@@ -20,6 +20,7 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
 import { getIncidents, getComponentIncidents } from '../../actions/incident';
+import { closeModal } from '../../actions/modal';
 
 class CreateIncident extends Component {
     constructor(props) {
@@ -27,6 +28,7 @@ class CreateIncident extends Component {
         this.state = {
             componentId: props.componentId,
             monitorError: null,
+            loading: false,
         };
     }
 
@@ -46,10 +48,10 @@ class CreateIncident extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = async values => {
         const {
             createNewIncident,
-            closeThisDialog,
+            closeModal,
             currentProject,
             data,
             monitorsList,
@@ -61,6 +63,7 @@ class CreateIncident extends Component {
             getComponentIncidents,
             currentProjectId,
         } = this.props;
+        const thisObj = this;
 
         const {
             incidentType,
@@ -122,6 +125,8 @@ class CreateIncident extends Component {
                     : values[field.fieldName],
         }));
 
+        this.setState({ loading: true });
+
         createNewIncident(
             subProjectId,
             monitors,
@@ -132,7 +137,8 @@ class CreateIncident extends Component {
             customFields
         ).then(
             function() {
-                closeThisDialog();
+                thisObj.setState({ loading: false });
+                closeModal({});
                 if (componentSlug) {
                     getComponentIncidents(subProjectId, componentId);
                 } else {
@@ -149,7 +155,7 @@ class CreateIncident extends Component {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'Escape':
-                    return this.props.closeThisDialog();
+                    return this.props.closeModal({});
                 case 'Enter':
                     return document.getElementById('createIncident').click();
                 default:
@@ -391,7 +397,7 @@ class CreateIncident extends Component {
     render() {
         const {
             handleSubmit,
-            closeThisDialog,
+            closeModal,
             data,
             monitors,
             incidentPriorities,
@@ -421,7 +427,7 @@ class CreateIncident extends Component {
                         className="bs-Modal bs-Modal--medium"
                         style={{ width: 570 }}
                     >
-                        <ClickOutside onClickOutside={closeThisDialog}>
+                        <ClickOutside onClickOutside={closeModal}>
                             <div className="bs-Modal-header">
                                 <div
                                     className="bs-Modal-header-copy"
@@ -729,7 +735,7 @@ class CreateIncident extends Component {
                                                                     'pointer',
                                                             }}
                                                             onClick={() => {
-                                                                closeThisDialog();
+                                                                closeModal();
                                                                 history.push(
                                                                     '/dashboard/project/' +
                                                                         this
@@ -791,7 +797,7 @@ class CreateIncident extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             type="button"
-                                            onClick={closeThisDialog}
+                                            onClick={closeModal}
                                             style={{ height: '35px' }}
                                         >
                                             <span>Cancel</span>
@@ -820,7 +826,8 @@ class CreateIncident extends Component {
                                             >
                                                 {this.props.newIncident &&
                                                     !this.props.newIncident
-                                                        .requesting && (
+                                                        .requesting &&
+                                                    !this.state.loading && (
                                                         <>
                                                             <span>Create</span>
                                                             <span className="create-btn__keycode">
@@ -829,8 +836,9 @@ class CreateIncident extends Component {
                                                         </>
                                                     )}
                                                 {this.props.newIncident &&
-                                                    this.props.newIncident
-                                                        .requesting && (
+                                                    (this.props.newIncident
+                                                        .requesting ||
+                                                        this.state.loading) && (
                                                         <FormLoader />
                                                     )}
                                             </button>
@@ -848,7 +856,7 @@ class CreateIncident extends Component {
 
 CreateIncident.displayName = 'CreateIncidentFormModal';
 CreateIncident.propTypes = {
-    closeThisDialog: PropTypes.func.isRequired,
+    closeModal: PropTypes.func.isRequired,
     createNewIncident: PropTypes.func.isRequired,
     subProjects: PropTypes.array,
     currentProject: PropTypes.object,
@@ -958,6 +966,7 @@ const mapDispatchToProps = dispatch => {
             resetCreateIncident,
             getIncidents,
             getComponentIncidents,
+            closeModal,
         },
         dispatch
     );

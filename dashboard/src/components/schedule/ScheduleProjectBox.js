@@ -79,7 +79,11 @@ const ScheduleProjectBox = props => {
                                     key={() => uuidv4()}
                                 >
                                     <button
-                                        id={`btnCreateSchedule_${props.subProjectName}`}
+                                        id={`btnCreateSchedule_${
+                                            props.subProjectName
+                                                ? props.subProjectName
+                                                : props.currentProject.name
+                                        }`}
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         type="button"
                                         onClick={() => {

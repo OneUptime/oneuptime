@@ -217,7 +217,7 @@ module.exports = {
             }
 
             const selectIncidentComSla =
-                'name projectId isDefault alertTime alertTime deleted';
+                'name projectId isDefault alertTime alertTime deleted duration';
 
             const populateIncidentComSla = [
                 { path: 'projectId', select: 'name slug' },

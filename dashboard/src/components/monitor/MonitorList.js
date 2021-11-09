@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -8,6 +8,7 @@ import MonitorDetail from './MonitorDetail';
 // import sortByName from '../../utils/sortByName';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
+import { updateprobebysocket } from '../../actions/socket';
 
 function MonitorList(props) {
     const monitors = props.monitors ? props.monitors : [];
@@ -42,6 +43,15 @@ function MonitorList(props) {
             </div>
         ));
     }
+
+    useEffect(() => {
+        // socket.on(`updateProbe`, function(data) {
+        //     props.updateprobebysocket(data);
+        // });
+        // return () => {
+        //     socket.removeListener(`updateProbe`);
+        // };
+    }, []);
 
     return (
         <div>
@@ -172,9 +182,11 @@ MonitorList.propTypes = {
         PropTypes.oneOfType([null, undefined]),
     ]),
     componentId: PropTypes.string,
+    // updateprobebysocket: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ updateprobebysocket }, dispatch);
 
 const mapStateToProps = (state, ownProps) => {
     const { componentSlug } = ownProps.match.params;

@@ -57,6 +57,8 @@ export class IncidentStatus extends Component {
             firstVisibility: true,
             secondVisibility: true,
             thirdVisibility: true,
+            resolving: false,
+            acknowledging: false,
         };
     }
     firstIconClick = () => {
@@ -156,6 +158,9 @@ export class IncidentStatus extends Component {
         const userId = User.getUserId();
         const projectId =
             this.props.incident.projectId._id ?? this.props.incident.projectId;
+
+        this.setState({ acknowledging: true });
+
         await this.props
             .acknowledgeIncident(
                 projectId,
@@ -164,7 +169,7 @@ export class IncidentStatus extends Component {
                 this.props.multiple
             )
             .then(() => {
-                this.setState({ resolveLoad: false });
+                this.setState({ resolveLoad: false, acknowledging: false });
                 this.props.markAsRead(
                     projectId,
                     this.props.incident.notifications
@@ -202,6 +207,9 @@ export class IncidentStatus extends Component {
         const userId = User.getUserId();
         const projectId =
             this.props.incident.projectId._id ?? this.props.incident.projectId;
+
+        this.setState({ resolving: true });
+
         await this.props
             .resolveIncident(
                 projectId,
@@ -210,7 +218,12 @@ export class IncidentStatus extends Component {
                 this.props.multiple
             )
             .then(() => {
-                this.setState({ resolveLoad: false, value: '', stats: false });
+                this.setState({
+                    resolveLoad: false,
+                    value: '',
+                    stats: false,
+                    resolving: false,
+                });
                 if (setLoading) {
                     setLoading(false);
                 }
@@ -1127,14 +1140,17 @@ export class IncidentStatus extends Component {
                                                                                             this
                                                                                                 .props
                                                                                                 .multipleIncidentRequest
-                                                                                                .resolving)) &&
+                                                                                                .resolving) ||
+                                                                                        this
+                                                                                            .state
+                                                                                            .acknowledging) &&
                                                                                     this
-                                                                                        .state
-                                                                                        .value ===
-                                                                                        1 &&
-                                                                                    this
-                                                                                        .state
-                                                                                        .stats
+                                                                                        .props
+                                                                                        .activeIncident ===
+                                                                                        this
+                                                                                            .props
+                                                                                            .incident
+                                                                                            ._id
                                                                                 }
                                                                             >
                                                                                 <Spinner
@@ -1548,11 +1564,17 @@ export class IncidentStatus extends Component {
                                                                                                     this
                                                                                                         .props
                                                                                                         .multipleIncidentRequest
-                                                                                                        .resolving)) &&
+                                                                                                        .resolving) ||
+                                                                                                this
+                                                                                                    .state
+                                                                                                    .resolving) &&
                                                                                             this
-                                                                                                .state
-                                                                                                .value ===
-                                                                                                2
+                                                                                                .props
+                                                                                                .activeIncident ===
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .incident
+                                                                                                    ._id
                                                                                         }
                                                                                     >
                                                                                         <Spinner
@@ -2344,7 +2366,7 @@ export class IncidentStatus extends Component {
                                     if={
                                         this.props.incident &&
                                         this.props.route &&
-                                        !this.props.incidentId
+                                        !this.props.incident.slug
                                     }
                                 >
                                     <button
@@ -2523,6 +2545,7 @@ const mapStateToProps = (state, ownProps) => {
         description,
         incidentPriority,
         incidentId,
+        activeIncident: state.incident.activeIncident,
     };
 };
 
@@ -2570,6 +2593,7 @@ IncidentStatus.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
     incidentId: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
+    activeIncident: PropTypes.string,
 };
 
 export default withRouter(

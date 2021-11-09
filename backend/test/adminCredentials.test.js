@@ -1,6 +1,6 @@
 const userData = require('./data/user');
 process.env.PORT = 3020;
-process.env.ADMIN_EMAIL = userData.adminUser.email;
+process.env.ADMIN_EMAIL = userData.adminUser.email.toLowerCase();
 process.env.ADMIN_PASSWORD = userData.adminUser.password;
 const chai = require('chai');
 const expect = require('chai').expect;

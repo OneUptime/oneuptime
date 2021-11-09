@@ -175,6 +175,12 @@ router.delete('/:projectId', getUser, isUserOwner, async function(req, res) {
             { projectId: projectId },
             userId
         );
+        if (!alert) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Alert not found',
+            });
+        }
         return sendItemResponse(req, res, alert);
     } catch (error) {
         return sendErrorResponse(req, res, error);
