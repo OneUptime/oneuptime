@@ -37,7 +37,7 @@ describe('Resource Category', () => {
         done();
     });
 
-    test(
+    test.skip(
         'should create a new resource category',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -101,7 +101,7 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should show created resource category in new monitor dropdown',
         async done => {
             // Navigate to details page of component created
@@ -132,7 +132,7 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should create a new monitor by selecting resource category from dropdown',
         async done => {
             // Navigate to details page of component created
@@ -183,7 +183,7 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should delete the created resource category',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -270,7 +270,7 @@ describe('Member Restriction', () => {
         done();
     });
 
-    test(
+    test.skip(
         'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
         async done => {
             // A Subproject user has to register his/her mail before login in.
@@ -320,7 +320,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -362,7 +362,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {

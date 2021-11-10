@@ -307,7 +307,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    test(
+    test.skip(
         'Should update category for created log container',
         async done => {
             const categoryName = 'Another-Category';
@@ -354,7 +354,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    test(
+    test.skip(
         'Should delete category for created log container and reflect',
         async done => {
             const categoryName = 'Another-Category';

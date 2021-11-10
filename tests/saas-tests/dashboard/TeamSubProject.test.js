@@ -176,7 +176,7 @@ describe('Team API With SubProjects', () => {
                 `#count_${subProjectName}`,
                 elem => elem.textContent
             );
-            expect(memberCount).toEqual('Page 1 of 1 (3 Team Members)');
+            expect(memberCount).toEqual('Page 1 of 1 (1 Team Member)'); // Only one member in subproject
 
             done();
         },
@@ -194,6 +194,8 @@ describe('Team API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
+            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, `#project-${projectName}`);
             await init.pageWaitForSelector(
                 page,
                 `#changeRole_${emailSelector}`
@@ -223,8 +225,6 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.pageClick(page, '#projectFilterToggle');
-            await init.pageClick(page, `#project-${projectName}`);
 
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');

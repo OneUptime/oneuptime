@@ -38,15 +38,16 @@ describe('Monitor API With SubProjects', () => {
 
         // add sub-project
         await init.addSubProject(subProjectName, page);
+        await init.pageClick(page, '#projectFilterToggle');
+        await init.pageClick(page, `#project-${subProjectName}`);
         // Create component
-        await init.addComponent(componentName, page, subProjectName);
+        await init.addComponent(componentName, page);
 
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
         // add new user to sub-project
-        await init.pageClick(page, '#projectFilterToggle');
-        await init.pageClick(page, `#project-${subProjectName}`);
+
         await init.addUserToProject(
             {
                 email: newEmail,

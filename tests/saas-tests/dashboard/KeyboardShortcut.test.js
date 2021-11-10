@@ -328,7 +328,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should navigate to resource category page with keyboard shortcut (s + r)',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {

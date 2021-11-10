@@ -115,7 +115,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    test(
+    test.skip(
         'Should create new resource category then redirect to application log page to create a container under that',
         async done => {
             const categoryName = 'Random-Category';

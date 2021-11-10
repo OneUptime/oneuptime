@@ -31,11 +31,6 @@ describe('Monitor API', () => {
             testServerMonitorName,
             page
         );
-        await init.pageWaitForSelector(
-            page,
-            `#ssl-status-${testServerMonitorName}`,
-            { visible: true, timeout: 600000 }
-        );
     });
 
     afterAll(async done => {
@@ -86,7 +81,7 @@ describe('Monitor API', () => {
 
         await init.pageWaitForSelector(page, '#notificationscroll', {
             visbile: true,
-            timeout: 360000,
+            timeout: 600000,
         });
         await init.pageWaitForSelector(
             page,
