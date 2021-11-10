@@ -14,6 +14,7 @@ import { capitalize } from '../../config';
 import { ListLoader } from '../basic/Loader';
 import { Link } from 'react-router-dom';
 import Badge from '../common/Badge';
+import MessageBox from '../modals/MessageBox';
 
 class EventBox extends Component {
     constructor(props) {
@@ -113,6 +114,12 @@ class EventBox extends Component {
             ? currentSubProject.name
             : '';
 
+        const noMonitorMessage = (
+            <span>
+                No monitors added to this project yet. Please create one.
+            </span>
+        );
+
         return (
             <Fade>
                 <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -156,6 +163,54 @@ class EventBox extends Component {
                                                         CreateSchedule,
                                                         {
                                                             projectId,
+                                                        }
+                                                    ),
+                                                });
+                                            }}
+                                            className="Button bs-ButtonLegacy ActionIconParent"
+                                            type="button"
+                                        >
+                                            <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                                                </div>
+                                                {allScheduleEventLength ===
+                                                1 ? (
+                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                                        <span>
+                                                            Create New Event
+                                                        </span>
+                                                        <span className="new-btn__keycode">
+                                                            N
+                                                        </span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                        <span>
+                                                            Create New Event{' '}
+                                                        </span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={
+                                            !fetchingMonitors &&
+                                            monitors.length === 0
+                                        }
+                                    >
+                                        <button
+                                            id="addScheduledEventButton"
+                                            onClick={() => {
+                                                this.props.openModal({
+                                                    id: createScheduledEventModalId,
+                                                    content: DataPathHoC(
+                                                        MessageBox,
+                                                        {
+                                                            title:
+                                                                'Create Scheduled Maintenance Event',
+                                                            message: noMonitorMessage,
                                                         }
                                                     ),
                                                 });
@@ -413,8 +468,13 @@ class EventBox extends Component {
                             <ShouldRender if={fetchingMonitors && requesting}>
                                 <ListLoader />
                             </ShouldRender>
+                            {/* hide this from the view */}
                             <ShouldRender
-                                if={!fetchingMonitors && monitors.length === 0}
+                                if={
+                                    !fetchingMonitors &&
+                                    monitors.length === 0 &&
+                                    false
+                                }
                             >
                                 <div
                                     className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
@@ -454,8 +514,7 @@ class EventBox extends Component {
                                         scheduledEvents.length === 0) &&
                                     !requesting &&
                                     !error &&
-                                    !fetchingMonitors &&
-                                    monitors.length > 0
+                                    !fetchingMonitors
                                 }
                             >
                                 <div

@@ -553,7 +553,12 @@ class CreateSchedule extends React.Component {
                                                         </span>
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <div className="bs-Fieldset-field">
+                                                        <div
+                                                            className="bs-Fieldset-field"
+                                                            style={{
+                                                                width: '100%',
+                                                            }}
+                                                        >
                                                             <Field
                                                                 className="bs-TextInput"
                                                                 type="text"
@@ -564,6 +569,8 @@ class CreateSchedule extends React.Component {
                                                                 placeholder="10pm"
                                                                 style={{
                                                                     width:
+                                                                        '100%',
+                                                                    minWidth:
                                                                         '250px',
                                                                 }}
                                                                 minDate={
@@ -589,7 +596,12 @@ class CreateSchedule extends React.Component {
                                                             End date and time
                                                         </span>
                                                     </label>
-                                                    <div className="bs-Fieldset-fields">
+                                                    <div
+                                                        className="bs-Fieldset-fields"
+                                                        style={{
+                                                            width: '100%',
+                                                        }}
+                                                    >
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                             type="text"
@@ -599,7 +611,9 @@ class CreateSchedule extends React.Component {
                                                             }
                                                             placeholder="10pm"
                                                             style={{
-                                                                width: '250px',
+                                                                width: '100%',
+                                                                minWidth:
+                                                                    '250px',
                                                             }}
                                                             minDate={moment(
                                                                 minStartDate

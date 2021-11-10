@@ -18,17 +18,9 @@ import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
-import { REALTIME_URL } from '../config';
-import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
-
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../components/basic/Socket';
 
 class ScheduledEventDetail extends Component {
     constructor(props) {
@@ -38,6 +30,27 @@ class ScheduledEventDetail extends Component {
     }
     componentWillMount() {
         resetIdCounter();
+
+        // remove listeners
+        const scheduledEventId = this.props.scheduledEventId;
+        socket.removeListener(
+            `addScheduledEventInternalNote-${scheduledEventId}`
+        );
+        socket.removeListener(
+            `addScheduledEventInvestigationNote-${scheduledEventId}`
+        );
+        socket.removeListener(
+            `updateScheduledEventInternalNote-${scheduledEventId}`
+        );
+        socket.removeListener(
+            `updateScheduledEventInvestigationNote-${scheduledEventId}`
+        );
+        socket.removeListener(
+            `deleteScheduledEventInternalNote-${scheduledEventId}`
+        );
+        socket.removeListener(
+            `deleteScheduledEventInvestigationNote-${scheduledEventId}`
+        );
     }
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -63,6 +76,9 @@ class ScheduledEventDetail extends Component {
             } = this.props;
             // fetch scheduled event notes
             if (scheduledEventId) {
+                // join the room
+                socket.emit('schedule_switch', scheduledEventId);
+
                 fetchScheduledEventNotesInternal(
                     this.props.projectId,
                     scheduledEventId,
@@ -70,31 +86,32 @@ class ScheduledEventDetail extends Component {
                     0,
                     this.type
                 );
+
+                socket.on(
+                    `addScheduledEventInternalNote-${scheduledEventId}`,
+                    event => createScheduledEventNoteSuccess(event)
+                );
+                socket.on(
+                    `addScheduledEventInvestigationNote-${scheduledEventId}`,
+                    event => createScheduledEventNoteSuccess(event)
+                );
+                socket.on(
+                    `updateScheduledEventInternalNote-${scheduledEventId}`,
+                    event => updateScheduledEventNoteInternalSuccess(event)
+                );
+                socket.on(
+                    `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+                    event => updateScheduledEventNoteInvestigationSuccess(event)
+                );
+                socket.on(
+                    `deleteScheduledEventInternalNote-${scheduledEventId}`,
+                    event => deleteScheduledEventNoteSuccess(event)
+                );
+                socket.on(
+                    `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+                    event => deleteScheduledEventNoteSuccess(event)
+                );
             }
-            socket.on(
-                `addScheduledEventInternalNote-${scheduledEventId}`,
-                event => createScheduledEventNoteSuccess(event)
-            );
-            socket.on(
-                `addScheduledEventInvestigationNote-${scheduledEventId}`,
-                event => createScheduledEventNoteSuccess(event)
-            );
-            socket.on(
-                `updateScheduledEventInternalNote-${scheduledEventId}`,
-                event => updateScheduledEventNoteInternalSuccess(event)
-            );
-            socket.on(
-                `updateScheduledEventInvestigationNote-${scheduledEventId}`,
-                event => updateScheduledEventNoteInvestigationSuccess(event)
-            );
-            socket.on(
-                `deleteScheduledEventInternalNote-${scheduledEventId}`,
-                event => deleteScheduledEventNoteSuccess(event)
-            );
-            socket.on(
-                `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
-                event => deleteScheduledEventNoteSuccess(event)
-            );
         }
 
         if (prevProps.activeProjectId !== this.props.activeProjectId) {

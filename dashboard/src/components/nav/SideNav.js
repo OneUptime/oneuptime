@@ -492,7 +492,10 @@ const WrappedSideNav = props => {
     let sortedRoutes = [...allRoutes];
     if (hideProjectNav) {
         sortedRoutes = sortedRoutes.filter(
-            router => !titleToExclude.includes(router.title)
+            router =>
+                !titleToExclude.includes(router.title) ||
+                router.path ===
+                    '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
         );
     }
 

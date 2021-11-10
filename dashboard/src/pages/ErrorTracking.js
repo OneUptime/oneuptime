@@ -13,15 +13,10 @@ import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
-import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import io from 'socket.io-client';
 import { history } from '../store';
-
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../components/basic/Socket';
 
 class ErrorTracking extends Component {
     state = {
@@ -135,6 +130,10 @@ class ErrorTracking extends Component {
     render() {
         if (this.props.currentProject) {
             document.title = this.props.currentProject.name + ' Dashboard';
+
+            // join the room
+            socket.emit('component_switch', this.props.componentId);
+
             socket.on(`createErrorTracker-${this.props.componentId}`, data => {
                 history.push(
                     `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/error-trackers/${data.slug}`

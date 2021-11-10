@@ -155,9 +155,9 @@ const IncidentProjectBox = props => {
                                 onClick={() =>
                                     props.openModal({
                                         id: props.createIncidentModalId,
-                                        onClose: () => '',
-                                        onConfirm: () =>
-                                            new Promise(resolve => resolve()),
+                                        // onClose: () => '',
+                                        // onConfirm: () =>
+                                        //     new Promise(resolve => resolve()),
                                         content: DataPathHoC(CreateIncident, {
                                             subProjectId:
                                                 props.subProjectIncident._id,

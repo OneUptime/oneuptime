@@ -85,6 +85,8 @@ function BreadCrumbItem({
     );
 
     if (titleElement) {
+        titleElement.parentElement.style.width = '100%';
+
         const titleIcon = titleElement.querySelector('#titleIcon');
         const titleText = titleElement.querySelector('#titleText');
         const resourceType = titleElement.querySelector('#resourceType');

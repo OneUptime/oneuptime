@@ -10,15 +10,7 @@ import { ListLoader } from '../basic/Loader';
 import { getLogSuccess } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { REALTIME_URL } from '../../config';
-import io from 'socket.io-client';
-
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
-    path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'],
-});
+import { socket } from '../basic/Socket';
 
 class LogList extends Component {
     constructor(props) {
@@ -65,10 +57,19 @@ class LogList extends Component {
         });
     };
 
+    componentWillUnmount() {
+        socket.removeListener(`createLog-${this.props.applicationLogId}`);
+    }
+
     render() {
-        socket.on(`createLog-${this.props.applicationLogId}`, data => {
-            this.props.getLogSuccess(data);
-        });
+        if (this.props.applicationLogId) {
+            // join application log room
+            socket.emit('application_log_switch', this.props.applicationLogId);
+
+            socket.on(`createLog-${this.props.applicationLogId}`, data => {
+                this.props.getLogSuccess(data);
+            });
+        }
         const { logs } = this.props;
         let skip = logs && logs.skip ? logs.skip : null;
         let limit = logs && logs.limit ? logs.limit : null;

@@ -65,7 +65,12 @@ const DateTimeSelector = ({
     };
 
     return (
-        <span>
+        <span
+            style={{
+                width: style && style.width ? style.width : '100%',
+                minWidth: style && style.minWidth ? style.minWidth : '250px',
+            }}
+        >
             <div
                 style={{
                     //width: '10px',
