@@ -86,7 +86,7 @@ app.use(Sentry.Handlers.errorHandler());
 global.Sentry = Sentry;
 
 // This cron runs every 30 minutes.
-cron.schedule('*/5 * * * *', () => {
+cron.schedule('*/30 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);

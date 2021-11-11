@@ -164,11 +164,12 @@ const gitCredential = {
 };
 
 const smtpCredential = {
-    user: process.env.TEST_EMAIL || 'willowxf@gmail.com',
-    pass: process.env.TEST_EMAIL_PASSWORD || 'david5498',
+    user: process.env.TEST_EMAIL || 'noreply@fyipe.com',
+    pass:
+        process.env.TEST_EMAIL_PASSWORD || 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
     host: process.env.TEST_EMAIL_SMTP_SERVER || 'smtp.gmail.com',
     port: process.env.TEST_EMAIL_SMTP_PORT || '465',
-    from: process.env.TEST_EMAIL || 'willowxf@gmail.com',
+    from: process.env.TEST_EMAIL || 'noreply@fyipe.com',
     secure: true,
 };
 
