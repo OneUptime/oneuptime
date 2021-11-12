@@ -92,6 +92,10 @@ describe('Incident API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
+            await page.reload({
+                waitUntil: 'networkidle0',
+                timeout: init.timeout,
+            });
 
             // close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
@@ -101,10 +105,6 @@ describe('Incident API With SubProjects', () => {
             await init.page$Eval(page, '#closeIncident_0', elem =>
                 elem.click()
             );
-            await page.reload({
-                waitUntil: 'networkidle0',
-                timeout: init.timeout,
-            });
 
             await init.pageWaitForSelector(
                 page,
