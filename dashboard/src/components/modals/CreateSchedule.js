@@ -538,7 +538,14 @@ class CreateSchedule extends React.Component {
                                                                         ready={
                                                                             true
                                                                         }
-                                                                        value={`${selectedMonitors.length} Monitor(s) selected`}
+                                                                        value={`${
+                                                                            selectedMonitors.length
+                                                                        } Monitor${
+                                                                            selectedMonitors.length >
+                                                                            0
+                                                                                ? 's'
+                                                                                : ''
+                                                                        } Selected`}
                                                                         updateState={
                                                                             this
                                                                                 .updateState
