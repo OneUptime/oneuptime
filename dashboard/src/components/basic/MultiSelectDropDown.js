@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PropTypes } from 'prop-types';
+import Badge from '../common/Badge';
 
 // Options should have the following structure for this dropdown for work fine
 
@@ -81,7 +82,7 @@ const MultiSelectDropDown = ({
     };
 
     const menuStyle = {
-        padding: '5px 15px',
+        padding: '10px 15px',
     };
 
     return (
@@ -145,15 +146,24 @@ const MultiSelectDropDown = ({
                                                     style={{
                                                         border:
                                                             '1px solid #fff',
+                                                        marginRight: 15,
                                                     }}
                                                 >
                                                     <div className="Checkbox-color Box-root"></div>
                                                 </div>
+                                                <Badge
+                                                    color={'blue'}
+                                                    fontSize={'10px'}
+                                                >
+                                                    Project
+                                                </Badge>
                                                 <span
                                                     className="db-MultiSelect-renderer-label"
                                                     style={{
                                                         marginLeft: 10,
                                                         cursor: 'pointer',
+                                                        textTransform:
+                                                            'capitalize',
                                                     }}
                                                 >
                                                     {data.projectName}
@@ -206,16 +216,29 @@ const MultiSelectDropDown = ({
                                                                         style={{
                                                                             border:
                                                                                 '1px solid #fff',
+                                                                            marginRight: 15,
                                                                         }}
                                                                     >
                                                                         <div className="Checkbox-color Box-root"></div>
                                                                     </div>
+                                                                    <Badge
+                                                                        color={
+                                                                            'blue'
+                                                                        }
+                                                                        fontSize={
+                                                                            '10px'
+                                                                        }
+                                                                    >
+                                                                        Component
+                                                                    </Badge>
                                                                     <span
                                                                         className="db-MultiSelect-renderer-label"
                                                                         style={{
                                                                             marginLeft: 10,
                                                                             cursor:
                                                                                 'pointer',
+                                                                            textTransform:
+                                                                                'capitalize',
                                                                         }}
                                                                     >
                                                                         {
@@ -270,16 +293,29 @@ const MultiSelectDropDown = ({
                                                                                             style={{
                                                                                                 border:
                                                                                                     '1px solid #fff',
+                                                                                                marginRight: 15,
                                                                                             }}
                                                                                         >
                                                                                             <div className="Checkbox-color Box-root"></div>
                                                                                         </div>
+                                                                                        <Badge
+                                                                                            color={
+                                                                                                'blue'
+                                                                                            }
+                                                                                            fontSize={
+                                                                                                '10px'
+                                                                                            }
+                                                                                        >
+                                                                                            Monitor
+                                                                                        </Badge>
                                                                                         <span
                                                                                             className="db-MultiSelect-renderer-label"
                                                                                             style={{
                                                                                                 marginLeft: 10,
                                                                                                 cursor:
                                                                                                     'pointer',
+                                                                                                textTransform:
+                                                                                                    'capitalize',
                                                                                             }}
                                                                                         >
                                                                                             {
