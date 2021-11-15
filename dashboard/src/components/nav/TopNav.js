@@ -26,9 +26,12 @@ import Search from './Search';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import { setActiveSubProject } from '../../actions/subProject';
 import SubProjectDropDown from '../basic/SubProjectDropDown';
+import { fetchMonitors } from '../../actions/monitor';
 class TopContent extends Component {
     handleChange = value => {
         this.props.setActiveSubProject(value, true);
+
+        this.props.fetchMonitors(value);
     };
 
     componentDidMount() {
@@ -685,6 +688,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             updateProfileSetting,
             setActiveSubProject,
+            fetchMonitors,
         },
         dispatch
     );
@@ -726,6 +730,7 @@ TopContent.propTypes = {
     fetchingSubProjects: PropTypes.bool,
     setActiveSubProject: PropTypes.func,
     activeSubProject: PropTypes.string,
+    fetchMonitors: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);
