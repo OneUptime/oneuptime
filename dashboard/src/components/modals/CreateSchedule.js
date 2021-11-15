@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux';
 import { change } from 'redux-form';
 import moment from 'moment';
 import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
-import { reduxForm, Field, formValueSelector, FieldArray } from 'redux-form';
+import { reduxForm, Field, formValueSelector } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import {
     createScheduledEvent,
@@ -19,6 +19,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import { ValidateField } from '../../config';
+import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values) {
     const errors = {};
@@ -34,10 +35,16 @@ class CreateSchedule extends React.Component {
         currentDate: moment(),
         dateError: null,
         monitorError: null,
+        selectedProjects: [],
+        selectedComponents: [],
+        selectedMonitors: [],
+        selectData: [],
     };
 
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
+
+        this.formatData();
     }
 
     componentWillUnmount() {
@@ -56,10 +63,11 @@ class CreateSchedule extends React.Component {
         const projectId = data.projectId;
         const postObj = {};
 
-        if (values.monitors && values.monitors.length > 0) {
-            const monitors = values.monitors.filter(
-                monitorId => typeof monitorId === 'string'
-            );
+        if (
+            this.state.selectedMonitors &&
+            this.state.selectedMonitors.length > 0
+        ) {
+            const monitors = this.state.selectedMonitors;
             postObj.monitors = monitors;
         } else {
             postObj.monitors = monitors.map(monitor => monitor._id);
@@ -138,206 +146,193 @@ class CreateSchedule extends React.Component {
         });
     };
 
-    renderMonitors = ({ fields }) => {
-        const { monitorError } = this.state;
-        const { formValues } = this.props;
-        return (
-            <>
-                {formValues && formValues.selectAllMonitors && (
-                    <div
-                        className="bs-Fieldset-row"
-                        style={{ padding: 0, width: '100%' }}
-                    >
-                        <div
-                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
-                            style={{ padding: 0 }}
-                        >
-                            <div
-                                className="Box-root"
-                                style={{
-                                    height: '5px',
-                                }}
-                            ></div>
-                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                <label
-                                    className="Checkbox"
-                                    htmlFor="selectAllMonitorsBox"
-                                >
-                                    <Field
-                                        component="input"
-                                        type="checkbox"
-                                        name="selectAllMonitors"
-                                        className="Checkbox-source"
-                                        id="selectAllMonitorsBox"
-                                    />
-                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                        <div className="Checkbox-target Box-root">
-                                            <div className="Checkbox-color Box-root"></div>
-                                        </div>
-                                    </div>
-                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            <span>All Monitors Selected</span>
-                                        </span>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {formValues && !formValues.selectAllMonitors && (
-                    <div
-                        style={{
-                            width: '100%',
-                            position: 'relative',
-                        }}
-                    >
-                        <button
-                            id="addMoreMonitor"
-                            className="Button bs-ButtonLegacy ActionIconParent"
-                            style={{
-                                position: 'absolute',
-                                zIndex: 1,
-                                right: 0,
-                            }}
-                            type="button"
-                            onClick={() => {
-                                fields.push();
-                            }}
-                        >
-                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                <span>Add Monitor</span>
-                            </span>
-                        </button>
-                        {fields.length === 0 && !formValues.selectAllMonitors && (
-                            <div
-                                className="bs-Fieldset-row"
-                                style={{ padding: 0, width: '100%' }}
-                            >
-                                <div
-                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
-                                    style={{ padding: 0 }}
-                                >
-                                    <div
-                                        className="Box-root"
-                                        style={{
-                                            height: '5px',
-                                        }}
-                                    ></div>
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <label
-                                            className="Checkbox"
-                                            htmlFor="selectAllMonitorsBox"
-                                        >
-                                            <Field
-                                                component="input"
-                                                type="checkbox"
-                                                name="selectAllMonitors"
-                                                className="Checkbox-source"
-                                                id="selectAllMonitorsBox"
-                                            />
-                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                <div className="Checkbox-target Box-root">
-                                                    <div className="Checkbox-color Box-root"></div>
-                                                </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>
-                                                        Select All Monitors
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {fields.map((field, index) => {
-                            return (
-                                <div
-                                    style={{
-                                        width: '65%',
-                                        marginBottom: 10,
-                                    }}
-                                    key={index}
-                                >
-                                    <Field
-                                        className="db-select-nw Table-cell--width--maximized"
-                                        component={RenderSelect}
-                                        name={field}
-                                        id={`monitorfield_${index}`}
-                                        placeholder="Monitor"
-                                        style={{
-                                            height: '28px',
-                                            width: '100%',
-                                        }}
-                                        options={[
-                                            {
-                                                value: '',
-                                                label: 'Select a Monitor',
-                                            },
-                                            ...(this.props.monitors &&
-                                            this.props.monitors.length > 0
-                                                ? this.props.monitors.map(
-                                                      monitor => ({
-                                                          value: monitor._id,
-                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
-                                                      })
-                                                  )
-                                                : []),
-                                        ]}
-                                    />
-                                    <button
-                                        id="addMoreMonitor"
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        style={{
-                                            marginTop: 10,
-                                        }}
-                                        type="button"
-                                        onClick={() => {
-                                            fields.remove(index);
-                                        }}
-                                    >
-                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                            <span>Remove Monitor</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {monitorError && (
-                            <div
-                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                style={{
-                                    marginTop: '5px',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <div
-                                    className="Box-root Margin-right--8"
-                                    style={{ marginTop: '2px' }}
-                                >
-                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                </div>
-                                <div className="Box-root">
-                                    <span
-                                        id="monitorError"
-                                        style={{ color: 'red' }}
-                                    >
-                                        {monitorError}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </>
-        );
+    formatData = () => {
+        const monitors = this.props.monitors;
+        const hash = {};
+
+        monitors.forEach(monitor => {
+            const projectId = monitor.projectId._id || monitor.projectId;
+            const componentId = monitor.componentId._id || monitor.componentId;
+            if (!hash[projectId]) {
+                hash[projectId] = {
+                    projectName: monitor.projectId?.name,
+                    projectId,
+                    components: [
+                        {
+                            componentName: monitor.componentId?.name,
+                            componentId,
+                            monitors: [
+                                {
+                                    monitorName: monitor.name,
+                                    monitorId: monitor._id,
+                                },
+                            ],
+                        },
+                    ],
+                };
+            } else {
+                let monitorAdded = false;
+                hash[projectId] = {
+                    ...hash[projectId],
+                    components: hash[projectId].components.map(componentObj => {
+                        if (componentObj.componentId === componentId) {
+                            const newMonitor = {
+                                monitorName: monitor.name,
+                                monitorId: monitor._id,
+                            };
+
+                            componentObj.monitors = [
+                                ...componentObj.monitors,
+                                newMonitor,
+                            ];
+
+                            monitorAdded = true;
+                        }
+
+                        return componentObj;
+                    }),
+                };
+
+                if (!monitorAdded) {
+                    const componentData = {
+                        componentName: monitor.componentId.name,
+                        componentId,
+                        monitors: [
+                            {
+                                monitorName: monitor.name,
+                                monitorId: monitor._id,
+                            },
+                        ],
+                    };
+                    hash[projectId] = {
+                        ...hash[projectId],
+                        components: [
+                            ...hash[projectId].components,
+                            componentData,
+                        ],
+                    };
+
+                    monitorAdded = true;
+                }
+            }
+        });
+
+        const data = [];
+        for (const [, value] of Object.entries(hash)) {
+            data.push(value);
+        }
+
+        this.setState({
+            selectData: data,
+        });
+    };
+
+    updateState = (value, key) => {
+        this.setState(prevState => {
+            let currentValue = prevState[key];
+
+            if (currentValue.includes(value)) {
+                currentValue = currentValue.filter(val => val !== value);
+                this.updateMultipleState(value, key, currentValue);
+
+                return {
+                    [key]: currentValue,
+                };
+            }
+
+            currentValue = [...currentValue, value];
+            this.updateMultipleState(value, key, currentValue);
+
+            return {
+                [key]: currentValue,
+            };
+        });
+    };
+
+    updateMultipleState = (id, key, databank) => {
+        if (key === 'selectedProjects' && databank.includes(id)) {
+            const monitorIds = [];
+            const componentIds = [];
+            this.props.monitors.forEach(monitor => {
+                if ((monitor.projectId._id || monitor.projectId) === id) {
+                    monitorIds.push(monitor._id);
+                    componentIds.push(
+                        monitor.componentId._id || monitor.componentId
+                    );
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: Array.from(
+                    new Set([...prevState.selectedMonitors, ...monitorIds])
+                ),
+                selectedComponents: Array.from(
+                    new Set([...prevState.selectedComponents, ...componentIds])
+                ),
+            }));
+        }
+
+        if (key === 'selectedProjects' && !databank.includes(id)) {
+            const monitorIds = [];
+            const componentIds = [];
+            this.props.monitors.forEach(monitor => {
+                if ((monitor.projectId._id || monitor.projectId) === id) {
+                    monitorIds.push(monitor._id);
+                    componentIds.push(
+                        monitor.componentId._id || monitor.componentId
+                    );
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: prevState.selectedMonitors.filter(
+                    monitorId => !monitorIds.includes(monitorId)
+                ),
+                selectedComponents: prevState.selectedComponents.filter(
+                    componentId => !componentIds.includes(componentId)
+                ),
+            }));
+        }
+
+        if (key === 'selectedComponents' && databank.includes(id)) {
+            const monitorIds = [];
+            this.props.monitors.forEach(monitor => {
+                if ((monitor.componentId._id || monitor.componentId) === id) {
+                    monitorIds.push(monitor._id);
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: Array.from(
+                    new Set([...prevState.selectedMonitors, ...monitorIds])
+                ),
+            }));
+        }
+
+        if (key === 'selectedComponents' && !databank.includes(id)) {
+            const monitorIds = [];
+            this.props.monitors.forEach(monitor => {
+                if ((monitor.componentId._id || monitor.componentId) === id) {
+                    monitorIds.push(monitor._id);
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: prevState.selectedMonitors.filter(
+                    monitorId => !monitorIds.includes(monitorId)
+                ),
+            }));
+        }
     };
 
     render() {
-        const { currentDate } = this.state;
+        const {
+            currentDate,
+            selectedProjects,
+            selectedComponents,
+            selectedMonitors,
+            selectData,
+        } = this.state;
         const { formValues } = this.props;
         const {
             requesting,
@@ -475,22 +470,95 @@ class CreateSchedule extends React.Component {
                                                     >
                                                         <span>Monitors</span>
                                                     </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '100%',
-                                                            }}
-                                                        >
-                                                            <FieldArray
-                                                                name="monitors"
-                                                                component={
-                                                                    this
-                                                                        .renderMonitors
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
+                                                    {formValues &&
+                                                        formValues.selectAllMonitors && (
+                                                            <div
+                                                                className="bs-Fieldset-row"
+                                                                style={{
+                                                                    padding: 0,
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                                                    style={{
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            height:
+                                                                                '5px',
+                                                                        }}
+                                                                    ></div>
+                                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                        <label
+                                                                            className="Checkbox"
+                                                                            htmlFor="selectAllMonitorsBox"
+                                                                        >
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="checkbox"
+                                                                                name="selectAllMonitors"
+                                                                                className="Checkbox-source"
+                                                                                id="selectAllMonitorsBox"
+                                                                            />
+                                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                                <div className="Checkbox-target Box-root">
+                                                                                    <div className="Checkbox-color Box-root"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        All
+                                                                                        Monitors
+                                                                                        Selected
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    {formValues &&
+                                                        !formValues.selectAllMonitors && (
+                                                            <div className="bs-Fieldset-fields">
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <MultiSelectDropDown
+                                                                        ready={
+                                                                            true
+                                                                        }
+                                                                        value={`${selectedMonitors.length} Monitor(s) selected`}
+                                                                        updateState={
+                                                                            this
+                                                                                .updateState
+                                                                        }
+                                                                        selectedProjects={
+                                                                            selectedProjects
+                                                                        }
+                                                                        selectedComponents={
+                                                                            selectedComponents
+                                                                        }
+                                                                        selectedMonitors={
+                                                                            selectedMonitors
+                                                                        }
+                                                                        options={
+                                                                            selectData
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                 </div>
                                             </div>
                                         </fieldset>
@@ -979,6 +1047,34 @@ class CreateSchedule extends React.Component {
                                                         >
                                                             {
                                                                 scheduledEventError
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={this.state.monitorError}
+                                        >
+                                            <div className="bs-Tail-copy">
+                                                <div
+                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                    style={{
+                                                        marginTop: '10px',
+                                                    }}
+                                                >
+                                                    <div className="Box-root Margin-right--8">
+                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                    </div>
+                                                    <div className="Box-root">
+                                                        <span
+                                                            style={{
+                                                                color: 'red',
+                                                            }}
+                                                        >
+                                                            {
+                                                                this.state
+                                                                    .monitorError
                                                             }
                                                         </span>
                                                     </div>
