@@ -43,9 +43,9 @@ describe('Application Security Page', () => {
 
             await init.addComponent(component, page);
 
-            const categoryName = 'Random-Category';
+            //const categoryName = 'Random-Category';
             // create a new resource category
-            await init.addResourceCategory(categoryName, page);
+            //await init.addResourceCategory(categoryName, page); Resource Category has been removed
             //navigate to component details
             await init.navigateToComponentDetails(component, page);
 
@@ -80,11 +80,11 @@ describe('Application Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', applicationSecurityName);
-            await init.selectDropdownValue(
-                '#resourceCategory',
-                categoryName,
-                page
-            ); // add category
+            // await init.selectDropdownValue(
+            //     '#resourceCategory',
+            //     categoryName,
+            //     page
+            // ); // add category
             await init.pageClick(page, '#gitRepositoryUrl');
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
             await init.pageClick(page, '#gitCredential');
@@ -110,13 +110,14 @@ describe('Application Security Page', () => {
             expect(editApplicationElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            let spanElement = await init.page$(
-                page,
-                `#${applicationSecurityName}-badge`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(categoryName.toUpperCase());
+            //Resource category has been removed
+            // let spanElement = await init.page$(
+            //     page,
+            //     `#${applicationSecurityName}-badge`
+            // );
+            // spanElement = await spanElement.getProperty('innerText');
+            // spanElement = await spanElement.jsonValue();
+            // spanElement.should.be.exactly(categoryName.toUpperCase());
 
             done();
         },

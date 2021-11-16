@@ -26,11 +26,17 @@ import Search from './Search';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import { setActiveSubProject } from '../../actions/subProject';
 import SubProjectDropDown from '../basic/SubProjectDropDown';
+import { fetchMonitors } from '../../actions/monitor';
 import { history } from '../../store';
+import { socket } from '../basic/Socket';
 class TopContent extends Component {
     handleChange = value => {
         this.props.setActiveSubProject(value, true);
 
+        // emit project id to connect to room in backend
+        socket?.emit('project_switch', value);
+
+        this.props.fetchMonitors(value);
         const val = history.location.pathname
             .split('project/')[1]
             .split('/')[0];
@@ -691,6 +697,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             updateProfileSetting,
             setActiveSubProject,
+            fetchMonitors,
         },
         dispatch
     );
@@ -732,6 +739,7 @@ TopContent.propTypes = {
     fetchingSubProjects: PropTypes.bool,
     setActiveSubProject: PropTypes.func,
     activeSubProject: PropTypes.string,
+    fetchMonitors: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

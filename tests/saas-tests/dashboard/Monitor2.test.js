@@ -39,8 +39,12 @@ describe('Monitor API', () => {
         // This navigates to the monitor created alongside the created component
         await init.navigateToMonitorDetails(componentName, monitorName, page);
 
-        await init.pageWaitForSelector(page, '#website_scanning');
-        await init.pageWaitForSelector(page, '#website_postscan');
+        await init.pageWaitForSelector(page, '#website_scanning', {
+            timeout: 600000,
+        });
+        await init.pageWaitForSelector(page, '#website_postscan', {
+            timeout: 600000,
+        });
 
         await init.pageWaitForSelector(
             page,
