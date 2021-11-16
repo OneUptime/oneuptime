@@ -28,9 +28,13 @@ import { setActiveSubProject } from '../../actions/subProject';
 import SubProjectDropDown from '../basic/SubProjectDropDown';
 import { fetchMonitors } from '../../actions/monitor';
 import { history } from '../../store';
+import { socket } from '../basic/Socket';
 class TopContent extends Component {
     handleChange = value => {
         this.props.setActiveSubProject(value, true);
+
+        // emit project id to connect to room in backend
+        socket?.emit('project_switch', value);
 
         this.props.fetchMonitors(value);
         const val = history.location.pathname
