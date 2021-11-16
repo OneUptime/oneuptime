@@ -207,6 +207,13 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
             }
         }
 
+        // restructure the monitors into [{monitorId: 'xyz'}]
+        data.monitors =
+            data.monitors &&
+            data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
+
         const existingWebhook = await IntegrationService.findOneBy({
             query: {
                 _id: data._id, // If the data to be updated changes, it returns null as it does not exist in the DB. Quering by _id and deleted returns the correct value
