@@ -149,7 +149,7 @@ module.exports = {
                 return integration;
             } else {
                 query.deleted = false;
-                // The removed data.monitors returns: { monitorId: { monitorId: '612e6be73b0d2f2e2f6f92b9' } }, This is a data mismatch. Expected value is: { monitorId: '612e6be73b0d2f2e2f6f92b9' }
+
                 let updatedIntegration = await IntegrationModel.findOneAndUpdate(
                     query,
                     {

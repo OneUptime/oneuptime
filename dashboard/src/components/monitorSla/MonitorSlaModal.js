@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { reduxForm, Field, FieldArray } from 'redux-form';
+import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { createMonitorSla, fetchMonitorSlas } from '../../actions/monitorSla';
 import { fetchMonitors } from '../../actions/monitor';
@@ -11,6 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
+import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values) {
     const errors = {};
@@ -44,10 +45,16 @@ class MonitorSlaModal extends React.Component {
         setCustomFrequency: false,
         setCustomMonitorUptime: false,
         monitorError: null,
+        selectedProjects: [],
+        selectedComponents: [],
+        selectedMonitors: [],
+        selectData: [],
     };
 
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
+
+        this.formatData();
     }
 
     componentWillUnmount() {
@@ -59,9 +66,7 @@ class MonitorSlaModal extends React.Component {
             closeModal,
             createMonitorSlaModalId,
             createMonitorSla,
-
             fetchMonitorSlas,
-            // eslint-disable-next-line no-unused-vars
             fetchMonitors,
             data,
         } = this.props;
@@ -69,11 +74,11 @@ class MonitorSlaModal extends React.Component {
         const projectId = data.projectId;
         const postObj = {};
 
-        if (values.monitors && values.monitors.length > 0) {
-            const monitors = values.monitors.filter(
-                monitorId => typeof monitorId === 'string'
-            );
-            postObj.monitors = monitors;
+        if (
+            this.state.selectedMonitors &&
+            this.state.selectedMonitors.length > 0
+        ) {
+            postObj.monitors = this.state.selectedMonitors;
         }
 
         const isDuplicate = postObj.monitors
@@ -132,113 +137,183 @@ class MonitorSlaModal extends React.Component {
         });
     };
 
-    renderMonitors = ({ fields }) => {
-        const { monitorError } = this.state;
-        return (
-            <>
-                <div
-                    style={{
-                        width: '100%',
-                        position: 'relative',
-                    }}
-                >
-                    <button
-                        id="addMoreMonitor"
-                        className="Button bs-ButtonLegacy ActionIconParent"
-                        style={{
-                            position: 'absolute',
-                            zIndex: 1,
-                            right: 0,
-                        }}
-                        type="button"
-                        onClick={() => {
-                            fields.push();
-                        }}
-                    >
-                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                            <span>Add Monitor</span>
-                        </span>
-                    </button>
-                    {fields.map((field, index) => {
-                        return (
-                            <div
-                                style={{
-                                    width: '65%',
-                                    marginBottom: 10,
-                                }}
-                                key={index}
-                            >
-                                <Field
-                                    className="db-select-nw Table-cell--width--maximized"
-                                    component={RenderSelect}
-                                    name={field}
-                                    id={`monitorfield_${index}`}
-                                    placeholder="Monitor"
-                                    style={{
-                                        height: '28px',
-                                        width: '100%',
-                                    }}
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'Select a Monitor',
-                                        },
-                                        ...(this.props.monitors &&
-                                        this.props.monitors.length > 0
-                                            ? this.props.monitors.map(
-                                                  monitor => ({
-                                                      value: monitor._id,
-                                                      label: `${monitor.componentId.name} / ${monitor.name}`,
-                                                  })
-                                              )
-                                            : []),
-                                    ]}
-                                />
-                                <button
-                                    id="removeMonitor"
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    style={{
-                                        marginTop: 10,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        fields.remove(index);
-                                    }}
-                                >
-                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                        <span>Remove Monitor</span>
-                                    </span>
-                                </button>
-                            </div>
-                        );
-                    })}
-                    {monitorError && (
-                        <div
-                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                            style={{
-                                marginTop: '5px',
-                                alignItems: 'center',
-                            }}
-                        >
-                            <div
-                                className="Box-root Margin-right--8"
-                                style={{ marginTop: '2px' }}
-                            >
-                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                            </div>
-                            <div className="Box-root">
-                                <span
-                                    id="monitorError"
-                                    style={{ color: 'red' }}
-                                >
-                                    {monitorError}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </>
-        );
+    formatData = () => {
+        const monitors = this.props.monitorsList;
+        const hash = {};
+
+        monitors.forEach(monitor => {
+            const projectId = monitor.projectId._id || monitor.projectId;
+            const componentId = monitor.componentId._id || monitor.componentId;
+            if (!hash[projectId]) {
+                hash[projectId] = {
+                    projectName: monitor.projectId?.name,
+                    projectId,
+                    components: [
+                        {
+                            componentName: monitor.componentId?.name,
+                            componentId,
+                            monitors: [
+                                {
+                                    monitorName: monitor.name,
+                                    monitorId: monitor._id,
+                                },
+                            ],
+                        },
+                    ],
+                };
+            } else {
+                let monitorAdded = false;
+                hash[projectId] = {
+                    ...hash[projectId],
+                    components: hash[projectId].components.map(componentObj => {
+                        if (componentObj.componentId === componentId) {
+                            const newMonitor = {
+                                monitorName: monitor.name,
+                                monitorId: monitor._id,
+                            };
+
+                            componentObj.monitors = [
+                                ...componentObj.monitors,
+                                newMonitor,
+                            ];
+
+                            monitorAdded = true;
+                        }
+
+                        return componentObj;
+                    }),
+                };
+
+                if (!monitorAdded) {
+                    const componentData = {
+                        componentName: monitor.componentId.name,
+                        componentId,
+                        monitors: [
+                            {
+                                monitorName: monitor.name,
+                                monitorId: monitor._id,
+                            },
+                        ],
+                    };
+                    hash[projectId] = {
+                        ...hash[projectId],
+                        components: [
+                            ...hash[projectId].components,
+                            componentData,
+                        ],
+                    };
+
+                    monitorAdded = true;
+                }
+            }
+        });
+
+        const data = [];
+        for (const [, value] of Object.entries(hash)) {
+            data.push(value);
+        }
+
+        this.setState({
+            selectData: data,
+        });
+    };
+
+    updateState = (value, key) => {
+        this.setState(prevState => {
+            let currentValue = prevState[key];
+
+            if (currentValue.includes(value)) {
+                currentValue = currentValue.filter(val => val !== value);
+                this.updateMultipleState(value, key, currentValue);
+
+                return {
+                    [key]: currentValue,
+                };
+            }
+
+            currentValue = [...currentValue, value];
+            this.updateMultipleState(value, key, currentValue);
+
+            return {
+                [key]: currentValue,
+            };
+        });
+    };
+
+    updateMultipleState = (id, key, databank) => {
+        if (key === 'selectedProjects' && databank.includes(id)) {
+            const monitorIds = [];
+            const componentIds = [];
+            this.props.monitorsList.forEach(monitor => {
+                if ((monitor.projectId._id || monitor.projectId) === id) {
+                    monitorIds.push(monitor._id);
+                    componentIds.push(
+                        monitor.componentId._id || monitor.componentId
+                    );
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: Array.from(
+                    new Set([...prevState.selectedMonitors, ...monitorIds])
+                ),
+                selectedComponents: Array.from(
+                    new Set([...prevState.selectedComponents, ...componentIds])
+                ),
+            }));
+        }
+
+        if (key === 'selectedProjects' && !databank.includes(id)) {
+            const monitorIds = [];
+            const componentIds = [];
+            this.props.monitorsList.forEach(monitor => {
+                if ((monitor.projectId._id || monitor.projectId) === id) {
+                    monitorIds.push(monitor._id);
+                    componentIds.push(
+                        monitor.componentId._id || monitor.componentId
+                    );
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: prevState.selectedMonitors.filter(
+                    monitorId => !monitorIds.includes(monitorId)
+                ),
+                selectedComponents: prevState.selectedComponents.filter(
+                    componentId => !componentIds.includes(componentId)
+                ),
+            }));
+        }
+
+        if (key === 'selectedComponents' && databank.includes(id)) {
+            const monitorIds = [];
+            this.props.monitorsList.forEach(monitor => {
+                if ((monitor.componentId._id || monitor.componentId) === id) {
+                    monitorIds.push(monitor._id);
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: Array.from(
+                    new Set([...prevState.selectedMonitors, ...monitorIds])
+                ),
+            }));
+        }
+
+        if (key === 'selectedComponents' && !databank.includes(id)) {
+            const monitorIds = [];
+            this.props.monitorsList.forEach(monitor => {
+                if ((monitor.componentId._id || monitor.componentId) === id) {
+                    monitorIds.push(monitor._id);
+                }
+            });
+
+            return this.setState(prevState => ({
+                selectedMonitors: prevState.selectedMonitors.filter(
+                    monitorId => !monitorIds.includes(monitorId)
+                ),
+            }));
+        }
     };
 
     render() {
@@ -251,6 +326,13 @@ class MonitorSlaModal extends React.Component {
             formValues,
         } = this.props;
         const { setCustomFrequency, setCustomMonitorUptime } = this.state;
+
+        const {
+            selectedProjects,
+            selectedComponents,
+            selectedMonitors,
+            selectData,
+        } = this.state;
 
         return (
             <div
@@ -342,23 +424,102 @@ class MonitorSlaModal extends React.Component {
                                                                 Monitors
                                                             </span>
                                                         </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <div
-                                                                className="bs-Fieldset-field"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                }}
-                                                            >
-                                                                <FieldArray
-                                                                    name="monitors"
-                                                                    component={
-                                                                        this
-                                                                            .renderMonitors
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
+                                                        {formValues &&
+                                                            formValues.selectAllMonitors && (
+                                                                <div
+                                                                    className="bs-Fieldset-row"
+                                                                    style={{
+                                                                        padding: 0,
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                                                        style={{
+                                                                            padding: 0,
+                                                                        }}
+                                                                    >
+                                                                        <div
+                                                                            className="Box-root"
+                                                                            style={{
+                                                                                height:
+                                                                                    '5px',
+                                                                            }}
+                                                                        ></div>
+                                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                            <label
+                                                                                className="Checkbox"
+                                                                                htmlFor="selectAllMonitorsBox"
+                                                                            >
+                                                                                <Field
+                                                                                    component="input"
+                                                                                    type="checkbox"
+                                                                                    name="selectAllMonitors"
+                                                                                    className="Checkbox-source"
+                                                                                    id="selectAllMonitorsBox"
+                                                                                />
+                                                                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                                    <div className="Checkbox-target Box-root">
+                                                                                        <div className="Checkbox-color Box-root"></div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="Checkbox-label Box-root Margin-left--8">
+                                                                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                        <span>
+                                                                                            All
+                                                                                            Monitors
+                                                                                            Selected
+                                                                                        </span>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </label>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        {formValues &&
+                                                            !formValues.selectAllMonitors && (
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <div
+                                                                        className="bs-Fieldset-field"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                    >
+                                                                        <MultiSelectDropDown
+                                                                            ready={
+                                                                                true
+                                                                            }
+                                                                            value={`${
+                                                                                selectedMonitors.length
+                                                                            } Monitor${
+                                                                                selectedMonitors.length >
+                                                                                0
+                                                                                    ? 's'
+                                                                                    : ''
+                                                                            } Selected`}
+                                                                            updateState={
+                                                                                this
+                                                                                    .updateState
+                                                                            }
+                                                                            selectedProjects={
+                                                                                selectedProjects
+                                                                            }
+                                                                            selectedComponents={
+                                                                                selectedComponents
+                                                                            }
+                                                                            selectedMonitors={
+                                                                                selectedMonitors
+                                                                            }
+                                                                            options={
+                                                                                selectData
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                     </div>
                                                 </div>
                                             </fieldset>
@@ -707,7 +868,7 @@ MonitorSlaModal.propTypes = {
     createMonitorSla: PropTypes.func,
     fetchMonitorSlas: PropTypes.func,
     createMonitorSlaModalId: PropTypes.string,
-    monitors: PropTypes.array,
+    monitorsList: PropTypes.array,
     formValues: PropTypes.object,
     fetchMonitors: PropTypes.func,
 };
@@ -743,7 +904,7 @@ const mapStateToProps = (state, ownProps) => {
         },
         requesting: state.monitorSla.monitorSla.requesting,
         slaError: state.monitorSla.monitorSla.error,
-        monitors,
+        monitorsList: monitors,
         formValues:
             state.form.monitorSlaForm && state.form.monitorSlaForm.values,
     };

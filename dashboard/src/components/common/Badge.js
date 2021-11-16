@@ -6,8 +6,13 @@ function Badge({
     color = 'green',
     backgroundColor,
     fontColor,
+    fontSize,
     ...props
 }) {
+    const fontStyle = {
+        color: fontColor || '#fff',
+        fontSize: fontSize || '12px',
+    };
     return (
         <div
             className={`Badge Badge--color--blue Box-background--${color} bg-${color}-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
@@ -19,7 +24,7 @@ function Badge({
                 <span
                     id={props.id}
                     className={'Text-color--white'}
-                    style={fontColor ? { color: fontColor } : {}}
+                    style={fontStyle}
                 >
                     {children}
                 </span>
@@ -36,6 +41,7 @@ Badge.propTypes = {
     id: PropTypes.string,
     fontColor: PropTypes.string,
     backgroundColor: PropTypes.string,
+    fontSize: PropTypes.string,
 };
 
 export default Badge;
