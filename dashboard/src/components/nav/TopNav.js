@@ -27,11 +27,16 @@ import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import { setActiveSubProject } from '../../actions/subProject';
 import SubProjectDropDown from '../basic/SubProjectDropDown';
 import { fetchMonitors } from '../../actions/monitor';
+import { history } from '../../store';
 class TopContent extends Component {
     handleChange = value => {
         this.props.setActiveSubProject(value, true);
 
         this.props.fetchMonitors(value);
+        const val = history.location.pathname
+            .split('project/')[1]
+            .split('/')[0];
+        history.push(`/dashboard/project/${val}`);
     };
 
     componentDidMount() {
