@@ -211,7 +211,7 @@ class EditMonitorSlaModal extends React.Component {
 
         this.setState({
             selectData: data,
-            selectedMonitors: this.props.initialValues.monitors,
+            selectedMonitors: this.props.initialValues.monitors || [],
         });
     };
 

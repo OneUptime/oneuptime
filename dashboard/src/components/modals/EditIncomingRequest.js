@@ -269,7 +269,7 @@ class EditIncomingRequest extends Component {
 
         this.setState({
             selectData: data,
-            selectedMonitors: this.props.initialValues.monitors,
+            selectedMonitors: this.props.initialValues.monitors || [],
         });
     };
 
