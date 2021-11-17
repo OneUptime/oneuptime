@@ -266,7 +266,7 @@ export default (state = initialState, action) => {
             return {
                 ...state,
                 pages: {
-                    counter: 0,
+                    counter: 1,
                 },
             };
         default:
