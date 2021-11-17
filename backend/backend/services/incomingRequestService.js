@@ -666,8 +666,13 @@ module.exports = {
 
                 let monitors = [];
                 if (incomingRequest.selectAllMonitors) {
+                    const projectIds = await ProjectService.findBy({
+                        query: { parentProjectId: data.projectId },
+                        select: '_id',
+                    });
+                    projectIds.push(data.projectId);
                     monitors = await MonitorService.findBy({
-                        query: { projectId: data.projectId },
+                        query: { projectId: { $in: projectIds } },
                         select: '_id customFields componentId projectId name',
                         populate: [
                             { path: 'componentId', select: 'name' },
