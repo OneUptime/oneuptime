@@ -60,11 +60,17 @@ class UpdateSchedule extends React.Component {
         const projectId = this.props.currentProject._id;
         const scheduledEventId = this.props.initialValues._id;
         const postObj = {};
+        let selectedMonitors = this.state.selectedMonitors;
 
         if (
-            this.state.selectedMonitors &&
-            this.state.selectedMonitors.length > 0
+            values.selectMonitor &&
+            values.selectMonitor === 'selectAllMonitors'
         ) {
+            selectedMonitors = [];
+            values.selectAllMonitors = true;
+        }
+
+        if (selectedMonitors && selectedMonitors.length > 0) {
             const monitors = this.state.selectedMonitors;
             postObj.monitors = monitors;
         } else {
@@ -474,103 +480,174 @@ class UpdateSchedule extends React.Component {
                                                     >
                                                         <span>Monitors</span>
                                                     </label>
-                                                    {formValues &&
-                                                        formValues.selectAllMonitors && (
-                                                            <div
-                                                                className="bs-Fieldset-row"
-                                                                style={{
-                                                                    padding: 0,
-                                                                    width:
-                                                                        '100%',
-                                                                }}
-                                                            >
+                                                    <div
+                                                        style={{
+                                                            padding: 0,
+                                                            width: '100%',
+                                                        }}
+                                                    >
+                                                        <fieldset
+                                                            style={{
+                                                                padding: 0,
+                                                                marginBottom: 10,
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-rows">
                                                                 <div
-                                                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                                                    className="bs-Fieldset-row"
                                                                     style={{
                                                                         padding: 0,
+                                                                        display:
+                                                                            'block',
                                                                     }}
                                                                 >
                                                                     <div
-                                                                        className="Box-root"
+                                                                        className="bs-Fieldset-field"
                                                                         style={{
-                                                                            height:
-                                                                                '5px',
+                                                                            padding: 0,
                                                                         }}
-                                                                    ></div>
-                                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                    >
                                                                         <label
-                                                                            className="Checkbox"
-                                                                            htmlFor="selectAllMonitorsBox"
+                                                                            className="bs-Radio"
+                                                                            style={{
+                                                                                marginRight:
+                                                                                    '12px',
+                                                                            }}
+                                                                            htmlFor="selectAllMonitors"
                                                                         >
                                                                             <Field
                                                                                 component="input"
-                                                                                type="checkbox"
-                                                                                name="selectAllMonitors"
-                                                                                className="Checkbox-source"
-                                                                                id="selectAllMonitorsBox"
+                                                                                type="radio"
+                                                                                name="selectMonitor"
+                                                                                className="bs-Radio-source"
+                                                                                id="selectAllMonitors"
+                                                                                value="selectAllMonitors"
+                                                                                style={{
+                                                                                    width: 0,
+                                                                                }}
                                                                             />
-                                                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                                <div className="Checkbox-target Box-root">
-                                                                                    <div className="Checkbox-color Box-root"></div>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                    <span>
-                                                                                        All
-                                                                                        Monitors
-                                                                                        Selected
-                                                                                    </span>
+                                                                            <span className="bs-Radio-button"></span>
+                                                                            <div
+                                                                                className="Box-root"
+                                                                                style={{
+                                                                                    paddingLeft:
+                                                                                        '10px',
+                                                                                }}
+                                                                            >
+                                                                                <span>
+                                                                                    Select
+                                                                                    All
+                                                                                    Monitors
                                                                                 </span>
                                                                             </div>
                                                                         </label>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        )}
-
-                                                    {formValues &&
-                                                        !formValues.selectAllMonitors && (
-                                                            <div className="bs-Fieldset-fields">
+                                                        </fieldset>
+                                                        <fieldset
+                                                            style={{
+                                                                padding: 0,
+                                                                marginBottom: 10,
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-rows">
                                                                 <div
-                                                                    className="bs-Fieldset-field"
+                                                                    className="bs-Fieldset-row"
                                                                     style={{
-                                                                        width:
-                                                                            '100%',
+                                                                        padding: 0,
+                                                                        display:
+                                                                            'block',
                                                                     }}
                                                                 >
-                                                                    <MultiSelectDropDown
-                                                                        ready={
-                                                                            true
-                                                                        }
-                                                                        value={`${
-                                                                            selectedMonitors.length
-                                                                        } Monitor${
-                                                                            selectedMonitors.length >
-                                                                            0
-                                                                                ? 's'
-                                                                                : ''
-                                                                        } Selected`}
-                                                                        updateState={
-                                                                            this
-                                                                                .updateState
-                                                                        }
-                                                                        selectedProjects={
-                                                                            selectedProjects
-                                                                        }
-                                                                        selectedComponents={
-                                                                            selectedComponents
-                                                                        }
-                                                                        selectedMonitors={
-                                                                            selectedMonitors
-                                                                        }
-                                                                        options={
-                                                                            selectData
-                                                                        }
-                                                                    />
+                                                                    <div
+                                                                        className="bs-Fieldset-field"
+                                                                        style={{
+                                                                            padding: 0,
+                                                                        }}
+                                                                    >
+                                                                        <label
+                                                                            className="bs-Radio"
+                                                                            style={{
+                                                                                marginRight:
+                                                                                    '12px',
+                                                                            }}
+                                                                            htmlFor="selectSpecificMonitors"
+                                                                        >
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="radio"
+                                                                                name="selectMonitor"
+                                                                                className="bs-Radio-source"
+                                                                                id="selectSpecificMonitors"
+                                                                                value="selectSpecificMonitors"
+                                                                                style={{
+                                                                                    width: 0,
+                                                                                }}
+                                                                            />
+                                                                            <span className="bs-Radio-button"></span>
+                                                                            <div
+                                                                                className="Box-root"
+                                                                                style={{
+                                                                                    paddingLeft:
+                                                                                        '10px',
+                                                                                }}
+                                                                            >
+                                                                                <span>
+                                                                                    Select
+                                                                                    Specific
+                                                                                    Monitors
+                                                                                </span>
+                                                                            </div>
+                                                                        </label>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        )}
+                                                        </fieldset>
+                                                        {formValues &&
+                                                            formValues.selectMonitor ===
+                                                                'selectSpecificMonitors' && (
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <div
+                                                                        className="bs-Fieldset-field"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                        }}
+                                                                    >
+                                                                        <MultiSelectDropDown
+                                                                            ready={
+                                                                                true
+                                                                            }
+                                                                            value={`${
+                                                                                selectedMonitors.length
+                                                                            } Monitor${
+                                                                                selectedMonitors.length >
+                                                                                0
+                                                                                    ? 's'
+                                                                                    : ''
+                                                                            } Selected`}
+                                                                            updateState={
+                                                                                this
+                                                                                    .updateState
+                                                                            }
+                                                                            selectedProjects={
+                                                                                selectedProjects
+                                                                            }
+                                                                            selectedComponents={
+                                                                                selectedComponents
+                                                                            }
+                                                                            selectedMonitors={
+                                                                                selectedMonitors
+                                                                            }
+                                                                            options={
+                                                                                selectData
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </fieldset>
@@ -1175,6 +1252,12 @@ const mapStateToProps = state => {
             monitors.length === scheduledEventToBeUpdated.monitors.length
                 ? true
                 : false;
+
+        if (initialValues.selectAllMonitors) {
+            initialValues.selectMonitor = 'selectAllMonitors';
+        } else {
+            initialValues.selectMonitor = 'selectSpecificMonitors';
+        }
         initialValues.monitors = [...monitorIds];
     }
 
