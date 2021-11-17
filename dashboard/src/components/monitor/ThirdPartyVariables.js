@@ -25,9 +25,10 @@ class ThirdPartyVariables extends Component {
 
     submitForm = values => {
         const { currentProject, monitor, customFields } = this.props;
+        const projectId = monitor.projectId._id || monitor.projectId;
         const postObj = {
             _id: monitor._id,
-            projectId: currentProject._id,
+            projectId,
         };
 
         postObj.customFields = customFields.map(field => ({
