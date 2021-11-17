@@ -102,7 +102,7 @@ class WebHookList extends React.Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages = Math.ceil(parseInt(count) / limit);
         return (
             <React.Fragment>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
