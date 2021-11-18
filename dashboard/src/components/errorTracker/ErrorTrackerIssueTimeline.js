@@ -117,7 +117,7 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                     ? timeline
                                                                           .createdById
                                                                           .name
-                                                                    : 'Fyipe'}
+                                                                    : 'OneUptime'}
                                                             </span>
                                                         </div>
 

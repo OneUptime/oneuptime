@@ -115,7 +115,7 @@ export class SmsSmtpBox extends Component {
                                             <span>
                                                 Send sms and calls via your
                                                 Twilio server instead of
-                                                Fyipe&#39;s default Twilio
+                                                OneUptime&#39;s default Twilio
                                                 server.
                                             </span>
                                         </p>

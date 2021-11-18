@@ -202,7 +202,7 @@ export class IncidentList extends Component {
                         <tbody className="Table-body">
                             {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
-                                    let probeName = 'Fyipe';
+                                    let probeName = 'OneUptime';
                                     let probeImage =
                                         '/dashboard/assets/img/Fyipe.svg';
 
@@ -716,7 +716,7 @@ export class IncidentList extends Component {
                                                                                                     alt=""
                                                                                                 />
                                                                                                 <span>
-                                                                                                    Fyipe
+                                                                                                    OneUptime
                                                                                                 </span>
                                                                                             </span>
                                                                                         )
@@ -916,7 +916,7 @@ export class IncidentList extends Component {
                                                                                         alt=""
                                                                                     />
                                                                                     <span>
-                                                                                        Fyipe
+                                                                                        OneUptime
                                                                                     </span>
                                                                                 </span>
                                                                             )

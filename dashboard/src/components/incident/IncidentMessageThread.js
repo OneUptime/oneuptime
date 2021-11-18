@@ -189,7 +189,7 @@ export class IncidentMessageThread extends Component {
                                                                         ? 'Zapier'
                                                                         : incidentMessage.createdByApi
                                                                         ? 'API'
-                                                                        : 'Fyiper'}
+                                                                        : 'OneUptime'}
                                                                 </span>
                                                             </div>
 
@@ -488,7 +488,7 @@ export class IncidentMessageThread extends Component {
                                                                                 ? 'Zapier'
                                                                                 : incidentMessage.createdByApi
                                                                                 ? 'API'
-                                                                                : 'Fyipe'}
+                                                                                : 'OneUptime'}
                                                                         </span>
                                                                     </div>
 
@@ -813,7 +813,7 @@ export class IncidentMessageThread extends Component {
                                                                                       .probeName
                                                                                 : incidentMessage.createdByApi
                                                                                 ? 'API'
-                                                                                : 'Fyipe'}
+                                                                                : 'OneUptime'}
                                                                         </span>
                                                                     </div>
 
@@ -1265,7 +1265,7 @@ export class IncidentMessageThread extends Component {
                                                                                     ? incidentMessage
                                                                                           .userId
                                                                                           .name
-                                                                                    : 'Fyipe'}
+                                                                                    : 'OneUptime'}
                                                                             </span>
                                                                         </div>
                                                                         <div>

@@ -337,7 +337,7 @@ class Consulting extends Component {
                                                         height: '200px',
                                                     }}
                                                 >
-                                                    Fyipe team is one of the
+                                                    OneUptime team is one of the
                                                     most experienced web
                                                     developers that I have
                                                     worked with. They handled my
@@ -386,7 +386,7 @@ class Consulting extends Component {
                                                         height: '200px',
                                                     }}
                                                 >
-                                                    Fyipe team was very
+                                                    OneUptime team was very
                                                     skillful, They were always
                                                     open to feedback and helped
                                                     me troubleshoot issues that
@@ -482,7 +482,7 @@ class Consulting extends Component {
                                     </div>
                                     <div className="Padding-all--20">
                                         <a
-                                            href="mailto: consulting@fyipe.com"
+                                            href="mailto: consulting@oneuptime.com"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="bs-Button bs-Button--blue"

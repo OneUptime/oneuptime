@@ -247,7 +247,7 @@ class EditContainerSecurity extends Component {
                                                                         type="text"
                                                                         name="imagePath"
                                                                         id="imagePath"
-                                                                        placeholder="fyipeproject/home"
+                                                                        placeholder="oneuptimeproject/home"
                                                                         disabled={
                                                                             isRequesting
                                                                         }

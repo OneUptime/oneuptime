@@ -16,13 +16,13 @@ function ApiDoc() {
                     />
                     <div>
                         <article className="Text-wrap--wrap col-sm-12">
-                            Anything you do here on Fyipe Dashboard can also be
-                            done via the API. <br />
+                            Anything you do here on OneUptime Dashboard can also
+                            be done via the API. <br />
                             We have built an extensive RESTful API documentation
                             for you.
                             <br />{' '}
                             <a
-                                href=" https://fyipe.com/docs"
+                                href=" https://oneuptime.com/docs"
                                 target="_blank"
                                 className="Text-fontWeight--bold underline"
                             >

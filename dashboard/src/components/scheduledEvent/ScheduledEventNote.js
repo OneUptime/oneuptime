@@ -483,7 +483,7 @@ export class ScheduledEventNote extends Component {
                                                                           'Started' ||
                                                                       note.event_state ===
                                                                           'Ended'
-                                                                          ? 'Fyipe'
+                                                                          ? 'OneUptime'
                                                                           : note.createdById &&
                                                                             note
                                                                                 .createdById

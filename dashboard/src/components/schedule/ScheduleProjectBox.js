@@ -68,7 +68,7 @@ const ScheduleProjectBox = props => {
                                     IsAdminSubProject(props.subProject) ||
                                     IsOwnerSubProject(props.subProject)
                                         ? "A Duty let's you connect members to monitors, so only members who are responsible for certain monitors are alerted."
-                                        : 'When monitors go down, Fyipe alerts your team.'}
+                                        : 'When monitors go down, OneUptime alerts your team.'}
                                 </span>
                             </span>
                         </div>

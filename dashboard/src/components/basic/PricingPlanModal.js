@@ -120,7 +120,8 @@ class PricingPlanModal extends Component {
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             This feature is available on
                                             Enterprise Plan. To upgrade to this
-                                            plan, please contact sales@fyipe.com
+                                            plan, please contact
+                                            sales@oneuptime.com
                                         </span>
                                     ) : (
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
@@ -243,7 +244,7 @@ class PricingPlanModal extends Component {
                                             <a
                                                 id="enterpriseMail"
                                                 className={`bs-Button bs-Button--blue`}
-                                                href="mailto:sales@fyipe.com"
+                                                href="mailto:sales@oneuptime.com"
                                                 autoFocus={true}
                                             >
                                                 Contact Sales

@@ -199,7 +199,7 @@ const IncidentTimelineList = props => {
                                                                     ? log
                                                                           .createdById
                                                                           .name
-                                                                    : 'Fyipe'}
+                                                                    : 'OneUptime'}
                                                             </span>
                                                         </div>
                                                     )}

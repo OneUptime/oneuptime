@@ -139,7 +139,7 @@ export class FormModal extends Component {
                     <span>
                         Please{' '}
                         <a
-                            href="mailto: sales@fyipe.com"
+                            href="mailto: sales@oneuptime.com"
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ textDecoration: 'underline' }}
@@ -453,7 +453,7 @@ export class FormModal extends Component {
                                                                         control
                                                                         over
                                                                         this
-                                                                        Fyipe
+                                                                        OneUptime
                                                                         project
                                                                         including
                                                                         all the
@@ -468,7 +468,7 @@ export class FormModal extends Component {
                                                                         manage
                                                                         everything
                                                                         in
-                                                                        Fyipe.{' '}
+                                                                        OneUptime.{' '}
                                                                     </span>
                                                                 </div>
                                                                 <div className="db-RoleRadioListLabel-info">

@@ -119,8 +119,8 @@ class ProbeDetail extends Component {
                                                     Probe is currently offline,
                                                     please contact{' '}
                                                     <span className="Text-fontWeight--medium underline">
-                                                        <a href="mailto: support@fyipe.com">
-                                                            support@fyipe.com
+                                                        <a href="mailto: support@oneuptime.com">
+                                                            support@oneuptime.com
                                                         </a>
                                                     </span>{' '}
                                                     for more info.

@@ -80,7 +80,7 @@ class ViewErrorTrackerKey extends Component {
                                                 and Error Tracker API Key to
                                                 track events happening in your
                                                 apps which are then sent to your
-                                                Fyipe Dashboard
+                                                OneUptime Dashboard
                                             </span>
                                         </p>
                                     </div>
@@ -233,8 +233,8 @@ class ViewErrorTrackerKey extends Component {
                                                             break all your
                                                             existing
                                                             integrations with
-                                                            the Fyipe Tracker
-                                                            Library
+                                                            the OneUptime
+                                                            Tracker Library
                                                         </span>
                                                     </p>
                                                 </div>

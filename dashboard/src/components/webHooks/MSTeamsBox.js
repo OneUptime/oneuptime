@@ -37,7 +37,7 @@ class MSTeamsBox extends React.Component {
                                                     </a>{' '}
                                                     to check documentation on
                                                     how to integrate Microsoft
-                                                    Teams with Fyipe.
+                                                    Teams with OneUptime.
                                                 </span>
                                             </span>
                                         </div>
