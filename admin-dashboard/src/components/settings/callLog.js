@@ -33,7 +33,7 @@ class CallLog extends Component {
         const { changeCallLogStatus, handleSubmit } = this.props;
         return (
             <div
-                id="fyipeCallLog"
+                id="oneuptimeCallLog"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
@@ -48,7 +48,7 @@ class CallLog extends Component {
                             <p>
                                 <span>
                                     Here you can enable or disable call logs
-                                    being monitored on your Fyipe projects.
+                                    being monitored on your OneUptime projects.
                                 </span>
                             </p>
                         </div>

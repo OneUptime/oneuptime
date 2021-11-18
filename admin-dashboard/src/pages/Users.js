@@ -149,7 +149,8 @@ class Users extends Component {
                                                                             'capitalize',
                                                                     }}
                                                                 >
-                                                                    Fyipe Users
+                                                                    OneUptime
+                                                                    Users
                                                                 </span>
                                                             </span>
                                                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -157,7 +158,7 @@ class Users extends Component {
                                                                     Here is a
                                                                     list of all
                                                                     the users on
-                                                                    Fyipe.
+                                                                    OneUptime.
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -273,7 +274,7 @@ class Users extends Component {
                                                               } of ${numberOfPages} (${
                                                                   user.users
                                                                       .count
-                                                              } Fyipe User${
+                                                              } OneUptime User${
                                                                   user.users
                                                                       .count ===
                                                                   1
@@ -283,7 +284,7 @@ class Users extends Component {
                                                             : `${
                                                                   user.users
                                                                       .count
-                                                              } Fyipe User${
+                                                              } OneUptime User${
                                                                   user.users
                                                                       .count ===
                                                                   1

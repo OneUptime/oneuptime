@@ -33,7 +33,7 @@ class EmailLog extends Component {
         const { changeEmailLogStatus, handleSubmit } = this.props;
         return (
             <div
-                id="fyipeEmailLog"
+                id="oneuptimeEmailLog"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
@@ -48,7 +48,7 @@ class EmailLog extends Component {
                             <p>
                                 <span>
                                     Here you can enable or disable email logs
-                                    being monitored on your Fyipe projects.
+                                    being monitored on your OneUptime projects.
                                 </span>
                             </p>
                         </div>

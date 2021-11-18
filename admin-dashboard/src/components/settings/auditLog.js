@@ -33,7 +33,7 @@ class AuditLog extends Component {
         const { changeAuditLogStatus, handleSubmit } = this.props;
         return (
             <div
-                id="fyipeAuditLog"
+                id="oneuptimeAuditLog"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
@@ -48,7 +48,7 @@ class AuditLog extends Component {
                             <p>
                                 <span>
                                     Here you can enable or disable audit logs
-                                    being monitored on your Fyipe projects.
+                                    being monitored on your OneUptime projects.
                                 </span>
                             </p>
                         </div>

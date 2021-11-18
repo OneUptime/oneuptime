@@ -11,9 +11,9 @@ production_admin-dashboard:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID --push ./admin-dashboard
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/admin-dashboard:latest --push ./admin-dashboard
-        - sudo kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/admin-dashboard:3.0.$CI_PIPELINE_IID --push ./admin-dashboard
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/admin-dashboard:latest --push ./admin-dashboard
+        - sudo kubectl set image deployment/fi-admin fi-admin=oneuptimeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -41,9 +41,9 @@ staging_admin-dashboard:
         # Build and deploy admin-dashboard.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID --push ./admin-dashboard
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/admin-dashboard:master --push ./admin-dashboard
-        - sudo kubectl set image deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/admin-dashboard:3.0.$CI_PIPELINE_IID --push ./admin-dashboard
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/admin-dashboard:master --push ./admin-dashboard
+        - sudo kubectl set image deployment/fi-admin fi-admin=oneuptimeproject/admin-dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

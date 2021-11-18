@@ -69,7 +69,7 @@ class AuditLogs extends React.Component {
         const { auditLogStatus } = this.props;
         return (
             <div
-                id="fyipeAuditLog"
+                id="oneuptimeAuditLog"
                 onKeyDown={this.handleKeyBoard}
                 className="Box-root Margin-vertical--12"
             >
@@ -104,7 +104,7 @@ class AuditLogs extends React.Component {
                                                             <span>
                                                                 Here is a
                                                                 complete list of
-                                                                Fyipe logs.
+                                                                OneUptime logs.
                                                             </span>
                                                         </span>
                                                     </div>

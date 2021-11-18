@@ -9,9 +9,9 @@ class UnLicensedAlert extends Component {
                         <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                 <span>
-                                    Fyipe is currently running on an evaluation
+                                    OneUptime is currently running on an evaluation
                                     license. To buy a commercial license, please
-                                    email us at sales@fyipe.com.
+                                    email us at sales@oneuptime.com.
                                 </span>
                             </span>
                         </div>

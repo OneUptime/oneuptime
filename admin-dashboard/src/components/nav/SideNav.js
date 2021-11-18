@@ -56,7 +56,7 @@ class SideNav extends Component {
                                                 }}
                                             >
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">
-                                                    Fyipe Admin Dashboard
+                                                    OneUptime Admin Dashboard
                                                 </span>
                                             </div>
                                             <div className="Box-root Margin-left--8">

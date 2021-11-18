@@ -69,7 +69,7 @@ class SmsLogs extends React.Component {
         const { smsLogStatus } = this.props;
         return (
             <div
-                id="fyipeSmsLog"
+                id="oneuptimeSmsLog"
                 onKeyDown={this.handleKeyBoard}
                 className="Box-root Margin-vertical--12"
             >
