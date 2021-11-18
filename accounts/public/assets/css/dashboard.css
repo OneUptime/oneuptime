@@ -4612,11 +4612,11 @@ a.bs-ObjectList-row {
 .bs-ObjectList-row--rule--allow.bs-is-disabled .bs-ObjectList-cell:first-child {
   background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+SWNvbjwvdGl0bGU+PGcgZmlsbD0iIzkzOURBMyIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIG9wYWNpdHk9Ii4zIiBjeD0iOSIgY3k9IjkiIHI9IjkiLz48cGF0aCBkPSJNMTMuMTU0IDQuNzM3TDcuNTIxIDEwLjU0bC0xLjQ1LTEuNTM3Yy0uNjg0LS41OTctMS43MDguMDg2LTEuMTk2Ljk0bDEuNzkzIDIuODE2Yy4yNTYuMzQxLjkzOC43NjggMS42MjEgMCAuMjU2LS4zNDIgNC43NzEtNi4yMjIgNC43NzEtNi4yMjIuNTk4LS43NjgtLjI1Ni0xLjM2Ni0uODUzLS44NTRsLjk0Ny0uOTQ3eiIvPjwvZz48L3N2Zz4=');
 }
-.bs-ObjectList-row--rule--allow--fyipe .bs-ObjectList-cell:first-child {
+.bs-ObjectList-row--rule--allow--oneuptime .bs-ObjectList-cell:first-child {
   background-size: 20px;
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTEwIDE4YTggOCAwIDEgMCAwLTE2IDggOCAwIDAgMCAwIDE2em0zLTYuMjZjMCAxLjY0LTEuMzMgMi41OC0zLjI5IDIuNTgtLjgxIDAtMS42OC0uMTUtMi41NS0uNTJ2LTIuMThjLjc5LjQyIDEuNzcuNzMgMi41NS43My41MyAwIC44OC0uMTQuODgtLjU2QzEwLjYgMTAuNyA3IDExLjExIDcgOC42IDcgNi45NiA4LjMgNiAxMC4yMiA2Yy43OCAwIDEuNTcuMTIgMi4zNS40MnYyLjE1YTUuNDQgNS40NCAwIDAgMC0yLjM1LS41OWMtLjUgMC0uODMuMTQtLjgzLjUgMCAxLjAyIDMuNjEuNTQgMy42MSAzLjI2eiIgZmlsbD0iIzUwQTkyRiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+');
 }
-.bs-ObjectList-row--rule--allow--fyipe.bs-is-disabled
+.bs-ObjectList-row--rule--allow--oneuptime.bs-is-disabled
   .bs-ObjectList-cell:first-child {
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTEwIDE4YTggOCAwIDEgMCAwLTE2IDggOCAwIDAgMCAwIDE2em0zLTYuMjZjMCAxLjY0LTEuMzMgMi41OC0zLjI5IDIuNTgtLjgxIDAtMS42OC0uMTUtMi41NS0uNTJ2LTIuMThjLjc5LjQyIDEuNzcuNzMgMi41NS43My41MyAwIC44OC0uMTQuODgtLjU2QzEwLjYgMTAuNyA3IDExLjExIDcgOC42IDcgNi45NiA4LjMgNiAxMC4yMiA2Yy43OCAwIDEuNTcuMTIgMi4zNS40MnYyLjE1YTUuNDQgNS40NCAwIDAgMC0yLjM1LS41OWMtLjUgMC0uODMuMTQtLjgzLjUgMCAxLjAyIDMuNjEuNTQgMy42MSAzLjI2eiIgZmlsbD0iI0I1QkJCRiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+');
 }
@@ -4626,11 +4626,11 @@ a.bs-ObjectList-row {
 .bs-ObjectList-row--rule--block.bs-is-disabled .bs-ObjectList-cell:first-child {
   background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+SWNvbjwvdGl0bGU+PGcgZmlsbD0iIzkzOURBMyIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIG9wYWNpdHk9Ii4zIiBjeD0iOSIgY3k9IjkiIHI9IjkiLz48cGF0aCBkPSJNOSAxMC4zMzNMMTEuNjY3IDEzIDEzIDExLjY2NyAxMC4zMzMgOSAxMyA2LjMzMyAxMS42NjcgNSA5IDcuNjY3IDYuMzMzIDUgNSA2LjMzMyA3LjY2NyA5IDUgMTEuNjY3IDYuMzMzIDEzeiIvPjwvZz48L3N2Zz4=');
 }
-.bs-ObjectList-row--rule--block--fyipe .bs-ObjectList-cell:first-child {
+.bs-ObjectList-row--rule--block--oneuptime .bs-ObjectList-cell:first-child {
   background-size: 20px;
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTEwIDE4YTggOCAwIDEgMCAwLTE2IDggOCAwIDAgMCAwIDE2em0zLTYuMjZjMCAxLjY0LTEuMzMgMi41OC0zLjI5IDIuNTgtLjgxIDAtMS42OC0uMTUtMi41NS0uNTJ2LTIuMThjLjc5LjQyIDEuNzcuNzMgMi41NS43My41MyAwIC44OC0uMTQuODgtLjU2QzEwLjYgMTAuNyA3IDExLjExIDcgOC42IDcgNi45NiA4LjMgNiAxMC4yMiA2Yy43OCAwIDEuNTcuMTIgMi4zNS40MnYyLjE1YTUuNDQgNS40NCAwIDAgMC0yLjM1LS41OWMtLjUgMC0uODMuMTQtLjgzLjUgMCAxLjAyIDMuNjEuNTQgMy42MSAzLjI2eiIgZmlsbD0iI0UwNEM0QyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+');
 }
-.bs-ObjectList-row--rule--block--fyipe.bs-is-disabled
+.bs-ObjectList-row--rule--block--oneuptime.bs-is-disabled
   .bs-ObjectList-cell:first-child {
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTEwIDE4YTggOCAwIDEgMCAwLTE2IDggOCAwIDAgMCAwIDE2em0zLTYuMjZjMCAxLjY0LTEuMzMgMi41OC0zLjI5IDIuNTgtLjgxIDAtMS42OC0uMTUtMi41NS0uNTJ2LTIuMThjLjc5LjQyIDEuNzcuNzMgMi41NS43My41MyAwIC44OC0uMTQuODgtLjU2QzEwLjYgMTAuNyA3IDExLjExIDcgOC42IDcgNi45NiA4LjMgNiAxMC4yMiA2Yy43OCAwIDEuNTcuMTIgMi4zNS40MnYyLjE1YTUuNDQgNS40NCAwIDAgMC0yLjM1LS41OWMtLjUgMC0uODMuMTQtLjgzLjUgMCAxLjAyIDMuNjEuNTQgMy42MSAzLjI2eiIgZmlsbD0iI0I1QkJCRiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+');
 }
@@ -4641,11 +4641,11 @@ a.bs-ObjectList-row {
   .bs-ObjectList-cell:first-child {
   background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+SWNvbjwvdGl0bGU+PGcgZmlsbD0iIzkzOURBMyIgZmlsbC1ydWxlPSJldmVub2RkIj48Y2lyY2xlIG9wYWNpdHk9Ii4zIiBjeD0iOSIgY3k9IjkiIHI9IjkiLz48cGF0aCBkPSJNMTQuODQgOS40OTJjLjIxMy0uMzE0LjIxMy0uNjQyIDAtLjk4NEMxMi45MjQgNi4xNjkgMTAuOTggNSA5LjAwNyA1IDcuMDY0IDUgNS4xMjIgNi4xODQgMy4xOCA4LjU1Yy0uMjQuMzcyLS4yNC42ODUgMCAuOTQyYTEwLjUxNiAxMC41MTYgMCAwIDAgMi4xOTMgMi4xODJDNi42IDEyLjU1OCA3LjgxMSAxMyA5LjAwNyAxM2MxLjk3MyAwIDMuOTE3LTEuMTcgNS44MzMtMy41MDh6TTkgMTJhMyAzIDAgMSAwIDAtNiAzIDMgMCAwIDAgMCA2em0wLTEuNWExLjUgMS41IDAgMSAwIDAtMyAxLjUgMS41IDAgMCAwIDAgM3oiLz48L2c+PC9zdmc+');
 }
-.bs-ObjectList-row--rule--review--fyipe .bs-ObjectList-cell:first-child {
+.bs-ObjectList-row--rule--review--oneuptime .bs-ObjectList-cell:first-child {
   background-size: 20px;
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTEwIDE4YTggOCAwIDEgMCAwLTE2IDggOCAwIDAgMCAwIDE2em0zLTYuMjZjMCAxLjY0LTEuMzMgMi41OC0zLjI5IDIuNTgtLjgxIDAtMS42OC0uMTUtMi41NS0uNTJ2LTIuMThjLjc5LjQyIDEuNzcuNzMgMi41NS43My41MyAwIC44OC0uMTQuODgtLjU2QzEwLjYgMTAuNyA3IDExLjExIDcgOC42IDcgNi45NiA4LjMgNiAxMC4yMiA2Yy43OCAwIDEuNTcuMTIgMi4zNS40MnYyLjE1YTUuNDQgNS40NCAwIDAgMC0yLjM1LS41OWMtLjUgMC0uODMuMTQtLjgzLjUgMCAxLjAyIDMuNjEuNTQgMy42MSAzLjI2eiIgZmlsbD0iI0UwOTk0QyIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+');
 }
-.bs-ObjectList-row--rule--review--fyipe.bs-is-disabled
+.bs-ObjectList-row--rule--review--oneuptime.bs-is-disabled
   .bs-ObjectList-cell:first-child {
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZD0iTTEwIDE4YTggOCAwIDEgMCAwLTE2IDggOCAwIDAgMCAwIDE2em0zLTYuMjZjMCAxLjY0LTEuMzMgMi41OC0zLjI5IDIuNTgtLjgxIDAtMS42OC0uMTUtMi41NS0uNTJ2LTIuMThjLjc5LjQyIDEuNzcuNzMgMi41NS43My41MyAwIC44OC0uMTQuODgtLjU2QzEwLjYgMTAuNyA3IDExLjExIDcgOC42IDcgNi45NiA4LjMgNiAxMC4yMiA2Yy43OCAwIDEuNTcuMTIgMi4zNS40MnYyLjE1YTUuNDQgNS40NCAwIDAgMC0yLjM1LS41OWMtLjUgMC0uODMuMTQtLjgzLjUgMCAxLjAyIDMuNjEuNTQgMy42MSAzLjI2eiIgZmlsbD0iI0I1QkJCRiIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9zdmc+');
 }
@@ -46893,7 +46893,7 @@ html.placeholder #login p.remember label {
     background-image: url('/accounts/assets/img/black-svg-full.svg');
   }
 }
-.register #fyipe-explanation {
+.register #oneuptime-explanation {
   float: left;
   width: 350px;
   padding-left: 10px;
@@ -48808,13 +48808,13 @@ html[dir='rtl'] .select2-search-choice-close {
 .editorSuggestionItem--focused p {
   color: #fff;
 }
-.cm-s-fyipe.CodeMirror {
+.cm-s-oneuptime.CodeMirror {
   background-color: #fff;
   color: #000000;
   line-height: 1.4375;
 }
-.cm-s-fyipe .CodeMirror-line,
-.cm-s-fyipe.CodeMirror pre {
+.cm-s-oneuptime .CodeMirror-line,
+.cm-s-oneuptime.CodeMirror pre {
   padding: 0;
   font-family: Source Code Pro, Courier New, Courier, monospace;
   font-weight: 400;
@@ -48822,22 +48822,22 @@ html[dir='rtl'] .select2-search-choice-close {
   font-size: 13px;
   line-height: 23px;
 }
-.cm-s-fyipe .CodeMirror-gutters {
+.cm-s-oneuptime .CodeMirror-gutters {
   border: none;
   background-color: #fff;
 }
-.cm-s-fyipe.cm-s-fyipe-readonly.CodeMirror,
-.cm-s-fyipe.cm-s-fyipe-readonly .CodeMirror-gutters {
+.cm-s-oneuptime.cm-s-oneuptime-readonly.CodeMirror,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .CodeMirror-gutters {
   background-color: rgba(246, 249, 252, 0.5);
 }
-.cm-s-fyipe .CodeMirror-lines {
+.cm-s-oneuptime .CodeMirror-lines {
   padding: 0;
 }
-.cm-s-fyipe .CodeMirror-linenumbers {
+.cm-s-oneuptime .CodeMirror-linenumbers {
   width: 56px;
   background-color: transparent;
 }
-.cm-s-fyipe .CodeMirror-linenumber {
+.cm-s-oneuptime .CodeMirror-linenumber {
   font-family: Source Code Pro, Courier New, Courier, monospace;
   font-size: 13px;
   line-height: 22px;
@@ -48846,85 +48846,85 @@ html[dir='rtl'] .select2-search-choice-close {
   padding-left: 10px;
   color: #aab7c4;
 }
-.cm-s-fyipe .CodeMirror-hscrollbar {
+.cm-s-oneuptime .CodeMirror-hscrollbar {
   overflow-x: auto;
 }
-.cm-s-fyipe .CodeMirror-guttermarker {
+.cm-s-oneuptime .CodeMirror-guttermarker {
   color: #125b98;
 }
-.cm-s-fyipe .CodeMirror-guttermarker-subtle {
+.cm-s-oneuptime .CodeMirror-guttermarker-subtle {
   color: #cfd7df;
 }
-.cm-s-fyipe .cm-string,
-.cm-s-fyipe .cm-string-2 {
+.cm-s-oneuptime .cm-string,
+.cm-s-oneuptime .cm-string-2 {
   color: #24b47e;
 }
-.cm-s-fyipe .cm-comment,
-.cm-s-fyipe .cm-punctuation,
-.cm-s-fyipe .cm-quote {
+.cm-s-oneuptime .cm-comment,
+.cm-s-oneuptime .cm-punctuation,
+.cm-s-oneuptime .cm-quote {
   color: #aab7c4;
 }
-.cm-s-fyipe .cm-keyword {
+.cm-s-oneuptime .cm-keyword {
   color: #000000;
 }
-.cm-s-fyipe .cm-builtin,
-.cm-s-fyipe .cm-number {
+.cm-s-oneuptime .cm-builtin,
+.cm-s-oneuptime .cm-number {
   color: #e39f48;
 }
-.cm-s-fyipe .CodeMirror-lint-mark-error,
-.cm-s-fyipe .db-QueryEditor-errorLine {
+.cm-s-oneuptime .CodeMirror-lint-mark-error,
+.cm-s-oneuptime .db-QueryEditor-errorLine {
   background-color: hsla(8, 49%, 91%, 0.4);
 }
-.cm-s-fyipe .db-QueryEditor-errorLine.CodeMirror-linebackground,
-.cm-s-fyipe
+.cm-s-oneuptime .db-QueryEditor-errorLine.CodeMirror-linebackground,
+.cm-s-oneuptime
   .db-QueryEditor-errorLine
   .CodeMirror-linenumber.CodeMirror-gutter-elt {
   background-color: transparent;
 }
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-atom,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-attribute,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-bracket,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-builtin,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-comment,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-def,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-hr,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-keyword,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-meta,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-number,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-operator,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-property,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-punctuation,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-qualifier,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-string,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-string-2,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-tag,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-variable,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-variable-2,
-.cm-s-fyipe .db-QueryEditor-errorLine .cm-variable-3 {
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-atom,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-attribute,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-bracket,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-builtin,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-comment,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-def,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-hr,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-keyword,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-meta,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-number,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-operator,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-property,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-punctuation,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-qualifier,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-string,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-string-2,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-tag,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-variable,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-variable-2,
+.cm-s-oneuptime .db-QueryEditor-errorLine .cm-variable-3 {
   color: #e25950;
 }
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-atom,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-attribute,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-bracket,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-builtin,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-comment,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-def,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-hr,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-keyword,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-meta,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-number,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-operator,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-property,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-punctuation,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-qualifier,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-string,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-string-2,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-tag,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-variable,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-variable-2,
-.cm-s-fyipe.cm-s-fyipe-readonly .cm-variable-3,
-.cm-s-fyipe.cm-s-fyipe-readonly .CodeMirror-line,
-.cm-s-fyipe.cm-s-fyipe-readonly.CodeMirror pre {
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-atom,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-attribute,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-bracket,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-builtin,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-comment,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-def,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-hr,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-keyword,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-meta,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-number,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-operator,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-property,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-punctuation,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-qualifier,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-string,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-string-2,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-tag,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-variable,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-variable-2,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .cm-variable-3,
+.cm-s-oneuptime.cm-s-oneuptime-readonly .CodeMirror-line,
+.cm-s-oneuptime.cm-s-oneuptime-readonly.CodeMirror pre {
   color: #000000;
 }
 html.db-NewChrome .db-Badge--testmode,

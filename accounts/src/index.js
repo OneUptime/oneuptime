@@ -14,7 +14,7 @@ import { SENTRY_DSN, VERSION } from './config';
 
 Sentry.init({
     dsn: SENTRY_DSN,
-    release: `fyipe-accounts@${VERSION}`,
+    release: `oneuptime-accounts@${VERSION}`,
     integrations: [new Integrations.BrowserTracing()],
     environment: process.env.NODE_ENV,
     tracesSampleRate: 0.0,

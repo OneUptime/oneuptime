@@ -528,7 +528,9 @@ class CardForm extends Component {
                                         }
                                     >
                                         {!this.props.register.requesting && (
-                                            <span>Create Fyipe Account</span>
+                                            <span>
+                                                Create OneUptime Account
+                                            </span>
                                         )}
                                         {this.props.register.requesting && (
                                             <ButtonSpinner />
