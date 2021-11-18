@@ -5,21 +5,21 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import SlackItem from './SlackItem';
 import { WebHookTableHeader } from './WebHookRow';
-import { getSlack, paginate } from '../../actions/slackWebhook';
+import {
+    getSlack,
+    paginate,
+    getSlackMonitor,
+} from '../../actions/slackWebhook';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, User } from '../../config';
-import { history } from '../../store';
 
 class SlackList extends React.Component {
     ready() {
-        const { getSlack } = this.props;
-        let { projectId } = this.props;
-        if (!projectId) {
-            projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
-            getSlack(projectId);
+        const { getSlackMonitor, monitorId, getSlack } = this.props;
+        const { projectId } = this.props;
+        if (monitorId) {
+            getSlackMonitor(projectId, monitorId);
         } else {
             getSlack(projectId);
         }
@@ -50,12 +50,29 @@ class SlackList extends React.Component {
     prevClicked = () => {
         const {
             slacks: { skip, limit },
-            getSlack,
+            getSlackMonitor,
             projectId,
             paginate,
+            monitorId,
+            getSlack,
         } = this.props;
 
-        getSlack(projectId, (skip || 0) > (limit || 10) ? skip - limit : 0, 10);
+        if (monitorId) {
+            getSlackMonitor(
+                projectId,
+                monitorId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        } else {
+            getSlack(
+                projectId,
+                monitorId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        }
+
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -67,12 +84,19 @@ class SlackList extends React.Component {
     nextClicked = () => {
         const {
             slacks: { skip, limit },
-            getSlack,
+            getSlackMonitor,
             projectId,
             paginate,
+            monitorId,
+            getSlack,
         } = this.props;
 
-        getSlack(projectId, skip + limit, 10);
+        if (monitorId) {
+            getSlackMonitor(projectId, monitorId, skip + limit, 10);
+        } else {
+            getSlack(projectId, skip + limit, 10);
+        }
+
         paginate('next');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > PROJECT > WEBHOOKS > NEXT CLICKED');
@@ -254,6 +278,7 @@ const mapDispatchToProps = dispatch =>
         {
             getSlack,
             paginate,
+            getSlackMonitor,
         },
         dispatch
     );
@@ -266,6 +291,7 @@ SlackList.propTypes = {
     slacks: PropTypes.object,
     paginate: PropTypes.func.isRequired,
     pages: PropTypes.object,
+    getSlackMonitor: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SlackList);

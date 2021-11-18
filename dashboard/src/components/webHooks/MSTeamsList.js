@@ -5,21 +5,22 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import MSTeamsItem from './MSTeamsItem';
 import { WebHookTableHeader } from './WebHookRow';
-import { getMsTeams, paginate } from '../../actions/msteamsWebhook';
+import {
+    getMsTeams,
+    getMsTeamsMonitor,
+    paginate,
+} from '../../actions/msteamsWebhook';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS, User } from '../../config';
-import { history } from '../../store';
 
 class MSTeamsList extends React.Component {
     ready() {
-        const { getMsTeams } = this.props;
-        let { projectId } = this.props;
-        if (!projectId) {
-            projectId = history.location.pathname
-                .split('project/')[1]
-                .split('/')[0];
-            getMsTeams(projectId);
+        const { getMsTeamsMonitor, monitorId, getMsTeams } = this.props;
+        const { projectId } = this.props;
+
+        if (monitorId) {
+            getMsTeamsMonitor(projectId, monitorId);
         } else {
             getMsTeams(projectId);
         }
@@ -50,16 +51,27 @@ class MSTeamsList extends React.Component {
     prevClicked = () => {
         const {
             msTeams: { skip, limit },
-            getMsTeams,
             projectId,
             paginate,
+            getMsTeamsMonitor,
+            monitorId,
+            getMsTeams,
         } = this.props;
 
-        getMsTeams(
-            projectId,
-            (skip || 0) > (limit || 10) ? skip - limit : 0,
-            10
-        );
+        if (monitorId) {
+            getMsTeamsMonitor(
+                projectId,
+                monitorId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        } else {
+            getMsTeams(
+                projectId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        }
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -71,12 +83,18 @@ class MSTeamsList extends React.Component {
     nextClicked = () => {
         const {
             msTeams: { skip, limit },
-            getMsTeams,
+            getMsTeamsMonitor,
             projectId,
             paginate,
+            monitorId,
+            getMsTeams,
         } = this.props;
 
-        getMsTeams(projectId, skip + limit, 10);
+        if (monitorId) {
+            getMsTeamsMonitor(projectId, monitorId, skip + limit, 10);
+        } else {
+            getMsTeams(projectId, skip + limit, 10);
+        }
         paginate('next');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > PROJECT > WEBHOOKS > NEXT CLICKED');
@@ -249,22 +267,26 @@ class MSTeamsList extends React.Component {
 
 MSTeamsList.displayName = 'MsTeamsList';
 
-const mapStateToProps = state => ({
-    msTeams: state.msTeams.msTeams,
-    isRequesting: state.msTeams.msTeams.requesting,
-    currentProject: state.project.currentProject,
-    projectId:
-        (state.project.currentProject && state.project.currentProject._id) ||
-        User.getCurrentProjectId(),
-    monitor: state.monitor,
-    pages: state.msTeams.pages,
-});
+const mapStateToProps = state => {
+    return {
+        msTeams: state.msTeams.msTeams,
+        isRequesting: state.msTeams.msTeams.requesting,
+        currentProject: state.project.currentProject,
+        projectId:
+            (state.project.currentProject &&
+                state.project.currentProject._id) ||
+            User.getCurrentProjectId(),
+        monitor: state.monitor,
+        pages: state.msTeams.pages,
+    };
+};
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             getMsTeams,
             paginate,
+            getMsTeamsMonitor,
         },
         dispatch
     );
@@ -277,6 +299,7 @@ MSTeamsList.propTypes = {
     msTeams: PropTypes.object,
     pages: PropTypes.object,
     paginate: PropTypes.func.isRequired,
+    getMsTeamsMonitor: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MSTeamsList);
