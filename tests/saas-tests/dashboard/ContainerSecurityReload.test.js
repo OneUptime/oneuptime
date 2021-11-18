@@ -42,11 +42,11 @@ describe('Fyipe Page Reload', () => {
     });
 
     test(
-        'Should reload the application security page and confirm there are no errors',
+        'Should reload the container security page and confirm there are no errors',
         async done => {
-            const categoryName = 'Random-Category';
+            //const categoryName = 'Random-Category';
             // create a new resource category
-            await init.addResourceCategory(categoryName, page);
+            //await init.addResourceCategory(categoryName, page);
             //navigate to component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -71,11 +71,11 @@ describe('Fyipe Page Reload', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectDropdownValue(
-                '#resourceCategory',
-                categoryName,
-                page
-            ); // add category
+            // await init.selectDropdownValue(
+            //     '#resourceCategory',
+            //     categoryName,
+            //     page
+            // ); // add category
             await init.selectDropdownValue(
                 '#dockerCredential',
                 dockerUsername,
