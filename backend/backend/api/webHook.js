@@ -296,4 +296,42 @@ router.get('/:projectId/hooks', getUser, async function(req, res) {
     }
 });
 
+// req => params => {projectId, monitorId}
+router.get('/:projectId/hooks/:monitorId', getUser, async function(req, res) {
+    try {
+        // const projectId = req.params.projectId;
+        const integrationType = req.query.type || 'webhook';
+        const select =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
+
+        const { monitorId } = req.params;
+        const integrations = await IntegrationService.findBy({
+            query: {
+                'monitors.monitorId': { $in: [monitorId] },
+                integrationType: integrationType,
+            },
+            skip: req.query.skip || 0,
+            limit: req.query.limit || 10,
+            select,
+            populate,
+        });
+        const count = await IntegrationService.countBy({
+            'monitors.monitorId': { $in: [monitorId] },
+            integrationType: integrationType,
+        });
+        return sendListResponse(req, res, integrations, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

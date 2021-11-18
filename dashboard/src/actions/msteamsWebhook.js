@@ -118,6 +118,38 @@ export function getMsTeams(projectId, skip, limit) {
     };
 }
 
+export function getMsTeamsMonitor(projectId, monitorId, skip, limit) {
+    return function(dispatch) {
+        let promise = null;
+        promise = getApi(
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
+                0}&limit=${limit || 10}&type=msteams`
+        );
+        dispatch(getMsTeamsRequest(promise));
+
+        promise.then(
+            function(webhooks) {
+                dispatch(getMsTeamsSuccess(webhooks.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getMsTeamsError(error));
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function createMsTeamsRequest() {
     return {
         type: types.CREATE_MS_TEAMS_REQUEST,

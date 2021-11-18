@@ -96,7 +96,14 @@ class EditIncomingRequest extends Component {
                 : [];
 
         if (values.nextAction && values.nextAction === 'createIncident') {
-            postObj.selectAllMonitors = values.selectAllMonitors;
+            if (
+                values.selectMonitor &&
+                values.selectMonitor === 'selectAllMonitors'
+            ) {
+                postObj.selectAllMonitors = true;
+            } else {
+                postObj.selectAllMonitors = false;
+            }
             postObj.createIncident = true;
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
@@ -1343,62 +1350,127 @@ class EditIncomingRequest extends Component {
                                                                         '80%',
                                                                 }}
                                                             >
-                                                                {formValues &&
-                                                                    formValues.selectAllMonitors && (
+                                                                <fieldset
+                                                                    style={{
+                                                                        padding: 0,
+                                                                        marginBottom: 10,
+                                                                    }}
+                                                                >
+                                                                    <div className="bs-Fieldset-rows">
                                                                         <div
                                                                             className="bs-Fieldset-row"
                                                                             style={{
                                                                                 padding: 0,
-                                                                                width:
-                                                                                    '100%',
+                                                                                display:
+                                                                                    'block',
                                                                             }}
                                                                         >
                                                                             <div
-                                                                                className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                                                                className="bs-Fieldset-field"
                                                                                 style={{
                                                                                     padding: 0,
                                                                                 }}
                                                                             >
-                                                                                <div
-                                                                                    className="Box-root"
+                                                                                <label
+                                                                                    className="bs-Radio"
                                                                                     style={{
-                                                                                        height:
-                                                                                            '5px',
+                                                                                        marginRight:
+                                                                                            '12px',
                                                                                     }}
-                                                                                ></div>
-                                                                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                                                    <label
-                                                                                        className="Checkbox"
-                                                                                        htmlFor="selectAllMonitorsBox"
+                                                                                    htmlFor="selectAllMonitors"
+                                                                                >
+                                                                                    <Field
+                                                                                        component="input"
+                                                                                        type="radio"
+                                                                                        name="selectMonitor"
+                                                                                        className="bs-Radio-source"
+                                                                                        id="selectAllMonitors"
+                                                                                        value="selectAllMonitors"
+                                                                                        style={{
+                                                                                            width: 0,
+                                                                                        }}
+                                                                                    />
+                                                                                    <span className="bs-Radio-button"></span>
+                                                                                    <div
+                                                                                        className="Box-root"
+                                                                                        style={{
+                                                                                            paddingLeft:
+                                                                                                '10px',
+                                                                                        }}
                                                                                     >
-                                                                                        <Field
-                                                                                            component="input"
-                                                                                            type="checkbox"
-                                                                                            name="selectAllMonitors"
-                                                                                            className="Checkbox-source"
-                                                                                            id="selectAllMonitorsBox"
-                                                                                        />
-                                                                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                                            <div className="Checkbox-target Box-root">
-                                                                                                <div className="Checkbox-color Box-root"></div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div className="Checkbox-label Box-root Margin-left--8">
-                                                                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                                <span>
-                                                                                                    All
-                                                                                                    Monitors
-                                                                                                    Selected
-                                                                                                </span>
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </label>
-                                                                                </div>
+                                                                                        <span>
+                                                                                            Select
+                                                                                            All
+                                                                                            Monitors
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </label>
                                                                             </div>
                                                                         </div>
-                                                                    )}
+                                                                    </div>
+                                                                </fieldset>
+                                                                <fieldset
+                                                                    style={{
+                                                                        padding: 0,
+                                                                        marginBottom: 10,
+                                                                    }}
+                                                                >
+                                                                    <div className="bs-Fieldset-rows">
+                                                                        <div
+                                                                            className="bs-Fieldset-row"
+                                                                            style={{
+                                                                                padding: 0,
+                                                                                display:
+                                                                                    'block',
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                className="bs-Fieldset-field"
+                                                                                style={{
+                                                                                    padding: 0,
+                                                                                }}
+                                                                            >
+                                                                                <label
+                                                                                    className="bs-Radio"
+                                                                                    style={{
+                                                                                        marginRight:
+                                                                                            '12px',
+                                                                                    }}
+                                                                                    htmlFor="selectSpecificMonitors"
+                                                                                >
+                                                                                    <Field
+                                                                                        component="input"
+                                                                                        type="radio"
+                                                                                        name="selectMonitor"
+                                                                                        className="bs-Radio-source"
+                                                                                        id="selectSpecificMonitors"
+                                                                                        value="selectSpecificMonitors"
+                                                                                        style={{
+                                                                                            width: 0,
+                                                                                        }}
+                                                                                    />
+                                                                                    <span className="bs-Radio-button"></span>
+                                                                                    <div
+                                                                                        className="Box-root"
+                                                                                        style={{
+                                                                                            paddingLeft:
+                                                                                                '10px',
+                                                                                        }}
+                                                                                    >
+                                                                                        <span>
+                                                                                            Select
+                                                                                            Specific
+                                                                                            Monitors
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </label>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </fieldset>
                                                                 {formValues &&
-                                                                    !formValues.selectAllMonitors && (
+                                                                    formValues.selectMonitor ===
+                                                                        'selectSpecificMonitors' && (
                                                                         <div className="bs-Fieldset-fields">
                                                                             <div
                                                                                 className="bs-Fieldset-field"
@@ -3205,6 +3277,7 @@ const mapStateToProps = state => {
         monitors = [...monitors, ...monitor.monitors];
     });
     if (!initialValues.selectAllMonitors && incomingRequestToBeUpdated) {
+        initialValues.selectMonitor = 'selectSpecificMonitors';
         initialValues.monitors =
             incomingRequestToBeUpdated.monitors &&
             incomingRequestToBeUpdated.monitors
@@ -3214,6 +3287,8 @@ const mapStateToProps = state => {
                         : null
                 )
                 .filter(item => typeof item === 'string');
+    } else {
+        initialValues.selectMonitor = 'selectAllMonitors';
     }
 
     return {

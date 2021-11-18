@@ -118,6 +118,38 @@ export function getSlack(projectId, skip, limit) {
     };
 }
 
+export function getSlackMonitor(projectId, monitorId, skip, limit) {
+    return function(dispatch) {
+        let promise = null;
+        promise = getApi(
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
+                0}&limit=${limit || 10}&type=slack`
+        );
+        dispatch(getSlackRequest(promise));
+
+        promise.then(
+            function(webhooks) {
+                dispatch(getSlackSuccess(webhooks.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getSlackError(error));
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function createSlackRequest() {
     return {
         type: types.CREATE_SLACK_WEBHOOK_REQUEST,

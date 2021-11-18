@@ -46,9 +46,9 @@ describe('Container Security Page', () => {
 
             await init.addComponent(component, page);
 
-            const categoryName = 'Random-Category';
+            //const categoryName = 'Random-Category';
             // create a new resource category
-            await init.addResourceCategory(categoryName, page);
+            // await init.addResourceCategory(categoryName, page);
             //navigate to component details
             await init.navigateToComponentDetails(component, page);
 
@@ -85,11 +85,11 @@ describe('Container Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectDropdownValue(
-                '#resourceCategory',
-                categoryName,
-                page
-            ); // add category
+            // await init.selectDropdownValue(
+            //     '#resourceCategory',
+            //     categoryName,
+            //     page
+            // ); // add category
             await init.pageClick(page, '#dockerCredential');
             await init.pageType(page, '#dockerCredential', dockerUsername);
             await page.keyboard.press('Enter');
@@ -117,13 +117,13 @@ describe('Container Security Page', () => {
             expect(editContainerElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            let spanElement = await init.page$(
-                page,
-                `#${containerSecurityName}-badge`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(categoryName.toUpperCase());
+            // let spanElement = await init.page$(
+            //     page,
+            //     `#${containerSecurityName}-badge`
+            // );
+            // spanElement = await spanElement.getProperty('innerText');
+            // spanElement = await spanElement.jsonValue();
+            // spanElement.should.be.exactly(categoryName.toUpperCase());
 
             done();
         },

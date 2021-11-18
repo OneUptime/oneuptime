@@ -12,6 +12,7 @@ import {
     getWebHookRequest,
     getWebHookSuccess,
     paginate,
+    getWebHookMonitor,
 } from '../../actions/webHook';
 import { ListLoader } from '../basic/Loader';
 import { logEvent } from '../../analytics';
@@ -19,10 +20,14 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class WebHookList extends React.Component {
     ready() {
-        const { getWebHook } = this.props;
-        const { projectId } = this.props;
+        const { getWebHookMonitor, getWebHook } = this.props;
+        const { projectId, monitorId } = this.props;
 
-        getWebHook(projectId);
+        if (monitorId) {
+            getWebHookMonitor(projectId, monitorId);
+        } else {
+            getWebHook(projectId);
+        }
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > WEBHOOKS');
@@ -51,16 +56,28 @@ class WebHookList extends React.Component {
     prevClicked = () => {
         const {
             webHook: { skip, limit },
+            getWebHookMonitor,
             getWebHook,
             projectId,
             paginate,
+            monitorId,
         } = this.props;
 
-        getWebHook(
-            projectId,
-            (skip || 0) > (limit || 10) ? skip - limit : 0,
-            10
-        );
+        if (monitorId) {
+            getWebHookMonitor(
+                projectId,
+                monitorId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        } else {
+            getWebHook(
+                projectId,
+                (skip || 0) > (limit || 10) ? skip - limit : 0,
+                10
+            );
+        }
+
         paginate('prev');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -72,12 +89,18 @@ class WebHookList extends React.Component {
     nextClicked = () => {
         const {
             webHook: { skip, limit },
-            getWebHook,
+            getWebHookMonitor,
             projectId,
             paginate,
+            monitorId,
+            getWebHook,
         } = this.props;
 
-        getWebHook(projectId, skip + limit, 10);
+        if (monitorId) {
+            getWebHookMonitor(projectId, monitorId, skip + limit, 10);
+        } else {
+            getWebHook(projectId, skip + limit, 10);
+        }
         paginate('next');
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > PROJECT > WEBHOOKS > NEXT CLICKED');
@@ -102,7 +125,7 @@ class WebHookList extends React.Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages = Math.ceil(parseInt(count) / limit);
         return (
             <React.Fragment>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -257,6 +280,7 @@ const mapStateToProps = state => ({
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
+            getWebHookMonitor,
             getWebHook,
             getWebHookError,
             getWebHookRequest,
@@ -267,13 +291,14 @@ const mapDispatchToProps = dispatch =>
     );
 
 WebHookList.propTypes = {
-    getWebHook: PropTypes.func,
+    getWebHookMonitor: PropTypes.func,
     projectId: PropTypes.string,
     monitorId: PropTypes.string,
     isRequesting: PropTypes.bool,
     webHook: PropTypes.any,
     paginate: PropTypes.func.isRequired,
     page: PropTypes.any,
+    getWebHook: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookList);

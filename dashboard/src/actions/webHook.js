@@ -117,6 +117,38 @@ export function getWebHook(projectId, skip, limit) {
     };
 }
 
+export function getWebHookMonitor(projectId, monitorId, skip, limit) {
+    return function(dispatch) {
+        let promise = null;
+        promise = getApi(
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
+                0}&limit=${limit || 10}`
+        );
+        dispatch(getWebHookRequest(promise));
+
+        promise.then(
+            function(webhooks) {
+                dispatch(getWebHookSuccess(webhooks.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(getWebHookError(error));
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function createWebHookRequest() {
     return {
         type: types.CREATE_WEB_HOOK_REQUEST,
