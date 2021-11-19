@@ -4309,9 +4309,12 @@ module.exports = {
 
             if (message) {
                 for (const monitor of message.scheduledEventId.monitors) {
+                    const monitorId =
+                        monitor.monitorId._id || monitor.monitorId;
+
                     const subscribers = await SubscriberService.subscribersForAlert(
                         {
-                            monitorId: monitor.monitorId._id,
+                            monitorId,
                             subscribed: true,
                         }
                     );
@@ -4390,7 +4393,7 @@ module.exports = {
                                 return await SubscriberAlertService.create({
                                     projectId,
                                     subscriberId: subscriber._id,
-                                    alertVia: AlertType.SMS,
+                                    alertVia: AlertType.Email,
                                     eventType:
                                         'Scheduled maintenance note created',
                                     alertStatus: null,
@@ -4440,7 +4443,11 @@ module.exports = {
                                     monitor.name,
                                     projectId,
                                     unsubscribeUrl,
-                                    monitorsAffected
+                                    monitorsAffected.filter(
+                                        monitor =>
+                                            String(monitor._id) ===
+                                            String(monitorId)
+                                    )
                                 );
                                 alertStatus = 'Sent';
                                 await SubscriberAlertService.updateOneBy(
