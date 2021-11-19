@@ -740,6 +740,7 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
 ) {
     try {
         const { eventId } = req.params;
+        // eslint-disable-next-line no-unused-vars
         const { limit, skip, type } = req.query;
 
         const populate = [
@@ -758,7 +759,7 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
 
         const [eventNotes, count] = await Promise.all([
             ScheduledEventNoteService.findBy({
-                query: { scheduledEventId: eventId, type },
+                query: { scheduledEventId: eventId },
                 limit,
                 skip,
                 populate,
@@ -766,7 +767,6 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
             }),
             ScheduledEventNoteService.countBy({
                 scheduledEventId: eventId,
-                type,
             }),
         ]);
 
