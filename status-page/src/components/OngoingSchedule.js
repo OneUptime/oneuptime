@@ -38,11 +38,6 @@ class OngoingSchedule extends Component {
                                                 cursor: 'pointer',
                                             }}
                                             key={event._id}
-                                            onClick={() => {
-                                                this.props.history.push(
-                                                    `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
-                                                );
-                                            }}
                                         >
                                             <div
                                                 className="ongoing__schedulebox content box box__yellow--dark"

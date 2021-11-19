@@ -883,7 +883,7 @@ class ScheduledEvent extends Component {
                         style={{ display: 'flex', alignItems: 'center' }}
                     >
                         <span
-                            onClick={() => history.replace(statusPageUrl)}
+                            onClick={() => history.push(statusPageUrl)}
                             className="sp__icon sp__icon--back"
                             style={{
                                 color: 'rgb(76, 76, 76)',
