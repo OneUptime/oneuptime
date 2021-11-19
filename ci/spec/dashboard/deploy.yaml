@@ -12,11 +12,11 @@ staging_dashboard:
         - bash ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy dashboard.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/dashboard:master ./dashboard
-        - sudo docker tag fyipeproject/dashboard:master fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/dashboard:master
-        - sudo kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t oneuptimeproject/dashboard:master ./dashboard
+        - sudo docker tag oneuptimeproject/dashboard:master oneuptimeproject/dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/dashboard:master
+        - sudo kubectl set image deployment/fi-dashboard fi-dashboard=oneuptimeproject/dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -41,11 +41,11 @@ production_dashboard:
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/dashboard:latest ./dashboard
-        - sudo docker tag fyipeproject/dashboard:latest fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/dashboard:latest
-        - sudo kubectl set image deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t oneuptimeproject/dashboard:latest ./dashboard
+        - sudo docker tag oneuptimeproject/dashboard:latest oneuptimeproject/dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/dashboard:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/dashboard:latest
+        - sudo kubectl set image deployment/fi-dashboard fi-dashboard=oneuptimeproject/dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
