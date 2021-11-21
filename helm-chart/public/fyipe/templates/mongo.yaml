@@ -10,7 +10,7 @@ metadata:
     name: {{ printf "%s-%s" .Release.Name "mongo-standalone" }}
 spec:
   ports:
-  - port: 27017
+  - port: 17564
     targetPort: 27017
   type: ClusterIP
   selector:
