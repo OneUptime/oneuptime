@@ -1058,7 +1058,7 @@ module.exports = {
 
         // Create payload
         const title = `${pushMessage}Incident #${incident.idNumber} is created`;
-        const body = `Please acknowledge or resolve this incident on Fyipe Dashboard.`;
+        const body = `Please acknowledge or resolve this incident on OneUptime Dashboard.`;
         const payload = JSON.stringify({ title, body });
 
         // Pass object into sendNotification
@@ -1211,7 +1211,7 @@ module.exports = {
             const incidentcreatedBy =
                 incident.createdById && incident.createdById.name
                     ? incident.createdById.name
-                    : 'fyipe';
+                    : 'oneuptime';
             await MailService.sendIncidentCreatedMail({
                 incidentTime: date,
                 monitorName: monitor.name,
@@ -2333,7 +2333,7 @@ module.exports = {
             const incidentcreatedBy =
                 incident.createdById && incident.createdById.name
                     ? incident.createdById.name
-                    : 'fyipe';
+                    : 'oneuptime';
             const downtime = moment(incident.acknowledgedAt).diff(
                 moment(incident.createdAt),
                 'minutes'
@@ -2698,7 +2698,7 @@ module.exports = {
             const incidentcreatedBy =
                 incident.createdById && incident.createdById.name
                     ? incident.createdById.name
-                    : 'fyipe';
+                    : 'oneuptime';
             const downtime = moment(incident.resolvedAt).diff(
                 moment(incident.createdAt),
                 'minutes'
@@ -4419,7 +4419,7 @@ module.exports = {
                             try {
                                 const createdBy = message.createdById
                                     ? message.createdById.name
-                                    : 'Fyipe';
+                                    : 'OneUptime';
 
                                 const replyAddress = message.scheduledEventId
                                     .projectId.replyAddress

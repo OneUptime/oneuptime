@@ -13,7 +13,7 @@ const handlePopulate = require('../utils/populate');
 module.exports = {
     create: async function({ domain, projectId }) {
         const parsed = psl.parse(domain);
-        const token = 'fyipe=' + randomChar();
+        const token = 'oneuptime=' + randomChar();
 
         // all domain should be tied to parentProject only
         const project = await ProjectService.findOneBy({
@@ -146,7 +146,7 @@ module.exports = {
         try {
             const _this = this;
             const updateObj = {
-                verificationToken: 'fyipe=' + randomChar(),
+                verificationToken: 'oneuptime=' + randomChar(),
                 verified: false,
                 updatedAt: new Date(),
             };
@@ -162,9 +162,11 @@ module.exports = {
     },
     doesTxtRecordExist: async function(subDomain, verificationToken) {
         const parsed = psl.parse(subDomain);
-        const host = 'fyipe';
+        const host = 'oneuptime';
+        const previousHost = 'fyipe';
         const domain = parsed.domain;
         const domainToLookup = `${host}.${domain}`;
+        const prevDomainToLookup = `${previousHost}.${domain}`;
 
         try {
             const records = await dnsPromises.resolveTxt(domainToLookup);
@@ -174,7 +176,22 @@ module.exports = {
             const result = txtRecords.some(
                 txtRecord => verificationToken === txtRecord
             );
-            return { result, txtRecords };
+
+            if (result) {
+                return { result, txtRecords };
+            } else {
+                const records = await dnsPromises.resolveTxt(
+                    prevDomainToLookup
+                );
+                // records is an array of arrays
+                // flatten the array to a single array
+                const txtRecords = flatten(records);
+                const result = txtRecords.some(
+                    txtRecord => verificationToken === txtRecord
+                );
+
+                return { result, txtRecords };
+            }
         } catch (error) {
             if (error.code === 'ENODATA') {
                 throw {

@@ -24,7 +24,7 @@ module.exports = [
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
     <meta name="viewport" content="width=3Ddevice-width">
-    <title>Welcome to Fyipe.</title>
+    <title>Welcome to OneUptime.</title>
     <style>
       /**
   * IMPORTANT:
@@ -225,7 +225,7 @@ span.st-Delink.st-Delink--footer a {
         <div>
           <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href={{homeURL}}>
 
-            <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+            <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
           </a>
         </div>
       </td>
@@ -461,7 +461,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-       Fyipe Team.
+       OneUptime Team.
 
 
       </td>
@@ -574,7 +574,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
   <meta name="viewport" content="width=3Ddevice-width">
-  <title>Welcome to Fyipe.</title>
+  <title>Welcome to OneUptime.</title>
   <style>
     /**
 * IMPORTANT:
@@ -773,8 +773,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
-        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -997,7 +997,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
   
-    Fyipe Team.
+    OneUptime Team.
 
 
     </td>
@@ -1110,7 +1110,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
   <meta name="viewport" content="width=3Ddevice-width">
-  <title>Welcome to Fyipe.</title>
+  <title>Welcome to OneUptime.</title>
   <style>
     /**
 * IMPORTANT:
@@ -1309,8 +1309,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
-        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -1525,7 +1525,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-    Fyipe Team.
+    OneUptime Team.
 
 
     </td>
@@ -1641,7 +1641,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     <head>
       <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
       <meta name="viewport" content="width=3Ddevice-width">
-      <title>Welcome to Fyipe.</title>
+      <title>Welcome to OneUptime.</title>
       <style>
         /**
     * IMPORTANT:
@@ -1839,8 +1839,8 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
         </td>
         <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
           <div>
-            <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-              <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+            <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+              <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
             </a>
           </div>
         </td>
@@ -2069,7 +2069,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
         <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
     
        
-        Fyipe Team.
+        OneUptime Team.
     
     
         </td>
@@ -2182,7 +2182,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
   <meta name="viewport" content="width=3Ddevice-width">
-  <title>Welcome to Fyipe.</title>
+  <title>Welcome to OneUptime.</title>
   <style>
     /**
 * IMPORTANT:
@@ -2381,8 +2381,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
-        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -2606,7 +2606,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-    Fyipe Team.
+    OneUptime Team.
 
 
     </td>
@@ -2714,7 +2714,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
   <meta name="viewport" content="width=3Ddevice-width">
-  <title>Welcome to Fyipe.</title>
+  <title>Welcome to OneUptime.</title>
   <style>
     /**
 * IMPORTANT:
@@ -2913,8 +2913,8 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     </td>
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
-        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-          <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+        <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
         </a>
       </div>
     </td>
@@ -3127,7 +3127,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
    
-    Fyipe Team.
+    OneUptime Team.
 
 
     </td>
@@ -3235,7 +3235,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
 <meta name="viewport" content="width=3Ddevice-width">
-<title>Welcome to Fyipe.</title>
+<title>Welcome to OneUptime.</title>
 <style>
   /**
 * IMPORTANT:
@@ -3434,8 +3434,8 @@ vertical-align: middle !important;
   </td>
   <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
     <div>
-      <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-        <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+      <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+        <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
       </a>
     </div>
   </td>
@@ -3640,7 +3640,7 @@ You are receiving this mail because you are subscribed to this monitor.
   </td>
   <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
  
-  Fyipe Team.
+  OneUptime Team.
 
   </td>
   <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -3746,7 +3746,7 @@ You are receiving this mail because you are subscribed to this monitor.
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
 <meta name="viewport" content="width=3Ddevice-width">
-<title>Welcome to Fyipe.</title>
+<title>Welcome to OneUptime.</title>
 <style>
 /**
 * IMPORTANT:
@@ -3945,8 +3945,8 @@ vertical-align: middle !important;
 </td>
 <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
   <div>
-    <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-      <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+    <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+      <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
     </a>
   </div>
 </td>
@@ -4151,7 +4151,7 @@ You are receiving this mail because you are subscribed to this monitor.
 </td>
 <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-Fyipe Team.
+OneUptime Team.
 
 </td>
 <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
@@ -4254,7 +4254,7 @@ Fyipe Team.
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=3Dutf-8">
 <meta name="viewport" content="width=3Ddevice-width">
-<title>Welcome to Fyipe.</title>
+<title>Welcome to OneUptime.</title>
 <style>
 /**
 * IMPORTANT:
@@ -4453,8 +4453,8 @@ vertical-align: middle !important;
 </td>
 <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
   <div>
-    <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://fyipe.com">
-      <img alt="Fyipe" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+    <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
+      <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
     </a>
   </div>
 </td>
@@ -4661,7 +4661,7 @@ You are receiving this mail because you are subscribed to this monitor.
 </td>
 <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
 
-Fyipe Team.
+OneUptime Team.
 
 </td>
 <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">

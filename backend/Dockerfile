@@ -1,5 +1,5 @@
 #
-# Fyipe-backend Dockerfile
+# OneUptime-backend Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -26,7 +26,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3002: Fyipe-backend
+#   - 3002: OneUptime-backend
 EXPOSE 3002
 
 #Run the app

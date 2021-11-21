@@ -102,7 +102,7 @@ describe('Enterprise User API', function() {
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
-                redirect: 'http://fyipe.com',
+                redirect: 'http://oneuptime.com',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(200);
@@ -110,7 +110,7 @@ describe('Enterprise User API', function() {
                     data.newUser.email.toLocaleLowerCase()
                 );
                 expect(res.body).have.property('redirect');
-                expect(res.body.redirect).to.eql('http://fyipe.com');
+                expect(res.body.redirect).to.eql('http://oneuptime.com');
                 done();
             });
     });

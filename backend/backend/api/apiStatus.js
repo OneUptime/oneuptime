@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
             backend: {
                 status: 200,
                 message: 'Service Status - OK',
-                serviceType: 'fyipe-api',
+                serviceType: 'oneuptime-api',
             },
             database: {
                 status: 'Up',

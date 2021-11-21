@@ -176,7 +176,9 @@ module.exports = {
                     notificationText = `Incident on *${component.name} / ${
                         monitor.name
                     }* is resolved by ${
-                        incident.resolvedBy ? incident.resolvedBy.name : 'Fyipe'
+                        incident.resolvedBy
+                            ? incident.resolvedBy.name
+                            : 'OneUptime'
                     } after being ${incident.incidentType} for ${duration}`;
                 }
 
@@ -200,7 +202,7 @@ module.exports = {
                     }* is acknowledged by ${
                         incident.acknowledgedBy
                             ? incident.acknowledgedBy.name
-                            : 'Fyipe'
+                            : 'OneUptime'
                     } after being ${incident.incidentType} for ${duration}`;
                 }
 
@@ -285,7 +287,7 @@ module.exports = {
                                     title: 'Cause:',
                                     value: incident.createdById
                                         ? incident.createdById.name
-                                        : 'Fyipe',
+                                        : 'OneUptime',
                                     short: true,
                                 },
                                 {
@@ -320,7 +322,7 @@ module.exports = {
                 createdAt: incident.createdAt,
                 cause: incident.createdById
                     ? incident.createdById.name
-                    : 'Fyipe',
+                    : 'OneUptime',
                 incidentStatus: incident.incidentType,
                 monitorStatus,
                 criterion: criterionCauseName,

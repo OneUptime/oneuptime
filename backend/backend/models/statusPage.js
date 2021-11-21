@@ -10,7 +10,7 @@ const statusSchema = new Schema({
     }, //which project this statuspage belongs to.
     domains: [
         {
-            domain: String, // complete domain eg status.fyipe.com
+            domain: String, // complete domain eg status.oneuptime.com
             cert: String, // filename gridfs
             privateKey: String, // filename gridfs
             enableHttps: { type: Boolean, default: false },
