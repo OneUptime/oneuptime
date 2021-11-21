@@ -4,15 +4,18 @@ metadata:
   name: {{ printf "%s-%s" .Release.Name "mongo-standalone"  }}
   namespace: {{ .Release.Namespace }}
   labels:
+    app: {{ printf "%s-%s" .Release.Name "mongo-standalone"  }}
+    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" .Release.Name "mongo-standalone" }}
 spec:
   ports:
   - port: 27017
     targetPort: 27017
-  clusterIP: None
+  type: ClusterIP
   selector:
     role: {{ printf "%s-%s" .Release.Name "mongo-standalone" }}
-
+---
 
 apiVersion: apps/v1
 kind: StatefulSet
@@ -37,10 +40,7 @@ spec:
             - "mongod"
             - "--bind_ip"
             - "0.0.0.0"
-          resources:
-            requests:
-              cpu: 0.2
-              memory: 200Mi
+            - "--auth"
           ports:
             - containerPort: 27017
           volumeMounts:

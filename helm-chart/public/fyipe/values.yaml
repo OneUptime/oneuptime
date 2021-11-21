@@ -65,6 +65,13 @@ httpTestServer:
 ## Important: Probe Values. More information in the Readme.md 
 ################################################################################## 
 
+mongo:
+  fyipeDbUsername: fyipe
+  fyipeDbPassword: password
+  databaseName: fyipedb
+  rootUsername: root
+  rootPassword: root
+
 probes:
   probe1: 
     port: 3024
