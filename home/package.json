@@ -1,5 +1,5 @@
 {
-    "name": "fyipe-homepage",
+    "name": "oneuptime-homepage",
     "version": "3.0.0",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",

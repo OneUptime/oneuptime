@@ -756,7 +756,7 @@ section.contact-sales-header .stripes-container{
         bottom:-108px
     }
 }
-.stripes-container .fyipe{
+.stripes-container .oneuptime{
     position:absolute
 }
 section.contact-sales-header .stripes-container.initial .gradient{
@@ -1520,33 +1520,33 @@ section.success .thank-you .common-Link{
 .phone-finished section.success .thank-you .divider{
     opacity:0
 }
-section.form-section .why-fyipe{
+section.form-section .why-oneuptime{
     display:-ms-flexbox;
     display:flex;
     -ms-flex-direction:column;
     flex-direction:column
 }
 @media(min-width:1020px){
-    section.form-section .why-fyipe{
+    section.form-section .why-oneuptime{
         padding-top:200px
     }
 }
-section.form-section .why-fyipe .intro-text{
+section.form-section .why-oneuptime .intro-text{
     color:#f9fbfd;
     font-size:24px;
     font-weight:400;
     line-height:36px
 }
 @media(min-width:1020px){
-    section.form-section .why-fyipe .intro-text{
+    section.form-section .why-oneuptime .intro-text{
         max-width:335px
     }
 }
-section.form-section .why-fyipe .bullet-points{
+section.form-section .why-oneuptime .bullet-points{
     margin-top:20px;
     padding-left:38px
 }
-section.form-section .why-fyipe .bullet-points li{
+section.form-section .why-oneuptime .bullet-points li{
     color:#fff;
     font-size:17px;
     font-weight:400;
@@ -1556,11 +1556,11 @@ section.form-section .why-fyipe .bullet-points li{
     padding-right:10px
 }
 @media(min-width:1020px){
-    section.form-section .why-fyipe .bullet-points li{
+    section.form-section .why-oneuptime .bullet-points li{
         max-width:300px
     }
 }
-section.form-section .why-fyipe .bullet-points li:before{
+section.form-section .why-oneuptime .bullet-points li:before{
     content:'';
     position:absolute;
     top:3px;

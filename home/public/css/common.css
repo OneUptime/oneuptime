@@ -285,7 +285,7 @@
     flex-shrink:0;
     margin:10px
 }
-.fyipeBackground{
+.oneuptimeBackground{
     position:absolute;
     left:0;
     top:50%;
@@ -293,16 +293,16 @@
     transform:skewY(-12deg);
     pointer-events:none
 }
-.fyipeBackground .fyipe{
+.oneuptimeBackground .oneuptime{
     position:absolute;
     top:auto;
     left:0;
     right:0
 }
-.fyipeBackground .fyipe.pattern{
+.oneuptimeBackground .oneuptime.pattern{
     overflow:hidden
 }
-.fyipeBackground .fyipe.pattern:after{
+.oneuptimeBackground .oneuptime.pattern:after{
     content:'';
     position:absolute;
     left:0;

@@ -3,10 +3,10 @@
 
 <head>
   <% if (productConfig && productConfig.productName) { %>
-  <title>Fyipe | Compare <%= productConfig.productName %> with Fyipe </title>
+  <title>OneUptime | Compare <%= productConfig.productName %> with OneUptime </title>
   <% } %>
   <meta name="description"
-    content="Here's a more detailed comparision between <%= productConfig.productName %> and Fyipe.">
+    content="Here's a more detailed comparision between <%= productConfig.productName %> and OneUptime.">
   <% include ./head %>
   <script src="/js/amplitude.js"></script>
   <script type="module" async>
@@ -178,11 +178,11 @@
 
     <header class="Header">
 
-      <div class="fyipeBackground">
+      <div class="oneuptimeBackground">
 
       </div>
 
-      <div class="fyipeBackground accelerated">
+      <div class="oneuptimeBackground accelerated">
 
       </div>
 
@@ -193,7 +193,7 @@
           <div class="col-xs-12">
             <h1 class="Header-title common-PageTitle header-font header-size"
               style="margin-top: 50px; padding-bottom:20px">
-              Compare <%= productConfig.productName %> with Fyipe
+              Compare <%= productConfig.productName %> with OneUptime
             </h1>
             <p style="padding-top:15px;margin-bottom:0px" class="Header-subTitle common-IntroText black">
               <%= productConfig.description %></p>
@@ -268,7 +268,7 @@
           <button class="pricing-compare-table"><%= productConfig.productName %></button>
         </li>
         <li class="bg-black pricing-compare-table">
-          <button class="pricing-compare-table">Fyipe</button>
+          <button class="pricing-compare-table">OneUptime</button>
         </li>
       </ul>
 
@@ -283,9 +283,9 @@
               </h2>
             </th>
             <th class="bg-black pricing-compare-table">
-              <img src="/img/Fyipe.svg" height="50" alt="Fyipe" style="margin-top:10px" />
+              <img src="/img/Fyipe.svg" height="50" alt="OneUptime" style="margin-top:10px" />
               <h2 class="Plan-title noborders" style="padding-top:10px">
-                Fyipe
+                OneUptime
               </h2>
             </th>
           </tr>
@@ -304,7 +304,7 @@
             </td>
             <td class="pricing-compare-table">
               <div class="Plan-cardRate-percent pricing-font">
-                <%= productConfig.fyipePrice %>
+                <%= productConfig.oneuptimePrice %>
               </div>
             </td>
           </tr>
@@ -329,10 +329,10 @@
               <span class="pricing-compare-table font14"> <%=productConfig.items[i].productColumn %> </span>
               <% } %>
             </td>
-            <td class="pricing-compare-table"> <% if (productConfig.items[i].fyipeColumn === "tick") { %>
+            <td class="pricing-compare-table"> <% if (productConfig.items[i].oneuptimeColumn === "tick") { %>
               <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span>
               <%} else { %>
-              <span class="pricing-compare-table font14"> <%=productConfig.items[i].fyipeColumn %> </span>
+              <span class="pricing-compare-table font14"> <%=productConfig.items[i].oneuptimeColumn %> </span>
               <% } %>
             </td>
             <% } %>
