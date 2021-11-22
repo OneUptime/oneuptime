@@ -1,5 +1,5 @@
 #
-# Fyipe-backend Dockerfile
+# lighthouse-runner Dockerfile
 #
 
 # Pull base image nodejs image.
