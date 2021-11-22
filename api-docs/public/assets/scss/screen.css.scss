@@ -19,14 +19,14 @@ body {
 ///////////////////////////////////////////
 ///////////// TABLE OF CONTENTS ///////////
 ///////////////////////////////////////////
-#fyipe>ul>li>a>span {
+#oneuptime>ul>li>a>span {
   float: right;
   background-color: #2484ff;
   border-radius: 40px;
   width: 20px;
 }
 
-.fyipe-wrapper {
+.oneuptime-wrapper {
   transition: left 0.3s ease-in-out;
   overflow-x: hidden;
   overflow-y: auto;
@@ -118,28 +118,28 @@ body {
     transition-duration: 200ms;
   }
 
-  .fyipe-link.active {
+  .oneuptime-link.active {
     background-color: $nav-active-bg;
     color: $nav-active-text;
   }
 
-  .fyipe-link.active-parent {
+  .oneuptime-link.active-parent {
     background-color: $nav-active-parent-bg;
     color: $nav-active-parent-text;
   }
 
-  .fyipe-list-h2 {
+  .oneuptime-list-h2 {
     display: none;
     background-color: 500;
     font-weight: 500;
   }
 
-  .fyipe-h2 {
+  .oneuptime-h2 {
     padding-left: $nav-padding + $nav-indent;
     font-size: 12px;
   }
 
-  .fyipe-footer {
+  .oneuptime-footer {
     padding: 1em 0;
     margin-top: 1em;
     border-top: 1px dashed $nav-footer-border-color;
@@ -162,8 +162,8 @@ body {
   }
 }
 
-.fyipe-link,
-.fyipe-footer li {
+.oneuptime-link,
+.oneuptime-footer li {
   padding: 0 $nav-padding 0 $nav-padding;
   display: block;
   overflow-x: hidden;
@@ -511,7 +511,7 @@ body {
 }
 
 @media (max-width: $tablet-width) {
-  .fyipe-wrapper {
+  .oneuptime-wrapper {
     left: -$nav-width;
 
     &.open {
@@ -527,7 +527,7 @@ body {
     display: block;
   }
 
-  .fyipe-link {
+  .oneuptime-link {
     padding-top: 0.3em;
     padding-bottom: 0.3em;
   }
@@ -542,7 +542,7 @@ body {
     margin-right: 0;
   }
 
-  .fyipe-wrapper .lang-selector {
+  .oneuptime-wrapper .lang-selector {
     display: none;
   }
 

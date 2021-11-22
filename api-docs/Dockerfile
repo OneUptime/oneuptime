@@ -18,7 +18,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1445: Fyipe Docs
+#   - 1445: OneUptime Docs
 EXPOSE 1445
 
 #Run the app
