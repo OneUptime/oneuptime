@@ -1,5 +1,5 @@
 #
-# Fyipe-backend Dockerfile
+# OneUptime-backend Dockerfile
 #
 
 # Pull base image nodejs image.
