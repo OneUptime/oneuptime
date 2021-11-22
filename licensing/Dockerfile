@@ -1,5 +1,5 @@
 #
-# Fyipe-licensing Dockerfile
+# OneUptime-licensing Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -23,7 +23,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3004: Fyipe-licensing
+#   - 3004: OneUptime-licensing
 EXPOSE 3004
 
 #Run the app

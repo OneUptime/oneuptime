@@ -39,7 +39,7 @@ Sentry.init({
         }),
     ],
     environment: process.env.NODE_ENV,
-    release: `fyipe-licensing@${process.env.npm_package_version}`,
+    release: `oneuptime-licensing@${process.env.npm_package_version}`,
     tracesSampleRate: 0.0,
 });
 
@@ -93,7 +93,7 @@ app.get(['/', '/license'], function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-license-server',
+            serviceType: 'oneuptime-license-server',
         })
     );
 });
