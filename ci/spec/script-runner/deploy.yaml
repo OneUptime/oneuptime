@@ -14,9 +14,9 @@ staging_script-runner:
         # Build and deploy script-runner.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:3.0.$CI_PIPELINE_IID --push ./script-runner
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:master --push ./script-runner
-        - sudo kubectl set image deployment/fi-script fi-script=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/script-runner:3.0.$CI_PIPELINE_IID --push ./script-runner
+        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/script-runner:master --push ./script-runner
+        - sudo kubectl set image deployment/fi-script fi-script=oneuptimeproject/script-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -43,9 +43,9 @@ production_script-runner:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:3.0.$CI_PIPELINE_IID --push ./script-runner
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:latest --push ./script-runner
-        - sudo kubectl set image deployment/fi-script fi-script=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/script-runner:3.0.$CI_PIPELINE_IID --push ./script-runner
+        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/script-runner:latest --push ./script-runner
+        - sudo kubectl set image deployment/fi-script fi-script=oneuptimeproject/script-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

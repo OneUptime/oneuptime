@@ -22,7 +22,7 @@ audit_helm-chart:
         - npm run dep-check
         # Install Helm.
         - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
-        - sudo helm lint ./public/fyipe
+        - sudo helm lint ./public/oneuptime
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh audit_helm-chart helm-chart

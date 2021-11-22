@@ -13,13 +13,13 @@ staging_init-script:
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/init-script:master ./init-script
-        - sudo docker tag fyipeproject/init-script:master fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:master
+        - sudo docker build -t oneuptimeproject/init-script:master ./init-script
+        - sudo docker tag oneuptimeproject/init-script:master oneuptimeproject/init-script:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/init-script:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/init-script:master
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
         - sudo kubectl delete job fi-init-script || echo "Job not found"
-        - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
+        - sudo helm upgrade --reuse-values fi ./helm-chart/public/oneuptime
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -46,13 +46,13 @@ production_init-script:
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/init-script:latest ./init-script
-        - sudo docker tag fyipeproject/init-script:latest fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:latest
+        - sudo docker build -t oneuptimeproject/init-script:latest ./init-script
+        - sudo docker tag oneuptimeproject/init-script:latest oneuptimeproject/init-script:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/init-script:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptimeproject/init-script:latest
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
         - sudo kubectl delete job fi-init-script || echo "Job not found"
-        - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
+        - sudo helm upgrade --reuse-values fi ./helm-chart/public/oneuptime
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
