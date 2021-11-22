@@ -16,7 +16,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3423: Fyipe Helm Chart Server
+#   - 3423: OneUptime Helm Chart Server
 EXPOSE 3423
 
 #Run the app

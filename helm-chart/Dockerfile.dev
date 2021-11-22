@@ -1,5 +1,5 @@
 #
-# Fyipe Docs Dockerfile
+# OneUptime Docs Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -22,7 +22,7 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 RUN npm ci
 
 # Expose ports.
-#   - 3423: Fyipe Helm Chart Server
+#   - 3423: OneUptime Helm Chart Server
 EXPOSE 3423
 
 # Expose Debugger port
