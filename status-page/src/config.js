@@ -30,12 +30,15 @@ if (
     dashboardUrl = protocol + '//localhost:3000/dashboard';
     accountsUrl = protocol + '//localhost:3003/accounts';
     realtimeUrl = protocol + '//localhost:3300/realtime';
-} else if (env('FYIPE_HOST')) {
-    const FYIPE_HOST = env('FYIPE_HOST').replace(/(http:\/\/|https:\/\/)/, ''); // remove any protocol that might have been added
-    apiUrl = protocol + `//${FYIPE_HOST}/api`;
-    dashboardUrl = protocol + `//${FYIPE_HOST}/dashboard`;
-    accountsUrl = protocol + `//${FYIPE_HOST}/accounts`;
-    realtimeUrl = protocol + `//${FYIPE_HOST}/realtime`;
+} else if (env('ONEUPTIME_HOST')) {
+    const ONEUPTIME_HOST = env('ONEUPTIME_HOST').replace(
+        /(http:\/\/|https:\/\/)/,
+        ''
+    ); // remove any protocol that might have been added
+    apiUrl = protocol + `//${ONEUPTIME_HOST}/api`;
+    dashboardUrl = protocol + `//${ONEUPTIME_HOST}/dashboard`;
+    accountsUrl = protocol + `//${ONEUPTIME_HOST}/accounts`;
+    realtimeUrl = protocol + `//${ONEUPTIME_HOST}/realtime`;
 }
 
 export const API_URL = apiUrl;

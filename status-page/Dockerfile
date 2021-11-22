@@ -1,5 +1,5 @@
 #
-# Fyipe Home Dockerfile
+# OneUptime Status Page Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -29,11 +29,11 @@ COPY . /usr/src/app
 RUN npm run build
 
 # Expose ports.
-#   - 3006: HTTP Fyipe Status Page
+#   - 3006: HTTP OneUptime Status Page
 EXPOSE 3006
 
 # Expose ports.
-#   - 3007: HTTPS Fyipe Status Page
+#   - 3007: HTTPS OneUptime Status Page
 EXPOSE 3007
 
 #Run the app

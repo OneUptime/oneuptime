@@ -1807,12 +1807,12 @@ const FooterCard = ({
                 <p>
                     <span>
                         <a
-                            href="https://fyipe.com"
+                            href="https://oneuptime.com"
                             target="_blank"
                             rel="noopener noreferrer"
                             style={secondaryText}
                         >
-                            <Translate>Powered by</Translate> Fyipe
+                            <Translate>Powered by</Translate> OneUptime
                         </a>
                     </span>
                     <span
