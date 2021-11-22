@@ -27,7 +27,7 @@ describe('Authenticate API KEY and ProjectID', () => {
                         name: 'New Sample',
                         type: 'url',
                         data: {
-                            url: 'https://fyipe.com',
+                            url: 'https://oneuptime.com',
                         },
                         projectId: '1',
                     },
