@@ -1,5 +1,5 @@
 #
-# OneUptime-backend Dockerfile
+# application-scanner Dockerfile
 #
 
 # Pull base image nodejs image.
