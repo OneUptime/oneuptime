@@ -1224,8 +1224,6 @@ const _this = {
         await _this.pageClick(page, '#monitorDropdown');
         await _this.pageClick(page, `#${monitorName}`);
         await _this.pageClick(page, '#incidentType');
-        // await _this.page$Eval(page, '#addMoreMonitor', e => e.click());
-        // await _this.selectDropdownValue('#monitorfield_0', monitorName, page);
         await _this.page$Eval(page, '#createIncident', e => e.click());
 
         await _this.pageWaitForSelector(page, '#createIncident', {
