@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
@@ -565,10 +566,9 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, '#monitorDropdown');
             await init.pageClick(page, `#${monitorName2}`);
             await init.pageClick(page, '#incidentType');
-
             await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await init.page$Eval(page, '#createIncident', e => e.click());
@@ -621,7 +621,7 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.pageClick(page, '#projectFilterToggle');
+            await init.pageClick(page, '#monitorDropdown');
             await init.pageClick(page, `#${monitorName2}`);
             await init.pageClick(page, '#incidentType');
             await init.selectDropdownValue('#incidentTypeId', 'Online', page);
