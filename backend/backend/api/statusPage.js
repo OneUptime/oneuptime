@@ -1305,6 +1305,7 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
     res
 ) {
     const { scheduledEventSlug } = req.params;
+    // eslint-disable-next-line no-unused-vars
     const { skip, limit, type } = req.query;
 
     const scheduledEventId = await ScheduledEventService.findOneBy({
@@ -1314,7 +1315,7 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
 
     try {
         const response = await StatusPageService.getEventNotes(
-            { scheduledEventId, type },
+            { scheduledEventId },
             skip,
             limit
         );
