@@ -120,50 +120,12 @@ redis:
     mountPath: /bitnami/redis
     size: 20Gi
 
-
-mongodb: 
-  architecture: replicaset
-  auth:
-    enabled: true
-    rootPassword: root
-    username: oneuptime
-    password: password
-    database: oneuptimedb
-    replicaSetKey: mongodboneuptime
-  replicaSetName: rs0
-  replicaCount: 2
-  replicaSetHostnames: true
-  arbiter:
-    enabled: true
-  image:
-    registry: docker.io
-    repository: bitnami/mongodb
-    tag: latest
-    pullPolicy: Always
-  # Uncomment this field to enable external access
-  # to mongodb database
-  # If the mongodb is failing to initialise, comment out the variable below {externalAccess, serviceAccount, rbac}
-  # After reinstall the project again
-  # Once deployed successfully, uncomment the variables and upgrade the project
-  externalAccess:
-    enabled: true
-    service:
-      type: LoadBalancer
-      port: 27017
-    autoDiscovery:
-      enabled: true
-  serviceAccount:
-    create: true
-  rbac:
-    create: true
-  # end of file for external access selectors
-  persistence:
-    enabled: true
-    mountPath: /bitnami/mongodb
-    size: 1000Gi
-  useStatefulSet: true
-  ingress:
-    enabled: false
+mongo:
+  fyipeDbUsername: fyipe
+  fyipeDbPassword: password
+  databaseName: fyipedb
+  rootUsername: root
+  rootPassword: root
 
 ## Service Configuration
 ## For minikube, set service.type to NodePort, elsewhere use LoadBalancer

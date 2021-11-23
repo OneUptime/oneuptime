@@ -4,7 +4,7 @@
 Expand the name of the chart.
 */}}
 {{- define "oneuptime.mongodbConnectionString" -}}
-{{ printf "mongodb://%s:%s@%s-%s.%s-%s.%s.%s:%s,%s-%s.%s-%s.%s.%s:%s/%s?replicaSet=%s" $.Values.mongodb.auth.username $.Values.mongodb.auth.password $.Release.Name "mongodb-0" $.Release.Name "mongodb-headless" $.Release.Namespace "svc.cluster.local" "27017" $.Release.Name "mongodb-1" $.Release.Name "mongodb-headless" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongodb.auth.database $.Values.mongodb.replicaSetName }}
+{{ printf "mongodb://%s:%s@%s-%s.%s-%s.%s.%s:%s/%s" $.Values.mongo.fyipeDbUsername $.Values.mongo.fyipeDbPassword  $.Release.Name "mongo-standalone-0" $.Release.Name "mongo-standalone" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongo.databaseName }}
 {{- end -}}
 
 {{- define "oneuptime.internalSmtpServer" -}}
