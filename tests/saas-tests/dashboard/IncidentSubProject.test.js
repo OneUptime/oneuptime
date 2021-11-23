@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
@@ -490,7 +491,6 @@ describe('Incident API With SubProjects', () => {
         async done => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
-
             await init.addIncidentToProject(
                 projectMonitorName1,
                 subProjectName,
