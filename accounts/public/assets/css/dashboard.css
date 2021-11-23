@@ -45841,7 +45841,7 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
 .page-wrapper div#header {
   height: 180px;
   margin: 0 auto;
-  padding-top: 90px;
+  padding-top: 60px;
   width: 330px;
 }
 #login div#header h1,
@@ -45850,17 +45850,20 @@ div.coinbase-bitcoin-activate-view div.florida-notice.visible {
   height: 45px;
   margin: 0 auto;
   width: 109px;
+
+  height: 100%;
+  width: 100%
 }
 #login div#header h1 a,
 .page-wrapper div#header h1 a {
-  height: 55px;
-  background-image: url('/accounts/assets/img/black-svg-full.svg');
-  background-size: 100% 100%;
+  height: 100%;
+  background-image: url('/accounts/assets/img/ou-wb.svg');
+  background-size: 100% 150px;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2) {
   #login div#header h1 a,
   .page-wrapper div#header h1 a {
-    background-image: url('/accounts/assets/img/black-svg-full.svg');
+    background-image: url('/accounts/assets/img/ou-wb.svg');
   }
 }
 #login div.box,
@@ -46885,12 +46888,12 @@ html.placeholder #login p.remember label {
 }
 #recovery div#header h1 a {
   height: 105px;
-  background-image: url('/accounts/assets/img/black-svg-full.svg');
+  background-image: url('/accounts/assets/img/ou-wb.svg');
   background-size: 100% 100%;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2) {
   #recovery div#header h1 a {
-    background-image: url('/accounts/assets/img/black-svg-full.svg');
+    background-image: url('/accounts/assets/img/ou-wb.svg');
   }
 }
 .register #oneuptime-explanation {
