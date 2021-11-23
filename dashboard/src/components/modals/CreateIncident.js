@@ -545,7 +545,10 @@ class CreateIncident extends Component {
                                                                 )}
                                                         </div>
                                                         <div className="bs-Fieldset-row Margin-bottom--12 Padding-left--0">
-                                                            <label className="bs-Fieldset-label">
+                                                            <label
+                                                                className="bs-Fieldset-label"
+                                                                id="incidentType"
+                                                            >
                                                                 Incident type
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
