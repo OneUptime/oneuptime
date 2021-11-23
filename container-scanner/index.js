@@ -86,7 +86,7 @@ app.use(Sentry.Handlers.errorHandler());
 global.Sentry = Sentry;
 
 //Run this cron every 5 minute.
-cron.schedule('* * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
     setTimeout(() => {
         Main.runContainerScan();
     }, cronContainerSecurityStartTime * 1000);
