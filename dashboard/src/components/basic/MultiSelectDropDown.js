@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React, { useEffect, useRef, useState } from 'react';
 import { PropTypes } from 'prop-types';
 import Badge from '../common/Badge';
@@ -59,7 +58,6 @@ const MultiSelectDropDown = ({
     selectedProjects,
     selectedComponents,
 }) => {
-    console.log('Options: ', options);
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
