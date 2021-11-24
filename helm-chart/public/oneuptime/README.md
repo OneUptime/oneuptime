@@ -265,7 +265,7 @@ mongodb:
   mongodbRootPassword: root
   mongodbUsername: oneuptime
   mongodbPassword: password
-  mongodbDatabase: oneuptimedb
+  mongodbDatabase: fyipedb
   replicaSet:
     enabled: true
     name: rs0

@@ -14,7 +14,7 @@ const cors = require('cors');
 // mongodb
 const MongoClient = require('mongodb').MongoClient;
 const mongoUrl =
-    process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
+    process.env['MONGO_URL'] || 'mongodb://localhost:27017/fyipedb';
 
 const { NODE_ENV } = process.env;
 
@@ -120,7 +120,7 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
 // fetch details about a domain from the db
 async function handleCustomDomain(client, collection, domain) {
     const statusPage = await client
-        .db('oneuptimedb')
+        .db('fyipedb')
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
@@ -148,7 +148,7 @@ async function handleCustomDomain(client, collection, domain) {
 // fetch certificate for a particular domain
 async function handleCertificate(client, collection, domain) {
     const certificate = await client
-        .db('oneuptimedb')
+        .db('fyipedb')
         .collection(collection)
         .findOne({ id: domain });
 

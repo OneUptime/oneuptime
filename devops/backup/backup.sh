@@ -11,7 +11,7 @@ MONGO_PORT="80"
 
 ONEUPTIME_DB_USERNAME='oneuptime'
 ONEUPTIME_DB_PASSWORD='password'
-ONEUPTIME_DB_NAME='oneuptimedb'
+ONEUPTIME_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 BACKUP_PATH=~/db-backup 
@@ -34,7 +34,7 @@ function HELP (){
   echo "all arguments are optional and have a default value when not set"
   echo ""
   echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
-  echo " -n       Database name. Default value 'oneuptimedb'"
+  echo " -n       Database name. Default value 'fyipedb'"
   echo " -p       Database password. Default value 'password'"
   echo " -r       Helm release name. Default value 'fi'"
   echo " -t       Backup retain days. Set the number of days backup is kept before it is deleted. Default value '14'"

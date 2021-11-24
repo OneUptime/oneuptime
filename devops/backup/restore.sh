@@ -14,7 +14,7 @@ MONGO_SERVER_PORT="80"
 
 ONEUPTIME_DB_USERNAME='oneuptime'
 ONEUPTIME_DB_PASSWORD='password'
-ONEUPTIME_DB_NAME='oneuptimedb'
+ONEUPTIME_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 FILE_NAME="restore-file.archive"
