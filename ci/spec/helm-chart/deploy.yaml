@@ -19,11 +19,11 @@ staging_helm-chart:
         - cd ..
         # Build and deploy helm-chart.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t oneuptimeproject/helm-chart:master ./helm-chart
-        - sudo docker tag oneuptimeproject/helm-chart:master oneuptimeproject/helm-chart:3.0.$CI_PIPELINE_IID
-        - sudo docker push oneuptimeproject/helm-chart:3.0.$CI_PIPELINE_IID
-        - sudo docker push oneuptimeproject/helm-chart:master
-        - sudo kubectl set image deployment/fi-helm-chart fi-helm-chart=oneuptimeproject/helm-chart:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t oneuptime/helm-chart:master ./helm-chart
+        - sudo docker tag oneuptime/helm-chart:master oneuptime/helm-chart:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptime/helm-chart:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptime/helm-chart:master
+        - sudo kubectl set image deployment/fi-helm-chart fi-helm-chart=oneuptime/helm-chart:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -56,11 +56,11 @@ production_helm-chart:
         - cd ..
         # Deploy to production
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t oneuptimeproject/helm-chart:latest ./helm-chart
-        - sudo docker tag oneuptimeproject/helm-chart:latest oneuptimeproject/helm-chart:3.0.$CI_PIPELINE_IID
-        - sudo docker push oneuptimeproject/helm-chart:3.0.$CI_PIPELINE_IID
-        - sudo docker push oneuptimeproject/helm-chart:latest
-        - sudo kubectl set image deployment/fi-helm-chart fi-helm-chart=oneuptimeproject/helm-chart:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t oneuptime/helm-chart:latest ./helm-chart
+        - sudo docker tag oneuptime/helm-chart:latest oneuptime/helm-chart:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptime/helm-chart:3.0.$CI_PIPELINE_IID
+        - sudo docker push oneuptime/helm-chart:latest
+        - sudo kubectl set image deployment/fi-helm-chart fi-helm-chart=oneuptime/helm-chart:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

@@ -88,12 +88,12 @@ rateLimitter:
 
 
 ## OneUptime official image version on Docker Hub
-## ref: https://hub.docker.com/u/oneuptimeproject
+## ref: https://hub.docker.com/u/oneuptime
 ##
 
 image:
   registry: docker.io
-  repository: oneuptimeproject
+  repository: oneuptime
   tag: latest
   pullPolicy: Always
   restartPolicy: Always

@@ -14,9 +14,9 @@ staging_lighthouse-runner:
         # Build and deploy lighthouse-runner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID --push ./lighthouse-runner
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/lighthouse-runner:master --push ./lighthouse-runner
-        - sudo kubectl set image deployment/fi-lighthouse fi-lighthouse=oneuptimeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptime/lighthouse-runner:3.0.$CI_PIPELINE_IID --push ./lighthouse-runner
+        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptime/lighthouse-runner:master --push ./lighthouse-runner
+        - sudo kubectl set image deployment/fi-lighthouse fi-lighthouse=oneuptime/lighthouse-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -43,9 +43,9 @@ production_lighthouse-runner:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID --push ./lighthouse-runner
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptimeproject/lighthouse-runner:latest --push ./lighthouse-runner
-        - sudo kubectl set image deployment/fi-lighthouse fi-lighthouse=oneuptimeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptime/lighthouse-runner:3.0.$CI_PIPELINE_IID --push ./lighthouse-runner
+        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag oneuptime/lighthouse-runner:latest --push ./lighthouse-runner
+        - sudo kubectl set image deployment/fi-lighthouse fi-lighthouse=oneuptime/lighthouse-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

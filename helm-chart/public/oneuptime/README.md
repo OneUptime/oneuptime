@@ -215,7 +215,7 @@ OneUptime Images are loaded from DockerHub by default. Images are public and by 
 ```
 image:
   registry: docker.io # Docker Registry where to pull images from.
-  repository: oneuptimeproject # OneUptime docker repository.
+  repository: oneuptime # OneUptime docker repository.
   tag: latest # We recommend `latest` tag.
   pullPolicy: Always # We recommend Always
   restartPolicy: Always # We recommend Always

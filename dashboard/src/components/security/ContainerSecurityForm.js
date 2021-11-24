@@ -234,7 +234,7 @@ class ContainerSecurityForm extends Component {
                                                             type="text"
                                                             name="imagePath"
                                                             id="imagePath"
-                                                            placeholder="oneuptimeproject/home"
+                                                            placeholder="oneuptime/home"
                                                             disabled={
                                                                 addingContainer
                                                             }

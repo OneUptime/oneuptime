@@ -14,9 +14,9 @@ staging_backend:
         # Build and deploy backend.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/backend:3.0.$CI_PIPELINE_IID --push ./backend
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/backend:master --push ./backend
-        - sudo kubectl set image deployment/fi-backend fi-backend=oneuptimeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:3.0.$CI_PIPELINE_IID --push ./backend
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:master --push ./backend
+        - sudo kubectl set image deployment/fi-backend fi-backend=oneuptime/backend:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -43,9 +43,9 @@ production_backend:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/backend:3.0.$CI_PIPELINE_IID --push ./backend
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptimeproject/backend:latest --push ./backend
-        - sudo kubectl set image deployment/fi-backend fi-backend=oneuptimeproject/backend:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:3.0.$CI_PIPELINE_IID --push ./backend
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:latest --push ./backend
+        - sudo kubectl set image deployment/fi-backend fi-backend=oneuptime/backend:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

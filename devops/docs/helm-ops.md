@@ -110,7 +110,7 @@ cd..
 
 ### Docker Images
 
-Docker Images are hosted at: https://hub.docker.com/orgs/oneuptimeproject/repositories and are public.
+Docker Images are hosted at: https://hub.docker.com/orgs/oneuptime/repositories and are public.
 
 ### More info
 

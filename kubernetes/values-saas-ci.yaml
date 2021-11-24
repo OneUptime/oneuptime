@@ -35,7 +35,7 @@ oneuptime:
 
 image:
     registry: docker.io
-    repository: oneuptimeproject
+    repository: oneuptime
     tag: test
     pullPolicy: Always
     restartPolicy: Always
