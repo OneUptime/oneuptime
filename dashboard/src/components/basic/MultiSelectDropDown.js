@@ -96,10 +96,9 @@ const MultiSelectDropDown = ({
                 className="bs-Button bs-DeprecatedButton ddm-button"
                 onClick={() => setOpen(!open)}
                 style={{ minWidth: 250, width: '100%' }}
+                id="monitorDropdown"
             >
-                <div id="projectFilterToggle" style={{ fontWeight: 400 }}>
-                    {value}
-                </div>
+                <div style={{ fontWeight: 400 }}>{value}</div>
                 <div className="caret-icon--down"></div>
             </button>
             {open && ready && (
@@ -317,6 +316,9 @@ const MultiSelectDropDown = ({
                                                                                                 textTransform:
                                                                                                     'capitalize',
                                                                                             }}
+                                                                                            id={
+                                                                                                monitor.monitorName
+                                                                                            }
                                                                                         >
                                                                                             {
                                                                                                 monitor.monitorName
