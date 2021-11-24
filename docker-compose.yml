@@ -30,7 +30,7 @@ services:
         env_file:
             - ./backend/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
@@ -119,7 +119,7 @@ services:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
@@ -184,7 +184,7 @@ services:
         env_file:
             - ./init-script/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - NODE_ENV=${NODE_ENV}
@@ -202,8 +202,8 @@ services:
             args:
                 PORT: '2525'
         environment:
-            - SMTP_USER=user@fyipe.com
-            - SMTP_PASSWORD=fyipe
+            - SMTP_USER=user@oneuptime.com
+            - SMTP_PASSWORD=oneuptime
             - DOMAIN="${DOMAIN}"
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"

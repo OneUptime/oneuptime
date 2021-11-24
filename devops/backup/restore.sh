@@ -12,9 +12,9 @@
 MONGO_PRIMARY_SERVER_IP='167.172.15.25'
 MONGO_SERVER_PORT="80"
 
-FYIPE_DB_USERNAME='fyipe'
-FYIPE_DB_PASSWORD='password'
-FYIPE_DB_NAME='fyipedb'
+ONEUPTIME_DB_USERNAME='oneuptime'
+ONEUPTIME_DB_PASSWORD='password'
+ONEUPTIME_DB_NAME='oneuptimedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 FILE_NAME="restore-file.archive"
@@ -23,15 +23,15 @@ TODAY=`date +"%d%b%Y"`
 
 function HELP (){
   echo ""
-  echo "Fyipe DB restore command line documentation."
+  echo "OneUptime DB restore command line documentation."
   echo ""
   echo "all arguments are optional and have a default value when not set"
   echo ""
   echo " -f       Name of file to be restored" 
   echo " -l       File path on local system where file will be restored from. Default value - $FILE_PATH"
-  echo " -n       Database name. Default value 'fyipe'"
+  echo " -n       Database name. Default value 'oneuptime'"
   echo " -p       Database password. Default value 'password'"
-  echo " -u       Set database username. Default value 'fyipe'."
+  echo " -u       Set database username. Default value 'oneuptime'."
   echo ""
   echo " -h       Help."
   echo ""
@@ -41,11 +41,11 @@ function HELP (){
 # PASS IN ARGUMENTS
 while getopts ":r:u:p:n:l:f:h" opt; do
   case $opt in
-    u) FYIPE_DB_USERNAME="$OPTARG"
+    u) ONEUPTIME_DB_USERNAME="$OPTARG"
     ;;
-    p) FYIPE_DB_PASSWORD="$OPTARG"
+    p) ONEUPTIME_DB_PASSWORD="$OPTARG"
     ;;
-    n) FYIPE_DB_NAME="$OPTARG"
+    n) ONEUPTIME_DB_NAME="$OPTARG"
     ;;
     l) FILE_PATH="$OPTARG"
     ;;
@@ -134,7 +134,7 @@ function RESTORE_FAIL_LOCAL (){
 
 echo "Restoring Database. This will take some time...."
 echo ""
-if mongorestore --authenticationDatabase="${FYIPE_DB_NAME}" --host="${MONGO_PRIMARY_SERVER_IP}" --db="${FYIPE_DB_NAME}" --port="${MONGO_SERVER_PORT}" --username="${FYIPE_DB_USERNAME}" --password="${FYIPE_DB_PASSWORD}" --archive="$FILE_PATH/$FILE_NAME"; then
+if mongorestore --authenticationDatabase="${ONEUPTIME_DB_NAME}" --host="${MONGO_PRIMARY_SERVER_IP}" --db="${ONEUPTIME_DB_NAME}" --port="${MONGO_SERVER_PORT}" --username="${ONEUPTIME_DB_USERNAME}" --password="${ONEUPTIME_DB_PASSWORD}" --archive="$FILE_PATH/$FILE_NAME"; then
 	echo "Restore success"
 	RESTORE_SUCCESS
 else

@@ -1,5 +1,5 @@
 {
-    "name": "fyipe-init-script",
+    "name": "oneuptime-init-script",
     "private": true,
     "version": "3.0.0",
     "main": "server.js",

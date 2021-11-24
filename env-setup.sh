@@ -11,7 +11,7 @@ if [[ ! $(which docker) && ! $(docker --version) ]]; then
 fi
 
 if [[ ! -n $DOMAIN ]]; then
-    export DOMAIN=fyipe.com
+    export DOMAIN=oneuptime.com
 fi
 
 if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
@@ -22,7 +22,7 @@ if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
     openssl rsa -in private -out public -pubout
     # value of DKIM dns record
     echo "DKIM DNS TXT Record"
-    echo "DNS Selector: fyipe._domainkey"
+    echo "DNS Selector: oneuptime._domainkey"
     echo "DNS Value: v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
     export DKIM_PRIVATE_KEY=$(cat private | base64)
 fi

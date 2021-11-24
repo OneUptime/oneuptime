@@ -15,22 +15,22 @@ function update {
 }
 
 # $1 - image tag
-update deployment/fi-accounts fi-accounts=fyipeproject/accounts:$1
-update deployment/fi-dashboard fi-dashboard=fyipeproject/dashboard:$1
-update deployment/fi-admin fi-admin=fyipeproject/admin-dashboard:$1
-update deployment/fi-api-docs fi-api-docs=fyipeproject/api-docs:$1
-update deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:$1
-update deployment/fi-backend fi-backend=fyipeproject/backend:$1
-update deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:$1
-update deployment/fi-ingestor fi-ingestor=fyipeproject/data-ingestor:$1
-update deployment/fi-haraka fi-haraka=fyipeproject/haraka:$1
-update deployment/fi-helm-chart fi-helm-chart=fyipeproject/helm-chart:$1
-update deployment/fi-home fi-home=fyipeproject/home:$1
-update deployment/fi-test fi-test=fyipeproject/http-test-server:$1
-update deployment/fi-licensing fi-licensing=fyipeproject/licensing:$1
-update deployment/fi-lighthouse fi-lighthouse=fyipeproject/lighthouse-runner:$1
-update deployment/fi-probe1 fi-probe1=fyipeproject/probe:$1
-update deployment/fi-probe2 fi-probe2=fyipeproject/probe:$1
-update deployment/fi-realtime fi-realtime=fyipeproject/realtime:$1
-update deployment/fi-script fi-script=fyipeproject/script-runner:$1
-update deployment/fi-status fi-status=fyipeproject/status-page:$1
+update deployment/fi-accounts fi-accounts=oneuptimeproject/accounts:$1
+update deployment/fi-dashboard fi-dashboard=oneuptimeproject/dashboard:$1
+update deployment/fi-admin fi-admin=oneuptimeproject/admin-dashboard:$1
+update deployment/fi-api-docs fi-api-docs=oneuptimeproject/api-docs:$1
+update deployment/fi-app-scan fi-app-scan=oneuptimeproject/application-scanner:$1
+update deployment/fi-backend fi-backend=oneuptimeproject/backend:$1
+update deployment/fi-cont-scan fi-cont-scan=oneuptimeproject/container-scanner:$1
+update deployment/fi-ingestor fi-ingestor=oneuptimeproject/data-ingestor:$1
+update deployment/fi-haraka fi-haraka=oneuptimeproject/haraka:$1
+update deployment/fi-helm-chart fi-helm-chart=oneuptimeproject/helm-chart:$1
+update deployment/fi-home fi-home=oneuptimeproject/home:$1
+update deployment/fi-test fi-test=oneuptimeproject/http-test-server:$1
+update deployment/fi-licensing fi-licensing=oneuptimeproject/licensing:$1
+update deployment/fi-lighthouse fi-lighthouse=oneuptimeproject/lighthouse-runner:$1
+update deployment/fi-probe1 fi-probe1=oneuptimeproject/probe:$1
+update deployment/fi-probe2 fi-probe2=oneuptimeproject/probe:$1
+update deployment/fi-realtime fi-realtime=oneuptimeproject/realtime:$1
+update deployment/fi-script fi-script=oneuptimeproject/script-runner:$1
+update deployment/fi-status fi-status=oneuptimeproject/status-page:$1

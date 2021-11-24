@@ -1,17 +1,17 @@
-# Fyipe
+# OneUptime
 
 ## CI/CD Status
 
-[![pipeline status](https://gitlab.com/fyipe-project/app/badges/master/pipeline.svg)](https://gitlab.com/fyipe-project/app/-/commits/master)
+[![pipeline status](https://gitlab.com/oneuptime/app/badges/master/pipeline.svg)](https://gitlab.com/oneuptime/app/-/commits/master)
 
 ## Contents
 
 -   [Introduction](/docs/introduction.md)
 -   [Concept](/docs/concept.md)
 -   [Architecture](/docs/architecture.md)
--   [How Fyipe Works](/docs/how-fyipe-works-overview)
+-   [How OneUptime Works](/docs/how-fyipe-works-overview)
 -   [Subproject Description](/docs/project-description.md)
--   [Running Fyipe](/docs/run.md)
+-   [Running OneUptime](/docs/run.md)
 -   [Running tests](/docs/running-tests.md)
 -   [Deployment](/docs/deployment.md)
 

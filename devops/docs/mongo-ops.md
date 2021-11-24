@@ -3,7 +3,7 @@
 ## Copy DB from One Server to Another
 
 ```
-mongodump --uri="mongodb://old_username:old_password@old_ip:old_port/fyipedb" --archive | mongorestore --uri="mongodb://new_username:new_pass@new_ip:new_port/fyipedb" --archive
+mongodump --uri="mongodb://old_username:old_password@old_ip:old_port/oneuptimedb" --archive | mongorestore --uri="mongodb://new_username:new_pass@new_ip:new_port/oneuptimedb" --archive
 ```
 
 ## Root Username
@@ -30,10 +30,10 @@ Resolution: Delete all statefulset and start again.
 kubectl delete pvc datadir-fi-mongodb-0 datadir-fi-mongodb-1
 
 # If staging
-sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+sudo helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime
 
 # If production
-sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
+sudo helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/oneuptime
 ```
 
 Important: Restore. See restore section in this document for more info.
@@ -54,7 +54,7 @@ Example:
 
 sudo kubectl delete job fi-init-script
 
-sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=true --set mongodb.externalAccess.service.type=LoadBalancer --set externalAccess.service.port=27017 --set mongodb.externalAccess.autoDiscovery.enabled=true --set mongodb.serviceAccount.create=true --set mongodb.rbac.create=true fi ./helm-chart/public/fyipe
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=true --set mongodb.externalAccess.service.type=LoadBalancer --set externalAccess.service.port=27017 --set mongodb.externalAccess.autoDiscovery.enabled=true --set mongodb.serviceAccount.create=true --set mongodb.rbac.create=true fi ./helm-chart/public/oneuptime
 
 ```
 
@@ -70,8 +70,8 @@ On the destination cluster:
 
 ```
 kubectl exec -it fi-mongodb-0 -- bash
-mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive" --excludeCollection=auditlogs --excludeCollection=monitorlogs
-mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
+mongodump --uri="mongodb://oneuptime:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/oneuptimedb" --archive="/bitnami/mongodb/oneuptimedata.archive" --excludeCollection=auditlogs --excludeCollection=monitorlogs
+mongorestore --uri="mongodb://oneuptime:password@localhost:27017/oneuptimedb" --archive="/bitnami/mongodb/oneuptimedata.archive"
 ```
 
 **Step 3:** Block the exposed Mongodb from the internet
@@ -81,7 +81,7 @@ On source cluster:
 ```
 kubectl delete job fi-init-script
 
-sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=false --set mongodb.externalAccess.autoDiscovery.enabled=false --set mongodb.serviceAccount.create=false --set mongodb.rbac.create=false fi ./helm-chart/public/fyipe
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=false --set mongodb.externalAccess.autoDiscovery.enabled=false --set mongodb.serviceAccount.create=false --set mongodb.rbac.create=false fi ./helm-chart/public/oneuptime
 
 ```
 
@@ -99,7 +99,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl exec fi-mongodb-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-0 -- mongodump --uri="mongodb://oneuptime:password@localhost:27017/oneuptimedb" --archive="/bitnami/mongodb/oneuptimedata.archive"`
 
 **Step 2**: Copy file from conatiner to local machine.
 
@@ -109,7 +109,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl cp fi-mongodb-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
+`sudo kubectl cp fi-mongodb-0:/bitnami/mongodb/oneuptimedata.archive /Volumes/DataDrive/Projects/OneUptime/app/backup.archive`
 
 ## Restore
 
@@ -124,7 +124,7 @@ Syntax:
 `sudo kubectl cp <localfilePath> <pod>:<filepath>`
 
 Example:
-`sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-0:/bitnami/mongodb/fyipedata.archive`
+`sudo kubectl cp /Volumes/DataDrive/Projects/OneUptime/app/backup.archive fi-mongodb-0:/bitnami/mongodb/oneuptimedata.archive`
 
 **Step 2**: Mongorestore on the container.
 
@@ -134,7 +134,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl exec fi-mongodb-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-0 -- mongorestore --uri="mongodb://oneuptime:password@localhost:27017/oneuptimedb" --archive="/bitnami/mongodb/oneuptimedata.archive"`
 
 ## Misc commands
 
@@ -159,17 +159,17 @@ Change user password:
 kubectl exec -it fi-mongodb-0 mongo     # get into mongodb container.
 db = db.getSiblingDB('admin')                   # Change to admin db
 db.auth("root", "<OLD-PASSWORD>")
-use fyipedb
+use oneuptimedb
 db.changeUserPassword("<USER-PASSWORD>", "<NEW-PASSWORD>")
 exit                                            # This is important.
 ```
 
-## Set a member as master admin of Fyipe.
+## Set a member as master admin of OneUptime.
 
 ```
 kubectl exec -it fi-mongodb-0 mongo
-use fyipedb
-db.auth('fyipe','password')
-db.users.find({email: 'admin@fyipe.com'}) # Master admin user. Should be already signed up.
-db.users.update({email: 'admin@fyipe.com'}, {$set:{ role: 'master-admin'}}) # Update the user
+use oneuptimedb
+db.auth('oneuptime','password')
+db.users.find({email: 'admin@oneuptime.com'}) # Master admin user. Should be already signed up.
+db.users.update({email: 'admin@oneuptime.com'}, {$set:{ role: 'master-admin'}}) # Update the user
 ```

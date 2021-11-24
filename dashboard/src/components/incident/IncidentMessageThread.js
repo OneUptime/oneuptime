@@ -168,13 +168,20 @@ export class IncidentMessageThread extends Component {
                                                                             .createdById
                                                                             .name
                                                                             ? '/dashboard/assets/img/profile-user.svg'
-                                                                            : '/dashboard/assets/img/Fyipe.svg'
+                                                                            : '/dashboard/assets/img/ou-wb.svg'
                                                                     }
                                                                     className="userIcon"
                                                                     alt="usericon"
                                                                     style={{
                                                                         marginBottom:
                                                                             '-5px',
+                                                                        backgroundColor:
+                                                                            incidentMessage.createdById &&
+                                                                            incidentMessage
+                                                                                .createdById
+                                                                                .name
+                                                                                ? '#fff'
+                                                                                : '#121212',
                                                                     }}
                                                                 />
                                                                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -467,13 +474,20 @@ export class IncidentMessageThread extends Component {
                                                                                     .createdById
                                                                                     .name
                                                                                     ? '/dashboard/assets/img/profile-user.svg'
-                                                                                    : '/dashboard/assets/img/Fyipe.svg'
+                                                                                    : '/dashboard/assets/img/ou-wb.svg'
                                                                             }
                                                                             className="userIcon"
                                                                             alt="usericon"
                                                                             style={{
                                                                                 marginBottom:
                                                                                     '-5px',
+                                                                                backgroundColor:
+                                                                                    incidentMessage.createdById &&
+                                                                                    incidentMessage
+                                                                                        .createdById
+                                                                                        .name
+                                                                                        ? '#fff'
+                                                                                        : '#121212',
                                                                             }}
                                                                         />
                                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -781,13 +795,25 @@ export class IncidentMessageThread extends Component {
                                                                                           .probeId
                                                                                           .probeImage
                                                                                     ? `${API_URL}/file/${incidentMessage.probeId.probeImage}`
-                                                                                    : '/dashboard/assets/img/Fyipe.svg'
+                                                                                    : '/dashboard/assets/img/ou-wb.svg'
                                                                             }
                                                                             className="userIcon"
                                                                             alt=""
                                                                             style={{
                                                                                 marginBottom:
                                                                                     '-5px',
+                                                                                backgroundColor:
+                                                                                    incidentMessage.createdById &&
+                                                                                    incidentMessage
+                                                                                        .createdById
+                                                                                        .name
+                                                                                        ? '#fff'
+                                                                                        : incidentMessage.probeId &&
+                                                                                          incidentMessage
+                                                                                              .probeId
+                                                                                              .probeImage
+                                                                                        ? `#fff`
+                                                                                        : '#121212',
                                                                             }}
                                                                         />
                                                                         <span
@@ -1243,18 +1269,25 @@ export class IncidentMessageThread extends Component {
                                                                         >
                                                                             <img
                                                                                 src={
-                                                                                    incidentMessage.userId &&
+                                                                                    incidentMessage.createdById &&
                                                                                     incidentMessage
-                                                                                        .userId
+                                                                                        .createdById
                                                                                         .name
                                                                                         ? '/dashboard/assets/img/profile-user.svg'
-                                                                                        : '/dashboard/assets/img/Fyipe.svg'
+                                                                                        : '/dashboard/assets/img/ou-wb.svg'
                                                                                 }
                                                                                 className="userIcon"
-                                                                                alt=""
+                                                                                alt="usericon"
                                                                                 style={{
                                                                                     marginBottom:
                                                                                         '-5px',
+                                                                                    backgroundColor:
+                                                                                        incidentMessage.createdById &&
+                                                                                        incidentMessage
+                                                                                            .createdById
+                                                                                            .name
+                                                                                            ? '#fff'
+                                                                                            : '#121212',
                                                                                 }}
                                                                             />
                                                                             <span>

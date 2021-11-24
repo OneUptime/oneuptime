@@ -1,9 +1,9 @@
 #!/bin/sh
 
 
-FYIPE_DB_USERNAME='fyipe'
-FYIPE_DB_PASSWORD='password'
-FYIPE_DB_NAME='fyipedb'
+ONEUPTIME_DB_USERNAME='oneuptime'
+ONEUPTIME_DB_PASSWORD='password'
+ONEUPTIME_DB_NAME='oneuptimedb'
 BACKUP_RETAIN_DAYS=14
 BACKUP_PATH=~/Documents/backup 
 
@@ -13,14 +13,14 @@ reset=`tput sgr 0`
 
 function HELP (){
   echo ""
-  echo "Fyipe DB backup command line documentation."
+  echo "OneUptime DB backup command line documentation."
   echo ""
   echo "optional arguments have a default value when not set"
   echo ""
   echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
-  echo " -n       Database name. Default value 'fyipedb'"
+  echo " -n       Database name. Default value 'oneuptimedb'"
   echo " -p       Database password. Default value 'password'"
-  echo " -u       Set database username. Default value 'fyipe'."
+  echo " -u       Set database username. Default value 'oneuptime'."
   echo " -t       Backup retain days. Number of days backup is kept before it is deleted. Default value '14'"
   echo ""
   echo " -h      Help."
@@ -33,13 +33,13 @@ while getopts ":a:l:p:n:t:u:h" opt; do
   case $opt in
     l) BACKUP_PATH="$OPTARG"
     ;;
-    p) FYIPE_DB_PASSWORD="$OPTARG"
+    p) ONEUPTIME_DB_PASSWORD="$OPTARG"
     ;;
-    n) FYIPE_DB_NAME="$OPTARG"
+    n) ONEUPTIME_DB_NAME="$OPTARG"
     ;;
     t) BACKUP_RETAIN_DAYS="$OPTARG"
     ;;
-    u) FYIPE_DB_USERNAME="$OPTARG"
+    u) ONEUPTIME_DB_USERNAME="$OPTARG"
     ;;
     h) HELP
        ;;
@@ -73,10 +73,10 @@ done
   # STEP 4 : create service file for backup
   echo '
 [Unit]
-Description=Fyipe database backup
+Description=OneUptime database backup
         
 [Service]
-ExecStart=bash '"$HOME"'/backup.sh -u '${FYIPE_DB_USERNAME}' -p '${FYIPE_DB_PASSWORD}' -n '${FYIPE_DB_NAME}' -l '${BACKUP_PATH}' -t '${BACKUP_RETAIN_DAYS}'
+ExecStart=bash '"$HOME"'/backup.sh -u '${ONEUPTIME_DB_USERNAME}' -p '${ONEUPTIME_DB_PASSWORD}' -n '${ONEUPTIME_DB_NAME}' -l '${BACKUP_PATH}' -t '${BACKUP_RETAIN_DAYS}'
 
 ' > /etc/systemd/system/backup.service
 
@@ -84,7 +84,7 @@ ExecStart=bash '"$HOME"'/backup.sh -u '${FYIPE_DB_USERNAME}' -p '${FYIPE_DB_PASS
 #Step 5: Set up timer to run service every 12 hours
 echo '
 [Unit]
-Description= 12 hours Fyipe backup
+Description= 12 hours OneUptime backup
 Requires=backup.service
 
 [Timer]

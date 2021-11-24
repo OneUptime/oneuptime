@@ -16,7 +16,8 @@ const _this = {
     registerUser: async function(user, page) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
-            utils.BACKEND_URL.includes('staging.fyipe.com')
+            utils.BACKEND_URL.includes('staging.fyipe.com') ||
+            utils.BACKEND_URL.includes('staging.oneuptime.com')
         ) {
             const { email } = user;
             let frame, elementHandle;
@@ -133,7 +134,8 @@ const _this = {
     registerFailedUser: async function(user, page) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
-            utils.BACKEND_URL.includes('staging.fyipe.com')
+            utils.BACKEND_URL.includes('staging.fyipe.com') ||
+            utils.BACKEND_URL.includes('staging.oneuptime.com')
         ) {
             const { email } = user;
             let frame, elementHandle;
@@ -244,7 +246,7 @@ const _this = {
             utils.BACKEND_URL.includes('staging')
                 ? user
                 : {
-                      email: 'user@fyipe.com',
+                      email: 'user@oneuptime.com',
                       password: 'mVzkm{LAP)mNC8t23ehqifb2p',
                   };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
@@ -263,7 +265,7 @@ const _this = {
             utils.BACKEND_URL.includes('staging')
                 ? user
                 : {
-                      email: 'user@fyipe.com',
+                      email: 'user@oneuptime.com',
                       password: 'mVzkm{LAP)mNC8t23ehqifb2p',
                   };
         await page.goto(utils.ACCOUNTS_URL + '/login', {
