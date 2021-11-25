@@ -59,40 +59,89 @@ const AppLoader = () => (
     </div>
 );
 
-const App = () => (
-    <>
-        <Socket />
-        <Router>
-            <Suspense fallback={<AppLoader />}>
-                <Switch>
-                    <Route exact path="/" component={Main} />
-                    <Route exact path="/status-page" component={Main} />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug"
-                        component={Main}
-                    />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug/scheduledEvent/:eventId"
-                        component={ScheduledEvent}
-                    />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug/incident/:incidentSlug"
-                        component={Incident}
-                    />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug/announcement/:announcementSlug"
-                        component={SingleAnnouncement}
-                    />
-                    <Redirect to="/" />
-                </Switch>
-            </Suspense>
-        </Router>
-    </>
-);
+const RebrandBanner = newHref => {
+    return (
+        <div className="center-align" style={{ height: '20vh' }}>
+            <div className="wrapper">
+                <div className="content" style={{ maxWidth: 850 }}>
+                    <div id="wrap">
+                        <div id="bar"></div>
+                        <p style={{ marginTop: 15 }}>
+                            <span>Fyipe</span>, and all the associated logos,
+                            icons, links and emails have moved to{' '}
+                            <span>OneUptime</span>. You will be automatically be
+                            redirected to the new page in 5 seconds
+                        </p>
+                        <p style={{ marginTop: 20 }}>
+                            Please click{' '}
+                            <a
+                                href={newHref}
+                                title="OneUptime: One platform for all your SRE needs"
+                            >
+                                <span>here</span>
+                            </a>{' '}
+                            to be taken immediately
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const App = () => {
+    const oldHostNames = ['staging.fyipe.com', 'fyipe.com'];
+    const currentHostName = window.location.hostname;
+
+    if (oldHostNames.includes(currentHostName)) {
+        const updatedLink = `${window.location.origin.replace(
+            'fyipe',
+            'oneuptime'
+        )}/${window.location.pathname}`;
+
+        setTimeout(() => {
+            // redirect to the updated link after 5 seconds
+            window.location.replace(updatedLink);
+        }, 5000);
+
+        return RebrandBanner(updatedLink);
+    }
+
+    return (
+        <>
+            <Socket />
+            <Router>
+                <Suspense fallback={<AppLoader />}>
+                    <Switch>
+                        <Route exact path="/" component={Main} />
+                        <Route exact path="/status-page" component={Main} />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug"
+                            component={Main}
+                        />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug/scheduledEvent/:eventId"
+                            component={ScheduledEvent}
+                        />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug/incident/:incidentSlug"
+                            component={Incident}
+                        />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug/announcement/:announcementSlug"
+                            component={SingleAnnouncement}
+                        />
+                        <Redirect to="/" />
+                    </Switch>
+                </Suspense>
+            </Router>
+        </>
+    );
+};
 
 App.displayName = 'App';
 
