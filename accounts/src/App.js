@@ -89,7 +89,7 @@ const App = ({
         const updatedLink = `${window.location.origin.replace(
             'fyipe',
             'oneuptime'
-        )}/${window.location.pathname}`;
+        )}${window.location.pathname}`;
 
         setTimeout(() => {
             // redirect to the updated link after 5 seconds
