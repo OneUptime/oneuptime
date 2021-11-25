@@ -46,12 +46,6 @@ spec:
                             key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "oneuptime.mongodbConnectionString" . }}
-                      {{- if eq .Values.mongodb.architecture "replicaset" }}
-                      - name: IS_MONGO_REPLICA_SET
-                        value: {{ true | quote }}
-                      - name: MONGO_REPLICA_SET_NAME
-                        value: {{ .Values.mongodb.replicaSetName }}
-                      {{- end }}
                       - name: REDIS_HOST
                         value: {{ template "oneuptime.redisHost" . }}
                       - name: ONEUPTIME_HOST

@@ -2,9 +2,6 @@ dependencies:
 - name: nginx-ingress-controller
   repository: https://charts.bitnami.com/bitnami
   version: 6.0.1
-- name: mongodb
-  repository: https://charts.bitnami.com/bitnami
-  version: 10.23.10
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 10.5.11
