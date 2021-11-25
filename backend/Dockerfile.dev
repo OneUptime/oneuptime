@@ -1,5 +1,5 @@
 #
-# Fyipe-backend Dockerfile
+# OneUptime-backend Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -28,7 +28,7 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 RUN npm ci
 
 # Expose ports.
-#   - 3002: Fyipe-backend
+#   - 3002: OneUptime-backend
 EXPOSE 3002
 EXPOSE 9229
 

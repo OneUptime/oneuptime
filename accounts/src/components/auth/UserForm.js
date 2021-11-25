@@ -51,7 +51,7 @@ class UserForm extends Component {
                                             {this.props.register.error}
                                         </span>
                                     ) : (
-                                        'Create your Fyipe account'
+                                        'Create your OneUptime account'
                                     )}{' '}
                                 </span>
                             )}

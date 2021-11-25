@@ -1,0 +1,77 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+    width: 100%;
+}
+.center-align {
+    display: table;
+    height: 100%;
+    overflow: hidden;
+    text-align: center;
+    width: 100%;
+}
+.center-align .wrapper {
+    display: table-cell;
+    vertical-align: middle;
+    width: 100%;
+}
+.center-align .content {
+    display: -moz-inline-stack;
+    display: inline-block;
+    text-align: left;
+    box-shadow: 0 2px 3px #333;
+}
+
+/* !IE hacks */
+.ie .center-align {
+    position: relative;
+}
+.ie .center-align .wrapper {
+    left: 0;
+    position: absolute;
+    top: 50%;
+}
+.lt-ie8 .center-align .content {
+    display: inline;
+    left: 0;
+    position: relative;
+    zoom: 1;
+    top: -50%;
+}
+.center-align .wrapper {
+    background: #fff;
+}
+.center-align .content {
+    background: #f5f5f5;
+    padding: 1em;
+}
+
+/* Progress */
+#wrap {
+    display: inline-block;
+    border-top: 3px solid #ccc;
+    margin: 1em;
+    font-family: Arial;
+    color: #333;
+}
+#bar {
+    height: 3px;
+    margin-top: -3px;
+    background: #333;
+    animation: progress 10s linear;
+}
+@keyframes progress {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+span {
+    font-weight: bold;
+}
+a {
+    color: inherit;
+}

@@ -404,8 +404,8 @@ export const tutorials = {
                         After adding monitors for your API, you won&apos;t miss
                         out on any
                         <br />
-                        downtime on your servers, Just let Fyipe alert notify
-                        you
+                        downtime on your servers, Just let OneUptime alert
+                        notify you
                     </p>
                 ),
             },

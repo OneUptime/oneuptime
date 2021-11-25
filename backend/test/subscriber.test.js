@@ -43,7 +43,8 @@ const csvData = {
         },
         {
             alertVia: 'email',
-            contactEmail: StringUtil.generateRandomString(10) + '@fyipe.com',
+            contactEmail:
+                StringUtil.generateRandomString(10) + '@oneuptime.com',
             contactPhone: '',
             contactWebhook: '',
             countryCode: '',

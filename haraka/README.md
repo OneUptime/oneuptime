@@ -1,10 +1,10 @@
-# SMTP Server Container for Fyipe
+# SMTP Server Container for OneUptime
 
 This is a simple SMTP server which is used to send bulk emails. This can be used to send email alerts to subscribers and team.
 
 > This will not work on your local machine because email sending is blocked by ISP. You need to run these on the server and test.
 
-## Run a Fyipe Haraka Docker Container
+## Run a OneUptime Haraka Docker Container
 
 ### Setup Private Key (Optional)
 
@@ -40,7 +40,7 @@ echo "v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
 
 ```
 
-> When setting up the DKIM dns txt record (recommended), the selector should be `fyipe._domainkey` then the value should be the output of the echo command
+> When setting up the DKIM dns txt record (recommended), the selector should be `oneuptime._domainkey` then the value should be the output of the echo command
 
 ### Setup DMARC and SPF DNS TXT Record (Optional)
 
@@ -81,7 +81,7 @@ docker build --build-arg PORT="2525" . -t haraka:latest
 ### Run Haraka SMTP Server
 
 ```
-docker run -p 2525:2525 -e SMTP_USER="user@fyipe.com" -e SMTP_PASSWORD="fyipe" -e DOMAIN="fyipe.com" -e DKIM_PRIVATE_KEY=$DKIM_PRIVATE_KEY -e TLS_CERT=$TLS_CERT -e TLS_KEY=$TLS_KEY  haraka:latest
+docker run -p 2525:2525 -e SMTP_USER="user@oneuptime.com" -e SMTP_PASSWORD="oneuptime" -e DOMAIN="oneuptime.com" -e DKIM_PRIVATE_KEY=$DKIM_PRIVATE_KEY -e TLS_CERT=$TLS_CERT -e TLS_KEY=$TLS_KEY  haraka:latest
 ```
 
 > The following envs are optional `DKIM_PRIVATE_KEY`, `TLS_CERT`, `TLS_KEY` and `DOMAIN`
@@ -100,8 +100,8 @@ brew install swaks
 
 # Test
 
-swaks --to jude@hackerbay.io --from support@fyipe.com --server localhost \
-  --port 2525 --auth-user user@fyipe.com --auth-password fyipe
+swaks --to jude@hackerbay.io --from support@oneuptime.com --server localhost \
+  --port 2525 --auth-user user@oneuptime.com --auth-password oneuptime
 
 ```
 

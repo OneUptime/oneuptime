@@ -261,7 +261,7 @@ export class Component extends React.Component {
         const { settings, handleSubmit, smtpForm } = this.props;
         return (
             <div
-                id="fyipeSmtp"
+                id="oneuptimeSmtp"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
@@ -276,7 +276,7 @@ export class Component extends React.Component {
                             <p>
                                 <span>
                                     These SMTP settings will be used to send all
-                                    the emails from Fyipe, including all the
+                                    the emails from OneUptime, including all the
                                     email alerts.
                                 </span>
                             </p>

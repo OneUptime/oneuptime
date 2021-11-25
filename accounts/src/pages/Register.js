@@ -47,7 +47,7 @@ class RegisterPage extends React.Component {
                 {/* Header */}
                 <div id="header">
                     <h1>
-                        <a href="/">Fyipe</a>
+                        <a href="/">OneUptime</a>
                     </h1>
                 </div>
 
@@ -57,7 +57,7 @@ class RegisterPage extends React.Component {
                 !register.user.cardRegistered &&
                 !register.user.token ? (
                     <MessageBox
-                        title="Activate your Fyipe account"
+                        title="Activate your OneUptime account"
                         message="An email is on its way to you with a verification link. Please don't forget to check spam. "
                     />
                 ) : (
@@ -82,12 +82,12 @@ class RegisterPage extends React.Component {
                             </Link>
                         </li>
                         <li>
-                            <a href="http://fyipe.com/legal/privacy">
+                            <a href="http://oneuptime.com/legal/privacy">
                                 Privacy Policy
                             </a>
                         </li>
                         <li>
-                            <a href="http://fyipe.com/support">Support</a>
+                            <a href="http://oneuptime.com/support">Support</a>
                         </li>
                         <li className="last">
                             <a href="https://hackerbay.io">© HackerBay, Inc.</a>

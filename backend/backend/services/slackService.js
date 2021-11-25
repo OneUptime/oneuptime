@@ -95,7 +95,7 @@ module.exports = {
                             }* is resolved by ${
                                 incident.resolvedBy
                                     ? incident.resolvedBy.name
-                                    : 'Fyipe'
+                                    : 'OneUptime'
                             } after being ${
                                 incident.incidentType
                             } for ${duration}`,
@@ -114,7 +114,7 @@ module.exports = {
                             }* is acknowledged by ${
                                 incident.acknowledgedBy
                                     ? incident.acknowledgedBy.name
-                                    : 'Fyipe'
+                                    : 'OneUptime'
                             } after being ${
                                 incident.incidentType
                             } for ${duration}`,
@@ -177,7 +177,7 @@ module.exports = {
                                     title: 'Created By:',
                                     value: incident.createdById
                                         ? incident.createdById.name
-                                        : 'Fyipe',
+                                        : 'OneUptime',
                                     short: true,
                                 },
                                 {

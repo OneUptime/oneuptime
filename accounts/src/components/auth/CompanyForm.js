@@ -140,7 +140,7 @@ class CompanyForm extends Component {
                                     disabled={this.props.register.requesting}
                                 >
                                     {!this.props.register.requesting && (
-                                        <span>Create Fyipe Account</span>
+                                        <span>Create OneUptime Account</span>
                                     )}
                                     {this.props.register.requesting && (
                                         <FlatLoader />

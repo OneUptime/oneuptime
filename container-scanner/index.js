@@ -59,9 +59,9 @@ app.set('port', process.env.PORT || 3055);
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Container Scanner Started on port ${app.get('port')}. Fyipe API URL: ${
-            config.serverUrl
-        }`
+        `Container Scanner Started on port ${app.get(
+            'port'
+        )}. OneUptime API URL: ${config.serverUrl}`
     );
 });
 
@@ -71,7 +71,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-container-scanner',
+            serviceType: 'oneuptime-container-scanner',
         })
     );
 });

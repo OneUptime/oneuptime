@@ -3,9 +3,9 @@ sudo dpkg --configure -a
 echo "Running Cleanup Script..."
 if [[ $(which helm) ]]
 then
-  # Remove fyipe if helm is installed
-  echo "RUNNING COMMAND: sudo helm uninstall fyipe || echo 'fyipe not installed'"
-  sudo helm uninstall fyipe || echo 'fyipe not installed'
+  # Remove oneuptime if helm is installed
+  echo "RUNNING COMMAND: sudo helm uninstall oneuptime || echo 'oneuptime not installed'"
+  sudo helm uninstall oneuptime || echo 'oneuptime not installed'
 fi
 
 if [[ $(which microk8s) ]]

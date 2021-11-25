@@ -15,7 +15,7 @@ import { SENTRY_DSN, VERSION } from './config';
 
 Sentry.init({
     dsn: SENTRY_DSN,
-    release: `fyipe-admin-dashboard@${VERSION}`,
+    release: `oneuptime-admin-dashboard@${VERSION}`,
     integrations: [new Integrations.BrowserTracing()],
     environment: process.env.NODE_ENV,
     tracesSampleRate: 0.0,

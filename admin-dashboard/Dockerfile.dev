@@ -30,7 +30,7 @@ RUN npm ci --legacy-peer-deps
 RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
 
 # Expose ports.
-#   - 3100:  Fyipe-admin-dashboard
+#   - 3100:  OneUptime-admin-dashboard
 EXPOSE 3100
 
 

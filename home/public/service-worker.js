@@ -1,6 +1,6 @@
 'use strict';
 
-const cacheName = 'Fyipe-home';
+const cacheName = 'OneUptime-home';
 const filesToCache = [];
 
 self.addEventListener('install', function (event) {

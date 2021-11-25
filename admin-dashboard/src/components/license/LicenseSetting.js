@@ -80,7 +80,7 @@ export class LicenseSetting extends Component {
                             <p>
                                 <span>
                                     Update your License Key and Email. To buy a
-                                    license, please email sales@fyipe.com
+                                    license, please email sales@oneuptime.com
                                 </span>
                             </p>
                         </div>

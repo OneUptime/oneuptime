@@ -66,7 +66,7 @@ http.listen(app.get('port'), function() {
     console.log(
         `Probe with Probe Name ${config.probeName} and Probe Key ${
             config.probeKey
-        } Started on port ${app.get('port')}. Fyipe API URL: ${
+        } Started on port ${app.get('port')}. OneUptime API URL: ${
             config.serverUrl
         }`
     );
@@ -80,7 +80,7 @@ app.get('/status', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-probe',
+            serviceType: 'oneuptime-probe',
         })
     );
 });

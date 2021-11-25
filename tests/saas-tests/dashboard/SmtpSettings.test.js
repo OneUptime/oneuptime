@@ -125,7 +125,7 @@ describe('Custom SMTP Settings', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#email');
-            const from = 'test@fyipe.com';
+            const from = 'test@oneuptime.com';
             await init.pageWaitForSelector(page, '#from', {
                 visible: true,
                 timeout: init.timeout,

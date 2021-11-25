@@ -1,7 +1,7 @@
 {
     "name": "helm-chart",
     "version": "3.0.0",
-    "description": "Helm Chart Server for Fyipe",
+    "description": "Helm Chart Server for OneUptime",
     "main": "server.js",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",

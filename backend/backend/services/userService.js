@@ -507,7 +507,7 @@ module.exports = {
             });
             const secretCode = speakeasy.generateSecret({
                 length: 20,
-                name: `Fyipe (${user.email})`,
+                name: `OneUptime (${user.email})`,
             });
             const backupCodes = await _this.generateUserBackupCodes(
                 secretCode.base32,
@@ -576,7 +576,7 @@ module.exports = {
                     if (count === 0) {
                         //create a new admin user.
                         user = await _this.create({
-                            name: 'Fyipe Admin',
+                            name: 'OneUptime Admin',
                             email: process.env.ADMIN_EMAIL,
                             password: process.env.ADMIN_PASSWORD,
                             role: 'master-admin',
@@ -619,7 +619,7 @@ module.exports = {
                             );
 
                             const error = new Error(
-                                'Your account has been disabled. Kindly contact support@fyipe.com'
+                                'Your account has been disabled. Kindly contact support@oneuptime.com'
                             );
                             error.code = 400;
                             ErrorService.log('userService.login', error);
@@ -630,7 +630,7 @@ module.exports = {
 
                     if (user.disabled) {
                         const error = new Error(
-                            'Your account has been disabled. Kindly contact support@fyipe.com'
+                            'Your account has been disabled. Kindly contact support@oneuptime.com'
                         );
                         error.code = 400;
                         ErrorService.log('userService.login', error);

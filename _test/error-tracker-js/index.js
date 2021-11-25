@@ -9,7 +9,7 @@ const options = {
 
 // constructor                    
 const tracker = new fyipe.ErrorTracker(                    
-    'https://staging.fyipe.com/api',
+    'https://staging.oneuptime.com/api',
     '605bad70ae110c0013e14005',
     'cb4b107a-7f28-464d-9fda-32715fa4cd68',
     options // Optional Field
@@ -31,7 +31,7 @@ tracker.setTags([
 ]); // an array of tags
 
 // capturing error exception authomatically
-NonExistingMethodCall(); // this is authomatically captured and sent to your fyipe dashboard
+NonExistingMethodCall(); // this is authomatically captured and sent to your oneuptime dashboard
 
 // capturing error exception manually
 try {

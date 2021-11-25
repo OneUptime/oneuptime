@@ -14,9 +14,9 @@ staging_application-scanner:
         # Build and deploy application-scanner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID --push ./application-scanner
-        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag fyipeproject/application-scanner:master --push ./application-scanner
-        - sudo kubectl set image deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag oneuptime/application-scanner:3.0.$CI_PIPELINE_IID --push ./application-scanner
+        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag oneuptime/application-scanner:master --push ./application-scanner
+        - sudo kubectl set image deployment/fi-app-scan fi-app-scan=oneuptime/application-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -43,9 +43,9 @@ production_application-scanner:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID --push ./application-scanner
-        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag fyipeproject/application-scanner:latest --push ./application-scanner
-        - sudo kubectl set image deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag oneuptime/application-scanner:3.0.$CI_PIPELINE_IID --push ./application-scanner
+        - sudo docker buildx build --build-arg PORT="3005" --platform linux/amd64,linux/arm64 --tag oneuptime/application-scanner:latest --push ./application-scanner
+        - sudo kubectl set image deployment/fi-app-scan fi-app-scan=oneuptime/application-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

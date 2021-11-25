@@ -1,6 +1,6 @@
 ##################################################################################
 ## Important: If you're implenting this in the enterprise environment, this should always be `false`.
-## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
+## Is this OneUptime SaaS service. This will deploy all the SaaS env vars
 
 ##
 
@@ -29,24 +29,24 @@ saas:
 httpTestServer:
     hosts:
         host1:
-            host: staging-test-server.fyipe.com
+            host: staging-test-server.oneuptime.com
             tls:
                 enabled: false
                 crt:
                 key:
-fyipe:
+oneuptime:
     hosts:
         host1:
-            host: staging.fyipe.com
+            host: staging.oneuptime.com
             tls:
                 enabled: false
                 crt:
                 key:
-    licensingUrl: https://fyipe.com/license
+    licensingUrl: https://oneuptime.com/license
 
 image:
     registry: docker.io
-    repository: fyipeproject
+    repository: oneuptime
     tag: master
     pullPolicy: Always
     restartPolicy: Always
@@ -62,11 +62,11 @@ backendProtocol: 'https'
 # domain for staging status page
 # Status page CNAME to display to customers
 # To be shown on the cusom domain tab of status page.
-statusPageDomain: 'staging-statuspage.fyipe.com'
+statusPageDomain: 'staging-statuspage.oneuptime.com'
 
 haraka:
-    fromEmail: 'noreply@fyipeapp.com'
-    fromName: 'Fyipe Staging'
+    fromEmail: 'noreply@oneuptimeapp.com'
+    fromName: 'OneUptime Staging'
     domain: 'fyipeapp.com'
     user: 'noreply@fyipeapp.com'
     password: 'tX8z_bDEcRdRHnyKxAHYEQk_B'
@@ -81,7 +81,7 @@ haraka:
 pushNotification:
     publicKey: 'BFAPbOTTU14VbTe_dnoYlVnOPLKUNm8GYmC50n3i4Ps64sk1Xqx8e894Clrscn1L2PsQ8-l4SsJVw7NRg4cx69Y'
     privateKey: '8aXTsH48-cegK-xBApLxxOezCOZIjaWpg81Dny2zbio'
-    url: 'mailto:support@fyipe.com'
+    url: 'mailto:support@oneuptime.com'
 
 statusPage:
     # base64 encoded version of the certificate and private key files
@@ -97,10 +97,10 @@ autoScaler:
 newRelic:
     backend:
         licenseKey: '521f482a2025b2740371c2b10ff58a069f8aNRAL'
-        appName: 'Fyipe Backend Staging'
+        appName: 'OneUptime Backend Staging'
     probe:
         licenseKey: '521f482a2025b2740371c2b10ff58a069f8aNRAL'
-        appName: 'Fyipe Probe Staging'
+        appName: 'OneUptime Probe Staging'
 
 nodeEnv: staging
 sentry:

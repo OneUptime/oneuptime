@@ -15,7 +15,7 @@ audit_go-sdk:
         - tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local || true # just continue is go already exist in the location
         - export GOROOT=/usr/local/go
-        - export GOPATH=$HOME/go-sdk/fyipe
+        - export GOPATH=$HOME/go-sdk/oneuptime
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
         - cd go-sdk

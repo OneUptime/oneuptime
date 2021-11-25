@@ -51,7 +51,7 @@ describe('Login API', () => {
                 utils.BACKEND_URL.includes('localhost') ||
                     utils.BACKEND_URL.includes('staging')
                     ? email
-                    : 'user@fyipe.com'
+                    : 'user@oneuptime.com'
             );
             page.url().should.containEql(utils.DASHBOARD_URL);
             done();

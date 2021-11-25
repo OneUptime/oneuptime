@@ -73,7 +73,7 @@ export const resetSignup = () => {
 
 // Calls the API to register a user.
 export function signupUser(values) {
-    // This is basically for users redirected to fyipe
+    // This is basically for users redirected to oneuptime
     const redirectSource = cookies.get('source');
     if (redirectSource) {
         values.source = redirectSource;

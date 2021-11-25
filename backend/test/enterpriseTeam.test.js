@@ -12,7 +12,7 @@ const ProjectService = require('../backend/services/projectService');
 
 let token, projectId, newProjectId;
 
-const teamEmail = 'noreply1@fyipe.com';
+const teamEmail = 'noreply1@oneuptime.com';
 
 describe('Enterprise Team API', function() {
     this.timeout(30000);

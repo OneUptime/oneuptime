@@ -537,7 +537,7 @@ describe('API Monitor API', function() {
                 name: 'New Monitor 30',
                 type: 'api',
                 method: 'post',
-                data: { url: `https://fyipe.com/api/monitor/${projectId}` },
+                data: { url: `https://oneuptime.com/api/monitor/${projectId}` },
                 componentId,
             })
             .end(function(err, res) {

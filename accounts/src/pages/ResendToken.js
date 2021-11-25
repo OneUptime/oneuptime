@@ -67,7 +67,7 @@ export class ResendTokenForm extends Component {
             <div id="wrap" style={{ paddingTop: 0 }}>
                 <div id="header">
                     <h1>
-                        <a href="/">Fyipe</a>
+                        <a href="/">OneUptime</a>
                     </h1>
                 </div>
                 <div id="main-body" className="box css">
@@ -97,7 +97,7 @@ export class ResendTokenForm extends Component {
                                         {' '}
                                         Enter your email address below and we
                                         will resend you a verification link to
-                                        activate your fyipe account.
+                                        activate your oneuptime account.
                                     </p>
                                 )}
 
@@ -154,12 +154,12 @@ export class ResendTokenForm extends Component {
                             </li>
                         )}
                         <li>
-                            <a href="http://fyipe.com/legal/privacy">
+                            <a href="http://oneuptime.com/legal/privacy">
                                 Privacy Policy
                             </a>
                         </li>
                         <li>
-                            <a href="http://fyipe.com/support">Support</a>
+                            <a href="http://oneuptime.com/support">Support</a>
                         </li>
                         <li className="last">
                             <a href="https://hackerbay.io">© HackerBay, Inc.</a>

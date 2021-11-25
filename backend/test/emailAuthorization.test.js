@@ -61,7 +61,7 @@ describe('Email verification API', function() {
             query: {},
             select: selectEmailStatus,
         });
-        expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
+        expect(emailStatuses[0].subject).to.equal('Welcome to OneUptime.');
         expect(emailStatuses[0].status).to.equal('Success');
     });
 

@@ -30,7 +30,7 @@ class SmsLog extends Component {
         const { changeSmsLogStatus, handleSubmit } = this.props;
         return (
             <div
-                id="fyipeSmsLog"
+                id="oneuptimeSmsLog"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
@@ -45,7 +45,7 @@ class SmsLog extends Component {
                             <p>
                                 <span>
                                     Here you can enable or disable SMS logs
-                                    being monitored on your Fyipe projects.
+                                    being monitored on your OneUptime projects.
                                 </span>
                             </p>
                         </div>

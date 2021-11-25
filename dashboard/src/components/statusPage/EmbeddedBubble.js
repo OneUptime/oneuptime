@@ -63,14 +63,14 @@ const css = colors => `<style>
 
 const createScript = (url, css) => {
     return `<div class='bubble-box'>
-    <div id="fyipe-status-bubble"></div>
-    <div id='fyipe-bubble-text'></div>
+    <div id="oneuptime-status-bubble"></div>
+    <div id='oneuptime-bubble-text'></div>
   </div>
     ${css}
         <script language="javascript" type="text/javascript">
         function initializeBubble() {
-            var placeholderDiv = document.getElementById("fyipe-status-bubble");
-            var placeholderTitleDiv = document.getElementById("fyipe-bubble-text");
+            var placeholderDiv = document.getElementById("oneuptime-status-bubble");
+            var placeholderTitleDiv = document.getElementById("oneuptime-bubble-text");
             var bubble = 'all';
             var statusMessage = '';
             var url = '${url}';

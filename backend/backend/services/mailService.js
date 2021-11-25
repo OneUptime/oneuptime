@@ -71,7 +71,7 @@ const _this = {
             host = smtpDb.host;
             port = smtpDb.port;
             from = smtpDb.from;
-            name = smtpDb.name || 'Fyipe';
+            name = smtpDb.name || 'OneUptime';
             secure = smtpDb.secure;
         } else {
             const globalSettings = await _this.getSmtpSettings();
@@ -196,7 +196,7 @@ const _this = {
                 host: document.value['smtp-server'],
                 port: document.value['smtp-port'],
                 from: document.value['from'],
-                name: document.value['from-name'] || 'Fyipe',
+                name: document.value['from-name'] || 'OneUptime',
                 secure: document.value['smtp-secure'],
                 'email-enabled': document.value['email-enabled'],
             };
@@ -222,7 +222,7 @@ const _this = {
                     host: document.value['smtp-server'],
                     port: document.value['smtp-port'],
                     from: document.value['from'],
-                    name: document.value['from-name'] || 'Fyipe',
+                    name: document.value['from-name'] || 'OneUptime',
                     secure: document.value['smtp-secure'],
                     'email-enabled': document.value['email-enabled'],
                 },
@@ -292,7 +292,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: userEmail,
-                    subject: 'Welcome to Fyipe.',
+                    subject: 'Welcome to OneUptime.',
                     template: 'sign_up_body',
                     context: {
                         homeURL: global.homeHost,
@@ -348,7 +348,7 @@ const _this = {
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: userEmail,
-                                subject: 'Welcome to Fyipe.',
+                                subject: 'Welcome to OneUptime.',
                                 template: 'sign_up_body',
                                 context: {
                                     homeURL: global.homeHost,
@@ -463,7 +463,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: userEmail,
-                    subject: `New login to Fyipe from ${device}`,
+                    subject: `New login to OneUptime from ${device}`,
                     template: 'user_login_body',
                     context: {
                         homeURL: global.homeHost,
@@ -524,7 +524,7 @@ const _this = {
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: userEmail,
-                                subject: `New login to Fyipe from ${device}`,
+                                subject: `New login to OneUptime from ${device}`,
                                 template: 'user_login_body',
                                 context: {
                                     homeURL: global.homeHost,
@@ -602,8 +602,8 @@ const _this = {
         try {
             let accountMail = await _this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
-                accountMail.name = 'Fyipe Support';
-                accountMail.from = 'support@fyipe.com';
+                accountMail.name = 'OneUptime Support';
+                accountMail.from = 'support@oneuptime.com';
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
@@ -666,8 +666,8 @@ const _this = {
                             accountMail = {
                                 ...accountMail.backupConfig,
                             };
-                            accountMail.name = 'Fyipe Support';
-                            accountMail.from = 'support@fyipe.com';
+                            accountMail.name = 'OneUptime Support';
+                            accountMail.from = 'support@oneuptime.com';
 
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -753,7 +753,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: '[Fyipe] Verify your Email',
+                    subject: '[OneUptime] Verify your Email',
                     template: 'send_verification_email',
                     context: {
                         homeURL: global.homeHost,
@@ -810,7 +810,7 @@ const _this = {
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
-                                subject: '[Fyipe] Verify your Email',
+                                subject: '[OneUptime] Verify your Email',
                                 template: 'send_verification_email',
                                 context: {
                                     homeURL: global.homeHost,
@@ -887,9 +887,9 @@ const _this = {
                 }
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
-                    to: 'support@fyipe.com',
+                    to: 'support@oneuptime.com',
                     subject: 'New Lead Added',
-                    template: 'lead_to_fyipe_team',
+                    template: 'lead_to_oneuptime_team',
                     context: {
                         templateName: lead.templateName,
                         airtableId: lead.airtableId,
@@ -966,9 +966,9 @@ const _this = {
 
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
-                                to: 'support@fyipe.com',
+                                to: 'support@oneuptime.com',
                                 subject: 'New Lead Added',
-                                template: 'lead_to_fyipe_team',
+                                template: 'lead_to_oneuptime_team',
                                 context: {
                                     templateName: lead.templateName,
                                     airtableId: lead.airtableId,
@@ -1208,7 +1208,7 @@ const _this = {
                     }
                     mailOptions = {
                         from: `"${accountMail.name}" <${accountMail.from}>`,
-                        cc: 'noreply@fyipe.com',
+                        cc: 'noreply@oneuptime.com',
                         to: to,
                         subject: 'Thank you for your demo request.',
                         template: 'request_demo_body',
@@ -1259,7 +1259,7 @@ const _this = {
 
                                 mailOptions = {
                                     from: `"${accountMail.name}" <${accountMail.from}>`,
-                                    cc: 'noreply@fyipe.com',
+                                    cc: 'noreply@oneuptime.com',
                                     to: to,
                                     subject: 'Thank you for your demo request.',
                                     template: 'request_demo_body',
@@ -1356,7 +1356,7 @@ const _this = {
                         }
                         mailOptions = {
                             from: `"${accountMail.name}" <${accountMail.from}>`,
-                            cc: 'noreply@fyipe.com',
+                            cc: 'noreply@oneuptime.com',
                             to: to,
                             subject: "Here's your Whitepaper",
                             template: 'whitepaper_body',
@@ -1413,7 +1413,7 @@ const _this = {
 
                                     mailOptions = {
                                         from: `"${accountMail.name}" <${accountMail.from}>`,
-                                        cc: 'noreply@fyipe.com',
+                                        cc: 'noreply@oneuptime.com',
                                         to: to,
                                         subject: "Here's your Whitepaper",
                                         template: 'whitepaper_body',
@@ -1507,7 +1507,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: 'Password Reset for Fyipe',
+                    subject: 'Password Reset for OneUptime',
                     template: 'forgot_password_body',
                     context: {
                         homeURL: global.homeHost,
@@ -1559,7 +1559,7 @@ const _this = {
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
-                                subject: 'Password Reset for Fyipe',
+                                subject: 'Password Reset for OneUptime',
                                 template: 'forgot_password_body',
                                 context: {
                                     homeURL: global.homeHost,
@@ -1778,7 +1778,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been added to a project on Fyipe",
+                    subject: "You've been added to a project on OneUptime",
                     template: 'new_user_added_to_project_body',
                     context: {
                         homeURL: global.homeHost,
@@ -1833,7 +1833,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been added to a project on Fyipe",
+                                    "You've been added to a project on OneUptime",
                                 template: 'new_user_added_to_project_body',
                                 context: {
                                     homeURL: global.homeHost,
@@ -1919,7 +1919,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been added to a project on Fyipe",
+                    subject: "You've been added to a project on OneUptime",
                     template: 'existing_user_added_to_project_body',
                     context: {
                         homeURL: global.homeHost,
@@ -1974,7 +1974,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been added to a project on Fyipe",
+                                    "You've been added to a project on OneUptime",
                                 template: 'existing_user_added_to_project_body',
                                 context: {
                                     homeURL: global.homeHost,
@@ -2490,7 +2490,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been added to a sub-project on Fyipe",
+                    subject: "You've been added to a sub-project on OneUptime",
                     template: 'existing_viewer_added_to_project_body',
                     context: {
                         homeURL: global.homeHost,
@@ -2544,7 +2544,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been added to a sub-project on Fyipe",
+                                    "You've been added to a sub-project on OneUptime",
                                 template:
                                     'existing_viewer_added_to_project_body',
                                 context: {
@@ -2630,7 +2630,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been added to a subproject on Fyipe",
+                    subject: "You've been added to a subproject on OneUptime",
                     template: 'existing_user_added_to_subproject_body',
                     context: {
                         homeURL: global.homeHost,
@@ -2685,7 +2685,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been added to a subproject on Fyipe",
+                                    "You've been added to a subproject on OneUptime",
                                 template:
                                     'existing_user_added_to_subproject_body',
                                 context: {
@@ -2768,7 +2768,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been added to a project on Fyipe",
+                    subject: "You've been added to a project on OneUptime",
                     template: 'new_viewer_added_to_project',
                     context: {
                         homeURL: global.homeHost,
@@ -2823,7 +2823,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been added to a project on Fyipe",
+                                    "You've been added to a project on OneUptime",
                                 template: 'new_viewer_added_to_project',
                                 context: {
                                     homeURL: global.homeHost,
@@ -3048,7 +3048,7 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been removed from a project on Fyipe",
+                    subject: "You've been removed from a project on OneUptime",
                     template: 'removed_from_project',
                     context: {
                         homeURL: global.homeHost,
@@ -3104,7 +3104,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been removed from a project on Fyipe",
+                                    "You've been removed from a project on OneUptime",
                                 template: 'removed_from_project',
                                 context: {
                                     homeURL: global.homeHost,
@@ -3191,7 +3191,8 @@ const _this = {
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
                     to: email,
-                    subject: "You've been removed from a subproject on Fyipe",
+                    subject:
+                        "You've been removed from a subproject on OneUptime",
                     template: 'removed_from_subproject',
                     context: {
                         homeURL: global.homeHost,
@@ -3247,7 +3248,7 @@ const _this = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
                                 to: email,
                                 subject:
-                                    "You've been removed from a subproject on Fyipe",
+                                    "You've been removed from a subproject on OneUptime",
                                 template: 'removed_from_subproject',
                                 context: {
                                     homeURL: global.homeHost,
@@ -6312,7 +6313,7 @@ const _this = {
                 }
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
-                    to: 'support@fyipe.com',
+                    to: 'support@oneuptime.com',
                     subject: 'Upgrade to enterprise plan request from ' + email,
                     template: 'enterprise_upgrade',
                     context: {
@@ -6367,7 +6368,7 @@ const _this = {
 
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
-                                to: 'support@fyipe.com',
+                                to: 'support@oneuptime.com',
                                 subject:
                                     'Upgrade to enterprise plan request from ' +
                                     email,
@@ -6917,8 +6918,8 @@ const _this = {
         try {
             let accountMail = await _this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
-                accountMail.name = 'Fyipe Support';
-                accountMail.from = 'support@fyipe.com';
+                accountMail.name = 'OneUptime Support';
+                accountMail.from = 'support@oneuptime.com';
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
@@ -6980,8 +6981,8 @@ const _this = {
                         ) {
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
-                            accountMail.name = 'Fyipe Support';
-                            accountMail.from = 'support@fyipe.com';
+                            accountMail.name = 'OneUptime Support';
+                            accountMail.from = 'support@oneuptime.com';
 
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
@@ -7069,8 +7070,8 @@ const _this = {
         try {
             let accountMail = await _this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
-                accountMail.name = 'Fyipe Support';
-                accountMail.from = 'support@fyipe.com';
+                accountMail.name = 'OneUptime Support';
+                accountMail.from = 'support@oneuptime.com';
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
@@ -7132,8 +7133,8 @@ const _this = {
                         ) {
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
-                            accountMail.name = 'Fyipe Support';
-                            accountMail.from = 'support@fyipe.com';
+                            accountMail.name = 'OneUptime Support';
+                            accountMail.from = 'support@oneuptime.com';
 
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,

@@ -1,8 +1,8 @@
-# How Fyipe Works
+# How OneUptime Works
 
-## The overview of how Fyipe works
+## The overview of how OneUptime works
 
-One of the main purpose of Fyipe is to monitor resources. The flow of how this is done is depicted in the flowchart below.
+One of the main purpose of OneUptime is to monitor resources. The flow of how this is done is depicted in the flowchart below.
 
 ## Description
 

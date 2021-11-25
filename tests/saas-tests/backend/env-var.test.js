@@ -36,10 +36,10 @@ describe('Check Server', () => {
         } else {
             if (utils.BACKEND_URL.includes('staging.')) {
                 expectedResponse =
-                    '{"api":"https://staging.fyipe.com/api","home":"https://staging.fyipe.com","accounts":"https://staging.fyipe.com/accounts","dashboard":"https://staging.fyipe.com/dashboard"}';
+                    '{"api":"https://staging.oneuptime.com/api","home":"https://staging.oneuptime.com","accounts":"https://staging.oneuptime.com/accounts","dashboard":"https://staging.oneuptime.com/dashboard"}';
             } else {
                 expectedResponse =
-                    '{"api":"https://fyipe.com/api","home":"https://fyipe.com","accounts":"https://fyipe.com/accounts","dashboard":"https://fyipe.com/dashboard"}';
+                    '{"api":"https://oneuptime.com/api","home":"https://oneuptime.com","accounts":"https://oneuptime.com/accounts","dashboard":"https://oneuptime.com/dashboard"}';
             }
         }
         expect(response).toBe(expectedResponse);

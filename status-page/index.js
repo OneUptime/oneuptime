@@ -51,33 +51,36 @@ let apiHost = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
 }
-if (process.env.FYIPE_HOST) {
+if (process.env.ONEUPTIME_HOST) {
     apiHost = process.env.BACKEND_PROTOCOL
-        ? `${process.env.BACKEND_PROTOCOL}://${process.env.FYIPE_HOST}/api`
-        : `http://${process.env.FYIPE_HOST}/api`;
+        ? `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}/api`
+        : `http://${process.env.ONEUPTIME_HOST}/api`;
 }
 
 app.get(['/env.js', '/status-page/env.js'], function(req, res) {
-    let REACT_APP_FYIPE_HOST = null;
+    let REACT_APP_ONEUPTIME_HOST = null;
     let REACT_APP_BACKEND_PROTOCOL = null;
-    if (!process.env.FYIPE_HOST) {
-        REACT_APP_FYIPE_HOST = req.hostname;
+    if (!process.env.ONEUPTIME_HOST) {
+        REACT_APP_ONEUPTIME_HOST = req.hostname;
     } else {
-        REACT_APP_FYIPE_HOST = process.env.FYIPE_HOST;
-        if (REACT_APP_FYIPE_HOST.includes('*.')) {
-            REACT_APP_FYIPE_HOST = REACT_APP_FYIPE_HOST.replace('*.', ''); //remove wildcard from host.
+        REACT_APP_ONEUPTIME_HOST = process.env.ONEUPTIME_HOST;
+        if (REACT_APP_ONEUPTIME_HOST.includes('*.')) {
+            REACT_APP_ONEUPTIME_HOST = REACT_APP_ONEUPTIME_HOST.replace(
+                '*.',
+                ''
+            ); //remove wildcard from host.
         }
     }
 
     if (
-        REACT_APP_FYIPE_HOST &&
-        (REACT_APP_FYIPE_HOST.includes('localhost:') ||
-            REACT_APP_FYIPE_HOST.includes('0.0.0.0:') ||
-            REACT_APP_FYIPE_HOST.includes('127.0.0.1:'))
+        REACT_APP_ONEUPTIME_HOST &&
+        (REACT_APP_ONEUPTIME_HOST.includes('localhost:') ||
+            REACT_APP_ONEUPTIME_HOST.includes('0.0.0.0:') ||
+            REACT_APP_ONEUPTIME_HOST.includes('127.0.0.1:'))
     ) {
         apiHost = 'http://localhost:3002/api';
-    } else if (REACT_APP_FYIPE_HOST) {
-        const FYIPE_HOST = REACT_APP_FYIPE_HOST.replace(
+    } else if (REACT_APP_ONEUPTIME_HOST) {
+        const ONEUPTIME_HOST = REACT_APP_ONEUPTIME_HOST.replace(
             /(http:\/\/|https:\/\/)/,
             ''
         ); // remove any protocol that might have been added
@@ -88,12 +91,12 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
             protocol = 'https:';
         }
 
-        apiHost = protocol + `//${FYIPE_HOST}/api`;
+        apiHost = protocol + `//${ONEUPTIME_HOST}/api`;
     }
 
     REACT_APP_BACKEND_PROTOCOL = process.env.BACKEND_PROTOCOL;
     const env = {
-        REACT_APP_FYIPE_HOST,
+        REACT_APP_ONEUPTIME_HOST,
         REACT_APP_BACKEND_PROTOCOL,
         REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
         REACT_APP_SENTRY_DSN:
@@ -158,6 +161,8 @@ app.use('/', async function(req, res, next) {
         host &&
         (host === 'fyipe.com' ||
             host === 'staging.fyipe.com' ||
+            host === 'oneuptime.com' ||
+            host === 'staging.oneuptime.com' ||
             host.indexOf('localhost') > -1)
     ) {
         return next();

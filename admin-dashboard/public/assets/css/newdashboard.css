@@ -2932,28 +2932,28 @@ html.db-NewChrome body {
 .db-DashboardContentState--page {
   min-height: 564px;
 }
-.db-fyipesBackground,
-.db-fyipesBackground span {
+.db-oneuptimesBackground,
+.db-oneuptimesBackground span {
   position: absolute;
 }
-.db-fyipesBackground {
+.db-oneuptimesBackground {
   width: 100%;
   height: 100%;
   transform: skewY(-12deg);
   transform-origin: 0;
   background: #008cdd;
 }
-.db-fyipesBackground span {
+.db-oneuptimesBackground span {
   height: 190px;
 }
-.db-fyipesBackground :first-child {
+.db-oneuptimesBackground :first-child {
   width: 100%;
   height: 60px;
   left: 0;
   top: 0;
   background-color: rgba(0, 0, 0, 0.15);
 }
-.db-fyipesBackground :nth-child(2) {
+.db-oneuptimesBackground :nth-child(2) {
   width: 100%;
   height: 105px;
   right: 0;
@@ -2964,7 +2964,7 @@ html.db-NewChrome body {
     hsla(0, 0%, 100%, 0) 75%
   );
 }
-.db-fyipesBackground :nth-child(3) {
+.db-oneuptimesBackground :nth-child(3) {
   width: 70%;
   height: 80px;
   bottom: 0;
@@ -2975,7 +2975,7 @@ html.db-NewChrome body {
     hsla(0, 0%, 100%, 0.25)
   );
 }
-.db-fyipesBackground :nth-child(4) {
+.db-oneuptimesBackground :nth-child(4) {
   width: 35%;
   height: 80px;
   bottom: -80px;
@@ -4014,7 +4014,7 @@ div.db-Trend-groupChart {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
 }
-.db-RadarRulesListUserName .db-RadarRulesListUserName-fyipeIcon {
+.db-RadarRulesListUserName .db-RadarRulesListUserName-oneuptimeIcon {
   border-radius: 50%;
 }
 .db-RadarRulesListsItem-button {
@@ -4137,19 +4137,19 @@ div.db-Trend-groupChart {
   position: relative;
   z-index: 3;
 }
-.db-fyipeElements {
+.db-oneuptimeElements {
   display: flex;
   margin-bottom: 8px;
   margin-top: 8px;
   width: 100%;
 }
-.db-fyipeElements:first-child {
+.db-oneuptimeElements:first-child {
   margin-top: 0;
 }
-.db-fyipeElements:last-child {
+.db-oneuptimeElements:last-child {
   margin-bottom: 0;
 }
-.db-fyipeElements-field {
+.db-oneuptimeElements-field {
   flex: 1 1 auto;
   height: 28px;
   margin-right: 8px;
@@ -4157,18 +4157,18 @@ div.db-Trend-groupChart {
   width: 100%;
   background-color: #fff !important;
 }
-.db-fyipeElements-field:last-child {
+.db-oneuptimeElements-field:last-child {
   margin-right: 0;
 }
-.db-fyipeElements-button {
+.db-oneuptimeElements-button {
   flex: 0 0 auto;
   margin-left: 0;
   margin-right: 8px;
 }
-.db-fyipeElements-button:last-child {
+.db-oneuptimeElements-button:last-child {
   margin-right: 0;
 }
-.db-fyipeElements-dismiss {
+.db-oneuptimeElements-dismiss {
   align-self: center;
   display: flex;
   padding: 0;
@@ -8816,23 +8816,23 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .db-TransactionDetailPage-header {
   display: inline;
 }
-.db-fyipeTransfer {
+.db-oneuptimeTransfer {
   justify-content: space-between;
 }
-.db-fyipeTransfer,
-.db-fyipeTransfer-participant {
+.db-oneuptimeTransfer,
+.db-oneuptimeTransfer-participant {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-.db-fyipeTransfer-participant {
+.db-oneuptimeTransfer-participant {
   max-width: 200px;
 }
-.db-fyipeTransfer-name {
+.db-oneuptimeTransfer-name {
   font-size: 15px;
   font-weight: 500;
 }
-.db-fyipeTransfer-arrow {
+.db-oneuptimeTransfer-arrow {
   font-weight: 500;
 }
 .db-AddTopUpModal .bs-Fieldset-label {
@@ -10086,37 +10086,37 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
   overflow: hidden;
   position: relative;
 }
-.db-InvoiceAction-fyipe {
+.db-InvoiceAction-oneuptime {
   transform: skewx(-12deg) rotate(-12deg);
   position: absolute;
   width: 360px;
   height: 80px;
 }
-.db-InvoiceAction-fyipe--slateDark {
+.db-InvoiceAction-oneuptime--slateDark {
   background: #000000;
 }
-.db-InvoiceAction-fyipe--slateLight {
+.db-InvoiceAction-oneuptime--slateLight {
   background: #8898aa;
 }
-.db-InvoiceAction-fyipe--lightGradient {
+.db-InvoiceAction-oneuptime--lightGradient {
   background: -webkit-linear-gradient(right, #24b47e, #3ecf8e 90%);
 }
-.db-InvoiceAction-fyipe--top {
+.db-InvoiceAction-oneuptime--top {
   left: -25px;
   top: -40px;
   opacity: 0.3;
 }
-.db-InvoiceAction-fyipe--bottom {
+.db-InvoiceAction-oneuptime--bottom {
   right: 0;
   bottom: -20px;
   width: 70px;
 }
-.db-InvoiceAction-fyipe--lightSolid {
+.db-InvoiceAction-oneuptime--lightSolid {
   background: #74e4a2;
   bottom: -77px;
   right: 0;
 }
-.db-InvoiceAction-fyipe--darkSolid {
+.db-InvoiceAction-oneuptime--darkSolid {
   background: #159570;
   left: 0;
   top: -97px;
@@ -10867,7 +10867,7 @@ table {
         padding: 0;
         font-weight: bold;
     }
-    .Notify-fyipe-row-primary {
+    .Notify-oneuptime-row-primary {
         left: 0 !important;
     }
     .Checkbox.responsive {

@@ -11,7 +11,7 @@ initDkim() {
   cd "$DOMAIN" || exit
 
   # The selector can be any value that is a valid DNS label
-  echo 'fyipe' >selector
+  echo 'oneuptime' >selector
 
   # Generate private and public keys
   #           - Key length considerations -

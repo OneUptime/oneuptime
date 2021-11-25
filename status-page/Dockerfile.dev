@@ -1,5 +1,5 @@
 #
-# Fyipe Docs Dockerfile
+# OneUptime Status Page Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -30,11 +30,11 @@ RUN npm ci --legacy-peer-deps
 RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
 
 # Expose ports.
-#   - 3006: HTTP Fyipe Status Page
+#   - 3006: HTTP OneUptime Status Page
 EXPOSE 3006
 
 # Expose ports.
-#   - 3007: HTTPS Fyipe Status Page
+#   - 3007: HTTPS OneUptime Status Page
 EXPOSE 3007
 
 #Run the app

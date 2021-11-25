@@ -19,6 +19,7 @@ import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 import 'react-big-calendar/lib/sass/styles.scss';
 import isSubProjectViewer from './utils/isSubProjectViewer';
+import './App.css';
 
 if (!isServer) {
     history.listen(location => {
@@ -60,7 +61,54 @@ if (User.isLoggedIn()) {
     }
 }
 
+const RebrandBanner = newHref => {
+    return (
+        <div className="center-align" style={{ height: '20vh' }}>
+            <div className="wrapper">
+                <div className="content" style={{ maxWidth: 850 }}>
+                    <div id="wrap">
+                        <div id="bar"></div>
+                        <p style={{ marginTop: 15 }}>
+                            <span>Fyipe</span>, and all the associated logos,
+                            icons, links and emails have moved to{' '}
+                            <span>OneUptime</span>. You will be automatically be
+                            redirected to the new page in 5 seconds
+                        </p>
+                        <p style={{ marginTop: 20 }}>
+                            Please click{' '}
+                            <a
+                                href={newHref}
+                                title="OneUptime: One platform for all your SRE needs"
+                            >
+                                <span>here</span>
+                            </a>{' '}
+                            to be taken immediately
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const App = props => {
+    const oldHostNames = ['staging.fyipe.com', 'fyipe.com'];
+    const currentHostName = window.location.hostname;
+
+    if (oldHostNames.includes(currentHostName)) {
+        const updatedLink = `${window.location.origin.replace(
+            'fyipe',
+            'oneuptime'
+        )}/${window.location.pathname}`;
+
+        setTimeout(() => {
+            // redirect to the updated link after 5 seconds
+            window.location.replace(updatedLink);
+        }, 5000);
+
+        return RebrandBanner(updatedLink);
+    }
+
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
     const titleToExclude = [

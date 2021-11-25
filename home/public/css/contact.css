@@ -800,36 +800,36 @@ td,th{
         min-height:none
     }
 }
-.fyipeBackground-container{
+.oneuptimeBackground-container{
     position:absolute;
     width:100%;
     overflow:hidden
 }
-.fyipeBackground-large{
+.oneuptimeBackground-large{
     transform:skew(0,-12deg);
     will-change:transform;
     position:absolute;
     left:0;
     right:0
 }
-.fyipeBackground-large .fyipe{
+.oneuptimeBackground-large .oneuptime{
     position:absolute;
     height:50px;
     top:auto
 }
-.fyipeBackground-container{
+.oneuptimeBackground-container{
     height:620px
 }
 @media (min-width:1020px){
-    .fyipeBackground-container{
+    .oneuptimeBackground-container{
         height:900px
     }
 }
-.fyipeBackground-large{
+.oneuptimeBackground-large{
     display:block;
     bottom:45%
 }
-.fyipeBackground-large .gradient{
+.oneuptimeBackground-large .gradient{
     background-image:linear-gradient(-81deg,#000000 1%,#000000);
     bottom:0;
     left:0;
@@ -837,7 +837,7 @@ td,th{
     height:5000px;
     margin-bottom:50px
 }
-.fyipeBackground-large .dots{
+.oneuptimeBackground-large .dots{
     position:absolute;
     height:200px;
     width:290px;
@@ -850,7 +850,7 @@ td,th{
     opacity:.5
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .dots{
+    .oneuptimeBackground-large .dots{
         opacity:1;
         position:absolute;
         height:200px;
@@ -863,7 +863,7 @@ td,th{
         transform:skew(0,12deg) rotate(-12deg)
     }
 }
-.fyipeBackground-large .fyipe.below{
+.oneuptimeBackground-large .oneuptime.below{
     bottom:0;
     left:calc(100% - 112px);
     right:calc(50% - 312px);
@@ -871,7 +871,7 @@ td,th{
     display:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.below{
+    .oneuptimeBackground-large .oneuptime.below{
         display:block;
         bottom:-50px;
         left:calc(100% - 440px);
@@ -879,44 +879,44 @@ td,th{
         background-color:#d7d7d7
     }
 }
-.fyipeBackground-large .fyipe.s1{
+.oneuptimeBackground-large .oneuptime.s1{
     background-color:#000000;
     bottom:0;
     left:0;
     right:calc(100% - 35px)
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s1{
+    .oneuptimeBackground-large .oneuptime.s1{
         right:calc(100% - 355px)
     }
 }
-.fyipeBackground-large .fyipe.s2{
+.oneuptimeBackground-large .oneuptime.s2{
     background-image:linear-gradient(90deg,#000000 6%,#000000 23%,#fff 95%);
     bottom:0;
     left:355px;
     right:600px
 }
-.fyipeBackground-large .fyipe.s3{
+.oneuptimeBackground-large .oneuptime.s3{
     background:#000000;
     bottom:0;
     left:calc(50% + 260px);
     right:0
 }
-.fyipeBackground-large .fyipe.s4{
+.oneuptimeBackground-large .oneuptime.s4{
     opacity:.16;
     background:#000000;
     bottom:-50px;
     left:0;
     right:calc(50% + 475px)
 }
-.fyipeBackground-large .fyipe.s5{
+.oneuptimeBackground-large .oneuptime.s5{
     background-color:rgba(0,0,0,.14);
     mix-blend-mode:soft-light;
     bottom:200px;
     right:0;
     width:100px
 }
-.fyipeBackground-large .fyipe.s6{
+.oneuptimeBackground-large .oneuptime.s6{
     background-image:linear-gradient(-90deg,transparent,rgba(0,0,0,.3),transparent);
     mix-blend-mode:soft-light;
     bottom:100px;
@@ -926,15 +926,15 @@ td,th{
     animation:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s6{
-        animation:animate-fyipe-8 5s infinite;
+    .oneuptimeBackground-large .oneuptime.s6{
+        animation:animate-oneuptime-8 5s infinite;
         animation-timing-function:ease-in;
         animation-delay:3s;
         opacity:0;
         will-change:transfrom,opacity
     }
 }
-.fyipeBackground-large .fyipe.s7{
+.oneuptimeBackground-large .oneuptime.s7{
     background-image:linear-gradient(-90deg,transparent,rgba(0,0,0,.3),transparent);
     mix-blend-mode:soft-light;
     bottom:100px;
@@ -944,15 +944,15 @@ td,th{
     animation:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s7{
+    .oneuptimeBackground-large .oneuptime.s7{
         opacity:0;
-        animation:animate-fyipe-7 5s infinite;
+        animation:animate-oneuptime-7 5s infinite;
         animation-timing-function:ease-in;
         animation-delay:1s;
         will-change:transfrom,opacity
     }
 }
-@keyframes animate-fyipe-7{
+@keyframes animate-oneuptime-7{
     0%{
         transform:translateX(-200px);
         opacity:0
@@ -965,7 +965,7 @@ td,th{
         opacity:0
     }
 }
-.fyipeBackground-large .fyipe.s8{
+.oneuptimeBackground-large .oneuptime.s8{
     background-image:linear-gradient(-90deg,hsla(0,0%,100%,0),hsla(0,0%,100%,.24),hsla(0,0%,100%,0));
     mix-blend-mode:soft-light;
     bottom:150px;
@@ -975,13 +975,13 @@ td,th{
     animation:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s8{
-        animation:animate-fyipe-8 7s infinite;
+    .oneuptimeBackground-large .oneuptime.s8{
+        animation:animate-oneuptime-8 7s infinite;
         animation-timing-function:ease-in;
         will-change:transfrom,opacity
     }
 }
-@keyframes animate-fyipe-8{
+@keyframes animate-oneuptime-8{
     0%{
         transform:translateX(-350px);
         opacity:0
@@ -994,17 +994,17 @@ td,th{
         opacity:0
     }
 }
-.fyipeBackground-large .fyipe.s9{
+.oneuptimeBackground-large .oneuptime.s9{
     background-image:linear-gradient(-90deg,transparent,rgba(0,0,0,.4),transparent);
     mix-blend-mode:soft-light;
     bottom:150px;
     left:50%;
     right:calc(50% - 360px);
-    animation:animate-fyipe-9 4s infinite;
+    animation:animate-oneuptime-9 4s infinite;
     animation-timing-function:ease-in;
     will-change:transfrom,opacity
 }
-@keyframes animate-fyipe-9{
+@keyframes animate-oneuptime-9{
     0%,30%{
         transform:translateX(-200px);
         opacity:0
@@ -1017,7 +1017,7 @@ td,th{
         opacity:0
     }
 }
-.fyipeBackground-large .fyipe.s10{
+.oneuptimeBackground-large .oneuptime.s10{
     background-image:linear-gradient(-90deg,hsla(0,0%,100%,0),hsla(0,0%,100%,.4),hsla(0,0%,100%,0));
     mix-blend-mode:soft-light;
     bottom:150px;
@@ -1027,14 +1027,14 @@ td,th{
     animation:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s10{
+    .oneuptimeBackground-large .oneuptime.s10{
         opacity:0;
-        animation:animate-fyipe-10 6s infinite;
+        animation:animate-oneuptime-10 6s infinite;
         animation-timing-function:ease-in;
         will-change:transfrom,opacity
     }
 }
-@keyframes animate-fyipe-10{
+@keyframes animate-oneuptime-10{
     0%{
         transform:translateX(-100px);
         opacity:0
@@ -1047,7 +1047,7 @@ td,th{
         opacity:0
     }
 }
-.fyipeBackground-large .fyipe.s11{
+.oneuptimeBackground-large .oneuptime.s11{
     opacity:.12;
     background-image:linear-gradient(-90deg,#000,#000 97%);
     mix-blend-mode:soft-light;
@@ -1055,7 +1055,7 @@ td,th{
     left:calc(50% - 430px);
     right:calc(50% + 200px)
 }
-.fyipeBackground-large .fyipe.s12{
+.oneuptimeBackground-large .oneuptime.s12{
     background-image:linear-gradient(-90deg,transparent,rgba(0,0,0,.3),transparent);
     mix-blend-mode:soft-light;
     bottom:600px;
@@ -1065,15 +1065,15 @@ td,th{
     animation:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s12{
-        animation:animate-fyipe-8 5s infinite;
+    .oneuptimeBackground-large .oneuptime.s12{
+        animation:animate-oneuptime-8 5s infinite;
         animation-timing-function:ease-in;
         animation-delay:3s;
         opacity:0;
         will-change:transfrom,opacity
     }
 }
-.fyipeBackground-large .fyipe.s13{
+.oneuptimeBackground-large .oneuptime.s13{
     background-image:linear-gradient(-90deg,hsla(0,0%,100%,0),hsla(0,0%,100%,.24),hsla(0,0%,100%,0));
     mix-blend-mode:soft-light;
     bottom:550px;
@@ -1083,8 +1083,8 @@ td,th{
     animation:none
 }
 @media (min-width:1020px){
-    .fyipeBackground-large .fyipe.s13{
-        animation:animate-fyipe-8 5s infinite;
+    .oneuptimeBackground-large .oneuptime.s13{
+        animation:animate-oneuptime-8 5s infinite;
         animation-timing-function:ease-in;
         animation-delay:1s;
         opacity:0;

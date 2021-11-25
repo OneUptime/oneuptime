@@ -32,7 +32,7 @@ describe('Check api-docs up', () => {
                 },
                 { hidden: true }
             );
-            expect(response).toBe('Fyipe API Documentation');
+            expect(response).toBe('OneUptime API Documentation');
             done();
         },
         init.timeout

@@ -1,5 +1,5 @@
 #
-# Fyipe:script-runner Dockerfile
+# OneUptime:script-runner Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -23,7 +23,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3009: Fyipe:script-runner
+#   - 3009: OneUptime:script-runner
 EXPOSE 3009
 
 #Run the app

@@ -1,7 +1,7 @@
 {
-    "name": "fyipe-api-docs",
+    "name": "oneuptime-api-docs",
     "version": "3.0.0",
-    "description": "fyipe api refernce",
+    "description": "oneuptime api refernce",
     "main": "Gruntfile.js",
     "repository": {
         "type": "git",

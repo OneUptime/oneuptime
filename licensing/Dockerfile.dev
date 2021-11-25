@@ -26,7 +26,7 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 RUN npm ci
 
 # Expose ports.
-#   - 3004: Fyipe-licensing
+#   - 3004: OneUptime-licensing
 EXPOSE 3004
 
 # Expose Debugger port

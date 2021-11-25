@@ -176,7 +176,11 @@ describe('Enterprise User API', () => {
             // user with non-business email
             await init.pageWaitForSelector(page, '#email');
             await init.pageClick(page, 'input[name=email]');
-            await init.pageType(page, 'input[name=email]', 'fyipe@gmail.com');
+            await init.pageType(
+                page,
+                'input[name=email]',
+                'oneuptime@gmail.com'
+            );
             await init.pageClick(page, 'input[name=name]');
             await init.pageType(page, 'input[name=name]', 'Test Name');
             await init.pageClick(page, 'input[name=companyName]');

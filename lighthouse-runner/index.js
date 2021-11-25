@@ -59,7 +59,7 @@ app.set('port', process.env.PORT || 3015);
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Lighthouse Started on port ${app.get('port')}. Fyipe API URL: ${
+        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${
             config.serverUrl
         }`
     );
@@ -71,7 +71,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-lighthouse',
+            serviceType: 'oneuptime-lighthouse',
         })
     );
 });

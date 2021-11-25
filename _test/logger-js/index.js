@@ -4,7 +4,7 @@ const Logger = fyipe.Logger;
 
 // constructor
 const logger = new Logger(
-    'https://staging.fyipe.com/api',
+    'https://staging.oneuptime.com/api',
     '6053aae39b79460013b35102',                    
     '4904db2d-968c-4656-b6c0-aac450c97ee2'
 );

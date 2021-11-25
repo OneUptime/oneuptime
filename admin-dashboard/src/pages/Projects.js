@@ -59,7 +59,7 @@ class Projects extends React.Component {
     render() {
         return (
             <div
-                id="fyipeProject"
+                id="oneuptimeProject"
                 onKeyDown={this.handleKeyBoard}
                 className="Box-root Margin-vertical--12"
             >
@@ -87,7 +87,8 @@ class Projects extends React.Component {
                                                                         'capitalize',
                                                                 }}
                                                             >
-                                                                Fyipe Projects
+                                                                OneUptime
+                                                                Projects
                                                             </span>
                                                         </span>
                                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -95,7 +96,7 @@ class Projects extends React.Component {
                                                                 Here is a list
                                                                 of all the
                                                                 projects on
-                                                                Fyipe.
+                                                                OneUptime.
                                                             </span>
                                                         </span>
                                                     </div>

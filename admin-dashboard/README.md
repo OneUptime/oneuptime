@@ -1,1 +1,1 @@
-# fyipe-admin-dashboard
+# oneuptime-admin-dashboard

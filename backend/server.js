@@ -17,7 +17,7 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    release: `fyipe-backend@${process.env.npm_package_version}`,
+    release: `oneuptime-backend@${process.env.npm_package_version}`,
     environment: process.env.NODE_ENV,
     integrations: [
         // enable HTTP calls tracing

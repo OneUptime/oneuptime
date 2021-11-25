@@ -1124,7 +1124,8 @@ router.post(
                     select: 'name',
                 });
 
-                data.created_by = user && user.name ? user.name : 'Fyipe User';
+                data.created_by =
+                    user && user.name ? user.name : 'OneUptime User';
 
                 const populateAlert = [
                     { path: 'userId', select: 'name' },

@@ -78,7 +78,7 @@ class ViewApplicationLogKey extends Component {
                                             <span>
                                                 Use your Log API ID and Log API
                                                 Key to log requests from your
-                                                apps to your Fyipe Dashboard
+                                                apps to your OneUptime Dashboard
                                             </span>
                                         </p>
                                     </div>
@@ -230,7 +230,7 @@ class ViewApplicationLogKey extends Component {
                                                             API Key will break
                                                             all your existing
                                                             integrations with
-                                                            the Fyipe Logger
+                                                            the OneUptime Logger
                                                             Library
                                                         </span>
                                                     </p>

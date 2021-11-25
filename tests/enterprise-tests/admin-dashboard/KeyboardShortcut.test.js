@@ -46,7 +46,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await page.keyboard.press('p');
             const project = await init.pageWaitForSelector(
                 page,
-                '#fyipeProject',
+                '#oneuptimeProject',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -69,10 +69,14 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('b');
-            const probe = await init.pageWaitForSelector(page, '#fyipeProbe', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const probe = await init.pageWaitForSelector(
+                page,
+                '#oneuptimeProbe',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(probe).toBeDefined();
 
             done();
@@ -94,7 +98,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await page.keyboard.press('a');
             const auditLog = await init.pageWaitForSelector(
                 page,
-                '#fyipeAuditLog',
+                '#oneuptimeAuditLog',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -119,7 +123,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await page.keyboard.press('l');
             const license = await init.pageWaitForSelector(
                 page,
-                '#fyipeLicense',
+                '#oneuptimeLicense',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -142,10 +146,14 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('m');
-            const smtp = await init.pageWaitForSelector(page, '#fyipeSmtp', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const smtp = await init.pageWaitForSelector(
+                page,
+                '#oneuptimeSmtp',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(smtp).toBeDefined();
 
             done();
@@ -165,7 +173,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             await page.keyboard.press('t');
             const twilio = await init.pageWaitForSelector(
                 page,
-                '#fyipeTwilio',
+                '#oneuptimeTwilio',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -188,7 +196,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('o');
-            const sso = await init.pageWaitForSelector(page, '#fyipeSso', {
+            const sso = await init.pageWaitForSelector(page, '#oneuptimeSso', {
                 visible: true,
                 timeout: init.timeout,
             });

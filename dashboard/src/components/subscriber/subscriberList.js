@@ -235,7 +235,7 @@ export class SubscriberList extends Component {
                                                                         subscriber.statusPageId !==
                                                                             null &&
                                                                         subscriber.statusPageName) ||
-                                                                        'Fyipe Dashboard'}
+                                                                        'OneUptime Dashboard'}
                                                                 </span>
                                                             </div>
                                                         </span>

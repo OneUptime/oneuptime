@@ -146,8 +146,9 @@ class ProjectBalance extends Component {
                                                                     multiple
                                                                     backups
                                                                     cards added
-                                                                    to Fyipe to
-                                                                    ensure alert
+                                                                    to OneUptime
+                                                                    to ensure
+                                                                    alert
                                                                     deliverability.
                                                                 </label>
                                                             </div>

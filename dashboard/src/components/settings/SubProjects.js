@@ -106,7 +106,8 @@ export class SubProjects extends Component {
                                             <span>
                                                 Subprojects let’s you have
                                                 flexible access controls between
-                                                Fyipe resources and your team.
+                                                OneUptime resources and your
+                                                team.
                                             </span>
                                         </span>
                                     </div>

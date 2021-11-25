@@ -636,11 +636,15 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('a');
-            const fyipeApi = await init.pageWaitForSelector(page, '#fyipeApi', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            expect(fyipeApi).toBeDefined();
+            const oneuptimeApi = await init.pageWaitForSelector(
+                page,
+                '#oneuptimeApi',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            expect(oneuptimeApi).toBeDefined();
 
             done();
         },

@@ -1,5 +1,5 @@
 #
-# Fyipe-data-ingestor Dockerfile
+# OneUptime-data-ingestor Dockerfile
 #
 
 # Pull base image nodejs image.
