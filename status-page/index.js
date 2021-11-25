@@ -159,7 +159,9 @@ app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
         host &&
-        (host === 'oneuptime.com' ||
+        (host === 'fyipe.com' ||
+            host === 'staging.fyipe.com' ||
+            host === 'oneuptime.com' ||
             host === 'staging.oneuptime.com' ||
             host.indexOf('localhost') > -1)
     ) {
