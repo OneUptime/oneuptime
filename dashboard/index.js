@@ -61,6 +61,25 @@ app.use(function(req, res, next) {
     return next();
 });
 
+app.use('/', async function(req, res, next) {
+    const host = req.hostname;
+
+    try {
+        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com/${req.url}`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('DASHBOARD: Error with fetch', error);
+        return next();
+    }
+});
+
 app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {

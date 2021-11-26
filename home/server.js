@@ -65,6 +65,25 @@ if (process.env.NODE_ENV === 'production') {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+app.use('/', async function(req, res, next) {
+    const host = req.hostname;
+
+    try {
+        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('HOME: Error with fetch', error);
+        return next();
+    }
+});
+
 //Routes
 app.get('/', function(req, res) {
     res.render('index', {

@@ -157,6 +157,25 @@ async function handleCertificate(client, collection, domain) {
 
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
+
+    try {
+        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com/${req.url}`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('STATUSPAGE: Error with fetch', error);
+        return next();
+    }
+});
+
+app.use('/', async function(req, res, next) {
+    const host = req.hostname;
     if (
         host &&
         (host === 'fyipe.com' ||
