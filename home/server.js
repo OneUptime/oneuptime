@@ -65,13 +65,19 @@ if (process.env.NODE_ENV === 'production') {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-app.use('/', async function(req, res, next) {
+app.use(async function(req, res, next) {
     const host = req.hostname;
 
     try {
-        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+        if (host && host === 'fyipe.com') {
             res.writeHead(301, {
                 Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
+            });
+            return res.end();
+        }
+        if (host && host === 'staging.fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
             });
             return res.end();
         }

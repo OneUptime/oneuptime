@@ -21,13 +21,19 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-app.use('/', async function(req, res, next) {
+app.use(async function(req, res, next) {
     const host = req.hostname;
 
     try {
-        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+        if (host && host === 'fyipe.com') {
             res.writeHead(301, {
                 Location: `https://oneuptime.com/${req.url}`,
+            });
+            return res.end();
+        }
+        if (host && host === 'staging.fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://staging.oneuptime.com/${req.url}`,
             });
             return res.end();
         }

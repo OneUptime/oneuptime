@@ -155,13 +155,19 @@ async function handleCertificate(client, collection, domain) {
     return certificate;
 }
 
-app.use('/', async function(req, res, next) {
+app.use(async function(req, res, next) {
     const host = req.hostname;
 
     try {
-        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+        if (host && host === 'fyipe.com') {
             res.writeHead(301, {
                 Location: `https://oneuptime.com/${req.url}`,
+            });
+            return res.end();
+        }
+        if (host && host === 'staging.fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://staging.oneuptime.com/${req.url}`,
             });
             return res.end();
         }
@@ -169,7 +175,7 @@ app.use('/', async function(req, res, next) {
         return next();
     } catch (error) {
         // eslint-disable-next-line no-console
-        console.log('STATUSPAGE: Error with fetch', error);
+        console.log('ACCOUNT: Error with fetch', error);
         return next();
     }
 });
