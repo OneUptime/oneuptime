@@ -25,6 +25,9 @@
 </head>
 
 <body>
+    <% if(redirectedFromOldBranding) { %>
+        <% include ./redirect-banner %>
+    <% } %>
     <% include ./nav %>
 
         <div class="globalContent">

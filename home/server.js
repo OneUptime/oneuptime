@@ -90,14 +90,27 @@ app.use(async function(req, res, next) {
     }
 });
 
+/**
+ * @param {string} val : The value to be parsed.
+ * @description Resolves or Parses any value to boolean value.
+ * @returns Boolean true or false
+ */
+
+const bool = val => {
+    const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
+    return !falsy.test(val) && !!val;
+};
+
 //Routes
 app.get('/', function(req, res) {
+    const { redirectedFromOldBranding } = req.query;
     res.render('index', {
         support: false,
         footerCards: true,
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: bool(redirectedFromOldBranding),
     });
 });
 

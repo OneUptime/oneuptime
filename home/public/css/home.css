@@ -1319,6 +1319,13 @@ main header{
     flex-wrap: wrap
 }
 
+#rebrand{
+    background: black; 
+    width: 100%;
+    padding: 20px;
+    display: flex;
+} 
+
 .p-White{
     padding-top: 7px;
     color: #fff;
