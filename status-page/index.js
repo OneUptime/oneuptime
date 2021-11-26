@@ -161,13 +161,13 @@ app.use(async function(req, res, next) {
     try {
         if (host && host === 'fyipe.com') {
             res.writeHead(301, {
-                Location: `https://oneuptime.com/${req.url}`,
+                Location: `https://oneuptime.com${req.url}`,
             });
             return res.end();
         }
         if (host && host === 'staging.fyipe.com') {
             res.writeHead(301, {
-                Location: `https://staging.oneuptime.com/${req.url}`,
+                Location: `https://staging.oneuptime.com${req.url}`,
             });
             return res.end();
         }
