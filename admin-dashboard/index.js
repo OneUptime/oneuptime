@@ -21,10 +21,23 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-app.use('/', (req, res, next) => {
-    //eslint-disable-next-line
-    console.log(req.method, ' ', req.originalUrl);
-    return next();
+app.use('/', async function(req, res, next) {
+    const host = req.hostname;
+
+    try {
+        if (host && (host === 'fyipe.com' || host === 'staging.fyipe.com')) {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com/${req.url}`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('Admin Dashboard: Error with fetch', error);
+        return next();
+    }
 });
 
 app.get(['/env.js', '/admin/env.js'], function(req, res) {
