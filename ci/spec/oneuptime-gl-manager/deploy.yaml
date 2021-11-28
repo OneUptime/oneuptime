@@ -1,5 +1,5 @@
-## DEPLOYMENT STAGE FOR STAGING - fyipe-acme-http-01-staging
-staging_fyipe-acme-http-01:
+## DEPLOYMENT STAGE FOR STAGING - oneuptime-gl-manager-staging
+staging_oneuptime-gl-manager:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -10,10 +10,10 @@ staging_fyipe-acme-http-01:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - cd fyipe-acme-http-01
+        - cd oneuptime-gl-manager
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-acme-http-01-staging"'
+        - json -I -f package.json -e 'this.name="oneuptime-gl-manager-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..
@@ -26,8 +26,8 @@ staging_fyipe-acme-http-01:
     environment:
         name: staging
 
-## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-acme-http-01
-production_fyipe-acme-http-01:
+## DEPLOYMENT STAGE FOR PRODUCTION - oneuptime-gl-manager
+production_oneuptime-gl-manager:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -38,10 +38,10 @@ production_fyipe-acme-http-01:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - cd fyipe-acme-http-01
+        - cd oneuptime-gl-manager
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-acme-http-01"'
+        - json -I -f package.json -e 'this.name="oneuptime-gl-manager"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..
