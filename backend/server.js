@@ -394,7 +394,7 @@ const server = http.listen(app.get('port'), function() {
 
 mongoose.connection.on('connected', async () => {
     const greenlock = Gl.create({
-        manager: 'fyipe-gl-manager',
+        manager: 'oneuptime-gl-manager',
         packageRoot: process.cwd(),
         maintainerEmail: 'certs@fyipe.com',
         staging: false,
@@ -407,11 +407,11 @@ mongoose.connection.on('connected', async () => {
         },
         challenges: {
             'http-01': {
-                module: 'fyipe-acme-http-01',
+                module: 'oneuptime-acme-http-01',
             },
         },
         store: {
-            module: 'fyipe-le-store',
+            module: 'oneuptime-le-store',
         },
     });
     await greenlock.manager.defaults({
