@@ -9,7 +9,7 @@ sudo kubectl version --client
 sudo dpkg --configure -a
 
 # fix broken unmet dependencies
-sudo apt --fix-broken install
+sudo apt --fix-broken install -y -y
 
 # Install and configure aws cli
 sudo apt-get install -y unzip

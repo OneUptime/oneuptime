@@ -44,7 +44,7 @@ then
 fi
 
 # fix broken unmet dependencies
-sudo apt --fix-broken install
+sudo apt --fix-broken install -y -y
 
 # remove any service holding port 80
 sudo apt remove apache2 nginx -y
