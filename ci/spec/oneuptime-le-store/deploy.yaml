@@ -1,19 +1,20 @@
-## DEPLOYMENT STAGE FOR STAGING - fyipe-gl-manager-staging
-staging_fyipe-gl-manager:
+## DEPLOYMENT STAGE FOR STAGING - oneuptime-le-store-staging
+staging_oneuptime-le-store:
     stage: Deploy
     allow_failure: true
     retry: 2
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
+        - sudo apt --fix-broken install
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - cd fyipe-gl-manager
+        - cd oneuptime-le-store
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-gl-manager-staging"'
+        - json -I -f package.json -e 'this.name="oneuptime-le-store-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..
@@ -26,22 +27,23 @@ staging_fyipe-gl-manager:
     environment:
         name: staging
 
-## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-gl-manager
-production_fyipe-gl-manager:
+## DEPLOYMENT STAGE FOR PRODUCTION - oneuptime-le-store
+production_oneuptime-le-store:
     stage: Deploy
     allow_failure: true
     retry: 2
     script:
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
+        - sudo apt --fix-broken install
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - cd fyipe-gl-manager
+        - cd oneuptime-le-store
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-gl-manager"'
+        - json -I -f package.json -e 'this.name="oneuptime-le-store"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..

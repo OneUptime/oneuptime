@@ -1,7 +1,8 @@
 const ErrorService = require('../services/errorService');
 const StatusPageService = require('../services/statusPageService');
 const CertificateStoreService = require('../services/certificateStoreService');
-const greenlock = require('../../greenlock');
+// const greenlock = require('../../greenlock');
+const greenlock = global.greenlock;
 
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];
