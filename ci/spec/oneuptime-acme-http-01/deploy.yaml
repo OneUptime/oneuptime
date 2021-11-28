@@ -1,5 +1,5 @@
-## DEPLOYMENT STAGE FOR STAGING - fyipe-le-store-staging
-staging_fyipe-le-store:
+## DEPLOYMENT STAGE FOR STAGING - oneuptime-acme-http-01-staging
+staging_oneuptime-acme-http-01:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -10,10 +10,10 @@ staging_fyipe-le-store:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - cd fyipe-le-store
+        - cd oneuptime-acme-http-01
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-le-store-staging"'
+        - json -I -f package.json -e 'this.name="oneuptime-acme-http-01-staging"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..
@@ -26,8 +26,8 @@ staging_fyipe-le-store:
     environment:
         name: staging
 
-## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-le-store
-production_fyipe-le-store:
+## DEPLOYMENT STAGE FOR PRODUCTION - oneuptime-acme-http-01
+production_oneuptime-acme-http-01:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -38,10 +38,10 @@ production_fyipe-le-store:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y nodejs
         - sudo npm install -g json
-        - cd fyipe-le-store
+        - cd oneuptime-acme-http-01
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
-        - json -I -f package.json -e 'this.name="fyipe-le-store"'
+        - json -I -f package.json -e 'this.name="oneuptime-acme-http-01"'
         - echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
         - npm publish
         - cd ..
