@@ -5,6 +5,7 @@ staging_js-sdk:
     retry: 2
     script:
         - sudo apt-get update
+        - sudo apt --fix-broken install
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
@@ -42,6 +43,7 @@ production_js-sdk:
     retry: 2
     script:
         - sudo apt-get update
+        - sudo apt --fix-broken install
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
