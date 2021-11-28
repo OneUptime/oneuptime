@@ -43,6 +43,9 @@ then
   # sudo docker system prune -a --volumes --force
 fi
 
+# fix broken unmet dependencies
+sudo apt --fix-broken install
+
 # remove any service holding port 80
 sudo apt remove apache2 nginx -y
 sudo apt purge apache2 nginx -y
