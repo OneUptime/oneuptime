@@ -8,6 +8,9 @@ sudo kubectl version --client
 # fix dpkg interruption
 sudo dpkg --configure -a
 
+# fix broken unmet dependencies
+sudo apt --fix-broken install
+
 # Install and configure aws cli
 sudo apt-get install -y unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" # download latest aws cli version
