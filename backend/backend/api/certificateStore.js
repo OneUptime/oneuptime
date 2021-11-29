@@ -3,8 +3,6 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const CertificateStoreService = require('../services/certificateStoreService');
 const StatusPageService = require('../services/statusPageService');
-// const greenlock = require('../../greenlock');
-// const greenlock = global.greenlock;
 
 const router = express.Router();
 
@@ -109,15 +107,10 @@ router.post('/certOrder', async (req, res) => {
             }
         }
 
-        console.log('** domains outside **', domains);
-        console.log('** outside greenlock **', greenlock);
-
         if (greenlock) {
-            console.log('** inside greenlock **', greenlock);
-            console.log('** domains **', domains);
             for (const domain of domains) {
                 // run in the background
-                await greenlock.add({
+                greenlock.add({
                     subject: domain,
                     altnames: [domain],
                 });
