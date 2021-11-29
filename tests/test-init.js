@@ -1335,14 +1335,14 @@ const _this = {
         await _this.pageClick(page, '#name');
         await _this.pageType(page, '#name', scheduledEventName);
         if (monitorName) {
-            await _this.pageClick(page, 'label[for=selectAllMonitorsBox]');
-            await _this.pageClick(page, '#addMoreMonitor');
-            await _this.pageWaitForSelector(page, '#monitorfield_0');
-            await _this.selectDropdownValue(
-                '#monitorfield_0',
-                componentName,
-                page
-            ); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
+            await _this.pageWaitForSelector(
+                page,
+                'label[for=selectAllMonitors]'
+            );
+            await _this.pageClick(page, '#selectSpecificMonitors');
+            await _this.pageClick(page, '#monitorDropdown');
+            await _this.pageClick(page, `#${monitorName}`);
+            await _this.pageClick(page, 'label[for=monitorIds]');
         }
         await _this.pageClick(page, '#description');
         await _this.pageType(
