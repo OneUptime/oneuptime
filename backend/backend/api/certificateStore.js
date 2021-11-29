@@ -108,6 +108,9 @@ router.post('/certOrder', async (req, res) => {
             }
         }
 
+        console.log('** domains outside **', domains);
+        console.log('** outside greenlock **', greenlock);
+
         if (greenlock) {
             console.log('** inside greenlock **', greenlock);
             console.log('** domains **', domains);
