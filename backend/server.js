@@ -393,7 +393,6 @@ const server = http.listen(app.get('port'), function() {
 });
 
 mongoose.connection.on('connected', async () => {
-    console.log('** GL create **');
     const greenlock = Gl.create({
         manager: 'oneuptime-gl-manager',
         packageRoot: process.cwd(),
@@ -416,15 +415,11 @@ mongoose.connection.on('connected', async () => {
         },
     });
 
-    console.log('** greenlock before defaults **', greenlock);
-
     await greenlock.manager.defaults({
         agreeToTerms: true,
         subscriberEmail: 'certs@fyipe.com',
     });
     global.greenlock = greenlock;
-
-    console.log('** greenlock after **', global.greenlock);
 });
 
 module.exports = app;
