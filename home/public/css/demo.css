@@ -29,6 +29,10 @@ body.form-submitted .gradient-background{
 .container-lg{
     max-width:1080px
 }
+.container-lg.calendly-container{
+    max-width:90%;
+    padding: 0;
+}
 section.ctas{
     position:relative;
     padding-top:45px;
@@ -287,33 +291,50 @@ section.form-section{
 section.form-section .container-lg{
     position:relative
 }
-@media(min-width:1020px){
+@media(min-width:1360px){
     section.form-section .container-lg{
         display:-ms-flexbox;
-        display:flex
+        display:flex;
     }
 }
 section.form-section .form-column{
-    padding-bottom:45px
+    padding-bottom:45px;
+    display: flex;
+    justify-content: center;
 }
 @media(min-width:1020px){
     section.form-section .form-column{
         padding-bottom:70px
     }
 }
-@media(min-width:1020px){
+@media(min-width:1360px){
     section.form-section .form-column{
         -ms-flex:6;
         flex:6;
         padding-bottom:0
     }
 }
+
+section.form-section .calendly-inline-widget{
+    width:100%;
+    height: 1100px;
+}
+
+@media(min-width:1120px){
+    section.form-section .calendly-inline-widget{
+        width:1000px;
+        height: 660px;
+    }
+}
+
 section.form-section .secondary-column{
     margin-left:auto;
     margin-right:auto;
-    max-width:645px
+    max-width:645px;
+    display: flex;
+    align-items: center;
 }
-@media(min-width:1020px){
+@media(min-width:1360px){
     section.form-section .secondary-column{
         -ms-flex:4;
         flex:4;
@@ -322,13 +343,13 @@ section.form-section .secondary-column{
         margin-right:0
     }
 }
-@media(min-width:1020px){
+@media(min-width:1360px){
     section.form-section .secondary-column>:first-child{
         padding-left:24px;
         padding-right:18px
     }
 }
-@media(min-width:1020px){
+@media(min-width:1360px){
     section.form-section .secondary-column>:first-child{
         padding-left:50px;
         padding-right:0
@@ -657,7 +678,7 @@ section.form-section .submit-row .spinner-ellipse{
     visibility:hidden
 }
 section.form-section{
-    max-height:1200px;
+    max-height:1500px;
     opacity:1;
     transition:max-height .7s;
     will-change:max-height;
@@ -1526,12 +1547,7 @@ section.form-section .why-oneuptime{
     -ms-flex-direction:column;
     flex-direction:column
 }
-@media(min-width:1020px){
-    section.form-section .why-oneuptime{
-        padding-top:200px
-    }
-}
-section.form-section .why-oneuptime .intro-text{
+section.form-section .why-fyipe .intro-text{
     color:#f9fbfd;
     font-size:24px;
     font-weight:400;
