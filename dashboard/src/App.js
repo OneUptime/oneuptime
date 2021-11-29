@@ -19,7 +19,6 @@ import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 import 'react-big-calendar/lib/sass/styles.scss';
 import isSubProjectViewer from './utils/isSubProjectViewer';
-import './App.css';
 
 if (!isServer) {
     history.listen(location => {
