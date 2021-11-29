@@ -109,9 +109,11 @@ router.post('/certOrder', async (req, res) => {
         }
 
         if (greenlock) {
+            console.log('** inside greenlock **', greenlock);
+            console.log('** domains **', domains);
             for (const domain of domains) {
                 // run in the background
-                greenlock.add({
+                await greenlock.add({
                     subject: domain,
                     altnames: [domain],
                 });
