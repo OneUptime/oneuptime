@@ -191,11 +191,10 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-
-            await init.pageWaitForSelector(page, '#teamMembers');
-            await init.pageClick(page, '#teamMembers');
             await init.pageClick(page, '#projectFilterToggle');
             await init.pageClick(page, `#project-${projectName}`);
+            await init.pageWaitForSelector(page, '#teamMembers');
+            await init.pageClick(page, '#teamMembers');
             await init.pageWaitForSelector(
                 page,
                 `#changeRole_${emailSelector}`
