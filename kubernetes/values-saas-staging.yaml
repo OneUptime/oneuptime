@@ -105,34 +105,34 @@ newRelic:
 nodeEnv: staging
 sentry:
     backend:
-        dsn: https://c11d540ca0ab45599d42bd5a085b5516@o993368.ingest.sentry.io/5951304
+        dsn: https://cd018fc6179f47f9bbe2ac981f7222ec@o1080398.ingest.sentry.io/6086181
     dashboard:
-        dsn: https://fe2a551f537548c9aba3eb72bbf79f7b@o993368.ingest.sentry.io/5951316
+        dsn: https://52139efa363c4d8f949127df6f5b9c06@o1080398.ingest.sentry.io/6086183
     accounts:
-        dsn: https://75605e4ad6cf45c282d2316cc9552cf4@o993368.ingest.sentry.io/5952542
+        dsn: https://00e10ef7b6864da2b9ec51022be9cfa1@o1080398.ingest.sentry.io/6086185
     adminDashboard:
-        dsn: https://93416cfbfa30418fa17eaf2301f41921@o993368.ingest.sentry.io/5952553
+        dsn: https://c6cba78027d0458281c83b9b71dbf811@o1080398.ingest.sentry.io/6086192
     apiDocs:
-        dsn: https://08041e8b5eab48b5b79f9a7dd3805a0e@o993368.ingest.sentry.io/5952559
+        dsn: https://718dbefd2cd740fda9d13152b119b9f1@o1080398.ingest.sentry.io/6086200
     applicationScanner:
-        dsn: https://739596fb3b974d9eaf93ff3e2d42d2e6@o993368.ingest.sentry.io/5952576
+        dsn: https://aeb7436b742d42bb93c0bb4a49a2d595@o1080398.ingest.sentry.io/6086203
     containerScanner:
-        dsn: https://9ff1ae32b76c4fc2be9b06632ef9947b@o993368.ingest.sentry.io/5952586
+        dsn: https://73036c160c894c95b362c545f007fa1b@o1080398.ingest.sentry.io/6086204
     dataIngestor:
-        dsn: https://2862d64772424c07bcaa6cfa56527580@o993368.ingest.sentry.io/5952598
+        dsn: https://4ce6452749ed461a87599d204802d74e@o1080398.ingest.sentry.io/6086206
     home:
-        dsn: https://944dc9f0a8c44dae8ba8d4b4ec6cd03b@o993368.ingest.sentry.io/5952606
+        dsn: https://c71be7e5bb9d4f318e5ac295c8dc8720@o1080398.ingest.sentry.io/6086207
     httpTestServer:
-        dsn: https://fd7b28b0863c4699aaa496c9161dc73f@o993368.ingest.sentry.io/5952613
+        dsn: https://2dda861b35554c4fa1df681d78ecee51@o1080398.ingest.sentry.io/6086219
     licensing:
-        dsn: https://bfdd59985a9a4af6a57f1e22f7e62413@o993368.ingest.sentry.io/5952622
+        dsn: https://5be12db2ce4d4a3fb876e385a37cffc8@o1080398.ingest.sentry.io/6086221
     lighthouse:
-        dsn: https://b36fe05aa4044e9b88fa11eb53eee50c@o993368.ingest.sentry.io/5952639
+        dsn: https://04a7261ec6844172b2d2a4f5fc1f0fdc@o1080398.ingest.sentry.io/6086224
     probe:
-        dsn: https://08a941869644459fa6dd2066661cc9cd@o993368.ingest.sentry.io/5952643
+        dsn: https://f1c88d92c3f848c49f41d537bf124e05@o1080398.ingest.sentry.io/6086225
     realtime:
-        dsn: https://748b09c4e6c24e91975d603925b1f334@o993368.ingest.sentry.io/5952644
+        dsn: https://3881f774f62b4f3d9f69177d0716ac01@o1080398.ingest.sentry.io/6086226
     scriptRunner:
-        dsn: https://477684d5e130465d9e0c13e8e5da35c4@o993368.ingest.sentry.io/5952647
+        dsn: https://6e0b0991fc584e6da61d900bd20d81a1@o1080398.ingest.sentry.io/6086230
     statusPage:
-        dsn: https://70d177196b0744c8b30349b1b3d534e8@o993368.ingest.sentry.io/5952659
+        dsn: https://4257f73998344bddbf600fd11ef42050@o1080398.ingest.sentry.io/6086232
