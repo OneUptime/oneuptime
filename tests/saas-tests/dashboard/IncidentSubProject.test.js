@@ -490,7 +490,6 @@ describe('Incident API With SubProjects', () => {
         async done => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
-
             await init.addIncidentToProject(
                 projectMonitorName1,
                 subProjectName,
