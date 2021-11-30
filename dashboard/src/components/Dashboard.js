@@ -30,7 +30,7 @@ export class DashboardApp extends Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
-        this.state = { progress: 0 };
+        this.state = { progress: 10 };
     }
 
     componentDidMount() {
