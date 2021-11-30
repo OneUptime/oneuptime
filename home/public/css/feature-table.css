@@ -33,8 +33,10 @@
 }
 .feature-table-table-container {
   position: relative;
-  margin-left: 110px;
+  /* margin-left: 110px; */
   min-width: 1055px; 
+  margin-right: auto;
+  margin-left: auto;
 }
 .feature-table-table-label {
   position: absolute;
@@ -53,7 +55,8 @@
 .feature-table-table {
   display: flex;
   position: relative;
-  width: 95%;
+  /* width: 95%; */
+  width: 100%;
   border-radius: 3px;
   background: #FFFFFF;
   box-shadow: 0 0px 7px 1px rgba(0,0,0,0.1);
