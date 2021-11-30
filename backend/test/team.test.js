@@ -85,7 +85,7 @@ describe('Team API', function() {
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                emails: 'noreply@fyipe.com',
+                emails: 'noreply@oneuptime.com',
                 role: null,
             });
         expect(res).to.have.status(400);
@@ -97,7 +97,7 @@ describe('Team API', function() {
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                emails: 'noreply1@fyipe.com',
+                emails: 'noreply1@oneuptime.com',
                 role: 'Member',
             });
         anotherUser = res.body[0].team[0].userId;
@@ -163,7 +163,7 @@ describe('Team API', function() {
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
             .send({
-                emails: 'noreply4@fyipe.com',
+                emails: 'noreply4@oneuptime.com',
                 role: 'Member',
             });
         const { userId } = res.body[0].team[0];
@@ -177,7 +177,7 @@ describe('Team API', function() {
             `/user/${verificationToken.token}/email`
         );
         expect(res1).to.have.status(200);
-        expect(res1.body.token.userId.email).to.equal('noreply4@fyipe.com');
+        expect(res1.body.token.userId.email).to.equal('noreply4@oneuptime.com');
     });
 });
 
@@ -244,8 +244,8 @@ describe('Team API with Sub-Projects', async function() {
                     userData.user.email,
                     userData.newUser.email,
                     userData.anotherUser.email,
-                    'noreply1@fyipe.com',
-                    'testmail@fyipe.com',
+                    'noreply1@oneuptime.com',
+                    'testmail@oneuptime.com',
                 ],
             },
         });

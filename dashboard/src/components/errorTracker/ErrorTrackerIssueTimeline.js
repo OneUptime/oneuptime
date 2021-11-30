@@ -100,13 +100,20 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                         .createdById
                                                                         .name
                                                                         ? '/dashboard/assets/img/profile-user.svg'
-                                                                        : '/dashboard/assets/img/Fyipe.svg'
+                                                                        : '/dashboard/assets/img/ou-wb.svg'
                                                                 }
                                                                 className="userIcon"
                                                                 alt=""
                                                                 style={{
                                                                     marginBottom:
                                                                         '-5px',
+                                                                    backgroundColor:
+                                                                        timeline.createdById &&
+                                                                        timeline
+                                                                            .createdById
+                                                                            .name
+                                                                            ? '#fff'
+                                                                            : '#121212',
                                                                 }}
                                                             />
                                                             <span>
@@ -117,7 +124,7 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                     ? timeline
                                                                           .createdById
                                                                           .name
-                                                                    : 'Fyipe'}
+                                                                    : 'OneUptime'}
                                                             </span>
                                                         </div>
 

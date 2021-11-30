@@ -59,40 +59,54 @@ const AppLoader = () => (
     </div>
 );
 
-const App = () => (
-    <>
-        <Socket />
-        <Router>
-            <Suspense fallback={<AppLoader />}>
-                <Switch>
-                    <Route exact path="/" component={Main} />
-                    <Route exact path="/status-page" component={Main} />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug"
-                        component={Main}
-                    />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug/scheduledEvent/:eventId"
-                        component={ScheduledEvent}
-                    />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug/incident/:incidentSlug"
-                        component={Incident}
-                    />
-                    <Route
-                        exact
-                        path="/status-page/:statusPageSlug/announcement/:announcementSlug"
-                        component={SingleAnnouncement}
-                    />
-                    <Redirect to="/" />
-                </Switch>
-            </Suspense>
-        </Router>
-    </>
-);
+const App = () => {
+    const oldHostNames = ['staging.fyipe.com', 'fyipe.com'];
+    const currentHostName = window.location.hostname;
+
+    if (oldHostNames.includes(currentHostName)) {
+        const updatedLink = `${window.location.origin.replace(
+            'fyipe',
+            'oneuptime'
+        )}${window.location.pathname}`;
+
+        window.location.replace(updatedLink);
+    }
+
+    return (
+        <>
+            <Socket />
+            <Router>
+                <Suspense fallback={<AppLoader />}>
+                    <Switch>
+                        <Route exact path="/" component={Main} />
+                        <Route exact path="/status-page" component={Main} />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug"
+                            component={Main}
+                        />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug/scheduledEvent/:eventId"
+                            component={ScheduledEvent}
+                        />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug/incident/:incidentSlug"
+                            component={Incident}
+                        />
+                        <Route
+                            exact
+                            path="/status-page/:statusPageSlug/announcement/:announcementSlug"
+                            component={SingleAnnouncement}
+                        />
+                        <Redirect to="/" />
+                    </Switch>
+                </Suspense>
+            </Router>
+        </>
+    );
+};
 
 App.displayName = 'App';
 

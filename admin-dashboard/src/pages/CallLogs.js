@@ -69,7 +69,7 @@ class CallLogs extends React.Component {
         const { callLogStatus } = this.props;
         return (
             <div
-                id="fyipeCallLog"
+                id="oneuptimeCallLog"
                 onKeyDown={this.handleKeyBoard}
                 className="Box-root Margin-vertical--12"
             >

@@ -33,7 +33,7 @@
     flex-direction: row;
     justify-content: space-between;
 }
-.comparision-fyipe{
+.comparision-oneuptime{
     height:450px;
     width:100%;
     border-radius: 12px;
@@ -41,7 +41,7 @@
 .light-yellow-background{
     background-color: #FBF7F0;
 }
-.fyipe-listing{
+.oneuptime-listing{
     position:relative;
     height:73%;
     width:99%;
@@ -51,26 +51,26 @@
     display:grid;
     grid-template-columns: 30% 70%;
 }
-.fyipe-list-img{
+.oneuptime-list-img{
     margin:20px 0 0 20px;
 }
-.fyipe-list-img>img{
+.oneuptime-list-img>img{
     border-radius: 8px;
 }
-.fyipe-list-text{
+.oneuptime-list-text{
     padding: 20px 20px 20px 0;
     text-align: left;
 }
-.fyipe-list-head{
+.oneuptime-list-head{
     margin: -10px 0 0 -20px;
     text-align: left;
 }
-.fyipe-list-head>h3{
+.oneuptime-list-head>h3{
     font-size: 3em;
     font-weight: 500;
     color:#000000;
 }
-.fyipe-list-head>h4{
+.oneuptime-list-head>h4{
     font-size: 18px;
     font-weight: 500;
     color:#000000;
@@ -88,7 +88,7 @@
     margin:2px;
     border-radius: 10px;
 }
-.fyipe-checklist{
+.oneuptime-checklist{
     list-style-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTMiIHZpZXdCb3g9IjAgMCAxOCAxMyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8dGl0bGU%2BCiAgICDuhroKICA8L3RpdGxlPgogIDxwYXRoIGQ9Ik01Ljk4NCAxMi4yNjZsLTUuMjUtNS4xMWMtLjM3NS0uMzQ0LS4zNzUtLjY4NyAwLTEuMDNsMS4wMzItMS4wMzJjLjM3NS0uMzQ0LjczNC0uMzQ0IDEuMDc4IDBMNi41IDguNzA0bDguMTU2LTcuOTdjLjM0NC0uMzQzLjcwMy0uMzQzIDEuMDc4IDBsMS4wMzIuOTg1Yy4zNzUuMzQyLjM3NS42ODUgMCAxLjAzbC05Ljc1IDkuNTYyYy0uMzQ0LjMxMi0uNjg4LjI5Ni0xLjAzMi0uMDQ3eiIgZmlsbD0iIzNDQjM3MCIgZmlsbC1ydWxlPSJldmVub2RkIi8%2BCjwvc3ZnPgo%3D);
 }
 .list-container{
@@ -118,7 +118,7 @@
     width:10%;
     position: relative;
 }
-.fyipe-versus{
+.oneuptime-versus{
     position: absolute;
     top: 30%;
     left: -35%;
@@ -198,13 +198,13 @@
     border-radius:100em;
     color:rgb(60, 179, 112);
 }
-.fyipe-list-text>h3,.comparision-fyipe>h3,
+.oneuptime-list-text>h3,.comparision-oneuptime>h3,
 .list-text>h3,.comparision-others>h3{
     color:#000000; 
     font-size: 18px;
     font-weight: 400;
 }
-.fyipe-checklist>li{
+.oneuptime-checklist>li{
     color:#000000;
     font-size: 18px;
     font-weight:bold;
@@ -222,7 +222,7 @@
         margin:auto;
         display:block;
     }
-    .comparision-fyipe{
+    .comparision-oneuptime{
         height:400px;
     }
     .comparision-others{
@@ -232,7 +232,7 @@
         height:40px;
         width:100%;
     }
-    .fyipe-versus{
+    .oneuptime-versus{
         top:-135%;
         left:40%;
     }
@@ -248,7 +248,7 @@
         margin:auto;
         display:block;
     }
-    .fyipe-listing{
+    .oneuptime-listing{
         height:80%;
     }
     .others-listing{
@@ -258,7 +258,7 @@
         height:60px;
         width:100%;
     }
-    .fyipe-versus{
+    .oneuptime-versus{
         top:-48%;
         left:33%;
     }
@@ -293,11 +293,11 @@
     .comparision-others {
         font-size: 8px;
     }
-    .fyipe-versus{
+    .oneuptime-versus{
         margin-top: 15px;
         left: 140px;
     }
-    .fyipe-list-text>h3, .comparision-fyipe>h3, .list-text>h3, .comparision-others>h3 {
+    .oneuptime-list-text>h3, .comparision-oneuptime>h3, .list-text>h3, .comparision-others>h3 {
         top: -40px;
     }
 }
@@ -360,7 +360,7 @@
         margin: auto;
         padding: 0px;
     }
-    .fyipe-versus{
+    .oneuptime-versus{
         margin-top: 15px;
         left: 130px;
     }

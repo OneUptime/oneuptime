@@ -808,7 +808,7 @@ module.exports = {
                             await IncidentService.acknowledge(
                                 incident._id,
                                 null,
-                                'fyipe',
+                                'oneuptime',
                                 data.probeId
                             );
                         }
@@ -817,7 +817,7 @@ module.exports = {
                         await IncidentService.resolve(
                             incident._id,
                             null,
-                            'fyipe',
+                            'oneuptime',
                             data.probeId
                         );
                     }

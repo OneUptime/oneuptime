@@ -86,7 +86,7 @@ const fields = [
         placeholder:
             'https://login.microsoftonline.com/a4e1d-1s4f-965f-ert452136',
         description:
-            'This is the Url that fyipe will invoke to redirect users to your identity provider.',
+            'This is the Url that oneuptime will invoke to redirect users to your identity provider.',
         type: 'text',
         component: RenderField,
     },
@@ -105,7 +105,7 @@ const fields = [
         placeholder:
             'https://login.microsoftonline.com/common/wsfederation?wa=wsignout1.0',
         description:
-            'This is the Url that fyipe will direct your users to after they sign out.',
+            'This is the Url that oneuptime will direct your users to after they sign out.',
         type: 'text',
         component: RenderField,
     },

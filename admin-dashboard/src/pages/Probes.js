@@ -70,7 +70,7 @@ class Probes extends React.Component {
     render() {
         return (
             <div
-                id="fyipeProbe"
+                id="oneuptimeProbe"
                 onKeyDown={this.handleKeyBoard}
                 className="Box-root Margin-vertical--12"
             >
@@ -98,13 +98,13 @@ class Probes extends React.Component {
                                                                         'capitalize',
                                                                 }}
                                                             >
-                                                                Fyipe Probes
+                                                                OneUptime Probes
                                                             </span>
                                                         </span>
                                                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <span>
                                                                 List of Probes
-                                                                on Fyipe.
+                                                                on OneUptime.
                                                             </span>
                                                         </span>
                                                     </div>

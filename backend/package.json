@@ -1,5 +1,5 @@
 {
-    "name": "fyipe-backend",
+    "name": "oneuptime-backend",
     "version": "3.0.0",
     "private": true,
     "dependencies": {
@@ -44,6 +44,9 @@
         "node-html-parser": "^3.3.6",
         "nodemailer": "^6.6.2",
         "nodemailer-express-handlebars": "^4.0.0",
+        "oneuptime-acme-http-01": "^3.0.14223",
+        "oneuptime-gl-manager": "^3.0.14223",
+        "oneuptime-le-store": "^3.0.14223",
         "otplib": "^12.0.1",
         "p-iteration": "^1.1.8",
         "psl": "^1.8.0",

@@ -789,13 +789,13 @@ module.exports = {
                         incidentObj.acknowledgedAt = incident.acknowledgedAt;
                         incidentObj.acknowledgedBy = incident.acknowledgedBy
                             ? incident.acknowledgedBy.name
-                            : 'Fyipe';
+                            : 'OneUptime';
                     }
                     if (incident.resolved) {
                         incidentObj.resolvedAt = incident.resolvedAt;
                         incidentObj.resolvedBy = incident.resolvedBy
                             ? incident.resolvedBy.name
-                            : 'Fyipe';
+                            : 'OneUptime';
                     }
                     incidentObj.id = incident._id;
                     incidentObj.incidentId = incident._id;
@@ -808,7 +808,7 @@ module.exports = {
                     incidentObj.createdAt = incident.createdAt;
                     incidentObj.createdById = incident.createdById
                         ? incident.createdById.name
-                        : 'Fyipe';
+                        : 'OneUptime';
                     // const monitor = await MonitorService.findOneBy({
                     //     _id: incident.monitorId,
                     // });

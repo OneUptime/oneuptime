@@ -14,7 +14,7 @@ const componentName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-describe('Fyipe Component Reload', () => {
+describe('OneUptime Component Reload', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async done => {

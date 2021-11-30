@@ -46,7 +46,7 @@ export class MonitorUrl extends React.Component {
                                 <p>Click to copy inbound URL?</p>
                                 <br />
                                 <Clipboard
-                                    value={`https://fyipe.com/api/monitors/${
+                                    value={`https://oneuptime.com/api/monitors/${
                                         currentProject._id
                                     }/inbound/${data.data &&
                                         data.data.deviceId &&

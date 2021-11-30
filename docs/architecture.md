@@ -10,7 +10,7 @@ The main part of the project are:
 
 ### User interfaces
 
-Fyipe has four separated projects for the UI:
+OneUptime has four separated projects for the UI:
 
 #### accounts
 
@@ -40,7 +40,7 @@ The backend is the heart of the project. In addition to collecting the data from
 
 In addition to the three main components, we have the server monitor. This is an agent that needs to be installed in all the servers that will be monitored. Its main task is to collect data, like remaining storage space and CPU load, and to provide them to the probe server when requested.
 
-The following diagram describes the general architecture of the Fyipe project.
+The following diagram describes the general architecture of the OneUptime project.
 
 ![](./fyipe_architecture.png)
 
@@ -55,8 +55,8 @@ Using the admin dashboard, the administrator will be able to :
 -   Manage probe servers,
 -   Check the audit logs,
 -   Update the software license,
--   Configure the SMTP server to enable Fyipe sending emails like alerts, invitation, verifications, etc...
--   Configure Twilio account to enable Fyipe sending alerts SMS/calls,
+-   Configure the SMTP server to enable OneUptime sending emails like alerts, invitation, verifications, etc...
+-   Configure Twilio account to enable OneUptime sending alerts SMS/calls,
 -   Configure single sign-on domains to allow users to authenticate using third-party identity providers.
 
 ### User accounts
@@ -91,17 +91,17 @@ The user can create many status pages. For each page, he can select the resource
 
 #### Reports
 
-Fyipe generates several reports related to the incidents, the average resolve time, and monitors.
+OneUptime generates several reports related to the incidents, the average resolve time, and monitors.
 
 #### Inviting members
 
 The user can invite by the email other users to join the team.
 ![](./user_environment.png)
 
-## Fyipe in production
+## OneUptime in production
 
-Fyipe can be deployed in one of two modes: SAAS mode and enterprise mode. SAAS is the mode used by Hackerbay to run Fyipe. The clients can create accounts without being administrators or having access to the admin dashboard.
-In enterprise mode, the client will have the fyipe code deployed on his personal servers.
+OneUptime can be deployed in one of two modes: SAAS mode and enterprise mode. SAAS is the mode used by Hackerbay to run OneUptime. The clients can create accounts without being administrators or having access to the admin dashboard.
+In enterprise mode, the client will have the oneuptime code deployed on his personal servers.
 
 The running mode needs to be configured on the following subprojects, by updating the .env file in each of them, as the behavior of some of their features may change depending on the mode.
 

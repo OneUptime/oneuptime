@@ -329,7 +329,7 @@ export class MonitorLogsList extends Component {
                                                                                 ? log
                                                                                       .probeId
                                                                                       .probeName
-                                                                                : 'Fyipe'}
+                                                                                : 'OneUptime'}
                                                                         </span>
                                                                     </div>
                                                                 </span>
@@ -663,7 +663,7 @@ export class MonitorLogsList extends Component {
                                                                                       .props
                                                                                       .monitorType
                                                                               )
-                                                                            ? 'Fyipe'
+                                                                            ? 'OneUptime'
                                                                             : 'Unknown Probe'}
                                                                     </span>
                                                                 </div>

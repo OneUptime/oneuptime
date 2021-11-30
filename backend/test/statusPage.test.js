@@ -636,7 +636,7 @@ describe('Status API', function() {
 
     it('should save when domain is without subdomain', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'fyipe.com' };
+        const data = { domain: 'oneuptime.com' };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)

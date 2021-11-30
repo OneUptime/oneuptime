@@ -27,7 +27,7 @@ describe('Incident Trigger', () => {
                             name: 'New Sample',
                             type: 'url',
                             data: {
-                                url: 'https://fyipe.com',
+                                url: 'https://oneuptime.com',
                             },
                             projectId: '1',
                         },

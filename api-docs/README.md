@@ -1,8 +1,8 @@
-# Fyipe API Documentation
+# OneUptime API Documentation
 
 [![Build Status](https://travis-ci.org/Fyipe/api-docs.svg?branch=master)](https://travis-ci.org/Fyipe/api-docs)
 
-This is the API Reference for Fyipe which is hosted at [https://fyipe.com/docs](https://fyipe.com/docs).
+This is the API Reference for OneUptime which is hosted at [https://oneuptime.com/docs](https://oneuptime.com/docs).
 
 # Contribute
 

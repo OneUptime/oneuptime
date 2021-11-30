@@ -278,7 +278,7 @@ module.exports = {
         }
     },
 
-    //Description: Call this fuction when you add and remove a team member from Fyipe. This would add and remove seats based on how many users are in the project.
+    //Description: Call this fuction when you add and remove a team member from OneUptime. This would add and remove seats based on how many users are in the project.
     //Params:
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.

@@ -364,7 +364,7 @@ class EditWebHook extends React.Component {
                                             </a>{' '}
                                             to check documentation on how to
                                             integrate Microsoft Teams with
-                                            Fyipe.
+                                            OneUptime.
                                         </span>
                                     </span>
                                 </div>

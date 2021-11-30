@@ -25,7 +25,7 @@ describe('Check Backend', () => {
             return e.innerHTML;
         });
         expect(response).toBe(
-            '{"backend":{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"},"database":{"status":"Up","message":"Mongodb database connection is healthy"},"redis":{"status":"Up","message":"Redis connection is healthy"}}'
+            '{"backend":{"status":200,"message":"Service Status - OK","serviceType":"oneuptime-api"},"database":{"status":"Up","message":"Mongodb database connection is healthy"},"redis":{"status":"Up","message":"Redis connection is healthy"}}'
         );
         done();
     });

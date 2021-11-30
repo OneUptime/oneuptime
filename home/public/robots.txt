@@ -4,4 +4,4 @@ Disallow: /status-page/*
 Disallow: /admin/*
 Disallow: /haraka/*
 Disallow: /dashboard/*
-Sitemap: https://fyipe.com/sitemap.xml
+Sitemap: https://oneuptime.com/sitemap.xml

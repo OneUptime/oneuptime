@@ -127,14 +127,14 @@ include:
   # HARAKA
   - '/ci/spec/haraka/deploy.yaml'
 
-  # FYIPE-LE-STORE
-  - '/ci/spec/fyipe-le-store/deploy.yaml'
+  # ONEUPTIME-LE-STORE
+  - '/ci/spec/oneuptime-le-store/deploy.yaml'
 
-  # FYIPE-ACME-HTTP-01
-  - '/ci/spec/fyipe-acme-http-01/deploy.yaml'
+  # ONEUPTIME-ACME-HTTP-01
+  - '/ci/spec/oneuptime-acme-http-01/deploy.yaml'
 
-  # FYIPE-GL-MANAGER
-  - '/ci/spec/fyipe-gl-manager/deploy.yaml'
+  # ONEUPTIME-GL-MANAGER
+  - '/ci/spec/oneuptime-gl-manager/deploy.yaml'
 
   # Application Scanner
   - '/ci/spec/application-scanner/deploy.yaml'

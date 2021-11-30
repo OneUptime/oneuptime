@@ -22,7 +22,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
 
 router.get('/auth/redirect', function(req, res) {
-    // get fyipe project id from slack auth state query params
+    // get oneuptime project id from slack auth state query params
     let state = req.query.state;
     const slackCode = req.query.code;
 

@@ -1,10 +1,10 @@
-# Fyipe Database Backup/Restore
+# OneUptime Database Backup/Restore
 
 ## Backing up the database
 
 **_Step 1 : Files Upload_**
 
--   ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh to `/root/fyipe_bk_files`.
+-   ssh into the local VN and upload scripts install.sh, backup.sh and restore.sh to `/root/oneuptime_bk_files`.
 
 The script install.sh will automatically install the latest kubectl version if non is present, create default backup and kube-config paths, copy the remote server kubernetes config file, create backup service and run the service with a timer.
 
@@ -12,7 +12,7 @@ The script install.sh will automatically install the latest kubectl version if n
 
 The first thing to take note of is passing the right arguments.
 
--   cd into folder containing install scripts `/root/fyipe_bk_files`.
+-   cd into folder containing install scripts `/root/oneuptime_bk_files`.
 -   Enter command `bash install.sh -h` to see list of all available commands
 
 | Argument | Function                                                                        | Default                         |
@@ -22,12 +22,12 @@ The first thing to take note of is passing the right arguments.
 | -n       | Database name.                                                                  | 'fyipedb'                       |
 | -p       | Database password.                                                              | 'password'                      |
 | -t       | Backup retain days. Set the number of days backup is kept before it is deleted. | 14                              |
-| -u       | Set database username.                                                          | 'fyipe'                         |
+| -u       | Set database username.                                                          | 'oneuptime'                     |
 | -h       | Help                                                                            | null                            |
 
-_ex: To create a backup of a database without username or password and database name is 'fyipe'_
+_ex: To create a backup of a database without username or password and database name is 'oneuptime'_
 
-The command will be `bash install.sh -u '' -p '' -n 'fyipe'`
+The command will be `bash install.sh -u '' -p '' -n 'oneuptime'`
 
 **_Step 3 : Run backup_**
 
@@ -58,9 +58,9 @@ The first thing to take note of is passing the right arguments.
 | -l       | File path on local system where file will be restored from. | /root/Documents/backup           |
 | -n       | Database name. Default value                                | 'fyipedb'                        |
 | -p       | Database password. Default value                            | 'password'                       |
-| -u       | Set database username.                                      | 'fyipe'                          |
+| -u       | Set database username.                                      | 'oneuptime'                      |
 | -h       | Help                                                        | null                             |
 
-_ex: To restore a backup with name fyipe-backup-1613551425.archive to a database without username or password and database name is 'fyipe'._
+_ex: To restore a backup with name oneuptime-backup-1613551425.archive to a database without username or password and database name is 'oneuptime'._
 
-The command will be `/root/fyipe_bk_files bash restore.sh -f fyipe-backup-1613551425.archive -p '' -u ''`
+The command will be `/root/oneuptime_bk_files bash restore.sh -f oneuptime-backup-1613551425.archive -p '' -u ''`

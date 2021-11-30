@@ -72,7 +72,7 @@ describe('Feedback API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create feedback and check the sent emails to fyipe team and user', async function() {
+    it('should create feedback and check the sent emails to oneuptime team and user', async function() {
         const authorization = `Basic ${token}`;
         const testFeedback = {
             feedback: 'test feedback',
@@ -94,7 +94,7 @@ describe('Feedback API', function() {
                 'Thank you for your feedback!'
             );
         } else {
-            const subject = 'Welcome to Fyipe.';
+            const subject = 'Welcome to OneUptime.';
             const status = emailStatuses.find(
                 status => status.subject === subject
             );

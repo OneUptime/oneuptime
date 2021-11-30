@@ -14,9 +14,9 @@ staging_licensing:
         # Build and deploy licensing.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/licensing:3.0.$CI_PIPELINE_IID --push ./licensing
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/licensing:master --push ./licensing
-        - sudo kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:3.0.$CI_PIPELINE_IID --push ./licensing
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:master --push ./licensing
+        - sudo kubectl set image deployment/fi-licensing fi-licensing=oneuptime/licensing:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -43,9 +43,9 @@ production_licensing:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/licensing:3.0.$CI_PIPELINE_IID --push ./licensing
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/licensing:latest --push ./licensing
-        - sudo kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:3.0.$CI_PIPELINE_IID --push ./licensing
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:latest --push ./licensing
+        - sudo kubectl set image deployment/fi-licensing fi-licensing=oneuptime/licensing:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

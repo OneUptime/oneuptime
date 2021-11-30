@@ -1,4 +1,4 @@
-# Fyipe Dashboard
+# OneUptime Dashboard
 
 ## Stack
 

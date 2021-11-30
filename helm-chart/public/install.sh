@@ -1,6 +1,6 @@
 # Important: 
-# This script will setup MicroK8s and install Fyipe on it. 
-# This is used to install Fyipe on a standalone VM
+# This script will setup MicroK8s and install OneUptime on it. 
+# This is used to install OneUptime on a standalone VM
 # This is usally used for CI/CD testing, and to update VM's on GCP, Azure and AWS. 
 
 # If this is the first install, then helm wont be found. 
@@ -50,7 +50,7 @@ if [[ ! -n $DKIM_PRIVATE_KEY ]]; then
     openssl rsa -in private -out public -pubout
     # value of DKIM dns record
     echo "DKIM DNS TXT Record"
-    echo "DNS Selector: fyipe._domainkey"
+    echo "DNS Selector: oneuptime._domainkey"
     echo "DNS Value: v=DKIM1;p=$(grep -v '^-' public | tr -d '\n')"
     DKIM_PRIVATE_KEY=$(cat private | base64)
 fi
@@ -143,7 +143,7 @@ then
 fi
 
 
-AVAILABLE_VERSION=$(curl https://fyipe.com/api/version | jq '.server' | tr -d '"')
+AVAILABLE_VERSION=$(curl https://oneuptime.com/api/version | jq '.server' | tr -d '"')
 AVAILABLE_VERSION_BUILD=$(echo $AVAILABLE_VERSION | tr "." "0")
 
 IMAGE_VERSION=$(sudo k get deployment fi-accounts -o=jsonpath='{$.spec.template.spec.containers[:1].image}' || echo 0) 
@@ -165,13 +165,13 @@ then
 fi
 
 # Install cluster with Helm.
-sudo helm repo add fyipe https://fyipe.com/chart || echo "Fyipe already added"
+sudo helm repo add oneuptime https://oneuptime.com/chart || echo "OneUptime already added"
 sudo helm repo update
 
 
 function updateinstallation {
-    sudo k delete job fyipe-init-script || echo "init-script already deleted"
-    sudo helm upgrade --reuse-values fi fyipe/Fyipe \
+    sudo k delete job oneuptime-init-script || echo "init-script already deleted"
+    sudo helm upgrade --reuse-values fi oneuptime/OneUptime \
         --set image.tag=$AVAILABLE_VERSION
 }
 
@@ -188,18 +188,18 @@ then
 
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. 
             # Add Admin Email and Password on AWS.
-            sudo helm install fi fyipe/Fyipe \
+            sudo helm install fi oneuptime/OneUptime \
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
             --set image.tag=$AVAILABLE_VERSION \
-            --set fyipe.admin.email=admin@admin.com \
+            --set oneuptime.admin.email=admin@admin.com \
             --set disableSignup=true \
-            --set fyipe.admin.password=$INSTANCEID 
+            --set oneuptime.admin.password=$INSTANCEID 
             
         else
             # Chart not deployed. Create a new deployment. Set service of type nodeport for VM's. This is used for Azure and AWS.
-            sudo helm install fi fyipe/Fyipe \
+            sudo helm install fi oneuptime/OneUptime \
             --set isThirdPartyBilling=true \
             --set nginx-ingress-controller.service.type=NodePort \
             --set nginx-ingress-controller.hostNetwork=true \
@@ -215,27 +215,27 @@ then
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
-            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./helm-chart/public/fyipe \
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./helm-chart/public/oneuptime \
             --set haraka.domain=$DOMAIN \
             --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         else
-            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./helm-chart/public/fyipe \
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./helm-chart/public/oneuptime \
             --set haraka.domain=$DOMAIN \
             --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         fi
     else
-        sudo k delete job fyipe-init-script || echo "init-script already deleted"
-        sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
+        sudo k delete job oneuptime-init-script || echo "init-script already deleted"
+        sudo helm upgrade --reuse-values fi ./helm-chart/public/oneuptime
     fi
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]
     then
         # set service of type nodeport for VM's.
-        sudo helm install fi fyipe/Fyipe \
+        sudo helm install fi oneuptime/OneUptime \
         --set nginx-ingress-controller.service.type=NodePort \
         --set nginx-ingress-controller.hostNetwork=true \
         --set image.tag=$AVAILABLE_VERSION \

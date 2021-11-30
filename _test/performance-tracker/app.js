@@ -8,7 +8,7 @@ const axios = require('axios');
     
 // set up performance tracker configuration
 const options = {                    
-    apiUrl: 'https://staging.fyipe.com/api',
+    apiUrl: 'https://staging.oneuptime.com/api',
     appId: '609975b682d0790014cba640',
     appKey: '9a715493-f7d5-4b50-a229-7ae79a5d2336',
     app, // express app instance (optional field)          

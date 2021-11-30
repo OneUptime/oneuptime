@@ -1,5 +1,5 @@
 #
-# Fyipe-admin-dashboard Dockerfile
+# OneUptime-admin-dashboard Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -27,7 +27,7 @@ COPY . /usr/src/app
 RUN npm run build
 
 # Expose ports.
-#   - 3100:  Fyipe-admin-dashboard
+#   - 3100:  OneUptime-admin-dashboard
 EXPOSE 3100
 
 #Run the app

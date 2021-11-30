@@ -108,7 +108,7 @@ const IncidentTimelineList = props => {
                                                     {log.probeId ? (
                                                         <div className="Box-root Margin-right--16">
                                                             <img
-                                                                src="/dashboard/assets/img/Fyipe.svg"
+                                                                src="/dashboard/assets/img/ou-wb.svg"
                                                                 style={{
                                                                     display:
                                                                         'inline-block',
@@ -121,7 +121,7 @@ const IncidentTimelineList = props => {
                                                                     margin:
                                                                         '5px 10px -4px 0px',
                                                                     backgroundColor:
-                                                                        '#14AAD9',
+                                                                        '#121212',
                                                                 }}
                                                                 alt=""
                                                             />
@@ -137,7 +137,7 @@ const IncidentTimelineList = props => {
                                                     ) : log.createdByZapier ? (
                                                         <div className="Box-root Margin-right--16">
                                                             <img
-                                                                src="/dashboard/assets/img/Fyipe.svg"
+                                                                src="/dashboard/assets/img/ou-wb.svg"
                                                                 style={{
                                                                     display:
                                                                         'inline-block',
@@ -150,7 +150,7 @@ const IncidentTimelineList = props => {
                                                                     margin:
                                                                         '5px 10px -4px 0px',
                                                                     backgroundColor:
-                                                                        '#14AAD9',
+                                                                        '#121212',
                                                                 }}
                                                                 alt=""
                                                             />
@@ -183,13 +183,20 @@ const IncidentTimelineList = props => {
                                                                         .createdById
                                                                         .name
                                                                         ? '/dashboard/assets/img/profile-user.svg'
-                                                                        : '/dashboard/assets/img/Fyipe.svg'
+                                                                        : '/dashboard/assets/img/ou-wb.svg'
                                                                 }
                                                                 className="userIcon"
                                                                 alt=""
                                                                 style={{
                                                                     marginBottom:
                                                                         '-5px',
+                                                                    backgroundColor:
+                                                                        log.createdById &&
+                                                                        log
+                                                                            .createdById
+                                                                            .name
+                                                                            ? '#fff'
+                                                                            : '#121212',
                                                                 }}
                                                             />
                                                             <span>
@@ -199,7 +206,7 @@ const IncidentTimelineList = props => {
                                                                     ? log
                                                                           .createdById
                                                                           .name
-                                                                    : 'Fyipe'}
+                                                                    : 'OneUptime'}
                                                             </span>
                                                         </div>
                                                     )}

@@ -202,9 +202,10 @@ export class IncidentList extends Component {
                         <tbody className="Table-body">
                             {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
-                                    let probeName = 'Fyipe';
+                                    let probeName = 'OneUptime';
                                     let probeImage =
-                                        '/dashboard/assets/img/Fyipe.svg';
+                                        '/dashboard/assets/img/ou-wb.svg';
+                                    let customProbeImage = false;
 
                                     if (
                                         incident.probes &&
@@ -222,6 +223,7 @@ export class IncidentList extends Component {
                                                 .probeImage
                                         ) {
                                             probeImage = `${API_URL}/file/${incident.probes[0].probeId.probeImage}`;
+                                            customProbeImage = true;
                                         }
                                     }
 
@@ -311,7 +313,7 @@ export class IncidentList extends Component {
                                                             incident.createdByZapier ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
-                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                         style={{
                                                                             display:
                                                                                 'inline-block',
@@ -324,7 +326,7 @@ export class IncidentList extends Component {
                                                                             margin:
                                                                                 '5px 10px -4px 0px',
                                                                             backgroundColor:
-                                                                                '#14AAD9',
+                                                                                '#121212',
                                                                         }}
                                                                         alt=""
                                                                     />
@@ -335,7 +337,7 @@ export class IncidentList extends Component {
                                                             ) : incident.createdByApi ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
-                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                         style={{
                                                                             display:
                                                                                 'inline-block',
@@ -348,7 +350,7 @@ export class IncidentList extends Component {
                                                                             margin:
                                                                                 '5px 10px -4px 0px',
                                                                             backgroundColor:
-                                                                                '#14AAD9',
+                                                                                '#121212',
                                                                         }}
                                                                         alt=""
                                                                     />
@@ -359,7 +361,7 @@ export class IncidentList extends Component {
                                                             ) : incident.createdByIncomingHttpRequest ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
-                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                         style={{
                                                                             display:
                                                                                 'inline-block',
@@ -372,7 +374,7 @@ export class IncidentList extends Component {
                                                                             margin:
                                                                                 '5px 10px -4px 0px',
                                                                             backgroundColor:
-                                                                                '#14AAD9',
+                                                                                '#121212',
                                                                         }}
                                                                         alt=""
                                                                     />
@@ -400,8 +402,9 @@ export class IncidentList extends Component {
                                                                                     '50%',
                                                                                 margin:
                                                                                     '-1px 5px -5px -7px',
-                                                                                backgroundColor:
-                                                                                    '#14AAD9',
+                                                                                backgroundColor: customProbeImage
+                                                                                    ? '#14AAD9'
+                                                                                    : '#121212',
                                                                             }}
                                                                             alt=""
                                                                         />
@@ -624,7 +627,7 @@ export class IncidentList extends Component {
                                                                                         incident.acknowledgedByZapier ? (
                                                                                             <span>
                                                                                                 <img
-                                                                                                    src="/dashboard/assets/img/Fyipe.svg"
+                                                                                                    src="/dashboard/assets/img/ou-wb.svg"
                                                                                                     style={{
                                                                                                         display:
                                                                                                             'inline-block',
@@ -637,7 +640,7 @@ export class IncidentList extends Component {
                                                                                                         margin:
                                                                                                             '-1px 5px -5px -7px',
                                                                                                         backgroundColor:
-                                                                                                            '#14AAD9',
+                                                                                                            '#121212',
                                                                                                     }}
                                                                                                     alt=""
                                                                                                 />
@@ -648,7 +651,7 @@ export class IncidentList extends Component {
                                                                                         ) : incident.acknowledgedByApi ? (
                                                                                             <span>
                                                                                                 <img
-                                                                                                    src="/dashboard/assets/img/Fyipe.svg"
+                                                                                                    src="/dashboard/assets/img/ou-wb.svg"
                                                                                                     style={{
                                                                                                         display:
                                                                                                             'inline-block',
@@ -661,7 +664,7 @@ export class IncidentList extends Component {
                                                                                                         margin:
                                                                                                             '-1px 5px -5px -7px',
                                                                                                         backgroundColor:
-                                                                                                            '#14AAD9',
+                                                                                                            '#121212',
                                                                                                     }}
                                                                                                     alt=""
                                                                                                 />
@@ -672,7 +675,7 @@ export class IncidentList extends Component {
                                                                                         ) : incident.acknowledgedByIncomingHttpRequest ? (
                                                                                             <span>
                                                                                                 <img
-                                                                                                    src="/dashboard/assets/img/Fyipe.svg"
+                                                                                                    src="/dashboard/assets/img/ou-wb.svg"
                                                                                                     style={{
                                                                                                         display:
                                                                                                             'inline-block',
@@ -685,7 +688,7 @@ export class IncidentList extends Component {
                                                                                                         margin:
                                                                                                             '-1px 5px -5px -7px',
                                                                                                         backgroundColor:
-                                                                                                            '#14AAD9',
+                                                                                                            '#121212',
                                                                                                     }}
                                                                                                     alt=""
                                                                                                 />
@@ -698,7 +701,7 @@ export class IncidentList extends Component {
                                                                                         ) : (
                                                                                             <span>
                                                                                                 <img
-                                                                                                    src="/dashboard/assets/img/Fyipe.svg"
+                                                                                                    src="/dashboard/assets/img/ou-wb.svg"
                                                                                                     style={{
                                                                                                         display:
                                                                                                             'inline-block',
@@ -711,12 +714,12 @@ export class IncidentList extends Component {
                                                                                                         margin:
                                                                                                             '-1px 5px -5px -7px',
                                                                                                         backgroundColor:
-                                                                                                            '#14AAD9',
+                                                                                                            '#121212',
                                                                                                     }}
                                                                                                     alt=""
                                                                                                 />
                                                                                                 <span>
-                                                                                                    Fyipe
+                                                                                                    OneUptime
                                                                                                 </span>
                                                                                             </span>
                                                                                         )
@@ -824,7 +827,7 @@ export class IncidentList extends Component {
                                                                             incident.resolvedByZapier ? (
                                                                                 <span>
                                                                                     <img
-                                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                                         style={{
                                                                                             display:
                                                                                                 'inline-block',
@@ -837,7 +840,7 @@ export class IncidentList extends Component {
                                                                                             margin:
                                                                                                 '-1px 5px -5px -7px',
                                                                                             backgroundColor:
-                                                                                                '#14AAD9',
+                                                                                                '#121212',
                                                                                         }}
                                                                                         alt=""
                                                                                     />
@@ -848,7 +851,7 @@ export class IncidentList extends Component {
                                                                             ) : incident.resolvedByApi ? (
                                                                                 <span>
                                                                                     <img
-                                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                                         style={{
                                                                                             display:
                                                                                                 'inline-block',
@@ -861,7 +864,7 @@ export class IncidentList extends Component {
                                                                                             margin:
                                                                                                 '-1px 5px -5px -7px',
                                                                                             backgroundColor:
-                                                                                                '#14AAD9',
+                                                                                                '#121212',
                                                                                         }}
                                                                                         alt=""
                                                                                     />
@@ -872,7 +875,7 @@ export class IncidentList extends Component {
                                                                             ) : incident.resolvedByIncomingHttpRequest ? (
                                                                                 <span>
                                                                                     <img
-                                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                                         style={{
                                                                                             display:
                                                                                                 'inline-block',
@@ -885,7 +888,7 @@ export class IncidentList extends Component {
                                                                                             margin:
                                                                                                 '-1px 5px -5px -7px',
                                                                                             backgroundColor:
-                                                                                                '#14AAD9',
+                                                                                                '#121212',
                                                                                         }}
                                                                                         alt=""
                                                                                     />
@@ -898,7 +901,7 @@ export class IncidentList extends Component {
                                                                             ) : (
                                                                                 <span>
                                                                                     <img
-                                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                                        src="/dashboard/assets/img/ou-wb.svg"
                                                                                         style={{
                                                                                             display:
                                                                                                 'inline-block',
@@ -911,12 +914,12 @@ export class IncidentList extends Component {
                                                                                             margin:
                                                                                                 '-1px 5px -5px -7px',
                                                                                             backgroundColor:
-                                                                                                '#14AAD9',
+                                                                                                '#121212',
                                                                                         }}
                                                                                         alt=""
                                                                                     />
                                                                                     <span>
-                                                                                        Fyipe
+                                                                                        OneUptime
                                                                                     </span>
                                                                                 </span>
                                                                             )

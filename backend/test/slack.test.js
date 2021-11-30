@@ -46,7 +46,10 @@ describe('Slack API', function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
-                $in: [userData.user.email.toLowerCase(), 'noreply@fyipe.com'],
+                $in: [
+                    userData.user.email.toLowerCase(),
+                    'noreply@oneuptime.com',
+                ],
             },
         });
     });

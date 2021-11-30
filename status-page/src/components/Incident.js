@@ -790,12 +790,12 @@ class Incident extends Component {
                         </span>
                         <p>
                             <a
-                                href="https://fyipe.com"
+                                href="https://oneuptime.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: 'rgb(76, 76, 76)' }}
                             >
-                                <Translate>Powered by</Translate> Fyipe
+                                <Translate>Powered by</Translate> OneUptime
                             </a>
                         </p>
                     </div>

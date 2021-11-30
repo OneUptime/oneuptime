@@ -393,7 +393,7 @@ class Call extends Component {
                                 Message and data rates may apply. By subscribing
                                 you agree to the
                             </Translate>{' '}
-                            Fyipe{' '}
+                            OneUptime{' '}
                             <a
                                 target="_blank"
                                 href="https://www.atlassian.com/legal/cloud-terms-of-service"

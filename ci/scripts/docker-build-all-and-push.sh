@@ -21,7 +21,7 @@ then
 fi
 
 DIR=$PWD
-FYIPE_DIR="$DIR/.."
+ONEUPTIME_DIR="$DIR/.."
 
 chmod +x ./ci/scripts/docker-build-and-push.sh
 function build {

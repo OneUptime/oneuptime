@@ -1953,12 +1953,12 @@ aside.cf-sidebar .sidebar-header .cf-logo {
 aside.cf-sidebar .sidebar-header .cf-logo:before {
 	content: '';
 	display: block;
-	background-image: url("../images/fyipe.svg");
+	background-image: url("../images/hou-wb.svg");
 	width: 135px;
-	height: 82px;
+	height: 80px;
 	background-repeat: no-repeat;
 	background-position: center;
-	background-size: cover;
+	background-size: 100% 200px;
 	margin: 32px auto 0 auto
 }
 
@@ -2132,7 +2132,7 @@ aside.cf-sidebar .sidebar-navigation ul li a {
 	float: left;
 	width: 112px;
 	height: 35px;
-	background-image: url("https://fyipe.com/img/FyipeFull.svg");
+	background-image: url("../images/vou-wb.svg");
 	background-repeat: no-repeat;
 	margin: 10px 0 0 26px;
 	cursor: pointer;

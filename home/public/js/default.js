@@ -108,7 +108,7 @@ function() {
             return t = $('form input[name=csrf-token]'), t.length > 0 ? t.attr('value') : (n = $('meta[name=csrf-token]'), n.length > 0 ? n.attr('content') : '')
         }, $.ajaxPrefilter(function(n, e, i) {
             var o;
-            return o = t(), i.setRequestHeader('x-fyipe-csrf-token', o)
+            return o = t(), i.setRequestHeader('x-oneuptime-csrf-token', o)
         })
     })
 }.call(this);

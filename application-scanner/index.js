@@ -63,7 +63,7 @@ http.listen(app.get('port'), function() {
     console.log(
         `Application Scanner Started on port ${app.get(
             'port'
-        )}. Fyipe API URL: ${config.serverUrl}`
+        )}. OneUptime API URL: ${config.serverUrl}`
     );
 });
 
@@ -73,7 +73,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-application-scanner',
+            serviceType: 'oneuptime-application-scanner',
         })
     );
 });

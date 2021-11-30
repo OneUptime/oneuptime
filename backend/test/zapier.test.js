@@ -17,13 +17,7 @@ const VerificationTokenModel = require('../backend/models/verificationToken');
 const incidentData = require('./data/incident');
 
 // eslint-disable-next-line
-let token,
-    projectId,
-    apiKey,
-    userId,
-    zapierId,
-    monitorId,
-    incidentId;
+let token, projectId, apiKey, userId, zapierId, monitorId, incidentId;
 
 const monitor = {
     name: 'New Monitor',
@@ -150,7 +144,7 @@ describe('Zapier API', function() {
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
-                url: 'https://www.fyipe.com',
+                url: 'https://www.oneuptime.com',
             })
             .end(function(err, res) {
                 expect(res).to.have.status(400);
@@ -164,7 +158,7 @@ describe('Zapier API', function() {
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
-                url: 'https://www.fyipe.com',
+                url: 'https://www.oneuptime.com',
                 type: 'created',
                 input: { monitors: ['12345'] },
             })

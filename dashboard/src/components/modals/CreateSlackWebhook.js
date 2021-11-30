@@ -361,7 +361,7 @@ class CreateSlack extends React.Component {
                                                 here
                                             </a>{' '}
                                             to check documentation on how to
-                                            integrate Slack with Fyipe.
+                                            integrate Slack with OneUptime.
                                         </span>
                                     </span>
                                 </div>

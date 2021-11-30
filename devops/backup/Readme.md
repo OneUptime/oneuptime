@@ -1,4 +1,4 @@
-# Backup Fyipe Database
+# Backup OneUptime Database
 
 ## Setting up Backup Service
 
@@ -58,7 +58,7 @@ Run:
 bash backup.sh
 ```
 
-# Restore Fyipe Database
+# Restore OneUptime Database
 
 **Step 1**: Copy restore.sh to root directory.
 

@@ -1,6 +1,6 @@
-# FYIPE SMOKE TESTS
+# ONEUPTIME SMOKE TESTS
 
-Smoke tests for fyipe
+Smoke tests for oneuptime
 
 ### Tools used
 

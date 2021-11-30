@@ -45,7 +45,7 @@ class ExtraCharge extends React.Component {
                                 <div>
                                     We&apos;ve had few issues with toll fraud in
                                     the past and we want to make sure our
-                                    customers who sign up to Fyipe are 100%
+                                    customers who sign up to OneUptime are 100%
                                     genuine. This is one of the steps we take to
                                     filter out fraud. To learn about toll fraud,{' '}
                                     <span

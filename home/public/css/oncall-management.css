@@ -1363,10 +1363,10 @@ main header .stripes :nth-child(5){
     font-size:20px;
     color:#d6facf
 }
-#hestia-confirmation,#hestia-fyipe-logo{
+#hestia-confirmation,#hestia-oneuptime-logo{
     z-index:1
 }
-#hestia-fyipe-logo{
+#hestia-oneuptime-logo{
     width:50px;
     left:calc(50% - 25px);
     bottom:var(--form-spacing);
@@ -2340,7 +2340,7 @@ code .token.header{
     font-weight:500;
     color:#d14
 }
-code.language-html .token.attr-value>.punctuation:not(:first-child),code.language-markup .token.attr-value>.punctuation:not(:first-child),code .token.attr-value,code .token.macro,code .token.string,code .token.fyipe,code .token.value{
+code.language-html .token.attr-value>.punctuation:not(:first-child),code.language-markup .token.attr-value>.punctuation:not(:first-child),code .token.attr-value,code .token.macro,code .token.string,code .token.oneuptime,code .token.value{
     font-weight:400;
     color:#159570
 }

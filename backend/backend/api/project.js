@@ -664,7 +664,7 @@ router.put(
     }
 );
 
-// Description: Emailing Fyipe Support to upgrade to Enterprise Plan after maxing out of Pro Plan.
+// Description: Emailing OneUptime Support to upgrade to Enterprise Plan after maxing out of Pro Plan.
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan}
 // Returns: 200: {project}; 400: Error.

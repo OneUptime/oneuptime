@@ -1623,7 +1623,7 @@ article .card-form .column:not(:first-child):after{
     bottom:0;
     width:1px
 }
-article .card-form .fyipeElement,article .card-form input:not(.submit),article .card-form label{
+article .card-form .oneuptimeElement,article .card-form input:not(.submit),article .card-form label{
     padding:14px 0;
     font-size:15px;
     line-height:16px;
@@ -1638,7 +1638,7 @@ article .card-form label{
 article .card-form .cvc label{
     width:60px
 }
-article .card-form .fyipeElement,article .card-form input{
+article .card-form .oneuptimeElement,article .card-form input{
     border:none;
     background:none;
     width:100%

@@ -213,9 +213,10 @@ const RenderSingleEscalation = ({
                                                                 alerted by Call
                                                                 if they do not
                                                                 respond. After X
-                                                                reminders Fyipe
-                                                                will escalates
-                                                                this incident to
+                                                                reminders
+                                                                OneUptime will
+                                                                escalates this
+                                                                incident to
                                                                 another team.{' '}
                                                             </p>
                                                         </div>
@@ -254,9 +255,10 @@ const RenderSingleEscalation = ({
                                                                 alerted by SMS
                                                                 if they do not
                                                                 respond. After X
-                                                                reminders Fyipe
-                                                                will escalates
-                                                                this incident to
+                                                                reminders
+                                                                OneUptime will
+                                                                escalates this
+                                                                incident to
                                                                 another team{' '}
                                                             </p>
                                                         </div>
@@ -295,9 +297,10 @@ const RenderSingleEscalation = ({
                                                                 alerted by Email
                                                                 if they do not
                                                                 respond. After X
-                                                                reminders Fyipe
-                                                                will escalates
-                                                                this incident to
+                                                                reminders
+                                                                OneUptime will
+                                                                escalates this
+                                                                incident to
                                                                 another team.{' '}
                                                             </p>
                                                         </div>
@@ -338,9 +341,10 @@ const RenderSingleEscalation = ({
                                                                 notification if
                                                                 they do not
                                                                 respond. After X
-                                                                reminders Fyipe
-                                                                will escalates
-                                                                this incident to
+                                                                reminders
+                                                                OneUptime will
+                                                                escalates this
+                                                                incident to
                                                                 another team.{' '}
                                                             </p>
                                                         </div>
@@ -436,7 +440,7 @@ const RenderSingleEscalation = ({
                                                                     best-practices{' '}
                                                                     <a
                                                                         className="underline"
-                                                                        href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/"
+                                                                        href="https://blog.oneuptime.com/how-to-create-an-on-call-schedule-that-doesnt-suck/"
                                                                     >
                                                                         here.
                                                                     </a>{' '}
@@ -580,7 +584,7 @@ const RenderSingleEscalation = ({
                                                                     best-practices{' '}
                                                                     <a
                                                                         className="underline"
-                                                                        href="https://blog.fyipe.com/how-to-create-an-on-call-schedule-that-doesnt-suck/"
+                                                                        href="https://blog.oneuptime.com/how-to-create-an-on-call-schedule-that-doesnt-suck/"
                                                                     >
                                                                         here.
                                                                     </a>{' '}
@@ -590,7 +594,7 @@ const RenderSingleEscalation = ({
                                                                     confused,
                                                                     please email
                                                                     us at
-                                                                    support@fyipe.com
+                                                                    support@oneuptime.com
                                                                     and
                                                                     we&#39;ll
                                                                     get back to

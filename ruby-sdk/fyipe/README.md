@@ -1,6 +1,6 @@
-# Fyipe SDK
+# OneUptime SDK
 
-A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
+A oneuptime sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
 ## Installation
 
@@ -133,7 +133,7 @@ Main API to send logs to the server.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe SDK](#fyipe-sdk)
+-   [OneUptime SDK](#oneuptime-sdk)
     -   [Installation](#installation)
         -   [Gem Install](#gem-install)
     -   [Basic Usage for Logging](#basic-usage-for-logging)

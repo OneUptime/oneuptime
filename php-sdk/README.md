@@ -1,6 +1,6 @@
-# Fyipe SDK
+# OneUptime SDK
 
-A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
+A oneuptime sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
 ## Installation
 
@@ -70,7 +70,7 @@ $option->maxTimeline = 5; // determine the maximum number of items allowed as ti
 $option->captureCodeSnippet = true; // determine if you want the library to scan your code base for the error code snippet
 // constructor
 $tracker = new FyipeTracker(
-    'API_URL', // https://fyipe.com/api
+    'API_URL', // https://oneuptime.com/api
     'ERROR_TRACKER_ID',
     'ERROR_TRACKER_KEY',
     $option // optional
@@ -107,7 +107,7 @@ $tracker->setTags($tags);
 try {
     // some code that might fail
 } catch(Exception $e) {
-    $tracker->captureException($e); // this is sent to your fyipe dashboard
+    $tracker->captureException($e); // this is sent to your oneuptime dashboard
 }
 
 // capturing errors using the message signature
@@ -115,7 +115,7 @@ $tracker->captureMessage('some error text');
 
 // capturing errors authomatically
 
-NonExistingMethod(); // calling this will trigger an error and its sent to your fyipe dashboard
+NonExistingMethod(); // calling this will trigger an error and its sent to your oneuptime dashboard
 ```
 
 ## API Documentation
@@ -124,7 +124,7 @@ Main API to send logs to the server.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe SDK](#fyipe-sdk)
+-   [OneUptime SDK](#oneuptime-sdk)
     -   [Installation](#installation)
         -   [Composer Install](#composer-install)
     -   [Basic Usage for Logging](#basic-usage-for-logging)

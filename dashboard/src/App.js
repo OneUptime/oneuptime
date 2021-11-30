@@ -61,6 +61,18 @@ if (User.isLoggedIn()) {
 }
 
 const App = props => {
+    const oldHostNames = ['staging.fyipe.com', 'fyipe.com'];
+    const currentHostName = window.location.hostname;
+
+    if (oldHostNames.includes(currentHostName)) {
+        const updatedLink = `${window.location.origin.replace(
+            'fyipe',
+            'oneuptime'
+        )}${window.location.pathname}`;
+
+        window.location.replace(updatedLink);
+    }
+
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
     const titleToExclude = [

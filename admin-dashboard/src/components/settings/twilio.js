@@ -110,7 +110,7 @@ export class Component extends React.Component {
         const { settings, handleSubmit } = this.props;
         return (
             <div
-                id="fyipeTwilio"
+                id="oneuptimeTwilio"
                 onKeyDown={this.handleKeyBoard}
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
@@ -125,7 +125,7 @@ export class Component extends React.Component {
                             <p>
                                 <span>
                                     Your Twilio account will be used to send all
-                                    the SMS and Call alerts from Fyipe.
+                                    the SMS and Call alerts from OneUptime.
                                 </span>
                             </p>
                         </div>

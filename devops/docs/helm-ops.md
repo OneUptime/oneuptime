@@ -14,25 +14,25 @@ kubectl config use-context NAME
 ### Lint chart
 
 ```
-helm lint ./helm-chart/public/fyipe
+helm lint ./helm-chart/public/oneuptime
 ```
 
 ### Install as an Enterprise Cluster with default values
 
 ```
-helm install fi ./helm-chart/public/fyipe --namespace default
+helm install fi ./helm-chart/public/oneuptime --namespace default
 ```
 
 ### Install on staging
 
 ```
-helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe --namespace default
+helm install -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime --namespace default
 ```
 
 ### Install on production
 
 ```
-helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe --namespace default
+helm install -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/oneuptime --namespace default
 ```
 
 ### Update Cluster
@@ -41,7 +41,7 @@ Staging:
 
 ```
 kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/fyipe-staging
-helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
+helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime
 ```
 
 Use default values first and then use staging values.
@@ -49,8 +49,8 @@ Use default values first and then use staging values.
 Production:
 
 ```
-kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/fyipe-production
-helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
+kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/oneuptime-production
+helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/oneuptime
 ```
 
 Use default values first and then use production values.
@@ -58,7 +58,7 @@ Use default values first and then use production values.
 If you introduce values, you can set
 
 ```
-helm upgrade --reuse-values --set key=value fi ./helm-chart/public/fyipe
+helm upgrade --reuse-values --set key=value fi ./helm-chart/public/oneuptime
 ```
 
 ### Uninstall
@@ -87,8 +87,8 @@ sudo ./ci/scripts/docker-build-and-push.sh $repo $tag
 
 ```
 cd ./helm-chart/public
-helm repo index ./fyipe
-helm package ./fyipe
+helm repo index ./oneuptime
+helm package ./oneuptime
 helm repo index .
 cd ..
 cd ..
@@ -98,10 +98,10 @@ cd ..
 
 ```
 cd ./helm-chart/public
-#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/fyipe/Chart.yaml`. This should be the version field (and NOT appVersion) in Chart.yaml of the dependency.
+#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/oneuptime/Chart.yaml`. This should be the version field (and NOT appVersion) in Chart.yaml of the dependency.
 
 # Run this command.
-helm dependency update fyipe
+helm dependency update oneuptime
 
 # Go back to root.
 cd ..
@@ -110,8 +110,8 @@ cd..
 
 ### Docker Images
 
-Docker Images are hosted at: https://hub.docker.com/orgs/fyipeproject/repositories and are public.
+Docker Images are hosted at: https://hub.docker.com/orgs/oneuptime/repositories and are public.
 
 ### More info
 
-Read readme at [./public/fyipe/Readme.md](./public/fyipe/Readme.md)
+Read readme at [./public/oneuptime/Readme.md](./public/oneuptime/Readme.md)

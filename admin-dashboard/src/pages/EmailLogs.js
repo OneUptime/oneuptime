@@ -69,7 +69,7 @@ class EmailLogs extends React.Component {
         const { emailLogStatus } = this.props;
         return (
             <div
-                id="fyipeEmailLog"
+                id="oneuptimeEmailLog"
                 onKeyDown={this.handleKeyBoard}
                 className="Box-root Margin-vertical--12"
             >

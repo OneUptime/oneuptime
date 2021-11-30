@@ -202,8 +202,8 @@ services:
             args:
                 PORT: '2525'
         environment:
-            - SMTP_USER=user@fyipe.com
-            - SMTP_PASSWORD=fyipe
+            - SMTP_USER=user@oneuptime.com
+            - SMTP_PASSWORD=oneuptime
             - DOMAIN="${DOMAIN}"
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"

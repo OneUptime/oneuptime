@@ -62,7 +62,7 @@ export class SidebarNavItem extends Component {
                             className={
                                 'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
                                 (isLinkActive
-                                    ? ' Text-color--fyipeblue Text-fontWeight--bold'
+                                    ? ' Text-color--oneuptimeblue Text-fontWeight--bold'
                                     : ' Text-color--dark')
                             }
                         >
@@ -158,7 +158,7 @@ export class SidebarNavItem extends Component {
                                                 <span
                                                     className={
                                                         link === active
-                                                            ? 'Text-color--fyipeblue Text-fontWeight--bold'
+                                                            ? 'Text-color--oneuptimeblue Text-fontWeight--bold'
                                                             : ''
                                                     }
                                                 >

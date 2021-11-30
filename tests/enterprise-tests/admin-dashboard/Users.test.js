@@ -33,7 +33,7 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
     });
 
     test(
-        'should show a button to add more users to fyipe from admin dashboard',
+        'should show a button to add more users to oneuptime from admin dashboard',
         async done => {
             // navigating to dashboard url
             // automatically redirects to users route

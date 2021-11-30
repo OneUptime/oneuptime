@@ -1,3 +1,3 @@
-# Helm Chart for Fyipe
+# Helm Chart for OneUptime
 
-This project contains helm chart for fyipe.
+This project contains helm chart for oneuptime.

@@ -56,7 +56,7 @@ class LoginPage extends React.Component {
                     <div id="header">
                         <h1>
                             <a aria-hidden={false} href="/">
-                                Fyipe
+                                OneUptime
                             </a>
                         </h1>
                     </div>
@@ -142,12 +142,14 @@ class LoginPage extends React.Component {
                                 </Link>
                             </li>
                             <li>
-                                <a href="http://fyipe.com/legal/privacy">
+                                <a href="http://oneuptime.com/legal/privacy">
                                     Privacy Policy
                                 </a>
                             </li>
                             <li>
-                                <a href="http://fyipe.com/support">Support</a>
+                                <a href="http://oneuptime.com/support">
+                                    Support
+                                </a>
                             </li>
                             <li className="last">
                                 <a href="https://hackerbay.io">

@@ -12,14 +12,14 @@ const defaultManagerSchema = new Schema(
         store: {
             type: Object,
             default: {
-                module: 'fyipe-le-store',
+                module: 'oneuptime-le-store',
             },
         },
         challenges: {
             'http-01': {
                 type: Object,
                 default: {
-                    module: 'fyipe-acme-http-01',
+                    module: 'oneuptime-acme-http-01',
                 },
             },
         },

@@ -100,7 +100,7 @@ export class Component extends React.Component {
         const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
             <div
-                id="fyipeSso"
+                id="oneuptimeSso"
                 className="bs-ContentSection Card-root Card-shadow--medium"
             >
                 <div className="Box-root">
@@ -119,7 +119,7 @@ export class Component extends React.Component {
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
                                         Admins and agents use your SSO service
-                                        to sign in to Fyipe. Requires
+                                        to sign in to OneUptime. Requires
                                         configuration.
                                     </span>
                                 </span>

@@ -131,7 +131,7 @@ app.get('/realtime/stat', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-realtime',
+            serviceType: 'oneuptime-realtime',
         })
     );
 });

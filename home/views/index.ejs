@@ -4,9 +4,9 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>Fyipe | One Complete SRE and DevOps platform. </title>
+    <title>OneUptime | One Complete SRE and DevOps platform. </title>
     <meta name="description"
-        content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
         <link rel="stylesheet" href="/css/crm.css">
 
@@ -25,6 +25,9 @@
 </head>
 
 <body>
+    <% if(redirectedFromOldBranding) { %>
+        <% include ./redirect-banner %>
+    <% } %>
     <% include ./nav %>
 
         <div class="globalContent">
@@ -86,7 +89,7 @@
 
                                     <p class="common-BodyText"
                                         style="text-align:center;max-width:100%; margin-top:50px">
-                                        Fyipe monitors your website, dashboards, API's, and more and alerts your team
+                                        OneUptime monitors your website, dashboards, API's, and more and alerts your team
                                         when
                                         downtime happens. We also give you a Status Page which keeps your customers
                                         looped in
@@ -128,7 +131,7 @@
                                 <h2 class="title-link h2 margin-top-30">Uptime Monitoring</h2>
 
                                 <p></p>
-                                <p>Fyipe's monitoring lets you know exactly what is wrong with your service, at the
+                                <p>OneUptime's monitoring lets you know exactly what is wrong with your service, at the
                                     right time,
                                     saving you critical minutes during downtime.</p>
                                 <p></p>
@@ -157,7 +160,7 @@
                                         </li>
                                         <li class="block-image time">
                                             <h3>Every second check.</h3>
-                                            <p class="text-center">Fyipe checks the status of the endpoint every second
+                                            <p class="text-center">OneUptime checks the status of the endpoint every second
                                                 to make sure
                                                 you get alerted as soon as any of your resources go down.</p>
                                         </li>
@@ -286,8 +289,8 @@
                             <% include ./cta-buttons %>
                         </section>
 
-                        <%- include("testimonials", { title: "Software teams around the world love Fyipe!" ,
-                            description: "Software development teams around the world have switched to Fyipe to fundamentally improve their SRE workflow to build better and more reliable software."
+                        <%- include("testimonials", { title: "Software teams around the world love OneUptime!" ,
+                            description: "Software development teams around the world have switched to OneUptime to fundamentally improve their SRE workflow to build better and more reliable software."
                             , quotes: [ {
                             quote: "Having a public status page built accountability in our team towards our customers ‘We were responsible for our software reliability.’"
                             , by: "Tony Yao, Autonomic" }, {

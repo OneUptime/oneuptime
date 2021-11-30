@@ -151,7 +151,7 @@ class VerifyDomain extends Component {
                                                                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                     <div className="Box-root Margin-right--16">
                                                                         <span>
-                                                                            fyipe
+                                                                            oneuptime
                                                                         </span>
                                                                     </div>
                                                                 </span>

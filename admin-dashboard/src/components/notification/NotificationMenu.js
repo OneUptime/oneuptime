@@ -88,14 +88,14 @@ class NotificationMenu extends Component {
                                                         }}
                                                         key={key}
                                                     >
-                                                        <div className="Notify-fyipe">
+                                                        <div className="Notify-oneuptime">
                                                             <img
                                                                 src={`/dashboard/assets/img/${
                                                                     notification.icon
                                                                         ? notification.icon
                                                                         : 'information'
                                                                 }.svg`}
-                                                                className="Notify-fyipe-row-primary"
+                                                                className="Notify-oneuptime-row-primary"
                                                                 style={{
                                                                     height:
                                                                         '20px',
@@ -105,7 +105,7 @@ class NotificationMenu extends Component {
                                                                 alt="notify"
                                                             />
                                                             <span
-                                                                className="Notify-fyipe-row-secondary"
+                                                                className="Notify-oneuptime-row-secondary"
                                                                 style={{
                                                                     cursor:
                                                                         'default',

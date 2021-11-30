@@ -37,9 +37,9 @@ module.exports = {
     fields: [
         {
             key: 'serverUrl',
-            label: 'Fyipe Server URL',
+            label: 'OneUptime Server URL',
             helpText:
-                'Your Server URL, Project ID and API Key are found on the project settings page on your Fyipe dashboard.',
+                'Your Server URL, Project ID and API Key are found on the project settings page on your OneUptime dashboard.',
             required: true,
             type: 'string',
         },
