@@ -23,6 +23,7 @@
         "fyipe-acme-http-01": "^3.0.10432",
         "fyipe-gl-manager": "^3.0.13361",
         "fyipe-le-store": "^3.0.10432",
+        "geoip-lite": "^1.4.2",
         "greenlock": "^4.0.4",
         "gridfs-stream": "^1.1.1",
         "ipaddr.js": "^2.0.0",

@@ -446,8 +446,12 @@ module.exports = {
     },
     getUserIpLocation: async function(clientIP) {
         try {
-            const ipLocation = await iplocation(clientIP);
-            return ipLocation;
+            const geo = geoip.lookup(clientIP);
+            if (geo) {
+                geo.ip = clientIP;
+                return geo;
+            }
+            return {};
         } catch (error) {
             return {};
         }
@@ -1193,7 +1197,7 @@ const crypto = require('crypto');
 const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const jwt = require('jsonwebtoken');
-const iplocation = require('iplocation').default;
+const geoip = require('geoip-lite');
 const jwtSecretKey = process.env['JWT_SECRET'];
 const { IS_SAAS_SERVICE, IS_TESTING } = require('../config/server');
 const { NODE_ENV } = process.env;
