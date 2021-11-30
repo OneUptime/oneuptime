@@ -43,7 +43,8 @@ describe('Scheduled event', () => {
         done();
     });
 
-    test(
+    test.skip(
+        // It is no longer possible to duplicate a monitor with the new interface.
         'should not create a new scheduled event for duplicate monitor selection',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -141,14 +142,14 @@ describe('Scheduled event', () => {
             await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', scheduleMaintenanceName);
-            await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
-            await init.pageClick(page, '#addMoreMonitor');
-            await init.pageWaitForSelector(page, '#monitorfield_0');
-            await init.selectDropdownValue(
-                '#monitorfield_0',
-                componentName,
-                page
+            await init.pageWaitForSelector(
+                page,
+                'label[for=selectAllMonitors]'
             );
+            await init.pageClick(page, '#selectSpecificMonitors');
+            await init.pageClick(page, '#monitorDropdown');
+            await init.pageClick(page, `#${monitorName}`);
+            await init.pageClick(page, 'label[for=monitorIds]');
             await init.pageClick(page, '#description');
             await init.pageType(
                 page,

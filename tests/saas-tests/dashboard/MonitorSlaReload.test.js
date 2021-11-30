@@ -48,12 +48,9 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#monitor');
             await init.pageClick(page, '#addMonitorSlaBtn');
             await init.pageType(page, '#name', monitorSlaName);
-            await init.pageClick(page, '#addMoreMonitor');
-            await init.selectDropdownValue(
-                '#monitorfield_0',
-                `${componentName} / ${monitorName}`,
-                page
-            );
+            await init.pageClick(page, '#monitorDropdown');
+            await init.pageClick(page, `#${monitorName}`);
+            await init.pageClick(page, 'label[for=endpoint]');
             await init.selectDropdownValue(
                 '#frequencyOption',
                 'Every 3 months',
