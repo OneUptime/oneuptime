@@ -15,7 +15,7 @@ const gitPassword = utils.gitCredential.gitPassword;
  * It stays on the same page on reload
  */
 
-describe('Fyipe Page Reload', () => {
+describe('OneUptime Page Reload', () => {
     const operationTimeOut = 100000;
 
     beforeAll(async done => {

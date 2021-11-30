@@ -42,7 +42,7 @@ Sentry.init({
         }),
     ],
     environment: process.env.NODE_ENV,
-    release: `fyipe-api-docs@${process.env.npm_package_version}`,
+    release: `oneuptime-api-docs@${process.env.npm_package_version}`,
     tracesSampleRate: 0.0,
 });
 
@@ -85,6 +85,31 @@ app.use(function(req, res, next) {
         return next();
     }
     return next();
+});
+
+app.use(async function(req, res, next) {
+    const host = req.hostname;
+
+    try {
+        if (host && host === 'fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com${req.url}`,
+            });
+            return res.end();
+        }
+        if (host && host === 'staging.fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://staging.oneuptime.com${req.url}`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('Api Docs: Error with fetch', error);
+        return next();
+    }
 });
 
 // set the server port

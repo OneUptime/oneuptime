@@ -68,7 +68,7 @@ module.exports = {
 
     anotherUser: {
         name: 'Kayode Adebayo',
-        email: StringUtil.generateRandomString(10) + '@fyipe.com',
+        email: StringUtil.generateRandomString(10) + '@oneuptime.com',
         password: '123456789',
         confirmPassword: '123456789',
         companyName: 'Hackerbay',
@@ -89,7 +89,7 @@ module.exports = {
 
     newUser: {
         name: 'John Smith',
-        email: StringUtil.generateRandomString(10) + '@fyipe.com',
+        email: StringUtil.generateRandomString(10) + '@oneuptime.com',
         password: '1234567890',
         confirmPassword: '1234567890',
         companyName: 'Hackerbay',
@@ -131,7 +131,7 @@ module.exports = {
 
     profile: {
         name: 'John Smith',
-        email: StringUtil.generateRandomString(10) + '@fyipe.com',
+        email: StringUtil.generateRandomString(10) + '@oneuptime.com',
         timezone: 'Europe/London',
         profilePic: 'Image.jpg',
         companyPhoneNumber: '+919910568840',

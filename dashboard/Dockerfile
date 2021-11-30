@@ -1,5 +1,5 @@
 #
-# Fyipe Dockerfile
+# OneUptime Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -32,7 +32,7 @@ RUN npm install purgecss -g
 RUN npm run build
 
 # Expose ports.
-#   - 3000:  Fyipe
+#   - 3000:  OneUptime
 EXPOSE 3000
 
 #Run the app

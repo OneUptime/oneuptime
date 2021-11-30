@@ -662,7 +662,7 @@ module.exports = {
                                 'api/incident/data-ingestor/acknowledge-incident',
                                 {
                                     incidentId: incident._id.toString(),
-                                    name: 'fyipe',
+                                    name: 'oneuptime',
                                     probeId: data.probeId,
                                 }
                             );
@@ -673,7 +673,7 @@ module.exports = {
                             'api/incident/data-ingestor/resolve-incident',
                             {
                                 incidentId: incident._id.toString(),
-                                name: 'fyipe',
+                                name: 'oneuptime',
                                 probeId: data.probeId,
                             }
                         );

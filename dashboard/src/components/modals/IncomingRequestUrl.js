@@ -74,7 +74,8 @@ export class IncomingRequestUrl extends React.Component {
                             <div className="bs-Modal-content">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     Please copy and paste the url below, in your
-                                    external service to integrate it with Fyipe
+                                    external service to integrate it with
+                                    OneUptime
                                 </span>
                                 <br />
                                 <br />

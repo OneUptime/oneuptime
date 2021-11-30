@@ -1,7 +1,7 @@
 {
     "name": "realtime",
     "version": "3.0.0",
-    "description": "A project to handle all realtime processing for Fyipe",
+    "description": "A project to handle all realtime processing for OneUptime",
     "main": "index.js",
     "scripts": {
         "start": "node --max-old-space-size=4096 index.js",

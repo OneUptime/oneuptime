@@ -18,7 +18,7 @@ class ResetPasswordPage extends React.Component {
                 {/* Header */}
                 <div id="header">
                     <h1>
-                        <a href="/">Fyipe</a>
+                        <a href="/">OneUptime</a>
                     </h1>
                 </div>
                 {/* RESET PASSWORD BOX */}
@@ -40,12 +40,12 @@ class ResetPasswordPage extends React.Component {
                             </li>
                         )}
                         <li>
-                            <a href="http://fyipe.com/legal/privacy">
+                            <a href="http://oneuptime.com/legal/privacy">
                                 Privacy Policy
                             </a>
                         </li>
                         <li>
-                            <a href="http://fyipe.com/support">Support</a>
+                            <a href="http://oneuptime.com/support">Support</a>
                         </li>
                         <li className="last">
                             <a href="https://hackerbay.io">© HackerBay, Inc.</a>

@@ -425,10 +425,10 @@ Copyright 2018 Hackerbay
   word-wrap: break-all;
   hyphens: auto; }
 
-.fyipefy, fyipe-footer, .lang-selector, .search, #nav-button {
+.oneuptimefy, oneuptime-footer, .lang-selector, .search, #nav-button {
   display: none; }
 
-.fyipefy-wrapper > img {
+.oneuptimefy-wrapper > img {
   margin: 0, auto;
   display: none; }
 
@@ -934,13 +934,13 @@ body {
   height: 100%;
   -webkit-text-size-adjust: none; }
 
-#fyipe > ul > li > a > span {
+#oneuptime > ul > li > a > span {
   float: right;
   background-color: #2484ff;
   border-radius: 40px;
   width: 20px; }
 
-.fyipe-wrapper {
+.oneuptime-wrapper {
   transition: left 0.3s ease-in-out;
   overflow-x: hidden;
   overflow-y: auto;
@@ -953,18 +953,18 @@ body {
   background-color: #2E3336;
   font-size: 13px;
   font-weight: bold; }
-  .fyipe-wrapper .lang-selector {
+  .oneuptime-wrapper .lang-selector {
     display: none; }
-    .fyipe-wrapper .lang-selector a {
+    .oneuptime-wrapper .lang-selector a {
       padding-top: 0.5em;
       padding-bottom: 0.5em; }
-  .fyipe-wrapper .logo {
+  .oneuptime-wrapper .logo {
     display: block;
     max-width: 100%;
     margin-bottom: 0px; }
-  .fyipe-wrapper > .search {
+  .oneuptime-wrapper > .search {
     position: relative; }
-    .fyipe-wrapper > .search input {
+    .oneuptime-wrapper > .search input {
       background: #2E3336;
       border-width: 0 0 1px 0;
       border-color: #666;
@@ -975,7 +975,7 @@ body {
       outline: none;
       color: #fff;
       border-radius: 0; }
-    .fyipe-wrapper > .search:before {
+    .oneuptime-wrapper > .search:before {
       position: absolute;
       box-sizing: border-box;
       height: 0;
@@ -985,58 +985,58 @@ body {
       transition-duration: 180ms;
       transition-timing-function: ease-in-out;
       background: #1E2224; }
-      .fyipe-wrapper > .search:before.visible {
+      .oneuptime-wrapper > .search:before.visible {
         height: 30%;
         margin-bottom: 1em; }
-    .fyipe-wrapper > .search li {
+    .oneuptime-wrapper > .search li {
       margin: 1em 15px;
       line-height: 1; }
-    .fyipe-wrapper > .search a {
+    .oneuptime-wrapper > .search a {
       color: #fff;
       text-decoration: none; }
-      .fyipe-wrapper > .search a:hover {
+      .oneuptime-wrapper > .search a:hover {
         text-decoration: underline; }
-  .fyipe-wrapper ul,
-  .fyipe-wrapper li {
+  .oneuptime-wrapper ul,
+  .oneuptime-wrapper li {
     list-style: none;
     margin: 0;
     padding: 0;
     line-height: 28px; }
-  .fyipe-wrapper li {
+  .oneuptime-wrapper li {
     color: #fff;
     transition-property: background;
     transition-timing-function: linear;
     transition-duration: 200ms; }
-  .fyipe-wrapper .fyipe-link.active {
+  .oneuptime-wrapper .oneuptime-link.active {
     background-color: #0F75D4;
     color: #fff; }
-  .fyipe-wrapper .fyipe-link.active-parent {
+  .oneuptime-wrapper .oneuptime-link.active-parent {
     background-color: #1E2224;
     color: #fff; }
-  .fyipe-wrapper .fyipe-list-h2 {
+  .oneuptime-wrapper .oneuptime-list-h2 {
     display: none;
     background-color: 500;
     font-weight: 500; }
-  .fyipe-wrapper .fyipe-h2 {
+  .oneuptime-wrapper .oneuptime-h2 {
     padding-left: 25px;
     font-size: 12px; }
-  .fyipe-wrapper .fyipe-footer {
+  .oneuptime-wrapper .oneuptime-footer {
     padding: 1em 0;
     margin-top: 1em;
     border-top: 1px dashed #666; }
-    .fyipe-wrapper .fyipe-footer li,
-    .fyipe-wrapper .fyipe-footer a {
+    .oneuptime-wrapper .oneuptime-footer li,
+    .oneuptime-wrapper .oneuptime-footer a {
       color: #fff;
       text-decoration: none; }
-    .fyipe-wrapper .fyipe-footer a:hover {
+    .oneuptime-wrapper .oneuptime-footer a:hover {
       text-decoration: underline; }
-    .fyipe-wrapper .fyipe-footer li {
+    .oneuptime-wrapper .oneuptime-footer li {
       font-size: 0.8em;
       line-height: 1.7;
       text-decoration: none; }
 
-.fyipe-link,
-.fyipe-footer li {
+.oneuptime-link,
+.oneuptime-footer li {
   padding: 0 15px 0 15px;
   display: block;
   overflow-x: hidden;
@@ -1269,15 +1269,15 @@ body {
   color: #eee; }
 
 @media (max-width: 930px) {
-  .fyipe-wrapper {
+  .oneuptime-wrapper {
     left: -230px; }
-    .fyipe-wrapper.open {
+    .oneuptime-wrapper.open {
       left: 0; }
   .page-wrapper {
     margin-left: 0; }
   #nav-button {
     display: block; }
-  .fyipe-link {
+  .oneuptime-link {
     padding-top: 0.3em;
     padding-bottom: 0.3em; } }
 
@@ -1286,7 +1286,7 @@ body {
     display: none; }
   .content:after {
     margin-right: 0; }
-  .fyipe-wrapper .lang-selector {
+  .oneuptime-wrapper .lang-selector {
     display: none; }
   .content pre,
   .content blockquote {

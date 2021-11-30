@@ -1,0 +1,29 @@
+########-INIT-SCRIPT-##########
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "init-script"  }}
+    namespace: {{ .Release.Namespace }}
+    labels:
+      app.kubernetes.io/part-of: oneuptime
+      app.kubernetes.io/managed-by: Helm
+spec:
+    template:
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "init-script" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "init-script"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: MONGO_URL
+                        value:  {{ template "oneuptime.mongodbConnectionString" . }}
+                      - name: NODE_ENV
+                        value: 'production'
+                      - name: ENCRYPTION_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: encryptionkey
+            restartPolicy: Never
+---
+####################################

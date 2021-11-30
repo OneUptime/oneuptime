@@ -30,32 +30,46 @@ if (userData !== undefined) {
     window.location = ACCOUNTS_URL;
 }
 
-const App = () => (
-    <div style={{ height: '100%' }}>
-        <Router history={history}>
-            <Dashboard>
-                <Suspense fallback={<LoadingState />}>
-                    <Switch>
-                        {allRoutes
-                            .filter(route => route.visible)
-                            .map((route, index) => {
-                                return (
-                                    <Route
-                                        exact
-                                        path={route.path}
-                                        key={index}
-                                        component={route.component}
-                                    />
-                                );
-                            })}
-                        <Redirect to="admin/users" />
-                    </Switch>
-                </Suspense>
-            </Dashboard>
-        </Router>
-        <BackboneModals />
-    </div>
-);
+const App = () => {
+    const oldHostNames = ['staging.fyipe.com', 'fyipe.com'];
+    const currentHostName = window.location.hostname;
+
+    if (oldHostNames.includes(currentHostName)) {
+        const updatedLink = `${window.location.origin.replace(
+            'fyipe',
+            'oneuptime'
+        )}${window.location.pathname}`;
+
+        window.location.replace(updatedLink);
+    }
+
+    return (
+        <div style={{ height: '100%' }}>
+            <Router history={history}>
+                <Dashboard>
+                    <Suspense fallback={<LoadingState />}>
+                        <Switch>
+                            {allRoutes
+                                .filter(route => route.visible)
+                                .map((route, index) => {
+                                    return (
+                                        <Route
+                                            exact
+                                            path={route.path}
+                                            key={index}
+                                            component={route.component}
+                                        />
+                                    );
+                                })}
+                            <Redirect to="admin/users" />
+                        </Switch>
+                    </Suspense>
+                </Dashboard>
+            </Router>
+            <BackboneModals />
+        </div>
+    );
+};
 
 App.displayName = 'App';
 

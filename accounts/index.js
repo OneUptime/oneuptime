@@ -24,10 +24,29 @@ const compression = require('compression');
 
 app.use(compression());
 
-app.use('/', (req, res, next) => {
-    // eslint-disable-next-line no-console
-    console.log(req.method, ' ', req.originalUrl);
-    return next();
+app.use(async function(req, res, next) {
+    const host = req.hostname;
+
+    try {
+        if (host && host === 'fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com${req.url}`,
+            });
+            return res.end();
+        }
+        if (host && host === 'staging.fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://staging.oneuptime.com${req.url}`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('ACCOUNT: Error with fetch', error);
+        return next();
+    }
 });
 
 app.get(['/env.js', '/accounts/env.js'], function(req, res) {

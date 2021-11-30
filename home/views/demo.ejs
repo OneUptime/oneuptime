@@ -2,10 +2,10 @@
 <html lang="en" id="contact-sales">
 
 <head>
-    <title>Fyipe | Request Demo</title>
+    <title>OneUptime | Request Demo</title>
 
     <meta name="description"
-        content="Fyipe monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
     <% include ./head %>
 
         <link rel="stylesheet" href="/css/demo.css">
@@ -31,11 +31,11 @@
                 <div class="gradient-background"></div>
                 <section class="contact-sales-header">
                     <div class="stripes-container initial">
-                        <div class="fyipe s3"></div>
-                        <div class="fyipe s4"></div>
-                        <div class="fyipe s5"></div>
-                        <div class="fyipe gradient"></div>
-                        <div class="fyipe s1"></div>
+                        <div class="oneuptime s3"></div>
+                        <div class="oneuptime s4"></div>
+                        <div class="oneuptime s5"></div>
+                        <div class="oneuptime gradient"></div>
+                        <div class="oneuptime s1"></div>
                         <div class="left invisible-in-mobile-dots-container"></div>
                         <div class="light-dots-container"></div>
                         <div class="dark-dots-container"></div>
@@ -54,10 +54,10 @@
                 </section>
 
                 <section class="form-section" id="form-section">
-                    <div class="container-lg">
+                    <div class="container-lg calendly-container">
                         <div class="form-column">
                             <div class="form-container">
-                                <form action="http://fyipe.com/api/lead/" onsubmit="this.action=formUrl();"
+                                <form action="http://oneuptime.com/api/lead/" onsubmit="this.action=formUrl();"
                                     id='demoform' method="post" novalidate="">
                                     <input type="hidden" name="csrf-token" value="1">
                                     <input type="hidden" name="source" id="source" >
@@ -1026,17 +1026,20 @@
                                     </div>
                                 </form>
                             </div>
+                            <!-- Calendly inline widget begin -->
+                            <div class="calendly-inline-widget" data-url="https://calendly.com/oneuptime/request-demo"></div>
+                            <script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
+                            <!-- Calendly inline widget end -->
                         </div>
                         <div class="secondary-column">
-                            <div class="why-fyipe">
-                                <p class="intro-text">With Fyipe you can:</p>
+                            <div class="why-oneuptime">
+                                <p class="intro-text">With OneUptime you can:</p>
                                 <ul class="bullet-points">
                                     <li>Save support costs during downtime.</li>
                                     <li>Notify your team immediately when downtime happens.</li>
                                     <li>Improve transparency for your customers.</li>
                                 </ul>
                             </div>
-
                         </div>
                     </div>
                 </section>
@@ -1066,7 +1069,7 @@
                                     <span class="non-link">For general queries, including partnership opportunities,
                                         please
                                         email</span>
-                                    <a class="common-Link" href="mailto:info@fyipe.com">info@fyipe.com</a>
+                                    <a class="common-Link" href="mailto:info@oneuptime.com">info@oneuptime.com</a>
                                     <span class="non-link">.</span>
                                 </p>
                             </div>
@@ -1133,8 +1136,8 @@
                                     </span>
                                     If you do not find it in your inbox. Please check spam.
                                 </h2>
-                                <a class="common-Link common-Link--arrow" href="https://blog.fyipe.com">Read the latest
-                                    updates from the Fyipe team</a>
+                                <a class="common-Link common-Link--arrow" href="https://blog.oneuptime.com">Read the latest
+                                    updates from the OneUptime team</a>
                             </div>
                         </div>
                     </div>
@@ -1149,9 +1152,9 @@
                 if (window.location.href.indexOf('localhost') > -1) {
                     apiURL = 'http://localhost:3002';
                 } else if (window.location.href.indexOf('staging') > -1) {
-                    apiURL = 'https://staging-fyipe.com/api';
+                    apiURL = 'https://staging-oneuptime.com/api';
                 } else {
-                    apiURL = 'https://fyipe.com/api';
+                    apiURL = 'https://oneuptime.com/api';
                 }
                 document.getElementById('demoform').action = `${apiURL}/lead/add/demo`;
             }

@@ -1019,7 +1019,7 @@ export class IncidentStatus extends Component {
                                                                                     .probeName +
                                                                                 ' probe'
                                                                             ) : (
-                                                                                'Fyipe'
+                                                                                'OneUptime'
                                                                             )}
                                                                         </span>
                                                                     </div>
@@ -1246,7 +1246,7 @@ export class IncidentStatus extends Component {
                                                                                                   .incident
                                                                                                   .acknowledgedByIncomingHttpRequest
                                                                                             ? `Incoming HTTP Request ${this.props.incident.acknowledgedByIncomingHttpRequest.name}`
-                                                                                            : 'Fyipe'}
+                                                                                            : 'OneUptime'}
                                                                                     </span>
                                                                                 ) : (
                                                                                     <Link
@@ -1398,7 +1398,7 @@ export class IncidentStatus extends Component {
                                                                                                       .incident
                                                                                                       .resolvedByIncomingHttpRequest
                                                                                                 ? `Incoming HTTP Request ${this.props.incident.resolvedByIncomingHttpRequest.name}`
-                                                                                                : 'Fyipe'}
+                                                                                                : 'OneUptime'}
                                                                                         </span>
                                                                                     ) : (
                                                                                         <Link

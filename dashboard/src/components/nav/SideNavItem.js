@@ -337,7 +337,7 @@ export class SidebarNavItem extends Component {
                                                 (isLinkActive ||
                                                 isSubLinkActive ||
                                                 isScheduleLinkActive
-                                                    ? ' Text-color--fyipeblue Text-fontWeight--bold'
+                                                    ? ' Text-color--oneuptimeblue Text-fontWeight--bold'
                                                     : ' Text-color--dark')
                                             }
                                         >
@@ -498,7 +498,7 @@ export class SidebarNavItem extends Component {
                                                     <span
                                                         className={
                                                             showMore
-                                                                ? 'Text-color--fyipeblue Text-fontWeight--bold'
+                                                                ? 'Text-color--oneuptimeblue Text-fontWeight--bold'
                                                                 : ''
                                                         }
                                                     >
@@ -549,7 +549,7 @@ export class SidebarNavItem extends Component {
                                                                 incidentLogLink ===
                                                                     active ||
                                                                 isSubrouteActive
-                                                                    ? 'Text-color--fyipeblue Text-fontWeight--bold'
+                                                                    ? 'Text-color--oneuptimeblue Text-fontWeight--bold'
                                                                     : ''
                                                             }
                                                         >

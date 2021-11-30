@@ -16,7 +16,7 @@ const teamMember = utils.generateRandomBusinessEmail();
  * It stays on the same page on reload
  */
 
-describe('Fyipe Page Reload', () => {
+describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async done => {

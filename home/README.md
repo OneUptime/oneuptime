@@ -1,10 +1,10 @@
-# To# Fyipe Home
+# To# OneUptime Home
 
-Fyipe is the simplest status page and on-call product in the world.
+OneUptime is the simplest status page and on-call product in the world.
 
 # Project
 
-This is the home page of Fyipe hosted at https://www.fyipe.com
+This is the home page of OneUptime hosted at https://www.oneuptime.com
 
 # Todo
 

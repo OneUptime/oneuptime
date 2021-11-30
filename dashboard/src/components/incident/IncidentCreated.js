@@ -87,7 +87,7 @@ class IncidentCreated extends Component {
                                                       }}
                                                       key={notification._id}
                                                   >
-                                                      <div className="Notify-fyipe">
+                                                      <div className="Notify-oneuptime">
                                                           <span></span>
                                                           <span>
                                                               <span
@@ -110,9 +110,9 @@ class IncidentCreated extends Component {
                                                               />
                                                           </span>
                                                       </div>
-                                                      <div className="Notify-fyipe">
-                                                          <div className="Notify-fyipe-container-row-primary db-SideNav-icon--danger" />
-                                                          <span className="Notify-fyipe-container-row-secondary Text-color--white">
+                                                      <div className="Notify-oneuptime">
+                                                          <div className="Notify-oneuptime-container-row-primary db-SideNav-icon--danger" />
+                                                          <span className="Notify-oneuptime-container-row-secondary Text-color--white">
                                                               <span>
                                                                   #
                                                                   {notification &&
@@ -136,7 +136,7 @@ class IncidentCreated extends Component {
                                                               )}
                                                           </span>
                                                       </div>
-                                                      <div className="Notify-fyipe">
+                                                      <div className="Notify-oneuptime">
                                                           <span></span>
                                                           <span>
                                                               <button

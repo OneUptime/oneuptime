@@ -1,5 +1,5 @@
 #
-# Fyipe Home Dockerfile
+# OneUptime Home Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -24,7 +24,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1444: Fyipe Home
+#   - 1444: OneUptime Home
 EXPOSE 1444
 
 #Run the app

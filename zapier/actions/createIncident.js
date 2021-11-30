@@ -44,10 +44,10 @@ module.exports = {
             internalNote: 'New Note',
             investigationNote: 'New Investigation',
             createdAt: new Date().toISOString(),
-            createdBy: 'fyipe',
+            createdBy: 'oneuptime',
             monitorName: 'New Sample',
             monitorType: 'url',
-            monitorData: 'https://fyipe.com',
+            monitorData: 'https://oneuptime.com',
         },
     },
 };

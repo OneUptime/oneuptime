@@ -1,7 +1,6 @@
 const ErrorService = require('../services/errorService');
 const StatusPageService = require('../services/statusPageService');
 const CertificateStoreService = require('../services/certificateStoreService');
-const greenlock = require('../../greenlock');
 
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];
@@ -42,6 +41,7 @@ async function handleFetchingDomains() {
 module.exports = async function() {
     try {
         const domains = await handleFetchingDomains();
+        const greenlock = global.greenlock;
         if (greenlock) {
             for (const domain of domains) {
                 await greenlock.add({

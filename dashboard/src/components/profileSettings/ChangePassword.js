@@ -74,7 +74,7 @@ export class ChangePasswordSetting extends Component {
                             <p>
                                 <span>
                                     We recommend you use password manager to
-                                    store your Fyipe Password.
+                                    store your OneUptime Password.
                                 </span>
                             </p>
                         </div>

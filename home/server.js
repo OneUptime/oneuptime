@@ -47,7 +47,7 @@ Sentry.init({
         }),
     ],
     environment: process.env.NODE_ENV,
-    release: `fyipe-homepage@${process.env.npm_package_version}`,
+    release: `oneuptime-homepage@${process.env.npm_package_version}`,
     tracesSampleRate: 0.0,
 });
 
@@ -65,14 +65,52 @@ if (process.env.NODE_ENV === 'production') {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+app.use(async function(req, res, next) {
+    const host = req.hostname;
+
+    try {
+        if (host && host === 'fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
+            });
+            return res.end();
+        }
+        if (host && host === 'staging.fyipe.com') {
+            res.writeHead(301, {
+                Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
+            });
+            return res.end();
+        }
+
+        return next();
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('HOME: Error with fetch', error);
+        return next();
+    }
+});
+
+/**
+ * @param {string} val : The value to be parsed.
+ * @description Resolves or Parses any value to boolean value.
+ * @returns Boolean true or false
+ */
+
+const bool = val => {
+    const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
+    return !falsy.test(val) && !!val;
+};
+
 //Routes
 app.get('/', function(req, res) {
+    const { redirectedFromOldBranding } = req.query;
     res.render('index', {
         support: false,
         footerCards: true,
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: bool(redirectedFromOldBranding),
     });
 });
 
@@ -83,6 +121,7 @@ app.get('/support', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -93,6 +132,7 @@ app.get('/pricing', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -103,6 +143,7 @@ app.get('/enterprise/demo', function(req, res) {
         cta: false,
         blackLogo: true,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -123,6 +164,7 @@ app.get('/product/public-status-page', function(req, res) {
         requestDemoCta: false,
         footerCtaText:
             'Start with Status Pages, expand into everything else. Sign up today.',
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -139,6 +181,7 @@ app.get('/product/private-status-page', function(req, res) {
         requestDemoCta: false,
         footerCtaText:
             'Start with Status Pages, expand into everything else. Sign up today.',
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -147,7 +190,7 @@ app.get('/private-status-page', function(req, res) {
 });
 
 app.get('/status', function(req, res) {
-    res.redirect('https://status.fyipe.com');
+    res.redirect('https://status.oneuptime.com');
 });
 
 app.get('/product/uptime-monitoring', function(req, res) {
@@ -157,6 +200,7 @@ app.get('/product/uptime-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -171,6 +215,7 @@ app.get('/product/logs-management', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -185,6 +230,7 @@ app.get('/product/error-tracking', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -195,8 +241,8 @@ app.get('/error-tracking', function(req, res) {
 app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
     const { monitorId, subscriberId } = req.params;
     let apiHost;
-    if (process.env.FYIPE_HOST) {
-        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    if (process.env.ONEUPTIME_HOST) {
+        apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
     } else {
         apiHost = 'http://localhost:3002/api';
     }
@@ -227,8 +273,8 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
 
 app.post('/unsubscribe', async function(req, res) {
     let apiHost;
-    if (process.env.FYIPE_HOST) {
-        apiHost = 'https://' + process.env.FYIPE_HOST + '/api';
+    if (process.env.ONEUPTIME_HOST) {
+        apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
     } else {
         apiHost = 'http://localhost:3002/api';
     }
@@ -278,6 +324,7 @@ app.get('/product/docker-container-security', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -292,6 +339,7 @@ app.get('/product/app-security', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -308,6 +356,7 @@ app.get('/product/api-monitoring', function(req, res) {
         requestDemoCta: false,
         footerCtaText:
             'Start with API monitoring, expand into everything else. Sign up today.',
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -322,6 +371,7 @@ app.get('/product/kubernetes-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -336,6 +386,7 @@ app.get('/product/performance-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -350,6 +401,7 @@ app.get('/product/server-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -364,6 +416,7 @@ app.get('/product/website-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -378,6 +431,7 @@ app.get('/product/iot-device-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -392,6 +446,7 @@ app.get('/product/incident-management', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -406,6 +461,7 @@ app.get('/product/oncall-management', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -420,6 +476,7 @@ app.get('/customers', function(req, res) {
         cta: true,
         blackLogo: true,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -430,6 +487,7 @@ app.get('/enterprise/resources', function(req, res) {
         cta: true,
         blackLogo: true,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -440,6 +498,7 @@ app.get('/enterprise/overview', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: true,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -451,6 +510,7 @@ app.get('/legal', function(req, res) {
         blackLogo: false,
         section: 'terms',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -462,6 +522,7 @@ app.get('/legal/terms', function(req, res) {
         blackLogo: false,
         section: 'terms',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -473,6 +534,7 @@ app.get('/legal/privacy', function(req, res) {
         blackLogo: false,
         section: 'privacy',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -484,6 +546,7 @@ app.get('/legal/contact', function(req, res) {
         blackLogo: false,
         section: 'contact',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -495,6 +558,7 @@ app.get('/legal/subprocessors', function(req, res) {
         blackLogo: false,
         section: 'subprocessors',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -506,6 +570,7 @@ app.get('/legal/ccpa', function(req, res) {
         blackLogo: false,
         section: 'ccpa',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -517,6 +582,7 @@ app.get('/legal/hipaa', function(req, res) {
         blackLogo: false,
         section: 'hipaa',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -528,6 +594,7 @@ app.get('/legal/dmca', function(req, res) {
         blackLogo: false,
         section: 'dmca',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -539,6 +606,7 @@ app.get('/legal/pci', function(req, res) {
         blackLogo: false,
         section: 'pci',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -550,6 +618,7 @@ app.get('/legal/iso-27001', function(req, res) {
         blackLogo: false,
         section: 'iso-27001',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -561,6 +630,7 @@ app.get('/legal/iso-27017', function(req, res) {
         blackLogo: false,
         section: 'iso-27017',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -572,6 +642,7 @@ app.get('/legal/iso-27018', function(req, res) {
         blackLogo: false,
         section: 'iso-27018',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -583,6 +654,7 @@ app.get('/legal/iso-27017', function(req, res) {
         blackLogo: false,
         section: 'iso-27017',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -594,6 +666,7 @@ app.get('/legal/iso-27018', function(req, res) {
         blackLogo: false,
         section: 'iso-27018',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -605,6 +678,7 @@ app.get('/legal/soc-2', function(req, res) {
         blackLogo: false,
         section: 'soc-2',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -616,6 +690,7 @@ app.get('/legal/soc-3', function(req, res) {
         blackLogo: false,
         section: 'soc-3',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -627,6 +702,7 @@ app.get('/legal/data-residency', function(req, res) {
         blackLogo: false,
         section: 'data-residency',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -638,6 +714,7 @@ app.get('/legal/gdpr', function(req, res) {
         blackLogo: false,
         section: 'gdpr',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -649,6 +726,7 @@ app.get('/legal/sla', function(req, res) {
         blackLogo: false,
         section: 'sla',
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -659,6 +737,7 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
         cta: false,
         blackLogo: true,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 
@@ -673,6 +752,7 @@ app.get('/table/:product', function(req, res) {
             cta: false,
             blackLogo: false,
             requestDemoCta: false,
+            redirectedFromOldBranding: false,
         });
     } else {
         res.render('product-compare.ejs', {
@@ -683,6 +763,7 @@ app.get('/table/:product', function(req, res) {
             requestDemoCta: false,
             productConfig,
             onlyShowCompareTable: true,
+            redirectedFromOldBranding: false,
         });
     }
 });
@@ -698,6 +779,7 @@ app.get('/compare/:product', function(req, res) {
             cta: false,
             blackLogo: false,
             requestDemoCta: false,
+            redirectedFromOldBranding: false,
         });
     } else {
         res.render('product-compare.ejs', {
@@ -708,6 +790,7 @@ app.get('/compare/:product', function(req, res) {
             requestDemoCta: false,
             productConfig,
             onlyShowCompareTable: false,
+            redirectedFromOldBranding: false,
         });
     }
 });
@@ -742,55 +825,55 @@ app.get('/css/comparision.css', async function(req, res) {
 // generate sitemap
 app.get('/sitemap.xml', async (req, res) => {
     const siteUrls = [
-        'https://fyipe.com/',
-        'https://fyipe.com/pricing',
-        'https://fyipe.com/support',
-        'https://fyipe.com/product/public-status-page',
-        'https://fyipe.com/product/private-status-page',
-        'https://fyipe.com/product/uptime-monitoring',
-        'https://fyipe.com/product/incident-management',
-        'https://fyipe.com/product/app-security',
-        'https://fyipe.com/product/api-monitoring',
-        'https://fyipe.com/product/server-monitoring',
-        'https://fyipe.com/product/logs-management',
-        'https://fyipe.com/product/docker-container-security',
-        'https://fyipe.com/product/oncall-management',
-        'https://fyipe.com/customers',
-        'https://fyipe.com/enterprise/overview',
-        'https://fyipe.com/enterprise/demo',
-        'https://fyipe.com/enterprise/resources',
-        'https://fyipe.com/legal/terms',
-        'https://fyipe.com/legal/privacy',
-        'https://fyipe.com/legal/gdpr',
-        'https://fyipe.com/legal/ccpa',
-        'https://fyipe.com/legal',
-        'https://fyipe.com/compare/pagerduty',
-        'https://fyipe.com/compare/pingdom',
-        'https://fyipe.com/compare/statuspage.io',
-        'https://fyipe.com/table/pagerduty',
-        'https://fyipe.com/table/pingdom',
-        'https://fyipe.com/table/statuspage.io',
-        'https://fyipe.com/legal/soc-2',
-        'https://fyipe.com/legal/soc-3',
-        'https://fyipe.com/legal/iso-27017',
-        'https://fyipe.com/legal/iso-27018',
-        'https://fyipe.com/legal/hipaa',
-        'https://fyipe.com/legal/pci',
-        'https://fyipe.com/enterprise/download-resource/website-monitoring',
-        'https://fyipe.com/enterprise/download-resource/speed-equals-revenue',
-        'https://fyipe.com/enterprise/download-resource/best-practices',
-        'https://fyipe.com/enterprise/download-resource/planning-for-peak-performance',
-        'https://fyipe.com/legal/sla',
-        'https://fyipe.com/legal/iso-27001',
-        'https://fyipe.com/legal/data-residency',
-        'https://fyipe.com/legal/dmca',
-        'https://fyipe.com/legal/subprocessors',
-        'https://fyipe.com/legal/contact',
-        'https://fyipe.com/files/soc-3.pdf',
-        'https://fyipe.com/files/iso-27017.pdf',
-        'https://fyipe.com/files/iso-27018.pdf',
-        'https://fyipe.com/files/pci.pdf',
-        'https://fyipe.com/files/iso-27001.pdf',
+        'https://oneuptime.com/',
+        'https://oneuptime.com/pricing',
+        'https://oneuptime.com/support',
+        'https://oneuptime.com/product/public-status-page',
+        'https://oneuptime.com/product/private-status-page',
+        'https://oneuptime.com/product/uptime-monitoring',
+        'https://oneuptime.com/product/incident-management',
+        'https://oneuptime.com/product/app-security',
+        'https://oneuptime.com/product/api-monitoring',
+        'https://oneuptime.com/product/server-monitoring',
+        'https://oneuptime.com/product/logs-management',
+        'https://oneuptime.com/product/docker-container-security',
+        'https://oneuptime.com/product/oncall-management',
+        'https://oneuptime.com/customers',
+        'https://oneuptime.com/enterprise/overview',
+        'https://oneuptime.com/enterprise/demo',
+        'https://oneuptime.com/enterprise/resources',
+        'https://oneuptime.com/legal/terms',
+        'https://oneuptime.com/legal/privacy',
+        'https://oneuptime.com/legal/gdpr',
+        'https://oneuptime.com/legal/ccpa',
+        'https://oneuptime.com/legal',
+        'https://oneuptime.com/compare/pagerduty',
+        'https://oneuptime.com/compare/pingdom',
+        'https://oneuptime.com/compare/statuspage.io',
+        'https://oneuptime.com/table/pagerduty',
+        'https://oneuptime.com/table/pingdom',
+        'https://oneuptime.com/table/statuspage.io',
+        'https://oneuptime.com/legal/soc-2',
+        'https://oneuptime.com/legal/soc-3',
+        'https://oneuptime.com/legal/iso-27017',
+        'https://oneuptime.com/legal/iso-27018',
+        'https://oneuptime.com/legal/hipaa',
+        'https://oneuptime.com/legal/pci',
+        'https://oneuptime.com/enterprise/download-resource/website-monitoring',
+        'https://oneuptime.com/enterprise/download-resource/speed-equals-revenue',
+        'https://oneuptime.com/enterprise/download-resource/best-practices',
+        'https://oneuptime.com/enterprise/download-resource/planning-for-peak-performance',
+        'https://oneuptime.com/legal/sla',
+        'https://oneuptime.com/legal/iso-27001',
+        'https://oneuptime.com/legal/data-residency',
+        'https://oneuptime.com/legal/dmca',
+        'https://oneuptime.com/legal/subprocessors',
+        'https://oneuptime.com/legal/contact',
+        'https://oneuptime.com/files/soc-3.pdf',
+        'https://oneuptime.com/files/iso-27017.pdf',
+        'https://oneuptime.com/files/iso-27018.pdf',
+        'https://oneuptime.com/files/pci.pdf',
+        'https://oneuptime.com/files/iso-27001.pdf',
     ];
 
     // build xml
@@ -848,6 +931,7 @@ app.get('/*', function(req, res) {
         cta: false,
         blackLogo: false,
         requestDemoCta: false,
+        redirectedFromOldBranding: false,
     });
 });
 

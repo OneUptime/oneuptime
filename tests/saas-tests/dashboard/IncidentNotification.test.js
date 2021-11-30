@@ -565,13 +565,9 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.pageClick(page, '#addMoreMonitor');
-
-            await init.selectDropdownValue(
-                '#monitorfield_0',
-                `NewComponent / ${monitorName2}`,
-                page
-            );
+            await init.pageClick(page, '#monitorDropdown');
+            await init.pageClick(page, `#${monitorName2}`);
+            await init.pageClick(page, '#incidentType');
             await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await init.page$Eval(page, '#createIncident', e => e.click());
@@ -624,13 +620,9 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.pageClick(page, '#addMoreMonitor');
-
-            await init.selectDropdownValue(
-                '#monitorfield_0',
-                `NewComponent / ${monitorName2}`,
-                page
-            );
+            await init.pageClick(page, '#monitorDropdown');
+            await init.pageClick(page, `#${monitorName2}`);
+            await init.pageClick(page, '#incidentType');
             await init.selectDropdownValue('#incidentTypeId', 'Online', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await init.page$Eval(page, '#createIncident', e => e.click());
@@ -638,11 +630,7 @@ describe('Incident Created test', () => {
                 hidden: true,
             });
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.page$Eval(
-                page,
-                `#${monitorName2}_ViewIncidentDetails`,
-                elem => elem.click()
-            );
+            await init.page$Eval(page, `#viewIncident-0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#closeIncident_2', {
                 hidden: true,
             });

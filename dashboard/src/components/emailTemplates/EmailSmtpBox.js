@@ -137,8 +137,8 @@ export class EmailSmtpBox extends Component {
                                     <p>
                                         <span>
                                             Send emails via your SMTP server
-                                            instead of Fyipe&#39;s default SMTP
-                                            server.
+                                            instead of OneUptime&#39;s default
+                                            SMTP server.
                                         </span>
                                     </p>
                                 </div>

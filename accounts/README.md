@@ -1,6 +1,6 @@
-# Fyipe Dashboard - Accounts
+# OneUptime Dashboard - Accounts
 
-Repository for user authentication of the fyipe dashboard
+Repository for user authentication of the OneUptime dashboard
 
 ## Stack
 

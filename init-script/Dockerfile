@@ -1,5 +1,5 @@
 #
-# Fyipe Init Script
+# OneUptime Init Script
 #
 
 FROM node:16

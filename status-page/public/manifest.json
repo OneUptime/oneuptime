@@ -1,6 +1,6 @@
 {
-  "short_name": "Fyipe Status Page",
-  "name": "Status Page Application for Fyipe",
+  "short_name": "OneUptime Status Page",
+  "name": "Status Page Application for OneUptime",
   "icons": [
     {
       "src": "/status-page/favicon.ico",

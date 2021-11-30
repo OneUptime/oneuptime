@@ -37,7 +37,7 @@ describe('Enterprise Backend API', () => {
             return e.innerHTML;
         });
         expect(response).toBe(
-            '{"status":200,"message":"Service Status - OK","serviceType":"fyipe-api"}'
+            '{"status":200,"message":"Service Status - OK","serviceType":"oneuptime-api"}'
         );
         done();
     });

@@ -25,7 +25,7 @@ class License extends Component {
                                     <div>
                                         <div>
                                             <div
-                                                id="fyipeLicense"
+                                                id="oneuptimeLicense"
                                                 className="Box-root Margin-bottom--12"
                                             >
                                                 <LicenseSetting />

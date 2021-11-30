@@ -28,87 +28,87 @@ main{
         justify-content:space-between
     }
 }
-.fyipeBackground{
+.oneuptimeBackground{
     top:0;
     height:480px;
     z-index:-1
 }
-.fyipeBackground .fyipe{
+.oneuptimeBackground .oneuptime{
     height:60px
 }
-.fyipeBackground .fyipe:not(:first-of-type){
+.oneuptimeBackground .oneuptime:not(:first-of-type){
     animation:stretch-out 2s ease-out;
     transform-origin:0 0
 }
-.fyipeBackground .sbg{
+.oneuptimeBackground .sbg{
     width:100vw;
     bottom:120px;
     height:1000px;
     background:rgba(230,235,241,.3);
     left:0
 }
-.fyipeBackground .s0{
+.oneuptimeBackground .s0{
     width:29%;
     bottom:0;
     background:#fff5fc;
     left:65%
 }
-.fyipeBackground .s1{
+.oneuptimeBackground .s1{
     width:26%;
     bottom:60px;
     background:linear-gradient(90deg,#000000,#fff);
     left:27%
 }
-.fyipeBackground .s2{
+.oneuptimeBackground .s2{
     width:30%;
     bottom:60px;
     background:rgba(255,245,252,.41);
     left:70%
 }
-.fyipeBackground .s3{
+.oneuptimeBackground .s3{
     width:9%;
     bottom:120px;
     background:rgba(135,187,253,.25);
     left:0
 }
-.fyipeBackground .s4{
+.oneuptimeBackground .s4{
     width:27%;
     bottom:120px;
     background:#f9f9f9;
     left:13%
 }
-.fyipeBackground .s5{
+.oneuptimeBackground .s5{
     width:11%;
     bottom:120px;
     background:rgba(255,199,238,.2);
     left:78%
 }
-.fyipeBackground .s6{
+.oneuptimeBackground .s6{
     width:26%;
     bottom:180px;
     background:rgba(236,244,253,.83);
     left:0
 }
-.fyipeBackground .s7{
+.oneuptimeBackground .s7{
     width:18%;
     bottom:300px;
     background:#000;
     opacity:.02;
     left:16%
 }
-.fyipeBackground .s8{
+.oneuptimeBackground .s8{
     width:31%;
     bottom:300px;
     background:rgba(104,212,248,.05);
     left:44%
 }
-.fyipeBackground .s9{
+.oneuptimeBackground .s9{
     width:19.6%;
     bottom:360px;
     background:linear-gradient(90deg,rgba(246,249,252,.41),rgba(230,235,241,.32));
     left:80.4%
 }
-.fyipeBackground .s10{
+.oneuptimeBackground .s10{
     width:25%;
     bottom:420px;
     background:rgba(207,215,223,.11);

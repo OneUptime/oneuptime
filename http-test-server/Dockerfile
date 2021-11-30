@@ -1,5 +1,5 @@
 #
-# Fyipe-http-test-server Dockerfile
+# OneUptime-http-test-server Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -24,7 +24,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3010: Fyipe-http-test-server
+#   - 3010: OneUptime-http-test-server
 EXPOSE 3010
 
 #Run the app

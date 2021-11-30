@@ -180,9 +180,9 @@ class NewComponent extends Component {
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
                                             Components are like containers that
-                                            contain other Fyipe resources. For
-                                            example: If you&apos;re trying to
-                                            monitor your Home Page of your
+                                            contain other OneUptime resources.
+                                            For example: If you&apos;re trying
+                                            to monitor your Home Page of your
                                             business, create a new container
                                             called Home.
                                         </span>

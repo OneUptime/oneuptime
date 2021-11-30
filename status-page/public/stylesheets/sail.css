@@ -1296,7 +1296,7 @@
 .Text-color--blue {
   color: #000000;
 }
-.Text-color--fyipeblue {
+.Text-color--oneuptimeblue {
   color: #000000;
 }
 .Text-color--cyan {
@@ -5062,7 +5062,7 @@ img.image-small-circle{
   transform: scale(1);
 }
 
-.Notify-fyipe{
+.Notify-oneuptime{
   display:grid;
   grid-row-gap: 5px;
   grid-template-columns: 10% 90%;
@@ -5070,14 +5070,14 @@ img.image-small-circle{
   position: relative;
 }
 
-.Notify-fyipe-row-primary{
+.Notify-oneuptime-row-primary{
 grid-area: primary;
 position: absolute;
 top : 2px;
 left : 15px;
 }
 
-.Notify-fyipe-row-secondary{
+.Notify-oneuptime-row-secondary{
   grid-area:secondary;
   font-weight: 500;
   font-size: 1em;

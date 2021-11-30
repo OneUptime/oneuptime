@@ -2,7 +2,7 @@
 Getting started
 ===============
 
-| A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
+| A oneuptime sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
 Install
 -------

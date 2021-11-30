@@ -100,7 +100,7 @@ class TrackerInfo extends Component {
                                             <span>
                                                 Use your performance tracker API
                                                 ID and API Key to track requests
-                                                from your apps to your Fyipe
+                                                from your apps to your OneUptime
                                                 Dashboard
                                             </span>
                                         </p>
@@ -246,7 +246,7 @@ class TrackerInfo extends Component {
                                                             API Key will break
                                                             all your existing
                                                             integrations with
-                                                            the Fyipe
+                                                            the OneUptime
                                                             Performance Metrics
                                                             Library
                                                         </span>

@@ -1,5 +1,5 @@
 #
-# Fyipe-backend Dockerfile
+# container-scanner Dockerfile
 #
 
 # Pull base image nodejs image.

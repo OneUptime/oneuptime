@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 const domainVerificationTokenSchema = new Schema({
-    domain: String, // the main or base domain eg fyipe.com
+    domain: String, // the main or base domain eg oneuptime.com
     createdAt: { type: Date, default: Date.now },
     verificationToken: String,
     verified: {

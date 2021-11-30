@@ -7,7 +7,7 @@
       Rules order
     </th>
     <th colspan="2">
-      Fyipe level configurations
+      OneUptime level configurations
     </th>
     <th colspan="2">
       Project level configurations

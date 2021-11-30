@@ -79,7 +79,7 @@ const _this = {
                 smsMessage = '';
             }
             const options = {
-                body: `${smsMessage} Fyipe Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on Fyipe Dashboard.`,
+                body: `${smsMessage} OneUptime Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on OneUptime Dashboard.`,
                 to: number,
             };
             smsBody = options.body;
@@ -710,7 +710,7 @@ const _this = {
     test: async function(data) {
         try {
             const options = {
-                body: 'This is a test SMS from Fyipe',
+                body: 'This is a test SMS from OneUptime',
                 from: data.phoneNumber,
                 to: '+19173976235',
             };
@@ -1360,11 +1360,11 @@ const _this = {
                     reminder.`
                 : '';
             const message =
-                '<Say voice="alice">This is an alert from Fyipe. Your monitor ' +
+                '<Say voice="alice">This is an alert from OneUptime. Your monitor ' +
                 monitorName +
                 ' is ' +
                 incidentType +
-                '. Please go to Fyipe Dashboard or Mobile app to acknowledge or resolve this incident. ' +
+                '. Please go to OneUptime Dashboard or Mobile app to acknowledge or resolve this incident. ' +
                 extraInfo +
                 '</Say>';
             const hangUp = '<Hangup />';

@@ -5,7 +5,7 @@ module.exports = {
         body: JSON.stringify({
             id: '5d301b203c5a922d289d1f2e',
             name: 'David Disu',
-            email: 'noreply@fyipe.com',
+            email: 'noreply@oneuptime.com',
             cardRegistered: true,
             tokens: {
                 jwtAccessToken:
@@ -21,7 +21,7 @@ module.exports = {
         body: JSON.stringify({
             id: '5d301b203c5a922d289d1f2e',
             name: 'David Disu',
-            email: 'noreply@fyipe.com',
+            email: 'noreply@oneuptime.com',
             redirect: null,
             cardRegistered: true,
             tokens: {
@@ -181,7 +181,7 @@ module.exports = {
                 teamMembers: [
                     {
                         userId: '5d301b203c5a922d289d1f2e',
-                        email: 'noreply@fyipe.com',
+                        email: 'noreply@oneuptime.com',
                         name: 'David Disu',
                         role: 'Owner',
                         lastActive: '2019-07-19T01:02:06.216Z',
@@ -194,7 +194,7 @@ module.exports = {
                 teamMembers: [
                     {
                         userId: '5d301b203c5a922d289d1f2e',
-                        email: 'noreply@fyipe.com',
+                        email: 'noreply@oneuptime.com',
                         name: 'David Disu',
                         role: 'Owner',
                         lastActive: '2019-07-19T01:02:06.216Z',

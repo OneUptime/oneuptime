@@ -155,7 +155,7 @@ router.get('/:projectId/:alertId/viewed', async function(req, res) {
             '..',
             'views',
             'img',
-            'Fyipe-Logo.png'
+            'vou-wb.png'
         );
         const img = fs.readFileSync(filePath);
 

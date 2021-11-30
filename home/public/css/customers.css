@@ -630,28 +630,28 @@
     -ms-flex-align:center;
     align-items:center
 }
-.fyipeBackground{
+.oneuptimeBackground{
     top:calc(50% + 310px)
 }
-.fyipeBackground .fyipe{
+.oneuptimeBackground .oneuptime{
     height:200px
 }
-.fyipeBackground .s0{
+.oneuptimeBackground .s0{
     height:5000px;
     bottom:200px;
     background:linear-gradient(90deg,#e4ecf5,#f5fdff)
 }
-.fyipeBackground .s1{
+.oneuptimeBackground .s1{
     bottom:0;
     left:calc(50% + 220px);
     background:linear-gradient(90deg,#f4fafd,#eff8fc)
 }
-.fyipeBackground .s2{
+.oneuptimeBackground .s2{
     bottom:200px;
     right:calc(50% - 220px);
     background:linear-gradient(90deg,#d6e3f0,#e7f3fa)
 }
-.fyipeBackground .s3{
+.oneuptimeBackground .s3{
     bottom:600px;
     left:10%;
     right:calc(50% - 300px);

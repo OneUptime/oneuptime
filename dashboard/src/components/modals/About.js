@@ -54,7 +54,8 @@ class About extends Component {
                                                     colSpan={2}
                                                 >
                                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                        Fyipe is a product of{' '}
+                                                        OneUptime is a product
+                                                        of{' '}
                                                         <a
                                                             href="https://hackerbay.io"
                                                             rel="noopener noreferrer"
@@ -115,7 +116,7 @@ class About extends Component {
                                                 >
                                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                         <a
-                                                            href="https://fyipe.com/legal"
+                                                            href="https://oneuptime.com/legal"
                                                             rel="noopener noreferrer"
                                                             target="_blank"
                                                         >
@@ -137,7 +138,7 @@ class About extends Component {
                                                         }}
                                                     >
                                                         <a
-                                                            href="https://fyipe.com/legal/terms"
+                                                            href="https://oneuptime.com/legal/terms"
                                                             rel="noopener noreferrer"
                                                             target="_blank"
                                                         >
@@ -159,7 +160,7 @@ class About extends Component {
                                                         }}
                                                     >
                                                         <a
-                                                            href="https://fyipe.com/legal/privacy"
+                                                            href="https://oneuptime.com/legal/privacy"
                                                             rel="noopener noreferrer"
                                                             target="_blank"
                                                         >
@@ -181,7 +182,7 @@ class About extends Component {
                                                         }}
                                                     >
                                                         <a
-                                                            href="https://fyipe.com/legal/sla"
+                                                            href="https://oneuptime.com/legal/sla"
                                                             rel="noopener noreferrer"
                                                             target="_blank"
                                                         >

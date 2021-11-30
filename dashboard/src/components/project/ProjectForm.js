@@ -155,7 +155,7 @@ class _ProjectForm extends React.Component {
                                             To compare different pricing plans,
                                             click{' '}
                                             <a
-                                                href="https://fyipe.com/pricing#compare"
+                                                href="https://oneuptime.com/pricing#compare"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="Text-fontWeight--medium underline"

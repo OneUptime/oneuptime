@@ -178,6 +178,7 @@ module.exports = {
                         }
                     );
 
+                    const greenlock = global.greenlock;
                     if (!certificate && greenlock) {
                         // handle this in the background
                         greenlock.add({
@@ -351,6 +352,7 @@ module.exports = {
                             }
                         );
 
+                        const greenlock = global.greenlock;
                         if (!certificate && greenlock) {
                             // handle this in the background
                             greenlock.add({
@@ -417,6 +419,7 @@ module.exports = {
                 return String(domain._id) !== String(domainId);
             });
 
+            const greenlock = global.greenlock;
             // delete any associated certificate (only for auto provisioned ssl)
             // handle this in the background
             if (
@@ -558,6 +561,7 @@ module.exports = {
                     })
                 );
 
+                const greenlock = global.greenlock;
                 // delete all certificate pipeline for the custom domains
                 // handle this for autoprovisioned custom domains
                 const customDomains = [...statusPage.domains];
@@ -2333,5 +2337,4 @@ const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
 const axios = require('axios');
-const greenlock = require('../../greenlock');
 const bearer = process.env.TWITTER_BEARER_TOKEN;

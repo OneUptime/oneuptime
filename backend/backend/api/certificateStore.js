@@ -3,7 +3,6 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const CertificateStoreService = require('../services/certificateStoreService');
 const StatusPageService = require('../services/statusPageService');
-const greenlock = require('../../greenlock');
 
 const router = express.Router();
 
@@ -82,6 +81,7 @@ router.delete('/store/:id', async (req, res) => {
 router.post('/certOrder', async (req, res) => {
     try {
         const domains = [];
+        const greenlock = global.greenlock;
 
         const statusPages = await StatusPageService.findBy({
             query: {

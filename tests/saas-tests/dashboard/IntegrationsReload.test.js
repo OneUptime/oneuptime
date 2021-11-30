@@ -17,7 +17,7 @@ const webHookEndpoint = utils.generateRandomWebsite();
  * It stays on the same page on reload
  */
 
-describe('Fyipe Page Reload', () => {
+describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
@@ -52,12 +52,9 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#integrations');
             await init.pageClick(page, '#addWebhookButton');
             await init.pageType(page, '#endpoint', webHookEndpoint);
-            await init.pageClick(page, '#addMoreMonitor');
-            await init.selectDropdownValue(
-                '#monitorfield_0',
-                `${componentName} / ${monitorName}`,
-                page
-            );
+            await init.pageClick(page, '#monitorDropdown');
+            await init.pageClick(page, `#${monitorName}`);
+            await init.pageClick(page, 'label[for=monitorId]');
             await init.selectDropdownValue('#endpointType', 'GET', page);
             await init.pageClick(page, '#createWebhook');
             await init.pageWaitForSelector(page, '#createWebhook', {

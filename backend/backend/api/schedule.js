@@ -256,7 +256,7 @@ router.post(
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message:
-                            'Please select how should Fyipe alert your team - SMS, Email, Call OR Push notification ' +
+                            'Please select how should OneUptime alert your team - SMS, Email, Call OR Push notification ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
                                   escalationPolicyCount

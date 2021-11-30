@@ -880,7 +880,7 @@ describe('SMS/Calls Incident Alerts', function() {
             this.timeout(180 * 1000);
             // first add a team member
             const userData = {
-                email: `${generateRandomString()}@fyipe.com`,
+                email: `${generateRandomString()}@oneuptime.com`,
             };
             const newUser = await UserService.create(userData);
 
@@ -1028,7 +1028,7 @@ describe('SMS/Calls Incident Alerts', function() {
             this.timeout(180 * 1000);
             // first add a team member
             const userData = {
-                email: `${generateRandomString()}@fyipe.com`,
+                email: `${generateRandomString()}@oneuptime.com`,
             };
             const newUser = await UserService.create(userData);
 
@@ -1194,7 +1194,7 @@ describe('SMS/Calls Incident Alerts', function() {
             this.timeout(180 * 1000);
             // first add a team member
             const userData = {
-                email: `${generateRandomString}@fyipe.com`,
+                email: `${generateRandomString}@oneuptime.com`,
             };
             const newUser = await UserService.create(userData);
 

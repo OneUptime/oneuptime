@@ -15,7 +15,7 @@ const monitorName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-describe('Fyipe Monitor Reload', () => {
+describe('OneUptime Monitor Reload', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async done => {

@@ -43,7 +43,7 @@ module.exports = {
     'Team Member Incident': [
         '{{ incidentTime }} : Time at which this incident occured.',
         '{{ monitorName }} : Name of the monitor on which incident has occured.',
-        '{{ accessToken }} : unique key for authentication and authorization to fyipe API.',
+        '{{ accessToken }} : unique key for authentication and authorization to oneuptime API.',
         '{{ userName }} : User display name.',
         '{{ userId }} : Unique identifier for your account.',
         '{{ projectId }}: Unique identifier for the current project.',

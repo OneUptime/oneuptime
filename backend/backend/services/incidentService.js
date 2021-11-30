@@ -642,11 +642,11 @@ module.exports = {
                             meta
                         );
                     } else {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Fyipe`;
+                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
                         notification = await NotificationService.create(
                             incident.projectId._id || incident.projectId,
                             msg,
-                            'fyipe',
+                            'oneuptime',
                             'warning',
                             meta
                         );
@@ -1277,14 +1277,14 @@ module.exports = {
             } monitor was down for ${downtimestring} and is now resolved by ${name ||
                 (resolvedincident.resolvedBy &&
                     resolvedincident.resolvedBy.name) ||
-                'fyipe'}`;
+                'oneuptime'}`;
 
             NotificationService.create(
                 incident.projectId._id || incident.projectId,
                 msg,
                 resolvedincident.resolvedBy
                     ? resolvedincident.resolvedBy._id
-                    : 'fyipe',
+                    : 'oneuptime',
                 'success'
             );
         } catch (error) {
