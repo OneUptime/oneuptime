@@ -225,7 +225,7 @@ span.st-Delink.st-Delink--footer a {
         <div>
           <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href={{homeURL}}>
 
-            <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+            <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
           </a>
         </div>
       </td>
@@ -774,7 +774,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+          <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
         </a>
       </div>
     </td>
@@ -1310,7 +1310,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+          <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
         </a>
       </div>
     </td>
@@ -1840,7 +1840,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
         <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
           <div>
             <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-              <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+              <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
             </a>
           </div>
         </td>
@@ -2382,7 +2382,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+          <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
         </a>
       </div>
     </td>
@@ -2914,7 +2914,7 @@ body[override] table.st-Button td.st-Button-area span.st-Button-internal{
     <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
       <div>
         <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-          <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+          <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
         </a>
       </div>
     </td>
@@ -3435,7 +3435,7 @@ vertical-align: middle !important;
   <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
     <div>
       <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-        <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+        <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
       </a>
     </div>
   </td>
@@ -3946,7 +3946,7 @@ vertical-align: middle !important;
 <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
   <div>
     <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-      <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+      <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
     </a>
   </div>
 </td>
@@ -4454,7 +4454,7 @@ vertical-align: middle !important;
 <td align="left" style="height:80px; border: 0; margin: 0; padding: 0;">
   <div>
     <a style="border: 0; margin: 0; padding: 0; text-decoration: none;" href="https://oneuptime.com">
-      <img alt="OneUptime" border="0" style="height:50px; width:50px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1">
+      <img alt="OneUptime" border="0" style="height:70px; width:70px; border: 0; margin: 0; padding: 0; color: #000000; display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 12px; font-weight: normal;" src="https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png">
     </a>
   </div>
 </td>

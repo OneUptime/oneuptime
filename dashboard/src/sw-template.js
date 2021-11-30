@@ -25,7 +25,7 @@ if ('function' === typeof importScripts) {
             self.registration.showNotification(data.title, {
                 body: data.body,
                 icon:
-                    'https://www.dropbox.com/s/dwawm02f1toxnm8/Fyipe-Icon.png?dl=0&raw=1',
+                    'https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png',
             });
         });
     } else {
