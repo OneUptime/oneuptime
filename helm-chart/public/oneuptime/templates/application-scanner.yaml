@@ -38,6 +38,10 @@ spec:
                       value: {{ template "oneuptime.serverUrl" $ }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    - name: APPLICATION_SCANNER_NAME
+                      value: {{ .Values.applicationScanner.name }}
+                    - name: APPLICATION_SCANNER_KEY
+                      value: {{ .Values.applicationScanner.key }}
                     - name: CLUSTER_KEY
                       valueFrom:
                         configMapKeyRef:

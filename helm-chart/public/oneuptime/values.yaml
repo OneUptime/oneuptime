@@ -288,3 +288,10 @@ sentry:
     dsn:
   statusPage:
     dsn:
+
+applicationScanner:
+  name: US
+  key: b6ETg5EdrIEtdjgit7r3
+containerScanner:
+  name: US
+  key: s9KOOlCVyly0XykZVjDe
