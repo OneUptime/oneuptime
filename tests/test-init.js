@@ -126,7 +126,6 @@ const _this = {
 
             const signupResponse = await page.waitForResponse(
                 response => response.status() === 200
-                // response.url().includes('/user/signup')
             );
             if (signupResponse._status !== 200) {
                 throw new Error('Sign up did not return 200');
