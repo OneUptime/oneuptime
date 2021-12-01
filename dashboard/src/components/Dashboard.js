@@ -35,7 +35,6 @@ export class DashboardApp extends Component {
 
     componentDidMount() {
         const { project, getProjects } = this.props;
-        // eslint-disable-next-line no-console
 
         this.setState({ progress: 100 });
 
