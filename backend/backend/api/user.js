@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const express = require('express');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
@@ -269,8 +268,7 @@ router.post('/signup', async function(req, res) {
                 select,
                 populate,
             });
-            console.log('Res status: ', res);
-            //console.log('Res url: ', res.url());
+
             return sendItemResponse(
                 req,
                 res,
