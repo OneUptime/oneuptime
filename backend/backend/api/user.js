@@ -25,6 +25,7 @@ const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const SsoDefaultRolesService = require('../services/ssoDefaultRolesService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const Ip = require('../middlewares/ipHandler');
 
 router.post('/signup', async function(req, res) {
     try {
@@ -514,15 +515,7 @@ router.post('/sso/callback', async function(req, res) {
 router.post('/login', async function(req, res) {
     try {
         const data = req.body;
-        let clientIP;
-        if (req.headers['x-forwarded-for']) {
-            clientIP = req.headers['x-forwarded-for'].split(',')[0];
-        } else if (req.connection && req.connection.remoteAddress) {
-            clientIP = req.connection.remoteAddress;
-        } else {
-            clientIP = req.ip;
-        }
-
+        const clientIP = Ip.getClientIp(req)[0];
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
