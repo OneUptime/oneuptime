@@ -29,6 +29,8 @@ module.exports = {
     },
 
     postApi: async (url, data) => {
+        // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
+        // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
         const response = await axios({
             method: 'POST',
             url,
@@ -39,6 +41,8 @@ module.exports = {
                 clusterKey: CLUSTER_KEY,
             },
             data,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
         });
         return response.data;
     },
