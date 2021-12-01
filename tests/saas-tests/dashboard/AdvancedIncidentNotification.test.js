@@ -99,7 +99,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending email notification when incident is created',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -158,7 +158,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending email notification when incident is acknowledged',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -217,7 +217,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending email notification when incident is resolved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -276,7 +276,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending email notification for investigation note',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -335,7 +335,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should enable sending sms notification when incident is created, acknowledged, resolved or investigated',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -405,7 +405,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending sms notification when incident is created',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -466,7 +466,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending sms notification when incident is acknowledged',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -524,7 +524,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    test.skip(
+    test(
         'should disable sending sms notification when incident is resolved',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -585,7 +585,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         },
         operationTimeOut
     );
-    test.skip(
+    test(
         'should disable sending sms notification for investigation note',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const utils = require('./test-utils');
 const chai = require('chai');
 chai.use(require('chai-http'));
@@ -120,11 +121,11 @@ const _this = {
             );
             await page.select('#country', 'India');
             await _this.pageClick(page, 'button[type=submit]');
+            const home = await _this.pageWaitForSelector(page, '#profile-menu');
+            expect(home).toBeDefined(); // This ensures that we have been navigated to the dashboard page
 
             const signupResponse = await page.waitForResponse(
-                response =>
-                    response.url().includes('/user/signup') &&
-                    response.status() === 200
+                response => response.status() === 200
             );
             if (signupResponse._status !== 200) {
                 throw new Error('Sign up did not return 200');
