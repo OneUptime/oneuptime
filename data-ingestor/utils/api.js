@@ -15,6 +15,8 @@ const _this = {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
+            // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
+            // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
             axios({
                 method: 'POST',
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
@@ -62,6 +64,8 @@ const _this = {
     putApi: (url, data, withBaseUrl) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
+            // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
+            // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
             axios({
                 method: 'PUT',
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
