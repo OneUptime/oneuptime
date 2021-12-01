@@ -22,7 +22,7 @@ if (
 }
 
 const puppeteerLaunchConfig = {
-    headless: process.env.HEADLESS === 'false' ? false : true,
+    headless: process.env.HEADLESS === 'false' ? false : false,
     defaultViewport: null,
     slowMo: slomo,
     args: [

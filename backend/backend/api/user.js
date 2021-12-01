@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const express = require('express');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
@@ -233,7 +234,9 @@ router.post('/signup', async function(req, res) {
                 });
             }
             // Call the UserService.
+            //console.log('Sign Up Data: ', data);
             user = await UserService.signup(data);
+            //console.log('Returned User: ', user);
             // Call the MailService.
             MailService.sendSignupMail(user.email, user.name);
 
@@ -266,6 +269,8 @@ router.post('/signup', async function(req, res) {
                 select,
                 populate,
             });
+            console.log('Res status: ', res);
+            //console.log('Res url: ', res.url());
             return sendItemResponse(
                 req,
                 res,
