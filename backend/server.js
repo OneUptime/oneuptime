@@ -393,33 +393,33 @@ const server = http.listen(app.get('port'), function() {
 });
 
 mongoose.connection.on('connected', async () => {
-    const greenlock = Gl.create({
-        manager: 'oneuptime-gl-manager',
-        packageRoot: process.cwd(),
-        maintainerEmail: 'certs@fyipe.com',
-        staging: false,
-        notify: function(event, details) {
-            if ('error' === event) {
-                // `details` is an error object in this case
-                // eslint-disable-next-line no-console
-                console.error('Greenlock Notify: ', details);
-            }
-        },
-        challenges: {
-            'http-01': {
-                module: 'oneuptime-acme-http-01',
-            },
-        },
-        store: {
-            module: 'oneuptime-le-store',
-        },
-    });
+    // const greenlock = Gl.create({
+    //     manager: 'oneuptime-gl-manager',
+    //     packageRoot: process.cwd(),
+    //     maintainerEmail: 'certs@fyipe.com',
+    //     staging: false,
+    //     notify: function(event, details) {
+    //         if ('error' === event) {
+    //             // `details` is an error object in this case
+    //             // eslint-disable-next-line no-console
+    //             console.error('Greenlock Notify: ', details);
+    //         }
+    //     },
+    //     challenges: {
+    //         'http-01': {
+    //             module: 'oneuptime-acme-http-01',
+    //         },
+    //     },
+    //     store: {
+    //         module: 'oneuptime-le-store',
+    //     },
+    // });
 
-    await greenlock.manager.defaults({
-        agreeToTerms: true,
-        subscriberEmail: 'certs@fyipe.com',
-    });
-    global.greenlock = greenlock;
+    // await greenlock.manager.defaults({
+    //     agreeToTerms: true,
+    //     subscriberEmail: 'certs@fyipe.com',
+    // });
+    // global.greenlock = greenlock;
 });
 
 module.exports = app;
