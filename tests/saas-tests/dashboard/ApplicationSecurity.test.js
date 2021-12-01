@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
@@ -17,6 +18,7 @@ describe('Application Security Page', () => {
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+        //console.log('Browser: ', await browser.newPage());
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
@@ -171,7 +173,7 @@ describe('Application Security Page', () => {
         done();
     }, 600000);
 
-    test(
+    test.skip(
         'should view details of security log',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
@@ -221,7 +223,7 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should also view details of a security log, on clicking the issue count section',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
@@ -268,7 +270,7 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should display log(s) of an application security scan',
         async done => {
             await page.goto(utils.DASHBOARD_URL);
@@ -317,7 +319,7 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should edit an application security',
         async done => {
             const newApplicationName = 'AnotherName';
@@ -394,7 +396,7 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    test(
+    test.skip(
         'should delete an application security',
         async done => {
             const newApplicationName = 'AnotherName';
