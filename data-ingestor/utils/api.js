@@ -20,6 +20,8 @@ const _this = {
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
                 headers,
                 data,
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
             })
                 .then(function(response) {
                     resolve(response.data);
@@ -65,6 +67,8 @@ const _this = {
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
                 headers,
                 data,
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
             })
                 .then(function(response) {
                     resolve(response.data);

@@ -39,6 +39,8 @@ module.exports = {
                 clusterKey: CLUSTER_KEY,
             },
             data,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
         });
         return response.data;
     },

@@ -22,6 +22,8 @@ const _this = {
                 url: `${config.dataIngestorUrl}/${url}`,
                 headers,
                 data,
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
             })
                 .then(function(response) {
                     resolve(response.data);
@@ -67,6 +69,8 @@ const _this = {
                 url: `${config.dataIngestorUrl}/${url}`,
                 headers,
                 data,
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
             })
                 .then(function(response) {
                     resolve(response.data);
