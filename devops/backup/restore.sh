@@ -95,7 +95,7 @@ function RESTORE_SUCCESS() {
 			"type": "divider"
 		}
 	]
-}' https://hooks.slack.com/services/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
+}' https://hooks.slack.com/services/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
 	exit 1
 }
 
@@ -118,7 +118,7 @@ function RESTORE_FAIL_SERVER() {
 			"type": "divider"
 		}
 	]
-}' https://hooks.slack.com/services/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
+}' https://hooks.slack.com/services/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
 	exit 1
 }
 
@@ -141,7 +141,7 @@ function RESTORE_FAIL_LOCAL() {
 			"type": "divider"
 		}
 	]
-}' https://hooks.slack.com/services/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
+}' https://hooks.slack.com/services/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
 	exit 1
 }
 

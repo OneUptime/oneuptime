@@ -100,7 +100,7 @@ function BACKUP_SUCCESS(){
         "type": "divider"
       }
     ]
-  }' https://hooks.slack.com/services/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
+  }' https://hooks.slack.com/services/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
 }
 
 function BACKUP_FAIL_SERVER(){
@@ -120,7 +120,7 @@ function BACKUP_FAIL_SERVER(){
         "type": "divider"
       }
     ]
-  }' https://hooks.slack.com/services/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
+  }' https://hooks.slack.com/services/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
 }
 
 function BACKUP_FAIL_LOCAL(){
@@ -140,7 +140,7 @@ function BACKUP_FAIL_LOCAL(){
         "type": "divider"
       }
     ]
-  }' https://hooks.slack.com/services/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
+  }' https://hooks.slack.com/services/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
 }
 
 echo "Taking a backup on the server"
