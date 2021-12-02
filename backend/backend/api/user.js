@@ -25,7 +25,7 @@ const UserModel = require('../models/user');
 const ErrorService = require('../services/errorService');
 const SsoDefaultRolesService = require('../services/ssoDefaultRolesService');
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const ipClient = require('../middlewares/ipHandler');
+const Ip = require('../middlewares/ipHandler');
 
 router.post('/signup', async function(req, res) {
     try {
@@ -517,7 +517,7 @@ router.post('/login', async function(req, res) {
 
     try {
         const data = req.body;
-
+        const clientIP = Ip.getClientIp(req)[0];
         if (!data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
