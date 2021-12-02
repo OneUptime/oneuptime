@@ -9,10 +9,10 @@
 
 # Variables, please check these before you run the script. 
 
-MONGO_PRIMARY_SERVER_IP='167.172.15.25'
-MONGO_SERVER_PORT="80"
+MONGO_PRIMARY_SERVER_IP='a59a474aad89940889c1eb69b1a8f884-826233204.us-east-2.elb.amazonaws.com'
+MONGO_SERVER_PORT="27017"
 
-ONEUPTIME_DB_USERNAME='oneuptime'
+ONEUPTIME_DB_USERNAME='fyipe'
 ONEUPTIME_DB_PASSWORD='password'
 ONEUPTIME_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
