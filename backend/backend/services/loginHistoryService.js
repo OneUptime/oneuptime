@@ -10,6 +10,8 @@ module.exports = {
                 device: result,
                 status,
             });
+            console.log(ipLocation, 'ip location log');
+
             MailService.sendLoginEmail(
                 user.email,
                 ipLocation,
