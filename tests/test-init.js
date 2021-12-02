@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const utils = require('./test-utils');
 const chai = require('chai');
 chai.use(require('chai-http'));
