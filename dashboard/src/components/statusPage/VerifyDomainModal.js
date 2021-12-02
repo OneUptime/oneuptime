@@ -48,7 +48,7 @@ class VerifyDomainModal extends Component {
                             <ClickOutside onClickOutside={closeThisDialog}>
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>Verify Domain</span>
                                         </span>
                                     </div>
