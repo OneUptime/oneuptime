@@ -233,9 +233,7 @@ router.post('/signup', async function(req, res) {
                 });
             }
             // Call the UserService.
-            //console.log('Sign Up Data: ', data);
             user = await UserService.signup(data);
-            //console.log('Returned User: ', user);
             // Call the MailService.
             MailService.sendSignupMail(user.email, user.name);
 
