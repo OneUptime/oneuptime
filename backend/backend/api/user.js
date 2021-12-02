@@ -513,6 +513,8 @@ router.post('/sso/callback', async function(req, res) {
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/login', async function(req, res) {
+    const clientIP = ipClient.getClientIp(req).join();
+
     try {
         const data = req.body;
         const clientIP = Ip.getClientIp(req)[0];
