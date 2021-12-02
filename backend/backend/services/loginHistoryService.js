@@ -10,6 +10,7 @@ module.exports = {
                 device: result,
                 status,
             });
+
             MailService.sendLoginEmail(
                 user.email,
                 ipLocation,
