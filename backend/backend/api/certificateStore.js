@@ -123,4 +123,28 @@ router.post('/certOrder', async (req, res) => {
     }
 });
 
+// order ssl certificate for a particular domain
+// id => domain/subdomain
+router.post('/certOrder/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const greenlock = global.greenlock;
+
+        if (greenlock) {
+            await greenlock.add({
+                subject: id,
+                altnames: [id],
+            });
+        }
+
+        return sendItemResponse(
+            req,
+            res,
+            `SSL certificate order for ${id} is processed`
+        );
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
