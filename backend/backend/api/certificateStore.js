@@ -147,4 +147,24 @@ router.post('/certOrder/:id', async (req, res) => {
     }
 });
 
+// delete ssl certificate for a particular domain
+// and remove it from certificate order queue
+// id => domain/subdomain
+router.delete('/certDelete/:id', async (req, res) => {
+    try {
+        const greenlock = global.greenlock;
+        const { id } = req.params;
+
+        if (greenlock) {
+            greenlock.remove({ subject: id }).finally(() => {
+                CertificateStoreService.deleteBy({
+                    id,
+                });
+            });
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
