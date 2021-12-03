@@ -17,9 +17,10 @@ ONEUPTIME_DB_PASSWORD='password'
 ONEUPTIME_DB_NAME='fyipedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
-FILE_NAME="restore-file.archive"
-FILE_PATH="/$CURRENT_USER/db-backup"
-TODAY=$(date +"%d%b%Y")
+FILE_NAME="oneuptime-backup-1638534940.archive"
+FILE_PATH=~/db-backup
+TODAY=$(date +"%d-%b-%Y")
+ENVIRONMENT='Staging'
 
 function HELP() {
 	echo ""
@@ -28,12 +29,11 @@ function HELP() {
 	echo "all arguments are optional and have a default value when not set"
 	echo ""
 	echo " -f       Name of file to be restored"
-	echo " -t       Mongodb host. Default value 'staging host for mongodb'"
-	echo " -o       Mongodb port. Default value '27017'"
 	echo " -l       File path on local system where file will be restored from. Default value - $FILE_PATH"
-	echo " -n       Database name. Default value 'oneuptime'"
+	echo " -n       Database name. Default value 'fyipedb'"
 	echo " -p       Database password. Default value 'password'"
-	echo " -u       Set database username. Default value 'oneuptime'."
+	echo " -u       Set database username. Default value 'fyipe'."
+	echo " -v       Set database environment. Enums {Production, Staging}, defaults to 'Staging'."
 	echo ""
 	echo " -h       Help."
 	echo ""
@@ -41,7 +41,7 @@ function HELP() {
 }
 
 # PASS IN ARGUMENTS
-while getopts "t:o:u:p:n:l:f:h" opt; do
+while getopts "u:p:n:l:f:v:h" opt; do
 	case $opt in
 	u)
 		ONEUPTIME_DB_USERNAME="$OPTARG"
@@ -58,11 +58,8 @@ while getopts "t:o:u:p:n:l:f:h" opt; do
 	f)
 		FILE_NAME="$OPTARG"
 		;;
-	t)
-		MONGO_HOST="$OPTARG"
-		;;
-	o)
-		MONGO_PORT="$OPTARG"
+	v)
+		ENVIRONMENT="$OPTARG"
 		;;
 	h)
 		HELP
@@ -88,7 +85,7 @@ function RESTORE_SUCCESS() {
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "*Restore complete*\n Date:'${TODAY}'\nFile Name: '${FILE_NAME}'"
+				"text": "*'$ENVIRONMENT' Restore Complete*\n Date: '$TODAY'\nFile Name: '${FILE_NAME}'"
 			}
 		},
 		{
@@ -111,7 +108,7 @@ function RESTORE_FAIL_SERVER() {
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "*Restore Failed*\n Date:'${TODAY}'\nReason: Could not restore database.\nFile Name: '${FILE_NAME}'"
+				"text": "*'$ENVIRONMENT' Restore Failed*\n Date: '$TODAY'\nReason: Could not restore database.\nFile Name: '${FILE_NAME}'"
 			}
 		},
 		{
@@ -134,7 +131,7 @@ function RESTORE_FAIL_LOCAL() {
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "*Restore Failed*\n Date:'${TODAY}'\nReason: Could not copy backup to container.\nFile Name: '${FILE_NAME}'"
+				"text": "*'$ENVIRONMENT' Restore Failed*\n Date: '$TODAY'\nReason: Could not copy backup to container.\nFile Name: '${FILE_NAME}'"
 			}
 		},
 		{
@@ -147,7 +144,7 @@ function RESTORE_FAIL_LOCAL() {
 
 echo "Restoring Database. This will take some time...."
 echo ""
-if mongorestore --authenticationDatabase="${ONEUPTIME_DB_NAME}" --host="${MONGO_SERVER_HOST}" --db="${ONEUPTIME_DB_NAME}" --port="${MONGO_SERVER_PORT}" --username="${ONEUPTIME_DB_USERNAME}" --password="${ONEUPTIME_DB_PASSWORD}" --archive="$FILE_PATH/$FILE_NAME"; then
+if mongorestore --authenticationDatabase="${ONEUPTIME_DB_NAME}" --host="${MONGO_SERVER_HOST}" --port="${MONGO_SERVER_PORT}" --username="${ONEUPTIME_DB_USERNAME}" --password="${ONEUPTIME_DB_PASSWORD}" --archive="$FILE_PATH/$FILE_NAME"; then
 	echo "Restore success"
 	RESTORE_SUCCESS
 else

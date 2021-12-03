@@ -16,7 +16,8 @@ CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 BACKUP_PATH=~/db-backup
 BACKUP_RETAIN_DAYS=2
-TODAY=`date +"%d%b%Y"`
+TODAY=`date +"%d-%b-%Y"`
+ENVIRONMENT='Staging'
 
 red=$(tput setaf 1)
 green=$(tput setaf 2)
@@ -34,13 +35,12 @@ function HELP() {
   echo "all arguments are optional and have a default value when not set"
   echo ""
   echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
-  echo " -r       Mongodb host. Default value 'staging host for mongodb'"
-  echo " -o       Mongodb port. Default value '27017'"
   echo " -n       Database name. Default value 'fyipedb'"
   echo " -p       Database password. Default value 'password'"
   echo " -r       Helm release name. Default value 'fi'"
   echo " -t       Backup retain days. Set the number of days backup is kept before it is deleted. Default value '14'"
   echo " -u       Set database username. Default value 'fyipe'."
+  echo " -v       Set database environment. Enums {Production, Staging}, defaults to 'Staging'."
   echo ""
   echo " -h       Help."
   echo ""
@@ -48,7 +48,7 @@ function HELP() {
 }
 
 # PASS IN ARGUMENTS
-while getopts "u:p:n:l:t:o:r:h" opt; do
+while getopts "u:p:n:l:t:v:h" opt; do
   case $opt in
   u)
     ONEUPTIME_DB_USERNAME="$OPTARG"
@@ -65,11 +65,8 @@ while getopts "u:p:n:l:t:o:r:h" opt; do
   t)
     BACKUP_RETAIN_DAYS="$OPTARG"
     ;;
-  r)
-    MONGO_HOST="$OPTARG"
-    ;;
-  o)
-    MONGO_PORT="$OPTARG"
+  v)
+    ENVIRONMENT="$OPTARG"
     ;;
   h)
     HELP
@@ -93,7 +90,7 @@ function BACKUP_SUCCESS(){
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": "*Backup complete*\n Date:'${TODAY}'\nPath: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive"
+          "text": "*'$ENVIRONMENT' Backup Complete*\n Date: '$TODAY'\nPath: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive"
         }
       },
       {
@@ -113,7 +110,7 @@ function BACKUP_FAIL_SERVER(){
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": "*Backup Failed*\n Date:'${TODAY}'\nReason: Could not create backup on container.\nPath: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive"
+          "text": "*'$ENVIRONMENT' Backup Failed*\n Date: '$TODAY'\nReason: Could not create backup on container.\nPath: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive"
         }
       },
       {
@@ -133,7 +130,7 @@ function BACKUP_FAIL_LOCAL(){
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": "*Backup failed*\n Date:'${TODAY}'\nReason: Could not create backup on local path.\nPath: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive"
+          "text": "*'$ENVIRONMENT' Backup Failed*\n Date: '$TODAY'\nReason: Could not create backup on local path.\nPath: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive"
         }
       },
       {
@@ -161,10 +158,11 @@ echo "Sleeping for 1 minute..."
 # Sleeping for 1 mins for database server to cool down.
 sleep 1m
 
+# Ensure the backup directory is already created
+mkdir $BACKUP_PATH || echo "Backup directory already exist!"
+
 # Instead of deleting auditlogs and monitorlogs collection, we can ignore the collection during backup
 # --excludeCollection=auditlogs --excludeCollection=monitorlogs
-
-# Take backup from secondary and not from primary. This will not slow primary down.
 if mongodump --forceTableScan --authenticationDatabase="${ONEUPTIME_DB_NAME}" --host="${MONGO_HOST}" --db="${ONEUPTIME_DB_NAME}" --port="${MONGO_PORT}" --username="${ONEUPTIME_DB_USERNAME}" --password="${ONEUPTIME_DB_PASSWORD}" --archive="$BACKUP_PATH/oneuptime-backup-$CURRENT_DATE.archive" --excludeCollection=auditlogs --excludeCollection=monitorlogs; then
     echo  ${green}"BACKUP SUCCESS $"${reset}
     BACKUP_SUCCESS

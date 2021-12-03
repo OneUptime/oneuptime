@@ -4,7 +4,7 @@ ONEUPTIME_DB_USERNAME='fyipe'
 ONEUPTIME_DB_PASSWORD='password'
 ONEUPTIME_DB_NAME='fyipedb'
 BACKUP_RETAIN_DAYS=14
-BACKUP_PATH=~/Documents/backup
+BACKUP_PATH=~/db-backup
 
 red=$(tput setaf 1)
 green=$(tput setaf 2)
@@ -57,25 +57,7 @@ while getopts "l:p:n:t:u:h" opt; do
   esac
 done
 
-#Step 1: Install Docker and setup registry and insecure access to it.
-if [[ ! $(which kubectl) ]]; then
-  OS_ARCHITECTURE="amd64"
-  if [[ "$(uname -m)" -eq "aarch64" ]]; then OS_ARCHITECTURE="arm64"; fi
-  if [[ "$(uname -m)" -eq "arm64" ]]; then OS_ARCHITECTURE="arm64"; fi
-  #Install Kubectl
-  echo "RUNNING COMMAND: curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/$(OS_ARCHITECTURE)/kubectl"
-  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/$(OS_ARCHITECTURE)/kubectl
-  echo "RUNNING COMMAND: chmod +x ./kubectl"
-  chmod +x ./kubectl
-  echo "RUNNING COMMAND: sudo mv ./kubectl /usr/local/bin/kubectl"
-  sudo mv ./kubectl /usr/local/bin/kubectl
-fi
-
-#  STEP 2: create directories
-mkdir -p ~/.kube
-mkdir -p ${BACKUP_PATH}
-
-# STEP 4 : create service file for backup
+# STEP 1 : create service file for backup
 echo '
 [Unit]
 Description=OneUptime database backup
@@ -83,35 +65,39 @@ Description=OneUptime database backup
 [Service]
 ExecStart=bash '"$HOME"'/backup.sh -u '${ONEUPTIME_DB_USERNAME}' -p '${ONEUPTIME_DB_PASSWORD}' -n '${ONEUPTIME_DB_NAME}' -l '${BACKUP_PATH}' -t '${BACKUP_RETAIN_DAYS}'
 
-' >/etc/systemd/system/backup.service
+' | sudo tee -a /etc/systemd/system/backup.service
 
-#Step 5: Set up timer to run service every 12 hours
+# Step 2: Set up timer to run service every 24 hours
 echo '
 [Unit]
-Description= 12 hours OneUptime backup
+Description= 24 hours OneUptime backup (Runs once per day)
 Requires=backup.service
 
 [Timer]
 Unit=backup.service
-OnCalendar=*-*-* 12:00:00
+OnCalendar=*-*-* 23:59:00
 Persistent=true
 
 [Install]
 WantedBy=timers.target
-' >/etc/systemd/system/backup.timer
+' | sudo tee -a /etc/systemd/system/backup.timer
 
-# STEP 6: make files.sh executable
+# STEP 3: make files.sh executable
 chmod +x "$HOME"/backup.sh
 
-# STEP 7: Start timer
+# STEP 4: Start timer
 sudo systemctl daemon-reload
 
 sudo systemctl enable backup.timer
 
 sudo systemctl start backup.timer
 
-# Install Mongodb locally for mongo cli and mongodump and mongorestore.
-wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-sudo apt-get update
-sudo apt-get install -y mongodb-org
+# STEP 5: Install Mongodb locally for mongo cli and mongodump and mongorestore.
+if [[ ! $(which mongo) ]]; then
+  # install gnupg just incase it's not available on the vm
+  sudo apt-get install -y gnupg
+  wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
+  echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+  sudo apt-get update
+  sudo apt-get install -y mongodb-org
+fi
