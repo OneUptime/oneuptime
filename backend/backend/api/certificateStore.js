@@ -78,7 +78,7 @@ router.delete('/store/:id', async (req, res) => {
     }
 });
 
-router.post('/certOrder', async (req, res) => {
+router.get('/certOrder', async (req, res) => {
     try {
         const domains = [];
         const greenlock = global.greenlock;
@@ -125,22 +125,22 @@ router.post('/certOrder', async (req, res) => {
 
 // order ssl certificate for a particular domain
 // id => domain/subdomain
-router.post('/certOrder/:id', async (req, res) => {
+router.post('/certOrder', async (req, res) => {
     try {
-        const { id } = req.params;
+        const { domain } = req.body;
         const greenlock = global.greenlock;
 
         if (greenlock) {
             await greenlock.add({
-                subject: id,
-                altnames: [id],
+                subject: domain,
+                altnames: [domain],
             });
         }
 
         return sendItemResponse(
             req,
             res,
-            `SSL certificate order for ${id} is processed`
+            `SSL certificate order for ${domain} is processed, check domain in few minutes`
         );
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -153,7 +153,7 @@ router.post('/certOrder/:id', async (req, res) => {
 router.delete('/certDelete/:id', async (req, res) => {
     try {
         const greenlock = global.greenlock;
-        const { id } = req.params;
+        const { id } = req.body;
 
         if (greenlock) {
             greenlock.remove({ subject: id }).finally(() => {
