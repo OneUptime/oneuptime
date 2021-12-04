@@ -320,6 +320,7 @@ module.exports = {
             let doesDomainExist = false;
             const domainList = [...statusPage.domains];
             const updatedDomainList = [];
+
             for (const eachDomain of domainList) {
                 if (String(eachDomain._id) === String(domainId)) {
                     if (eachDomain.domain !== newDomain) {
