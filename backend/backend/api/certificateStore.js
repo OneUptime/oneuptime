@@ -123,4 +123,48 @@ router.post('/certOrder', async (req, res) => {
     }
 });
 
+// order ssl certificate for a particular domain
+// id => domain/subdomain
+router.post('/certOrder/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const greenlock = global.greenlock;
+
+        if (greenlock) {
+            await greenlock.add({
+                subject: id,
+                altnames: [id],
+            });
+        }
+
+        return sendItemResponse(
+            req,
+            res,
+            `SSL certificate order for ${id} is processed`
+        );
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// delete ssl certificate for a particular domain
+// and remove it from certificate order queue
+// id => domain/subdomain
+router.delete('/certDelete/:id', async (req, res) => {
+    try {
+        const greenlock = global.greenlock;
+        const { id } = req.params;
+
+        if (greenlock) {
+            greenlock.remove({ subject: id }).finally(() => {
+                CertificateStoreService.deleteBy({
+                    id,
+                });
+            });
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
