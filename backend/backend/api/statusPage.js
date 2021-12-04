@@ -306,6 +306,8 @@ router.put(
             });
         }
 
+        console.log('UPDATE DOMAIN: ', req.body);
+
         try {
             // response should be an updated statusPage
             const response = await StatusPageService.updateDomain(

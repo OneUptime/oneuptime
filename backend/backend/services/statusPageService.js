@@ -320,6 +320,12 @@ module.exports = {
             let doesDomainExist = false;
             const domainList = [...statusPage.domains];
             const updatedDomainList = [];
+
+            console.log('UPDATE SERVICE: new domain: ', newDomain);
+            console.log('UPDATE SERVICE: domain id: ', domainId);
+            console.log('UPDATE SERVICE: autoprovisioning: ', autoProvisioning);
+            console.log('UPDATE SERVICE: enable https: ', enableHttps);
+
             for (const eachDomain of domainList) {
                 if (String(eachDomain._id) === String(domainId)) {
                     if (eachDomain.domain !== newDomain) {
@@ -350,6 +356,11 @@ module.exports = {
                                 query: { subject: eachDomain.domain },
                                 select: 'id',
                             }
+                        );
+
+                        console.log(
+                            'UPDATE SERVICE: certificate: ',
+                            certificate
                         );
 
                         const greenlock = global.greenlock;
