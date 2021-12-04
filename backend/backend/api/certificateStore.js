@@ -152,12 +152,17 @@ router.delete('/certDelete/:id', async (req, res) => {
         const { id } = req.body;
 
         if (greenlock) {
-            greenlock.remove({ subject: id }).finally(() => {
-                CertificateStoreService.deleteBy({
-                    id,
-                });
+            await greenlock.remove({ subject: id });
+            await CertificateStoreService.deleteBy({
+                id,
             });
         }
+
+        return sendItemResponse(
+            req,
+            res,
+            `Certificate deleted and cert order removed from queue`
+        );
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
