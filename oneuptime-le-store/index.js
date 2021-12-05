@@ -9,15 +9,22 @@ module.exports.create = function(config) {
     const store = {};
     store.options = config;
 
-    const BASE_URL =
-        process.env.NODE_ENV === 'production'
-            ? 'https://oneuptime.com'
-            : process.env.NODE_ENV === 'staging'
-            ? 'https://staging.oneuptime.com'
-            : 'http://localhost:3002';
+    // const BASE_URL =
+    //     process.env.NODE_ENV === 'production'
+    //         ? 'https://oneuptime.com'
+    //         : process.env.NODE_ENV === 'staging'
+    //         ? 'https://staging.oneuptime.com'
+    //         : 'http://localhost:3002';
 
     store.accounts = {
         setKeypair: function(opts) {
+            const BASE_URL =
+                process.env.NODE_ENV === 'production'
+                    ? 'https://oneuptime.com'
+                    : process.env.NODE_ENV === 'staging'
+                    ? 'https://staging.oneuptime.com'
+                    : 'http://localhost:3002';
+
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
@@ -39,6 +46,13 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         checkKeypair: function(opts) {
+            const BASE_URL =
+                process.env.NODE_ENV === 'production'
+                    ? 'https://oneuptime.com'
+                    : process.env.NODE_ENV === 'staging'
+                    ? 'https://staging.oneuptime.com'
+                    : 'http://localhost:3002';
+
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
@@ -55,6 +69,13 @@ module.exports.create = function(config) {
 
     store.certificates = {
         setKeypair: function(opts) {
+            const BASE_URL =
+                process.env.NODE_ENV === 'production'
+                    ? 'https://oneuptime.com'
+                    : process.env.NODE_ENV === 'staging'
+                    ? 'https://staging.oneuptime.com'
+                    : 'http://localhost:3002';
+
             const id =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
@@ -75,6 +96,13 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         checkKeypair: function(opts) {
+            const BASE_URL =
+                process.env.NODE_ENV === 'production'
+                    ? 'https://oneuptime.com'
+                    : process.env.NODE_ENV === 'staging'
+                    ? 'https://staging.oneuptime.com'
+                    : 'http://localhost:3002';
+
             const id =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
@@ -89,6 +117,13 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         set: function(opts) {
+            const BASE_URL =
+                process.env.NODE_ENV === 'production'
+                    ? 'https://oneuptime.com'
+                    : process.env.NODE_ENV === 'staging'
+                    ? 'https://staging.oneuptime.com'
+                    : 'http://localhost:3002';
+
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
@@ -107,6 +142,13 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         check: function(opts) {
+            const BASE_URL =
+                process.env.NODE_ENV === 'production'
+                    ? 'https://oneuptime.com'
+                    : process.env.NODE_ENV === 'staging'
+                    ? 'https://staging.oneuptime.com'
+                    : 'http://localhost:3002';
+
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
