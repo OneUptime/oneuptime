@@ -1,17 +1,10 @@
 'use strict';
 
 const axios = require('axios');
-// const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
+const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 module.exports = {
     create: function(config) {
-        // const BASE_URL =
-        //     process.env.NODE_ENV === 'production'
-        //         ? 'https://oneuptime.com'
-        //         : process.env.NODE_ENV === 'staging'
-        //         ? 'https://staging.oneuptime.com'
-        //         : 'http://localhost:3002';
-
         return {
             // init: function(opts) {
             //     //request = opts.request;
@@ -23,7 +16,7 @@ module.exports = {
 
                 // make api call to backend to store
                 // keyAuthorization, challengeUrl, and token
-                const url = `https://oneuptime.com/api/ssl/challenge`;
+                const url = `${BASE_URL}/api/ssl/challenge`;
                 const dataConfig = {
                     token: ch.token,
                     keyAuthorization: ch.keyAuthorization,
@@ -39,14 +32,14 @@ module.exports = {
             get: function(data) {
                 const ch = data.challenge;
 
-                const url = `https://oneuptime.com/api/ssl/challenge/${ch.token}`;
+                const url = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios.get(url).then(result => result);
             },
 
             remove: function(data) {
                 const ch = data.challenge;
 
-                const url = `https://oneuptime.com/api/ssl/challenge/${ch.token}`;
+                const url = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios({ url, method: 'delete' }).finally(() => null); // always return null
             },
 

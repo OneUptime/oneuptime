@@ -1,7 +1,7 @@
 'use strict';
 
 const axios = require('axios');
-// const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
+const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 // make api call to designated endpoints
 // to make the necessary updates to the db
@@ -9,19 +9,12 @@ module.exports.create = function(config) {
     const store = {};
     store.options = config;
 
-    // const BASE_URL =
-    //     process.env.NODE_ENV === 'production'
-    //         ? 'https://oneuptime.com'
-    //         : process.env.NODE_ENV === 'staging'
-    //         ? 'https://staging.oneuptime.com'
-    //         : 'http://localhost:3002';
-
     store.accounts = {
         setKeypair: function(opts) {
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url = `https://oneuptime.com/api/account/store/${id}`;
+            const url = `${BASE_URL}/api/account/store/${id}`;
             const data = {
                 id: id,
                 privateKeyPem: opts.keypair.privateKeyPem,
@@ -42,7 +35,9 @@ module.exports.create = function(config) {
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url = `https://oneuptime.com/api/account/store/${id}`;
+            const url = `${BASE_URL}/api/account/store/${id}`;
+            console.log('** url **', BASE_URL);
+            console.log('** env **', process.env);
             return axios({
                 url,
                 method: 'get',
@@ -60,7 +55,7 @@ module.exports.create = function(config) {
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
 
-            const url = `https://oneuptime.com/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             const data = {
                 id: id,
                 deleted: false,
@@ -80,7 +75,7 @@ module.exports.create = function(config) {
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
 
-            const url = `https://oneuptime.com/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             return axios({
                 url,
                 method: 'get',
@@ -92,7 +87,7 @@ module.exports.create = function(config) {
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
-            const url = `https://oneuptime.com/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             const data = {
                 id: id,
                 deleted: false,
@@ -110,7 +105,7 @@ module.exports.create = function(config) {
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
-            const url = `https://oneuptime.com/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             return axios({
                 url,
                 method: 'get',
