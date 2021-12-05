@@ -9,7 +9,7 @@
 
 # Variables, please check these before you run the script.
 
-MONGO_SERVER_HOST='a59a474aad89940889c1eb69b1a8f884-826233204.us-east-2.elb.amazonaws.com'
+MONGO_SERVER_HOST='a59a474aad89940889c1eb69b1a8f884-135820180.us-east-2.elb.amazonaws.com'
 MONGO_SERVER_PORT="27017"
 
 ONEUPTIME_DB_USERNAME='fyipe'

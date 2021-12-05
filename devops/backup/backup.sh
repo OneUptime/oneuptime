@@ -5,8 +5,8 @@
 ###
 
 # IP of the mongodb servers.
-MONGO_HOSTS='a59a474aad89940889c1eb69b1a8f884-826233204.us-east-2.elb.amazonaws.com'
-MONGO_HOST='a59a474aad89940889c1eb69b1a8f884-826233204.us-east-2.elb.amazonaws.com' #Add one host because mongodump only supports one host.
+MONGO_HOSTS='a59a474aad89940889c1eb69b1a8f884-135820180.us-east-2.elb.amazonaws.com'
+MONGO_HOST='a59a474aad89940889c1eb69b1a8f884-135820180.us-east-2.elb.amazonaws.com' #Add one host because mongodump only supports one host.
 MONGO_PORT="27017"
 
 ONEUPTIME_DB_USERNAME='fyipe'
