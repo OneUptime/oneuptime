@@ -8,17 +8,24 @@ const Manager = module.exports;
 Manager.create = function(opts) {
     const manager = {};
 
-    const BASE_URL =
-        process.env.NODE_ENV === 'production'
-            ? 'https://oneuptime.com'
-            : process.env.NODE_ENV === 'staging'
-            ? 'https://staging.oneuptime.com'
-            : 'http://localhost:3002';
+    // const BASE_URL =
+    //     process.env.NODE_ENV === 'production'
+    //         ? 'https://oneuptime.com'
+    //         : process.env.NODE_ENV === 'staging'
+    //         ? 'https://staging.oneuptime.com'
+    //         : 'http://localhost:3002';
 
     //
     // REQUIRED (basic issuance)
     //
     manager.get = async function({ servername }) {
+        const BASE_URL =
+            process.env.NODE_ENV === 'production'
+                ? 'https://oneuptime.com'
+                : process.env.NODE_ENV === 'staging'
+                ? 'https://staging.oneuptime.com'
+                : 'http://localhost:3002';
+
         const url = `${BASE_URL}/api/manager/site?servername=${servername}`;
         const response = await axios({
             url,
@@ -32,6 +39,13 @@ Manager.create = function(opts) {
     // REQUIRED (basic issuance)
     //
     manager.set = async function(opts) {
+        const BASE_URL =
+            process.env.NODE_ENV === 'production'
+                ? 'https://oneuptime.com'
+                : process.env.NODE_ENV === 'staging'
+                ? 'https://staging.oneuptime.com'
+                : 'http://localhost:3002';
+
         const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
@@ -46,6 +60,13 @@ Manager.create = function(opts) {
     // Optional (Fully Automatic Renewal)
     //
     manager.find = async function(opts) {
+        const BASE_URL =
+            process.env.NODE_ENV === 'production'
+                ? 'https://oneuptime.com'
+                : process.env.NODE_ENV === 'staging'
+                ? 'https://staging.oneuptime.com'
+                : 'http://localhost:3002';
+
         // { subject, servernames, altnames, renewBefore }
         if (opts.subject) {
             const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
@@ -96,6 +117,13 @@ Manager.create = function(opts) {
     // The default behavior is to set `deletedAt`
     //
     manager.remove = async function(opts) {
+        const BASE_URL =
+            process.env.NODE_ENV === 'production'
+                ? 'https://oneuptime.com'
+                : process.env.NODE_ENV === 'staging'
+                ? 'https://staging.oneuptime.com'
+                : 'http://localhost:3002';
+
         const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
@@ -111,6 +139,13 @@ Manager.create = function(opts) {
     // This is a setter/getter function
     //
     manager.defaults = async function(opts) {
+        const BASE_URL =
+            process.env.NODE_ENV === 'production'
+                ? 'https://oneuptime.com'
+                : process.env.NODE_ENV === 'staging'
+                ? 'https://staging.oneuptime.com'
+                : 'http://localhost:3002';
+
         if (!opts) {
             const url = `${BASE_URL}/api/manager/default`;
             const response = await axios({
