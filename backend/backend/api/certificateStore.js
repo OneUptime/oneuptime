@@ -82,42 +82,87 @@ router.post('/certOrder', async (req, res) => {
     try {
         const domains = [];
         const greenlock = global.greenlock;
-
-        const statusPages = await StatusPageService.findBy({
-            query: {
-                'domains.enableHttps': { $eq: true },
-                'domains.autoProvisioning': { $eq: true },
-                'domains.domain': { $type: 'string' },
-            },
-            skip: 0,
-            limit: 99999,
-            select: 'domains',
-        });
-
-        for (const statusPage of statusPages) {
-            for (const domain of statusPage.domains) {
-                if (
-                    domain.domain &&
-                    domain.domain.trim() &&
-                    domain.enableHttps &&
-                    domain.autoProvisioning
-                ) {
-                    domains.push(domain.domain);
-                }
-            }
-        }
+        const { domain } = req.body;
 
         if (greenlock) {
-            for (const domain of domains) {
-                // run in the background
-                greenlock.add({
+            if (domain) {
+                await greenlock.add({
                     subject: domain,
                     altnames: [domain],
                 });
+
+                return sendItemResponse(
+                    req,
+                    res,
+                    `SSL certificate order for ${domain} is processed, check domain in few minutes`
+                );
             }
+
+            const statusPages = await StatusPageService.findBy({
+                query: {
+                    'domains.enableHttps': { $eq: true },
+                    'domains.autoProvisioning': { $eq: true },
+                    'domains.domain': { $type: 'string' },
+                },
+                skip: 0,
+                limit: 99999,
+                select: 'domains',
+            });
+
+            for (const statusPage of statusPages) {
+                for (const domain of statusPage.domains) {
+                    if (
+                        domain.domain &&
+                        domain.domain.trim() &&
+                        domain.enableHttps &&
+                        domain.autoProvisioning
+                    ) {
+                        domains.push(domain.domain);
+                    }
+                }
+            }
+
+            if (greenlock) {
+                for (const domain of domains) {
+                    // run in the background
+                    greenlock.add({
+                        subject: domain,
+                        altnames: [domain],
+                    });
+                }
+            }
+
+            return sendItemResponse(
+                req,
+                res,
+                'Certificate renewal triggered...'
+            );
+        }
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// delete ssl certificate for a particular domain
+// and remove it from certificate order queue
+// id => domain/subdomain
+router.delete('/certDelete/:id', async (req, res) => {
+    try {
+        const greenlock = global.greenlock;
+        const { id } = req.body;
+
+        if (greenlock) {
+            await greenlock.remove({ subject: id });
+            await CertificateStoreService.deleteBy({
+                id,
+            });
         }
 
-        return sendItemResponse(req, res, 'Certificate renewal triggered...');
+        return sendItemResponse(
+            req,
+            res,
+            `Certificate deleted and cert order removed from queue`
+        );
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
