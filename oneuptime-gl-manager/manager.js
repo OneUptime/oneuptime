@@ -19,14 +19,7 @@ Manager.create = function(opts) {
     // REQUIRED (basic issuance)
     //
     manager.get = async function({ servername }) {
-        const BASE_URL =
-            process.env.NODE_ENV === 'production'
-                ? 'https://oneuptime.com'
-                : process.env.NODE_ENV === 'staging'
-                ? 'https://staging.oneuptime.com'
-                : 'http://localhost:3002';
-
-        const url = `${BASE_URL}/api/manager/site?servername=${servername}`;
+        const url = `https://oneuptime.com/api/manager/site?servername=${servername}`;
         const response = await axios({
             url,
             method: 'get',
@@ -39,14 +32,7 @@ Manager.create = function(opts) {
     // REQUIRED (basic issuance)
     //
     manager.set = async function(opts) {
-        const BASE_URL =
-            process.env.NODE_ENV === 'production'
-                ? 'https://oneuptime.com'
-                : process.env.NODE_ENV === 'staging'
-                ? 'https://staging.oneuptime.com'
-                : 'http://localhost:3002';
-
-        const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
+        const url = `https://oneuptime.com/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
             method: 'put',
@@ -60,16 +46,9 @@ Manager.create = function(opts) {
     // Optional (Fully Automatic Renewal)
     //
     manager.find = async function(opts) {
-        const BASE_URL =
-            process.env.NODE_ENV === 'production'
-                ? 'https://oneuptime.com'
-                : process.env.NODE_ENV === 'staging'
-                ? 'https://staging.oneuptime.com'
-                : 'http://localhost:3002';
-
         // { subject, servernames, altnames, renewBefore }
         if (opts.subject) {
-            const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
+            const url = `https://oneuptime.com/api/manager/site?subject=${opts.subject}`;
             const response = await axios({
                 url,
                 method: 'get',
@@ -82,7 +61,7 @@ Manager.create = function(opts) {
         }
 
         if (Array.isArray(opts.servernames) && opts.servernames.length > 0) {
-            const url = `${BASE_URL}/api/manager/site/servernames`;
+            const url = `https://oneuptime.com/api/manager/site/servernames`;
             const response = await axios({
                 url,
                 method: 'post',
@@ -102,7 +81,7 @@ Manager.create = function(opts) {
         opts.renewBefore =
             opts.renewBefore || Date.now() + 21 * 24 * 60 * 60 * 1000;
 
-        const url = `${BASE_URL}/api/manager/site/opts`;
+        const url = `https://oneuptime.com/api/manager/site/opts`;
         const response = await axios({
             url,
             method: 'post',
@@ -117,14 +96,7 @@ Manager.create = function(opts) {
     // The default behavior is to set `deletedAt`
     //
     manager.remove = async function(opts) {
-        const BASE_URL =
-            process.env.NODE_ENV === 'production'
-                ? 'https://oneuptime.com'
-                : process.env.NODE_ENV === 'staging'
-                ? 'https://staging.oneuptime.com'
-                : 'http://localhost:3002';
-
-        const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
+        const url = `https://oneuptime.com/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
             method: 'delete',
@@ -139,15 +111,8 @@ Manager.create = function(opts) {
     // This is a setter/getter function
     //
     manager.defaults = async function(opts) {
-        const BASE_URL =
-            process.env.NODE_ENV === 'production'
-                ? 'https://oneuptime.com'
-                : process.env.NODE_ENV === 'staging'
-                ? 'https://staging.oneuptime.com'
-                : 'http://localhost:3002';
-
         if (!opts) {
-            const url = `${BASE_URL}/api/manager/default`;
+            const url = `https://oneuptime.com/api/manager/default`;
             const response = await axios({
                 url,
                 method: 'get',
@@ -155,7 +120,7 @@ Manager.create = function(opts) {
             return response.data ? response.data : {};
         }
 
-        const url = `${BASE_URL}/api/manager/default`;
+        const url = `https://oneuptime.com/api/manager/default`;
         const response = await axios({
             url,
             method: 'put',

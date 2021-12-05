@@ -18,17 +18,10 @@ module.exports.create = function(config) {
 
     store.accounts = {
         setKeypair: function(opts) {
-            const BASE_URL =
-                process.env.NODE_ENV === 'production'
-                    ? 'https://oneuptime.com'
-                    : process.env.NODE_ENV === 'staging'
-                    ? 'https://staging.oneuptime.com'
-                    : 'http://localhost:3002';
-
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url = `${BASE_URL}/api/account/store/${id}`;
+            const url = `https://oneuptime.com/api/account/store/${id}`;
             const data = {
                 id: id,
                 privateKeyPem: opts.keypair.privateKeyPem,
@@ -46,17 +39,10 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         checkKeypair: function(opts) {
-            const BASE_URL =
-                process.env.NODE_ENV === 'production'
-                    ? 'https://oneuptime.com'
-                    : process.env.NODE_ENV === 'staging'
-                    ? 'https://staging.oneuptime.com'
-                    : 'http://localhost:3002';
-
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url = `${BASE_URL}/api/account/store/${id}`;
+            const url = `https://oneuptime.com/api/account/store/${id}`;
             return axios({
                 url,
                 method: 'get',
@@ -69,19 +55,12 @@ module.exports.create = function(config) {
 
     store.certificates = {
         setKeypair: function(opts) {
-            const BASE_URL =
-                process.env.NODE_ENV === 'production'
-                    ? 'https://oneuptime.com'
-                    : process.env.NODE_ENV === 'staging'
-                    ? 'https://staging.oneuptime.com'
-                    : 'http://localhost:3002';
-
             const id =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
 
-            const url = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `https://oneuptime.com/api/certificate/store/${id}`;
             const data = {
                 id: id,
                 deleted: false,
@@ -96,19 +75,12 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         checkKeypair: function(opts) {
-            const BASE_URL =
-                process.env.NODE_ENV === 'production'
-                    ? 'https://oneuptime.com'
-                    : process.env.NODE_ENV === 'staging'
-                    ? 'https://staging.oneuptime.com'
-                    : 'http://localhost:3002';
-
             const id =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
 
-            const url = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `https://oneuptime.com/api/certificate/store/${id}`;
             return axios({
                 url,
                 method: 'get',
@@ -117,17 +89,10 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         set: function(opts) {
-            const BASE_URL =
-                process.env.NODE_ENV === 'production'
-                    ? 'https://oneuptime.com'
-                    : process.env.NODE_ENV === 'staging'
-                    ? 'https://staging.oneuptime.com'
-                    : 'http://localhost:3002';
-
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
-            const url = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `https://oneuptime.com/api/certificate/store/${id}`;
             const data = {
                 id: id,
                 deleted: false,
@@ -142,17 +107,10 @@ module.exports.create = function(config) {
                 .finally(() => null);
         },
         check: function(opts) {
-            const BASE_URL =
-                process.env.NODE_ENV === 'production'
-                    ? 'https://oneuptime.com'
-                    : process.env.NODE_ENV === 'staging'
-                    ? 'https://staging.oneuptime.com'
-                    : 'http://localhost:3002';
-
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
-            const url = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `https://oneuptime.com/api/certificate/store/${id}`;
             return axios({
                 url,
                 method: 'get',
