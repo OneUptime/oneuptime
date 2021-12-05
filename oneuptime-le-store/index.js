@@ -1,13 +1,20 @@
 'use strict';
 
 const axios = require('axios');
-const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
+// const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 // make api call to designated endpoints
 // to make the necessary updates to the db
 module.exports.create = function(config) {
     const store = {};
     store.options = config;
+
+    const BASE_URL =
+        process.env.NODE_ENV === 'production'
+            ? 'https://oneuptime.com'
+            : process.env.NODE_ENV === 'staging'
+            ? 'https://staging.oneuptime.com'
+            : 'http://localhost:3002';
 
     store.accounts = {
         setKeypair: function(opts) {
