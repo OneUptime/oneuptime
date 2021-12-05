@@ -42,7 +42,9 @@ module.exports.create = function(config) {
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url = `https://oneuptime.com/api/account/store/${id}`;
+            const url = `${BASE_URL}/api/account/store/${id}`;
+            console.log('** url **', BASE_URL);
+            console.log('** env **', process.env);
             return axios({
                 url,
                 method: 'get',
