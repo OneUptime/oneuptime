@@ -199,31 +199,36 @@ const Services = {
         projectId,
         alertOptions
     ) {
-        const description = 'Recharge balance';
-        const stripechargeAmount = chargeAmount * 100;
-        const user = await UserService.findOneBy({
-            query: { _id: userId },
-            select: 'stripeCustomerId',
-        });
-        const stripeCustomerId = user.stripeCustomerId;
-        let metadata;
-        if (alertOptions) {
-            metadata = {
-                projectId,
-                ...alertOptions,
-            };
-        } else {
-            metadata = {
-                projectId,
-            };
+        try {
+            const description = 'Recharge balance';
+            const stripechargeAmount = chargeAmount * 100;
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'stripeCustomerId',
+            });
+            const stripeCustomerId = user.stripeCustomerId;
+            let metadata;
+            if (alertOptions) {
+                metadata = {
+                    projectId,
+                    ...alertOptions,
+                };
+            } else {
+                metadata = {
+                    projectId,
+                };
+            }
+            const paymentIntent = await this.createInvoice(
+                stripechargeAmount,
+                stripeCustomerId,
+                description,
+                metadata
+            );
+            return paymentIntent;
+        } catch (error) {
+            ErrorService.log('stripeService.chargeCustomerForBalance', error);
+            throw error;
         }
-        const paymentIntent = await this.createInvoice(
-            stripechargeAmount,
-            stripeCustomerId,
-            description,
-            metadata
-        );
-        return paymentIntent;
     },
 
     updateBalance: async function(paymentIntent) {

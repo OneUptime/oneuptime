@@ -301,28 +301,33 @@ module.exports = {
 
     subscriberCheck: async function(subscriber) {
         const _this = this;
-        const existingSubscriber = await _this.findByOne({
-            query: {
-                monitorId: subscriber.monitorId,
-                subscribed: true,
-                ...(subscriber.statusPageId && {
-                    statusPageId: subscriber.statusPageId,
-                }),
-                ...(subscriber.alertVia === 'sms' && {
-                    contactPhone: subscriber.contactPhone,
-                    countryCode: subscriber.countryCode,
-                }),
-                ...(subscriber.alertVia === 'email' && {
-                    contactEmail: subscriber.contactEmail,
-                }),
-                ...(subscriber.alertVia === 'webhook' && {
-                    contactWebhook: subscriber.contactWebhook,
-                    contactEmail: subscriber.contactEmail,
-                }),
-            },
-            select: '_id',
-        });
-        return existingSubscriber !== null;
+        try {
+            const existingSubscriber = await _this.findByOne({
+                query: {
+                    monitorId: subscriber.monitorId,
+                    subscribed: true,
+                    ...(subscriber.statusPageId && {
+                        statusPageId: subscriber.statusPageId,
+                    }),
+                    ...(subscriber.alertVia === 'sms' && {
+                        contactPhone: subscriber.contactPhone,
+                        countryCode: subscriber.countryCode,
+                    }),
+                    ...(subscriber.alertVia === 'email' && {
+                        contactEmail: subscriber.contactEmail,
+                    }),
+                    ...(subscriber.alertVia === 'webhook' && {
+                        contactWebhook: subscriber.contactWebhook,
+                        contactEmail: subscriber.contactEmail,
+                    }),
+                },
+                select: '_id',
+            });
+            return existingSubscriber !== null;
+        } catch (error) {
+            ErrorService.log('subscriberService.subscriberCheck', error);
+            throw error;
+        }
     },
 
     findByOne: async function({ query, select, populate }) {
@@ -384,11 +389,28 @@ module.exports = {
 
     restoreBy: async function(query) {
         const _this = this;
-        query.deleted = true;
-        let subscriber = await _this.findBy({ query, select: '_id' });
-        if (subscriber && subscriber.length > 1) {
-            const subscribers = await Promise.all(
-                subscriber.map(async subscriber => {
+        try {
+            query.deleted = true;
+            let subscriber = await _this.findBy({ query, select: '_id' });
+            if (subscriber && subscriber.length > 1) {
+                const subscribers = await Promise.all(
+                    subscriber.map(async subscriber => {
+                        const subscriberId = subscriber._id;
+                        subscriber = await _this.updateOneBy(
+                            { _id: subscriberId, deleted: true },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        return subscriber;
+                    })
+                );
+                return subscribers;
+            } else {
+                subscriber = subscriber[0];
+                if (subscriber) {
                     const subscriberId = subscriber._id;
                     subscriber = await _this.updateOneBy(
                         { _id: subscriberId, deleted: true },
@@ -398,24 +420,11 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                    return subscriber;
-                })
-            );
-            return subscribers;
-        } else {
-            subscriber = subscriber[0];
-            if (subscriber) {
-                const subscriberId = subscriber._id;
-                subscriber = await _this.updateOneBy(
-                    { _id: subscriberId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
+                }
+                return subscriber;
             }
-            return subscriber;
+        } catch (error) {
+            ErrorService.log('subscriberService.restoreBy', error);
         }
     },
 };

@@ -1,12 +1,17 @@
 module.exports = {
     updateCriterion: async function(_id, lastMatchedCriterion) {
-        await monitorCollection.updateOne(
-            {
-                _id: ObjectId(_id),
-                $or: [{ deleted: false }, { deleted: { $exists: false } }],
-            },
-            { $set: { lastMatchedCriterion } }
-        );
+        try {
+            await monitorCollection.updateOne(
+                {
+                    _id: ObjectId(_id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+                },
+                { $set: { lastMatchedCriterion } }
+            );
+        } catch (error) {
+            ErrorService.log('monitorService.updateCriterion', error);
+            throw error;
+        }
     },
 
     updateScanStatus: async function(monitorIds, status) {
@@ -80,42 +85,55 @@ module.exports = {
         lighthouseScanStatus,
         lighthouseScannedBy
     ) {
-        const updateData = {};
+        try {
+            const updateData = {};
 
-        if (lighthouseScanStatus !== 'scanning') {
-            updateData.lighthouseScannedAt = new Date(moment().format());
-            updateData.lighthouseScannedBy = lighthouseScannedBy;
-        } else {
-            updateData.fetchLightHouse = null;
-        }
-
-        await monitorCollection.updateOne(
-            {
-                _id: ObjectId(_id),
-                $or: [{ deleted: false }, { deleted: { $exists: false } }],
-            },
-            {
-                $set: {
-                    lighthouseScanStatus,
-                    ...updateData,
-                },
+            if (lighthouseScanStatus !== 'scanning') {
+                updateData.lighthouseScannedAt = new Date(moment().format());
+                updateData.lighthouseScannedBy = lighthouseScannedBy;
+            } else {
+                updateData.fetchLightHouse = null;
             }
-        );
+
+            await monitorCollection.updateOne(
+                {
+                    _id: ObjectId(_id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+                },
+                {
+                    $set: {
+                        lighthouseScanStatus,
+                        ...updateData,
+                    },
+                }
+            );
+        } catch (error) {
+            ErrorService.log(
+                'monitorService.updateLighthouseScanStatus',
+                error
+            );
+            throw error;
+        }
     },
 
     updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
-        await monitorCollection.updateOne(
-            {
-                _id: ObjectId(_id),
-                $or: [{ deleted: false }, { deleted: { $exists: false } }],
-            },
-            {
-                $set: {
-                    scriptRunStatus,
-                    scriptRunBy,
+        try {
+            await monitorCollection.updateOne(
+                {
+                    _id: ObjectId(_id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
-            }
-        );
+                {
+                    $set: {
+                        scriptRunStatus,
+                        scriptRunBy,
+                    },
+                }
+            );
+        } catch (error) {
+            ErrorService.log('monitorService.updateScriptStatus', error);
+            throw error;
+        }
     },
 
     async findOneBy({ query }) {

@@ -191,20 +191,25 @@ module.exports = {
     },
 
     search: async function({ filter, skip, limit }) {
-        const _this = this;
-        const query = {
-            to: { $regex: new RegExp(filter), $options: 'i' },
-        };
+        try {
+            const _this = this;
+            const query = {
+                to: { $regex: new RegExp(filter), $options: 'i' },
+            };
 
-        const selectEmailStatus =
-            'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+            const selectEmailStatus =
+                'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-        const [searchedEmailLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({ query, skip, limit, select: selectEmailStatus }),
-            _this.countBy({ query }),
-        ]);
+            const [searchedEmailLogs, totalSearchCount] = await Promise.all([
+                _this.findBy({ query, skip, limit, select: selectEmailStatus }),
+                _this.countBy({ query }),
+            ]);
 
-        return { searchedEmailLogs, totalSearchCount };
+            return { searchedEmailLogs, totalSearchCount };
+        } catch (error) {
+            ErrorService.log('emailStatusService.search', error);
+            throw error;
+        }
     },
 };
 

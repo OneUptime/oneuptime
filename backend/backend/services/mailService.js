@@ -42,67 +42,72 @@ Handlebars.registerHelper('if_eq', function(a, b, opts) {
 
 const _this = {
     getProjectSmtpSettings: async projectId => {
-        let user,
-            pass,
-            host,
-            port,
-            from,
-            name,
-            secure,
-            internalSmtp,
-            customSmtp,
-            backupConfig;
-        const select =
-            'projectId user pass host port from name iv secure enabled createdAt';
+        try {
+            let user,
+                pass,
+                host,
+                port,
+                from,
+                name,
+                secure,
+                internalSmtp,
+                customSmtp,
+                backupConfig;
+            const select =
+                'projectId user pass host port from name iv secure enabled createdAt';
 
-        const smtpDb = await EmailSmtpService.findOneBy({
-            query: { projectId, enabled: true },
-            select,
-            populate: [{ path: 'projectId', select: 'name' }],
-        });
-        if (
-            smtpDb &&
-            smtpDb.user &&
-            smtpDb.user !== null &&
-            smtpDb.user !== undefined
-        ) {
-            user = smtpDb.user;
-            pass = smtpDb.pass;
-            host = smtpDb.host;
-            port = smtpDb.port;
-            from = smtpDb.from;
-            name = smtpDb.name || 'OneUptime';
-            secure = smtpDb.secure;
-        } else {
-            const globalSettings = await _this.getSmtpSettings();
-            if (!isEmpty(globalSettings)) {
-                user = globalSettings.user;
-                pass = globalSettings.pass;
-                host = globalSettings.host;
-                port = globalSettings.port;
-                from = globalSettings.from;
-                name = globalSettings.name;
-                secure = globalSettings.secure;
-                internalSmtp = globalSettings.internalSmtp;
-                customSmtp = globalSettings.customSmtp;
-                backupConfig = globalSettings.backupConfig;
+            const smtpDb = await EmailSmtpService.findOneBy({
+                query: { projectId, enabled: true },
+                select,
+                populate: [{ path: 'projectId', select: 'name' }],
+            });
+            if (
+                smtpDb &&
+                smtpDb.user &&
+                smtpDb.user !== null &&
+                smtpDb.user !== undefined
+            ) {
+                user = smtpDb.user;
+                pass = smtpDb.pass;
+                host = smtpDb.host;
+                port = smtpDb.port;
+                from = smtpDb.from;
+                name = smtpDb.name || 'OneUptime';
+                secure = smtpDb.secure;
             } else {
-                return {};
+                const globalSettings = await _this.getSmtpSettings();
+                if (!isEmpty(globalSettings)) {
+                    user = globalSettings.user;
+                    pass = globalSettings.pass;
+                    host = globalSettings.host;
+                    port = globalSettings.port;
+                    from = globalSettings.from;
+                    name = globalSettings.name;
+                    secure = globalSettings.secure;
+                    internalSmtp = globalSettings.internalSmtp;
+                    customSmtp = globalSettings.customSmtp;
+                    backupConfig = globalSettings.backupConfig;
+                } else {
+                    return {};
+                }
             }
-        }
 
-        return {
-            user,
-            pass,
-            host,
-            port,
-            from,
-            name,
-            secure,
-            internalSmtp,
-            customSmtp,
-            backupConfig,
-        };
+            return {
+                user,
+                pass,
+                host,
+                port,
+                from,
+                name,
+                secure,
+                internalSmtp,
+                customSmtp,
+                backupConfig,
+            };
+        } catch (error) {
+            ErrorService.log('mailService.getProjectSmtpSettings', error);
+            throw error;
+        }
     },
 
     getEmailBody: async function(mailOptions) {
@@ -132,91 +137,71 @@ const _this = {
         secure,
         internalSmtp,
     }) {
-        let settings = {};
-        if (!host || !user || !pass) {
-            settings = await _this.getSmtpSettings();
-            if (!isEmpty(settings)) {
-                host = settings.host;
-                port = settings.port;
-                user = settings.user;
-                pass = settings.pass;
-                secure = settings.secure;
+        try {
+            let settings = {};
+            if (!host || !user || !pass) {
+                settings = await _this.getSmtpSettings();
+                if (!isEmpty(settings)) {
+                    host = settings.host;
+                    port = settings.port;
+                    user = settings.user;
+                    pass = settings.pass;
+                    secure = settings.secure;
 
-                if (!settings['email-enabled']) {
-                    return null;
+                    if (!settings['email-enabled']) {
+                        return null;
+                    }
                 }
             }
-        }
 
-        internalSmtp = internalSmtp || settings.internalSmtp;
-        let privateMailer;
+            internalSmtp = internalSmtp || settings.internalSmtp;
+            let privateMailer;
 
-        if (host && user && pass) {
-            if (internalSmtp) {
-                privateMailer = nodemailer.createTransport({
-                    host: host,
-                    port: port,
-                    secure: secure,
-                    auth: {
-                        user: user,
-                        pass: pass,
-                    },
-                    tls: {
-                        // do not fail on invalid certs
-                        // also allow self signed certs
-                        rejectUnauthorized: false,
-                    },
-                });
-            } else {
-                privateMailer = nodemailer.createTransport({
-                    host: host,
-                    port: port,
-                    secure: secure,
-                    auth: {
-                        user: user,
-                        pass: pass,
-                    },
-                });
+            if (host && user && pass) {
+                if (internalSmtp) {
+                    privateMailer = nodemailer.createTransport({
+                        host: host,
+                        port: port,
+                        secure: secure,
+                        auth: {
+                            user: user,
+                            pass: pass,
+                        },
+                        tls: {
+                            // do not fail on invalid certs
+                            // also allow self signed certs
+                            rejectUnauthorized: false,
+                        },
+                    });
+                } else {
+                    privateMailer = nodemailer.createTransport({
+                        host: host,
+                        port: port,
+                        secure: secure,
+                        auth: {
+                            user: user,
+                            pass: pass,
+                        },
+                    });
+                }
+
+                privateMailer.use('compile', hbs(options));
             }
-
-            privateMailer.use('compile', hbs(options));
+            return privateMailer;
+        } catch (error) {
+            ErrorService.log('mailService.createMailer', error);
+            throw error;
         }
-        return privateMailer;
     },
 
     getSmtpSettings: async () => {
-        const document = await GlobalConfigService.findOneBy({
-            query: { name: 'smtp' },
-            select: 'value name',
-        });
-        if (document && document.value && !document.value.internalSmtp) {
-            return {
-                user: document.value.email,
-                pass: document.value.password,
-                host: document.value['smtp-server'],
-                port: document.value['smtp-port'],
-                from: document.value['from'],
-                name: document.value['from-name'] || 'OneUptime',
-                secure: document.value['smtp-secure'],
-                'email-enabled': document.value['email-enabled'],
-            };
-        } else if (
-            document &&
-            document.value &&
-            document.value.internalSmtp &&
-            document.value.customSmtp
-        ) {
-            return {
-                user: process.env.INTERNAL_SMTP_USER,
-                pass: process.env.INTERNAL_SMTP_PASSWORD,
-                host: process.env.INTERNAL_SMTP_SERVER,
-                port: process.env.INTERNAL_SMTP_PORT,
-                from: process.env.INTERNAL_SMTP_FROM,
-                name: process.env.INTERNAL_SMTP_NAME,
-                'email-enabled': document.value['email-enabled'],
-                internalSmtp: document.value.internalSmtp,
-                customSmtp: document.value.customSmtp,
-                backupConfig: {
+        try {
+            const document = await GlobalConfigService.findOneBy({
+                query: { name: 'smtp' },
+                select: 'value name',
+            });
+            if (document && document.value && !document.value.internalSmtp) {
+                return {
                     user: document.value.email,
                     pass: document.value.password,
                     host: document.value['smtp-server'],
@@ -225,53 +210,92 @@ const _this = {
                     name: document.value['from-name'] || 'OneUptime',
                     secure: document.value['smtp-secure'],
                     'email-enabled': document.value['email-enabled'],
-                },
-            };
-        } else if (document && document.value && document.value.internalSmtp) {
-            return {
-                user: process.env.INTERNAL_SMTP_USER,
-                pass: process.env.INTERNAL_SMTP_PASSWORD,
-                host: process.env.INTERNAL_SMTP_SERVER,
-                port: process.env.INTERNAL_SMTP_PORT,
-                from: process.env.INTERNAL_SMTP_FROM,
-                name: process.env.INTERNAL_SMTP_NAME,
-                'email-enabled': document.value['email-enabled'],
-                internalSmtp: document.value.internalSmtp,
-            };
-        }
+                };
+            } else if (
+                document &&
+                document.value &&
+                document.value.internalSmtp &&
+                document.value.customSmtp
+            ) {
+                return {
+                    user: process.env.INTERNAL_SMTP_USER,
+                    pass: process.env.INTERNAL_SMTP_PASSWORD,
+                    host: process.env.INTERNAL_SMTP_SERVER,
+                    port: process.env.INTERNAL_SMTP_PORT,
+                    from: process.env.INTERNAL_SMTP_FROM,
+                    name: process.env.INTERNAL_SMTP_NAME,
+                    'email-enabled': document.value['email-enabled'],
+                    internalSmtp: document.value.internalSmtp,
+                    customSmtp: document.value.customSmtp,
+                    backupConfig: {
+                        user: document.value.email,
+                        pass: document.value.password,
+                        host: document.value['smtp-server'],
+                        port: document.value['smtp-port'],
+                        from: document.value['from'],
+                        name: document.value['from-name'] || 'OneUptime',
+                        secure: document.value['smtp-secure'],
+                        'email-enabled': document.value['email-enabled'],
+                    },
+                };
+            } else if (
+                document &&
+                document.value &&
+                document.value.internalSmtp
+            ) {
+                return {
+                    user: process.env.INTERNAL_SMTP_USER,
+                    pass: process.env.INTERNAL_SMTP_PASSWORD,
+                    host: process.env.INTERNAL_SMTP_SERVER,
+                    port: process.env.INTERNAL_SMTP_PORT,
+                    from: process.env.INTERNAL_SMTP_FROM,
+                    name: process.env.INTERNAL_SMTP_NAME,
+                    'email-enabled': document.value['email-enabled'],
+                    internalSmtp: document.value.internalSmtp,
+                };
+            }
 
-        // this should be handled gracefully
-        // if there's no settings, no email should be sent
-        // throwing error here is not needed
-        const error = new Error('SMTP settings not found.');
-        ErrorService.log('mailService.getSmtpSettings', error);
-        return {};
+            // this should be handled gracefully
+            // if there's no settings, no email should be sent
+            // throwing error here is not needed
+            const error = new Error('SMTP settings not found.');
+            ErrorService.log('mailService.getSmtpSettings', error);
+            return {};
+        } catch (error) {
+            ErrorService.log('mailService.getSmtpSettings', error);
+            throw error;
+        }
     },
 
     getTemplates: async (emailTemplate, emailType) => {
-        const defaultTemplate = defaultEmailTemplates.filter(
-            template => template.emailType === emailType
-        );
-        let emailContent = defaultTemplate[0].body;
-        let emailSubject = defaultTemplate[0].subject;
+        try {
+            const defaultTemplate = defaultEmailTemplates.filter(
+                template => template.emailType === emailType
+            );
+            let emailContent = defaultTemplate[0].body;
+            let emailSubject = defaultTemplate[0].subject;
 
-        if (
-            emailTemplate != null &&
-            emailTemplate != undefined &&
-            emailTemplate.body
-        ) {
-            emailContent = emailTemplate.body;
+            if (
+                emailTemplate != null &&
+                emailTemplate != undefined &&
+                emailTemplate.body
+            ) {
+                emailContent = emailTemplate.body;
+            }
+            if (
+                emailTemplate != null &&
+                emailTemplate != undefined &&
+                emailTemplate.subject
+            ) {
+                emailSubject = emailTemplate.subject;
+            }
+            const template = Handlebars.compile(emailContent);
+            const subject = Handlebars.compile(emailSubject);
+            return { template, subject };
+        } catch (error) {
+            ErrorService.log('mailService.getTemplates', error);
+            throw error;
         }
-        if (
-            emailTemplate != null &&
-            emailTemplate != undefined &&
-            emailTemplate.subject
-        ) {
-            emailSubject = emailTemplate.subject;
-        }
-        const template = Handlebars.compile(emailContent);
-        const subject = Handlebars.compile(emailSubject);
-        return { template, subject };
     },
     // Description: Mails to user if they have successfully signed up.
     // Params:
@@ -420,177 +444,183 @@ const _this = {
         twoFactorEnabled,
         status
     ) {
-        let mailOptions = {};
-        let EmailBody;
-        let smtpServer;
-        let locations;
-        let device;
-        let statusMessage;
-        const os = deviceObj && deviceObj.os && deviceObj.os.name;
-        const browser = deviceObj && deviceObj.client && deviceObj.client.name;
-        if (location.city && location.country) {
-            locations = `${location.city}, ${location.country}.`;
-        } else if (!location.city && location.country) {
-            locations = `${location.country}.`;
-        } else if (location.city && !location.country) {
-            locations = `${location.city}.`;
-        } else {
-            locations = 'Unknown Location';
-        }
-
-        if (os && browser) {
-            device = `${browser} on ${os}.`;
-        } else if (!os && browser) {
-            device = `${browser} on an Unknown Device.`;
-        } else if (os && !browser) {
-            device = `unknown browser on ${os}`;
-        } else {
-            device = 'Unknown Device';
-        }
-        if (status === 'successful') {
-            statusMessage = 'a successful';
-        } else {
-            statusMessage = 'an unsuccessful';
-        }
-
         try {
-            let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!isEmpty(accountMail)) {
-                if (!accountMail.internalSmtp) {
-                    smtpServer = accountMail.host;
-                }
-                mailOptions = {
-                    from: `"${accountMail.name}" <${accountMail.from}>`,
-                    to: userEmail,
-                    subject: `New login to OneUptime from ${device}`,
-                    template: 'user_login_body',
-                    context: {
-                        homeURL: global.homeHost,
-                        userEmail,
-                        dashboardURL: global.dashboardHost,
-                        ip: location.ip,
-                        locations,
-                        device,
-                        twoFactorEnabled,
-                        statusMessage,
-                    },
-                };
+            let mailOptions = {};
+            let EmailBody;
+            let smtpServer;
+            let locations;
+            let device;
+            let statusMessage;
+            const os = deviceObj && deviceObj.os && deviceObj.os.name;
+            const browser =
+                deviceObj && deviceObj.client && deviceObj.client.name;
+            if (location.city && location.country) {
+                locations = `${location.city}, ${location.country}.`;
+            } else if (!location.city && location.country) {
+                locations = `${location.country}.`;
+            } else if (location.city && !location.country) {
+                locations = `${location.city}.`;
+            } else {
+                locations = 'Unknown Location';
+            }
 
-                const [mailer, mailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
-                ]);
-                EmailBody = mailBody;
+            if (os && browser) {
+                device = `${browser} on ${os}.`;
+            } else if (!os && browser) {
+                device = `${browser} on an Unknown Device.`;
+            } else if (os && !browser) {
+                device = `unknown browser on ${os}`;
+            } else {
+                device = 'Unknown Device';
+            }
+            if (status === 'successful') {
+                statusMessage = 'a successful';
+            } else {
+                statusMessage = 'an unsuccessful';
+            }
 
-                if (!mailer) {
-                    await EmailStatusService.create({
-                        from: mailOptions.from,
-                        to: mailOptions.to,
-                        subject: mailOptions.subject,
-                        template: mailOptions.template,
-                        status: 'Email not enabled.',
-                        content: EmailBody,
-                        error: 'Email not enabled.',
-                        smtpServer,
-                    });
-                    return;
-                }
+            try {
+                let accountMail = await _this.getSmtpSettings();
+                smtpServer = 'internal';
+                if (!isEmpty(accountMail)) {
+                    if (!accountMail.internalSmtp) {
+                        smtpServer = accountMail.host;
+                    }
+                    mailOptions = {
+                        from: `"${accountMail.name}" <${accountMail.from}>`,
+                        to: userEmail,
+                        subject: `New login to OneUptime from ${device}`,
+                        template: 'user_login_body',
+                        context: {
+                            homeURL: global.homeHost,
+                            userEmail,
+                            dashboardURL: global.dashboardHost,
+                            ip: location.ip,
+                            locations,
+                            device,
+                            twoFactorEnabled,
+                            statusMessage,
+                        },
+                    };
 
-                let info = {};
-                try {
-                    info = await mailer.sendMail(mailOptions);
+                    const [mailer, mailBody] = await Promise.all([
+                        _this.createMailer({}),
+                        _this.getEmailBody(mailOptions),
+                    ]);
+                    EmailBody = mailBody;
 
-                    await EmailStatusService.create({
-                        from: mailOptions.from,
-                        to: mailOptions.to,
-                        subject: mailOptions.subject,
-                        template: mailOptions.template,
-                        status: 'Success',
-                        content: EmailBody,
-                        smtpServer,
-                    });
-                } catch (error) {
-                    if (error.code === 'ECONNECTION') {
-                        if (
-                            accountMail.internalSmtp &&
-                            accountMail.customSmtp &&
-                            !isEmpty(accountMail.backupConfig)
-                        ) {
-                            smtpServer = accountMail.backupConfig.host;
-                            accountMail = {
-                                ...accountMail.backupConfig,
-                            };
-                            mailOptions = {
-                                from: `"${accountMail.name}" <${accountMail.from}>`,
-                                to: userEmail,
-                                subject: `New login to OneUptime from ${device}`,
-                                template: 'user_login_body',
-                                context: {
-                                    homeURL: global.homeHost,
-                                    userEmail,
-                                    dashboardURL: global.dashboardHost,
-                                    ip: location.ip,
-                                    locations,
-                                    device,
-                                    twoFactorEnabled,
-                                    statusMessage,
-                                },
-                            };
+                    if (!mailer) {
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Email not enabled.',
+                            content: EmailBody,
+                            error: 'Email not enabled.',
+                            smtpServer,
+                        });
+                        return;
+                    }
 
-                            const [mailer, mailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
-                            ]);
-                            EmailBody = mailBody;
+                    let info = {};
+                    try {
+                        info = await mailer.sendMail(mailOptions);
 
-                            if (!mailer) {
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } catch (error) {
+                        if (error.code === 'ECONNECTION') {
+                            if (
+                                accountMail.internalSmtp &&
+                                accountMail.customSmtp &&
+                                !isEmpty(accountMail.backupConfig)
+                            ) {
+                                smtpServer = accountMail.backupConfig.host;
+                                accountMail = {
+                                    ...accountMail.backupConfig,
+                                };
+                                mailOptions = {
+                                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                                    to: userEmail,
+                                    subject: `New login to OneUptime from ${device}`,
+                                    template: 'user_login_body',
+                                    context: {
+                                        homeURL: global.homeHost,
+                                        userEmail,
+                                        dashboardURL: global.dashboardHost,
+                                        ip: location.ip,
+                                        locations,
+                                        device,
+                                        twoFactorEnabled,
+                                        statusMessage,
+                                    },
+                                };
+
+                                const [mailer, mailBody] = await Promise.all([
+                                    _this.createMailer(accountMail),
+                                    _this.getEmailBody(mailOptions),
+                                ]);
+                                EmailBody = mailBody;
+
+                                if (!mailer) {
+                                    await EmailStatusService.create({
+                                        from: mailOptions.from,
+                                        to: mailOptions.to,
+                                        subject: mailOptions.subject,
+                                        template: mailOptions.template,
+                                        status: 'Email not enabled.',
+                                        content: EmailBody,
+                                        error: 'Email not enabled.',
+                                        smtpServer,
+                                    });
+                                    return;
+                                }
+
+                                info = await mailer.sendMail(mailOptions);
+
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
                                     to: mailOptions.to,
                                     subject: mailOptions.subject,
                                     template: mailOptions.template,
-                                    status: 'Email not enabled.',
+                                    status: 'Success',
                                     content: EmailBody,
-                                    error: 'Email not enabled.',
                                     smtpServer,
                                 });
-                                return;
+                            } else {
+                                throw error;
                             }
-
-                            info = await mailer.sendMail(mailOptions);
-
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Success',
-                                content: EmailBody,
-                                smtpServer,
-                            });
                         } else {
                             throw error;
                         }
-                    } else {
-                        throw error;
                     }
-                }
 
-                return info;
+                    return info;
+                }
+            } catch (error) {
+                ErrorService.log('mailService.sendMail', error);
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Error',
+                    content: EmailBody,
+                    error: error.message,
+                    smtpServer,
+                });
+                throw error;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendMail', error);
-            await EmailStatusService.create({
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-                template: mailOptions.template,
-                status: 'Error',
-                content: EmailBody,
-                error: error.message,
-                smtpServer,
-            });
+            ErrorService.log('mailService.sendLoginEmail', error);
             throw error;
         }
     },
@@ -6577,16 +6607,21 @@ const _this = {
         }
     },
     hasCustomSmtpSettings: async projectId => {
-        const select =
-            'projectId user pass host port from name iv secure enabled createdAt';
-        const smtpConfigurations = await EmailSmtpService.findOneBy({
-            query: { projectId, enabled: true },
-            select,
-            populate: [{ path: 'projectId', select: 'name' }],
-        });
-        return Object.keys(smtpConfigurations).length
-            ? smtpConfigurations
-            : false;
+        try {
+            const select =
+                'projectId user pass host port from name iv secure enabled createdAt';
+            const smtpConfigurations = await EmailSmtpService.findOneBy({
+                query: { projectId, enabled: true },
+                select,
+                populate: [{ path: 'projectId', select: 'name' }],
+            });
+            return Object.keys(smtpConfigurations).length
+                ? smtpConfigurations
+                : false;
+        } catch (error) {
+            ErrorService.log('mailService.hasCustomSmtpSettings', error);
+            throw error;
+        }
     },
 
     sendSlaNotification: async function({

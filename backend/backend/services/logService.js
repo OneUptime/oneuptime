@@ -100,20 +100,20 @@ module.exports = {
         }
     },
     async getLogsByApplicationLogId(applicationLogId, limit, skip) {
-        // try to get the application log by the ID
-
-        const applicationLogCount = await ApplicationLogService.countBy({
-            _id: applicationLogId,
-        });
-        // send an error if the component doesnt exist
-        if (applicationLogCount === 0) {
-            const error = new Error('Application Log does not exist.');
-            error.code = 400;
-            ErrorService.log('logService.getLogsByApplicationLogId', error);
-            throw error;
-        }
-
         try {
+            // try to get the application log by the ID
+
+            const applicationLogCount = await ApplicationLogService.countBy({
+                _id: applicationLogId,
+            });
+            // send an error if the component doesnt exist
+            if (applicationLogCount === 0) {
+                const error = new Error('Application Log does not exist.');
+                error.code = 400;
+                ErrorService.log('logService.getLogsByApplicationLogId', error);
+                throw error;
+            }
+
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
@@ -151,27 +151,32 @@ module.exports = {
         }
     },
     search: async function(query, filter, skip, limit) {
-        const _this = this;
-        query.stringifiedContent = {
-            $regex: new RegExp(filter),
-            $options: 'i',
-        };
-        const selectLog =
-            'applicationLogId content stringifiedContent type tags createdById createdAt';
+        try {
+            const _this = this;
+            query.stringifiedContent = {
+                $regex: new RegExp(filter),
+                $options: 'i',
+            };
+            const selectLog =
+                'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog = [{ path: 'applicationLogId', select: 'name' }];
-        const [searchedLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({
-                query,
-                skip,
-                limit,
-                select: selectLog,
-                populate: populateLog,
-            }),
-            _this.countBy(query),
-        ]);
+            const populateLog = [{ path: 'applicationLogId', select: 'name' }];
+            const [searchedLogs, totalSearchCount] = await Promise.all([
+                _this.findBy({
+                    query,
+                    skip,
+                    limit,
+                    select: selectLog,
+                    populate: populateLog,
+                }),
+                _this.countBy(query),
+            ]);
 
-        return { searchedLogs, totalSearchCount };
+            return { searchedLogs, totalSearchCount };
+        } catch (error) {
+            ErrorService.log('logService.search', error);
+            throw error;
+        }
     },
     searchByDuration: async function(query) {
         try {

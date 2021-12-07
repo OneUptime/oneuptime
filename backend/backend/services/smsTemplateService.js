@@ -198,24 +198,29 @@ module.exports = {
 
     resetTemplate: async function(projectId, templateId) {
         const _this = this;
-        const oldTemplate = await _this.findOneBy({
-            query: { _id: templateId },
-            select: 'smsType _id',
-        });
-        const newTemplate = defaultSmsTemplate.filter(
-            template => template.smsType === oldTemplate.smsType
-        )[0];
-        const resetTemplate = await _this.updateOneBy(
-            {
-                _id: oldTemplate._id,
-            },
-            {
-                smsType: newTemplate.smsType,
-                body: newTemplate.body,
-                allowedVariables: newTemplate.allowedVariables,
-            }
-        );
-        return resetTemplate;
+        try {
+            const oldTemplate = await _this.findOneBy({
+                query: { _id: templateId },
+                select: 'smsType _id',
+            });
+            const newTemplate = defaultSmsTemplate.filter(
+                template => template.smsType === oldTemplate.smsType
+            )[0];
+            const resetTemplate = await _this.updateOneBy(
+                {
+                    _id: oldTemplate._id,
+                },
+                {
+                    smsType: newTemplate.smsType,
+                    body: newTemplate.body,
+                    allowedVariables: newTemplate.allowedVariables,
+                }
+            );
+            return resetTemplate;
+        } catch (error) {
+            ErrorService.log('smsTemplateService.resetTemplate', error);
+            throw error;
+        }
     },
 
     hardDeleteBy: async function(query) {
