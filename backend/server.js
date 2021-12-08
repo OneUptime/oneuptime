@@ -378,7 +378,7 @@ app.use(
 app.use(['/api'], require('./backend/api/apiStatus'));
 
 app.use('/*', function(req, res) {
-    res.status(404).render('notFound.ejs', {});
+    res.status(404).send('Api endpoint not found');
 });
 
 app.use(Sentry.Handlers.errorHandler());

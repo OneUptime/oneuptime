@@ -12,32 +12,38 @@ const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function({ domain, projectId }) {
-        const parsed = psl.parse(domain);
-        const token = 'oneuptime=' + randomChar();
+        try {
+            const parsed = psl.parse(domain);
+            const token = 'oneuptime=' + randomChar();
 
-        // all domain should be tied to parentProject only
-        const project = await ProjectService.findOneBy({
-            query: { _id: projectId },
-            select: 'parentProjectId',
-        });
-        if (!project) {
-            const error = new Error('Project not found or does not exist');
-            error.code = 400;
+            // all domain should be tied to parentProject only
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId',
+            });
+            if (!project) {
+                const error = new Error('Project not found or does not exist');
+                error.code = 400;
+                throw error;
+            }
+            if (project.parentProjectId) {
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
+            }
+
+            const creationData = {
+                domain: parsed.domain,
+                verificationToken: token,
+                verifiedAt: null,
+                deletedAt: null,
+                projectId,
+            };
+
+            return await DomainVerificationTokenModel.create(creationData);
+        } catch (error) {
+            ErrorService.log('domainVerificationService.create', error);
             throw error;
         }
-        if (project.parentProjectId) {
-            projectId = project.parentProjectId._id || project.parentProjectId;
-        }
-
-        const creationData = {
-            domain: parsed.domain,
-            verificationToken: token,
-            verifiedAt: null,
-            deletedAt: null,
-            projectId,
-        };
-
-        return await DomainVerificationTokenModel.create(creationData);
     },
     findOneBy: async function({ query, select, populate }) {
         try {
@@ -117,17 +123,17 @@ module.exports = {
         }
     },
     updateOneBy: async function(query, data) {
-        if (query && query.domain) {
-            const parsed = psl.parse(query.domain);
-            query.domain = parsed.domain;
-        }
-
-        if (!query) {
-            query = {};
-        }
-        if (!query.deleted) query.deleted = false;
-
         try {
+            if (query && query.domain) {
+                const parsed = psl.parse(query.domain);
+                query.domain = parsed.domain;
+            }
+
+            if (!query) {
+                query = {};
+            }
+            if (!query.deleted) query.deleted = false;
+
             const updatedDomain = await DomainVerificationTokenModel.findOneAndUpdate(
                 query,
                 data,
@@ -161,14 +167,14 @@ module.exports = {
         }
     },
     doesTxtRecordExist: async function(subDomain, verificationToken) {
-        const parsed = psl.parse(subDomain);
-        const host = 'oneuptime';
-        const previousHost = 'fyipe';
-        const domain = parsed.domain;
-        const domainToLookup = `${host}.${domain}`;
-        const prevDomainToLookup = `${previousHost}.${domain}`;
-
         try {
+            const parsed = psl.parse(subDomain);
+            const host = 'oneuptime';
+            const previousHost = 'fyipe';
+            const domain = parsed.domain;
+            const domainToLookup = `${host}.${domain}`;
+            const prevDomainToLookup = `${previousHost}.${domain}`;
+
             const records = await dnsPromises.resolveTxt(domainToLookup);
             // records is an array of arrays
             // flatten the array to a single array
@@ -216,62 +222,71 @@ module.exports = {
         }
     },
     doesDomainBelongToProject: async function(projectId, subDomain) {
-        // ensure that a particular domain is available to all project and subProject
-        // domain added to a project should be available for both project and subProjects
-        // domain added to a subProject should be available to other subProjects and project
-        const project = await ProjectService.findOneBy({
-            query: { _id: projectId },
-            select: '_id parentProjectId',
-        });
-        let projectList = [project._id];
-        let subProjects = [];
-        if (project.parentProjectId) {
-            projectList.push(
-                project.parentProjectId._id || project.parentProjectId
+        try {
+            // ensure that a particular domain is available to all project and subProject
+            // domain added to a project should be available for both project and subProjects
+            // domain added to a subProject should be available to other subProjects and project
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: '_id parentProjectId',
+            });
+            let projectList = [project._id];
+            let subProjects = [];
+            if (project.parentProjectId) {
+                projectList.push(
+                    project.parentProjectId._id || project.parentProjectId
+                );
+
+                // find all the subProjects attached to this parent project
+                subProjects = await ProjectService.findBy({
+                    query: {
+                        parentProjectId:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
+                    },
+                    select: '_id',
+                });
+            } else {
+                subProjects = await ProjectService.findBy({
+                    query: { parentProjectId: project._id },
+                    select: '_id',
+                });
+            }
+            subProjects = subProjects.map(project => project._id); // grab just the project ids
+            projectList.push(...subProjects);
+
+            projectList = projectList.filter(
+                (projectId, index) => projectList.indexOf(projectId) === index
             );
 
-            // find all the subProjects attached to this parent project
-            subProjects = await ProjectService.findBy({
-                query: {
-                    parentProjectId:
-                        project.parentProjectId._id || project.parentProjectId,
-                },
-                select: '_id',
+            const parsed = psl.parse(subDomain);
+            const domain = parsed.domain;
+            const result = await DomainVerificationTokenModel.find({
+                domain,
+                /**
+                 * USE CASE THAT WARRANT REMOVAL OF VERIFIED FIELD
+                 *
+                 * A user can have the same unverified domain in more than one project,
+                 * and if they verify the domain, that means we now have the same verified domains in two different project
+                 * defeating the initial purpose of this
+                 */
+                // verified: true,
+                projectId: { $nin: projectList },
+                deleted: false,
             });
-        } else {
-            subProjects = await ProjectService.findBy({
-                query: { parentProjectId: project._id },
-                select: '_id',
-            });
+
+            if (result && result.length > 0) {
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            ErrorService.log(
+                'domainVerificationService.doesDomainBelongToProject',
+                error
+            );
+            throw error;
         }
-        subProjects = subProjects.map(project => project._id); // grab just the project ids
-        projectList.push(...subProjects);
-
-        projectList = projectList.filter(
-            (projectId, index) => projectList.indexOf(projectId) === index
-        );
-
-        const parsed = psl.parse(subDomain);
-        const domain = parsed.domain;
-        const result = await DomainVerificationTokenModel.find({
-            domain,
-            /**
-             * USE CASE THAT WARRANT REMOVAL OF VERIFIED FIELD
-             *
-             * A user can have the same unverified domain in more than one project,
-             * and if they verify the domain, that means we now have the same verified domains in two different project
-             * defeating the initial purpose of this
-             */
-            // verified: true,
-            projectId: { $nin: projectList },
-            deleted: false,
-        });
-
-        if (result && result.length > 0) {
-            return true;
-        }
-
-        return false;
     },
     hardDeleteBy: async function(query) {
         try {

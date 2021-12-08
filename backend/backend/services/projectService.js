@@ -386,66 +386,72 @@ module.exports = {
     },
 
     updateAlertOptions: async function(data) {
-        const projectId = data._id;
-        const userId = data.userId;
-        const project = await ProjectModel.findById(projectId).lean();
-        const currentBalance = project.balance;
-        const { minimumBalance, rechargeToBalance } = data.alertOptions;
-        let updatedProject = {};
+        try {
+            const projectId = data._id;
+            const userId = data.userId;
+            const project = await ProjectModel.findById(projectId).lean();
+            const currentBalance = project.balance;
+            const { minimumBalance, rechargeToBalance } = data.alertOptions;
+            let updatedProject = {};
 
-        if (!data.alertEnable) {
-            updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId,
-                {
-                    $set: {
-                        alertEnable: false,
+            if (!data.alertEnable) {
+                updatedProject = await ProjectModel.findByIdAndUpdate(
+                    projectId,
+                    {
+                        $set: {
+                            alertEnable: false,
+                        },
                     },
-                },
-                { new: true }
-            );
-            return updatedProject;
-        }
-
-        if (currentBalance >= minimumBalance) {
-            // update settings, the current balance satisfies incoming project's alert settings
-            updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId,
-                {
-                    $set: {
-                        alertEnable: data.alertEnable,
-                        alertOptions: data.alertOptions,
-                    },
-                },
-                { new: true }
-            );
-            return updatedProject;
-        }
-        const chargeForBalance = await StripeService.chargeCustomerForBalance(
-            userId,
-            rechargeToBalance,
-            projectId,
-            data.alertOptions
-        );
-        if (chargeForBalance) {
-            const newBalance = rechargeToBalance + currentBalance;
-            updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId,
-                {
-                    $set: {
-                        balance: newBalance,
-                        alertEnable: data.alertEnable,
-                        alertOptions: data.alertOptions,
-                    },
-                },
-                { new: true }
-            );
-            if (chargeForBalance.client_secret) {
-                updatedProject.paymentIntent = chargeForBalance.client_secret;
+                    { new: true }
+                );
+                return updatedProject;
             }
-            return updatedProject;
-        } else {
-            const error = new Error('Cannot save project settings');
-            error.code = 403;
+
+            if (currentBalance >= minimumBalance) {
+                // update settings, the current balance satisfies incoming project's alert settings
+                updatedProject = await ProjectModel.findByIdAndUpdate(
+                    projectId,
+                    {
+                        $set: {
+                            alertEnable: data.alertEnable,
+                            alertOptions: data.alertOptions,
+                        },
+                    },
+                    { new: true }
+                );
+                return updatedProject;
+            }
+            const chargeForBalance = await StripeService.chargeCustomerForBalance(
+                userId,
+                rechargeToBalance,
+                projectId,
+                data.alertOptions
+            );
+            if (chargeForBalance) {
+                const newBalance = rechargeToBalance + currentBalance;
+                updatedProject = await ProjectModel.findByIdAndUpdate(
+                    projectId,
+                    {
+                        $set: {
+                            balance: newBalance,
+                            alertEnable: data.alertEnable,
+                            alertOptions: data.alertOptions,
+                        },
+                    },
+                    { new: true }
+                );
+                if (chargeForBalance.client_secret) {
+                    updatedProject.paymentIntent =
+                        chargeForBalance.client_secret;
+                }
+                return updatedProject;
+            } else {
+                const error = new Error('Cannot save project settings');
+                error.code = 403;
+                ErrorService.log('projectService.updateAlertOptions', error);
+                throw error;
+            }
+        } catch (error) {
             ErrorService.log('projectService.updateAlertOptions', error);
             throw error;
         }
@@ -793,233 +799,269 @@ module.exports = {
 
     getAllProjects: async function(skip, limit) {
         const _this = this;
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select =
-            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+        try {
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-        let projects = await _this.findBy({
-            query: { parentProjectId: null, deleted: { $ne: null } },
-            limit,
-            skip,
-            populate,
-            select,
-        });
+            let projects = await _this.findBy({
+                query: { parentProjectId: null, deleted: { $ne: null } },
+                limit,
+                skip,
+                populate,
+                select,
+            });
 
-        projects = await Promise.all(
-            projects.map(async project => {
-                // get both sub-project users and project users
-                let users = await TeamService.getTeamMembersBy({
-                    parentProjectId: project._id,
-                });
-                if (users.length < 1) {
-                    users = await TeamService.getTeamMembersBy({
-                        _id: project._id,
+            projects = await Promise.all(
+                projects.map(async project => {
+                    // get both sub-project users and project users
+                    let users = await TeamService.getTeamMembersBy({
+                        parentProjectId: project._id,
                     });
-                }
-                const projectObj = Object.assign({}, project._doc || project, {
-                    users,
-                });
-                return projectObj;
-            })
-        );
-        return projects;
+                    if (users.length < 1) {
+                        users = await TeamService.getTeamMembersBy({
+                            _id: project._id,
+                        });
+                    }
+                    const projectObj = Object.assign(
+                        {},
+                        project._doc || project,
+                        {
+                            users,
+                        }
+                    );
+                    return projectObj;
+                })
+            );
+            return projects;
+        } catch (error) {
+            ErrorService.log('projectService.getAllProjects', error);
+            throw error;
+        }
     },
 
     getUserProjects: async function(userId, skip, limit) {
         const _this = this;
-        // find user subprojects and parent projects
-        const userProjects = await _this.findBy({
-            query: { 'users.userId': userId, deleted: { $ne: null } },
-            select: 'parentProjectId',
-        });
-        let parentProjectIds = [];
-        let projectIds = [];
-        if (userProjects.length > 0) {
-            const subProjects = userProjects
-                .map(project => (project.parentProjectId ? project : null))
-                .filter(subProject => subProject !== null);
-            parentProjectIds = subProjects.map(
-                subProject =>
-                    subProject.parentProjectId._id || subProject.parentProjectId
-            );
-            const projects = userProjects
-                .map(project => (project.parentProjectId ? null : project))
-                .filter(project => project !== null);
-            projectIds = projects.map(project => project._id);
-        }
+        try {
+            // find user subprojects and parent projects
+            const userProjects = await _this.findBy({
+                query: { 'users.userId': userId, deleted: { $ne: null } },
+                select: 'parentProjectId',
+            });
+            let parentProjectIds = [];
+            let projectIds = [];
+            if (userProjects.length > 0) {
+                const subProjects = userProjects
+                    .map(project => (project.parentProjectId ? project : null))
+                    .filter(subProject => subProject !== null);
+                parentProjectIds = subProjects.map(
+                    subProject =>
+                        subProject.parentProjectId._id ||
+                        subProject.parentProjectId
+                );
+                const projects = userProjects
+                    .map(project => (project.parentProjectId ? null : project))
+                    .filter(project => project !== null);
+                projectIds = projects.map(project => project._id);
+            }
 
-        // query data
-        const query = {
-            $or: [
-                { _id: { $in: parentProjectIds } },
-                { _id: { $in: projectIds } },
-            ],
-            deleted: { $ne: null },
-        };
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select =
-            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+            // query data
+            const query = {
+                $or: [
+                    { _id: { $in: parentProjectIds } },
+                    { _id: { $in: projectIds } },
+                ],
+                deleted: { $ne: null },
+            };
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-        const [allProjects, count] = await Promise.all([
-            _this.findBy({
-                query,
-                limit: limit || 10,
-                skip: skip || 0,
-                select,
-                populate,
-            }),
-            _this.countBy(query),
-        ]);
+            const [allProjects, count] = await Promise.all([
+                _this.findBy({
+                    query,
+                    limit: limit || 10,
+                    skip: skip || 0,
+                    select,
+                    populate,
+                }),
+                _this.countBy(query),
+            ]);
 
-        // add project monitors
-        const projects = await Promise.all(
-            allProjects.map(async project => {
-                // get both sub-project users and project users
-                let users = [];
-                if (project.parentProjectId) {
-                    users = await TeamService.getTeamMembersBy({
-                        parentProjectId:
-                            project.parentProjectId._id ||
-                            project.parentProjectId,
+            // add project monitors
+            const projects = await Promise.all(
+                allProjects.map(async project => {
+                    // get both sub-project users and project users
+                    let users = [];
+                    if (project.parentProjectId) {
+                        users = await TeamService.getTeamMembersBy({
+                            parentProjectId:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        });
+                        project.users = users;
+                    } else {
+                        const select =
+                            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
+                        users = await Promise.all(
+                            project.users.map(async user => {
+                                const foundUser = await UserService.findOneBy({
+                                    query: {
+                                        _id: user.userId,
+                                        deleted: { $ne: null },
+                                    },
+                                    select,
+                                });
+
+                                // append user's project role different from system role
+                                return { ...foundUser, projectRole: user.role };
+                            })
+                        );
+                        project.users = users;
+                    }
+                    return Object.assign({}, project._doc || project, {
+                        users,
                     });
-                    project.users = users;
-                } else {
-                    const select =
-                        'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-                    users = await Promise.all(
-                        project.users.map(async user => {
-                            const foundUser = await UserService.findOneBy({
-                                query: {
-                                    _id: user.userId,
-                                    deleted: { $ne: null },
-                                },
-                                select,
-                            });
-
-                            // append user's project role different from system role
-                            return { ...foundUser, projectRole: user.role };
-                        })
-                    );
-                    project.users = users;
-                }
-                return Object.assign({}, project._doc || project, { users });
-            })
-        );
-        return { projects, count };
+                })
+            );
+            return { projects, count };
+        } catch (error) {
+            ErrorService.log('projectService.getUserProjects', error);
+            throw error;
+        }
     },
 
     restoreBy: async function(query) {
         const _this = this;
-        query.deleted = true;
+        try {
+            query.deleted = true;
 
-        let project = await _this.findOneBy({
-            query,
-            select: '_id users stripeCustomerId',
-        });
+            let project = await _this.findOneBy({
+                query,
+                select: '_id users stripeCustomerId',
+            });
 
-        if (!project) {
-            const error = new Error('Project not found or no longer exist');
-            error.code = 400;
+            if (!project) {
+                const error = new Error('Project not found or no longer exist');
+                error.code = 400;
+                throw error;
+            }
+
+            const projectId = project._id;
+            const projectOwners = project.users.filter(
+                user => user.role === 'Owner'
+            );
+            let subscription;
+            await Promise.all(
+                projectOwners.map(async projectOwner => {
+                    const owner = await UserService.findOneBy({
+                        query: { _id: projectOwner.userId },
+                        select: 'stripeCustomerId',
+                    });
+                    if (IS_SAAS_SERVICE) {
+                        subscription = await PaymentService.subscribePlan(
+                            project.stripePlanId,
+                            owner.stripeCustomerId
+                        );
+                    }
+                })
+            );
+
+            project = await _this.updateOneBy(
+                { _id: projectId },
+                {
+                    deleted: false,
+                    deletedBy: null,
+                    deletedAt: null,
+                    stripeSubscriptionId: subscription
+                        ? subscription.stripeSubscriptionId
+                        : null,
+                }
+            );
+
+            const projectSeats = project.seats;
+            if (IS_SAAS_SERVICE) {
+                await PaymentService.changeSeats(
+                    project.stripeSubscriptionId,
+                    projectSeats
+                );
+            }
+            await Promise.all([
+                ScheduleService.restoreBy({
+                    projectId,
+                    deleted: true,
+                }),
+                StatusPageService.restoreBy({
+                    projectId,
+                    deleted: true,
+                }),
+                integrationService.restoreBy({
+                    projectId,
+                    deleted: true,
+                }),
+                MonitorService.restoreBy({
+                    projectId,
+                    deleted: true,
+                }),
+                componentService.restoreBy({
+                    projectId: projectId,
+                    deleted: true,
+                }),
+            ]);
+            return project;
+        } catch (error) {
+            ErrorService.log('projectService.restoreBy', error);
             throw error;
         }
-
-        const projectId = project._id;
-        const projectOwners = project.users.filter(
-            user => user.role === 'Owner'
-        );
-        let subscription;
-        await Promise.all(
-            projectOwners.map(async projectOwner => {
-                const owner = await UserService.findOneBy({
-                    query: { _id: projectOwner.userId },
-                    select: 'stripeCustomerId',
-                });
-                if (IS_SAAS_SERVICE) {
-                    subscription = await PaymentService.subscribePlan(
-                        project.stripePlanId,
-                        owner.stripeCustomerId
-                    );
-                }
-            })
-        );
-
-        project = await _this.updateOneBy(
-            { _id: projectId },
-            {
-                deleted: false,
-                deletedBy: null,
-                deletedAt: null,
-                stripeSubscriptionId: subscription
-                    ? subscription.stripeSubscriptionId
-                    : null,
-            }
-        );
-
-        const projectSeats = project.seats;
-        if (IS_SAAS_SERVICE) {
-            await PaymentService.changeSeats(
-                project.stripeSubscriptionId,
-                projectSeats
-            );
-        }
-        await Promise.all([
-            ScheduleService.restoreBy({
-                projectId,
-                deleted: true,
-            }),
-            StatusPageService.restoreBy({
-                projectId,
-                deleted: true,
-            }),
-            integrationService.restoreBy({
-                projectId,
-                deleted: true,
-            }),
-            MonitorService.restoreBy({
-                projectId,
-                deleted: true,
-            }),
-            componentService.restoreBy({
-                projectId: projectId,
-                deleted: true,
-            }),
-        ]);
-        return project;
     },
 
     addNotes: async function(projectId, notes) {
         const _this = this;
-        const project = await _this.updateOneBy(
-            { _id: projectId },
-            {
-                adminNotes: notes,
-            }
-        );
-        return project;
+        try {
+            const project = await _this.updateOneBy(
+                { _id: projectId },
+                {
+                    adminNotes: notes,
+                }
+            );
+            return project;
+        } catch (error) {
+            ErrorService.log('projectService.addNotes', error);
+            throw error;
+        }
     },
 
     searchProjects: async function(query, skip, limit) {
         const _this = this;
-        let projects = await _this.findBy({ query, limit, skip });
+        try {
+            let projects = await _this.findBy({ query, limit, skip });
 
-        projects = await Promise.all(
-            projects.map(async project => {
-                // get both sub-project users and project users
-                let users = await TeamService.getTeamMembersBy({
-                    parentProjectId: project._id,
-                });
-                if (users.length < 1) {
-                    users = await TeamService.getTeamMembersBy({
-                        _id: project._id,
+            projects = await Promise.all(
+                projects.map(async project => {
+                    // get both sub-project users and project users
+                    let users = await TeamService.getTeamMembersBy({
+                        parentProjectId: project._id,
                     });
-                }
-                const projectObj = Object.assign({}, project._doc || project, {
-                    users,
-                });
-                return projectObj;
-            })
-        );
-        return projects;
+                    if (users.length < 1) {
+                        users = await TeamService.getTeamMembersBy({
+                            _id: project._id,
+                        });
+                    }
+                    const projectObj = Object.assign(
+                        {},
+                        project._doc || project,
+                        {
+                            users,
+                        }
+                    );
+                    return projectObj;
+                })
+            );
+            return projects;
+        } catch (error) {
+            ErrorService.log('projectService.searchProjects', error);
+            throw error;
+        }
     },
 };
 

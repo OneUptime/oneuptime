@@ -267,6 +267,7 @@ router.post('/signup', async function(req, res) {
                 select,
                 populate,
             });
+
             return sendItemResponse(
                 req,
                 res,

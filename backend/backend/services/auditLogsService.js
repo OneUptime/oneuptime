@@ -56,30 +56,39 @@ module.exports = {
     },
 
     search: async function({ filter, skip, limit }) {
-        const _this = this;
-        const query = {
-            'request.apiSection': { $regex: new RegExp(filter), $options: 'i' },
-        };
+        try {
+            const _this = this;
+            const query = {
+                'request.apiSection': {
+                    $regex: new RegExp(filter),
+                    $options: 'i',
+                },
+            };
 
-        const populateAuditLog = [
-            { path: 'userId', select: 'name' },
-            { path: 'projectId', select: 'name' },
-        ];
+            const populateAuditLog = [
+                { path: 'userId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
 
-        const selectAuditLog = 'userId projectId request response createdAt';
+            const selectAuditLog =
+                'userId projectId request response createdAt';
 
-        const [searchedAuditLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({
-                query,
-                skip,
-                limit,
-                populate: populateAuditLog,
-                select: selectAuditLog,
-            }),
-            _this.countBy({ query }),
-        ]);
+            const [searchedAuditLogs, totalSearchCount] = await Promise.all([
+                _this.findBy({
+                    query,
+                    skip,
+                    limit,
+                    populate: populateAuditLog,
+                    select: selectAuditLog,
+                }),
+                _this.countBy({ query }),
+            ]);
 
-        return { searchedAuditLogs, totalSearchCount };
+            return { searchedAuditLogs, totalSearchCount };
+        } catch (error) {
+            ErrorService.log('auditLogsService.search', error);
+            throw error;
+        }
     },
 
     hardDeleteBy: async function({ query }) {

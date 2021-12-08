@@ -46,17 +46,22 @@ const _this = {
     },
 
     getSettings: async () => {
-        const document = await GlobalConfigService.findOneBy({
-            query: { name: 'twilio' },
-            select: 'value name',
-        });
-        if (document && document.value) {
-            return document.value;
-        }
+        try {
+            const document = await GlobalConfigService.findOneBy({
+                query: { name: 'twilio' },
+                select: 'value name',
+            });
+            if (document && document.value) {
+                return document.value;
+            }
 
-        const error = new Error('Twilio settings not found.');
-        ErrorService.log('twillioService.getSettings', error);
-        throw error;
+            const error = new Error('Twilio settings not found.');
+            error.code = 400;
+            throw error;
+        } catch (error) {
+            ErrorService.log('twilioService.getSettings', error);
+            throw error;
+        }
     },
 
     sendIncidentCreatedMessage: async function(
@@ -1501,19 +1506,24 @@ const _this = {
     },
 
     getTemplate: async function(smsTemplate, smsTemplateType) {
-        const defaultTemplate = defaultSmsTemplates.filter(
-            template => template.smsType === smsTemplateType
-        )[0];
-        let smsContent = defaultTemplate.body;
-        if (
-            smsTemplate != null &&
-            smsTemplate != undefined &&
-            smsTemplate.body
-        ) {
-            smsContent = smsTemplate.body;
+        try {
+            const defaultTemplate = defaultSmsTemplates.filter(
+                template => template.smsType === smsTemplateType
+            )[0];
+            let smsContent = defaultTemplate.body;
+            if (
+                smsTemplate != null &&
+                smsTemplate != undefined &&
+                smsTemplate.body
+            ) {
+                smsContent = smsTemplate.body;
+            }
+            const template = await Handlebars.compile(smsContent);
+            return { template };
+        } catch (error) {
+            ErrorService.log('twilioService.getTemplate', error);
+            throw error;
         }
-        const template = await Handlebars.compile(smsContent);
-        return { template };
     },
     sendVerificationSMS: async function(
         to,
@@ -1824,10 +1834,15 @@ const _this = {
     },
 
     hasCustomSettings: async function(projectId) {
-        return await _this.findByOne({
-            query: { projectId, enabled: true },
-            select: '_id',
-        });
+        try {
+            return await _this.findByOne({
+                query: { projectId, enabled: true },
+                select: '_id',
+            });
+        } catch (error) {
+            ErrorService.log('twilioService.hasCustomSettings', error);
+            throw error;
+        }
     },
 };
 
