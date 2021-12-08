@@ -72,131 +72,135 @@ module.exports = {
     },
 
     updateAggregateLogs: async function(data) {
-        const now = new Date();
+        try {
+            const now = new Date();
+            const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
+            const intervalDayDate = moment(now).format('MMM Do YYYY');
+            const intervalWeekDate = moment(now).format('wo [week of] YYYY');
 
-        const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
-        const intervalDayDate = moment(now).format('MMM Do YYYY');
-        const intervalWeekDate = moment(now).format('wo [week of] YYYY');
+            const [logByHour, logByDay, logByWeek] = await Promise.all([
+                MonitorLogByHourService.findOneBy({
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalHourDate,
+                }),
+                MonitorLogByDayService.findOneBy({
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalDayDate,
+                }),
+                MonitorLogByWeekService.findOneBy({
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalWeekDate,
+                }),
+            ]);
 
-        const [logByHour, logByDay, logByWeek] = await Promise.all([
-            MonitorLogByHourService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalHourDate,
-            }),
-            MonitorLogByDayService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalDayDate,
-            }),
-            MonitorLogByWeekService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalWeekDate,
-            }),
-        ]);
-
-        if (logByHour) {
-            await MonitorLogByHourService.updateOneBy(
-                { _id: ObjectId(logByHour._id) },
-                {
+            if (logByHour) {
+                await MonitorLogByHourService.updateOneBy(
+                    { _id: ObjectId(logByHour._id) },
+                    {
+                        ...data,
+                        createdAt: new Date(moment().format()),
+                        maxResponseTime:
+                            data.responseTime > logByHour.maxResponseTime
+                                ? data.responseTime
+                                : logByHour.maxResponseTime,
+                        maxCpuLoad:
+                            data.cpuLoad > logByHour.maxCpuLoad
+                                ? data.cpuLoad
+                                : logByHour.maxCpuLoad,
+                        maxMemoryUsed:
+                            data.memoryUsed > logByHour.maxMemoryUsed
+                                ? data.memoryUsed
+                                : logByHour.maxMemoryUsed,
+                        maxStorageUsed:
+                            data.storageUsed > logByHour.maxStorageUsed
+                                ? data.storageUsed
+                                : logByHour.maxStorageUsed,
+                        maxMainTemp:
+                            data.mainTemp > logByHour.maxMainTemp
+                                ? data.mainTemp
+                                : logByHour.maxMainTemp,
+                    }
+                );
+            } else {
+                await MonitorLogByHourService.create({
                     ...data,
-                    createdAt: new Date(moment().format()),
-                    maxResponseTime:
-                        data.responseTime > logByHour.maxResponseTime
-                            ? data.responseTime
-                            : logByHour.maxResponseTime,
-                    maxCpuLoad:
-                        data.cpuLoad > logByHour.maxCpuLoad
-                            ? data.cpuLoad
-                            : logByHour.maxCpuLoad,
-                    maxMemoryUsed:
-                        data.memoryUsed > logByHour.maxMemoryUsed
-                            ? data.memoryUsed
-                            : logByHour.maxMemoryUsed,
-                    maxStorageUsed:
-                        data.storageUsed > logByHour.maxStorageUsed
-                            ? data.storageUsed
-                            : logByHour.maxStorageUsed,
-                    maxMainTemp:
-                        data.mainTemp > logByHour.maxMainTemp
-                            ? data.mainTemp
-                            : logByHour.maxMainTemp,
-                }
-            );
-        } else {
-            await MonitorLogByHourService.create({
-                ...data,
-                intervalDate: intervalHourDate,
-            });
-        }
-        if (logByDay) {
-            await MonitorLogByDayService.updateOneBy(
-                { _id: ObjectId(logByDay._id) },
-                {
+                    intervalDate: intervalHourDate,
+                });
+            }
+            if (logByDay) {
+                await MonitorLogByDayService.updateOneBy(
+                    { _id: ObjectId(logByDay._id) },
+                    {
+                        ...data,
+                        createdAt: new Date(moment().format()),
+                        maxResponseTime:
+                            data.responseTime > logByDay.maxResponseTime
+                                ? data.responseTime
+                                : logByDay.maxResponseTime,
+                        maxCpuLoad:
+                            data.cpuLoad > logByDay.maxCpuLoad
+                                ? data.cpuLoad
+                                : logByDay.maxCpuLoad,
+                        maxMemoryUsed:
+                            data.memoryUsed > logByDay.maxMemoryUsed
+                                ? data.memoryUsed
+                                : logByDay.maxMemoryUsed,
+                        maxStorageUsed:
+                            data.storageUsed > logByDay.maxStorageUsed
+                                ? data.storageUsed
+                                : logByDay.maxStorageUsed,
+                        maxMainTemp:
+                            data.mainTemp > logByDay.maxMainTemp
+                                ? data.mainTemp
+                                : logByDay.maxMainTemp,
+                    }
+                );
+            } else {
+                await MonitorLogByDayService.create({
                     ...data,
-                    createdAt: new Date(moment().format()),
-                    maxResponseTime:
-                        data.responseTime > logByDay.maxResponseTime
-                            ? data.responseTime
-                            : logByDay.maxResponseTime,
-                    maxCpuLoad:
-                        data.cpuLoad > logByDay.maxCpuLoad
-                            ? data.cpuLoad
-                            : logByDay.maxCpuLoad,
-                    maxMemoryUsed:
-                        data.memoryUsed > logByDay.maxMemoryUsed
-                            ? data.memoryUsed
-                            : logByDay.maxMemoryUsed,
-                    maxStorageUsed:
-                        data.storageUsed > logByDay.maxStorageUsed
-                            ? data.storageUsed
-                            : logByDay.maxStorageUsed,
-                    maxMainTemp:
-                        data.mainTemp > logByDay.maxMainTemp
-                            ? data.mainTemp
-                            : logByDay.maxMainTemp,
-                }
-            );
-        } else {
-            await MonitorLogByDayService.create({
-                ...data,
-                intervalDate: intervalDayDate,
-            });
-        }
-        if (logByWeek) {
-            await MonitorLogByWeekService.updateOneBy(
-                { _id: ObjectId(logByWeek._id) },
-                {
+                    intervalDate: intervalDayDate,
+                });
+            }
+            if (logByWeek) {
+                await MonitorLogByWeekService.updateOneBy(
+                    { _id: ObjectId(logByWeek._id) },
+                    {
+                        ...data,
+                        createdAt: new Date(moment().format()),
+                        maxResponseTime:
+                            data.responseTime > logByWeek.maxResponseTime
+                                ? data.responseTime
+                                : logByWeek.maxResponseTime,
+                        maxCpuLoad:
+                            data.cpuLoad > logByWeek.maxCpuLoad
+                                ? data.cpuLoad
+                                : logByWeek.maxCpuLoad,
+                        maxMemoryUsed:
+                            data.memoryUsed > logByWeek.maxMemoryUsed
+                                ? data.memoryUsed
+                                : logByWeek.maxMemoryUsed,
+                        maxStorageUsed:
+                            data.storageUsed > logByWeek.maxStorageUsed
+                                ? data.storageUsed
+                                : logByWeek.maxStorageUsed,
+                        maxMainTemp:
+                            data.mainTemp > logByWeek.maxMainTemp
+                                ? data.mainTemp
+                                : logByWeek.maxMainTemp,
+                    }
+                );
+            } else {
+                await MonitorLogByWeekService.create({
                     ...data,
-                    createdAt: new Date(moment().format()),
-                    maxResponseTime:
-                        data.responseTime > logByWeek.maxResponseTime
-                            ? data.responseTime
-                            : logByWeek.maxResponseTime,
-                    maxCpuLoad:
-                        data.cpuLoad > logByWeek.maxCpuLoad
-                            ? data.cpuLoad
-                            : logByWeek.maxCpuLoad,
-                    maxMemoryUsed:
-                        data.memoryUsed > logByWeek.maxMemoryUsed
-                            ? data.memoryUsed
-                            : logByWeek.maxMemoryUsed,
-                    maxStorageUsed:
-                        data.storageUsed > logByWeek.maxStorageUsed
-                            ? data.storageUsed
-                            : logByWeek.maxStorageUsed,
-                    maxMainTemp:
-                        data.mainTemp > logByWeek.maxMainTemp
-                            ? data.mainTemp
-                            : logByWeek.maxMainTemp,
-                }
-            );
-        } else {
-            await MonitorLogByWeekService.create({
-                ...data,
-                intervalDate: intervalWeekDate,
-            });
+                    intervalDate: intervalWeekDate,
+                });
+            }
+        } catch (error) {
+            ErrorService.log('monitorLogService.updateAggregateLogs', error);
+            throw error;
         }
     },
 

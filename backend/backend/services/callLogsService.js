@@ -106,19 +106,24 @@ module.exports = {
     },
 
     search: async function({ filter, skip, limit }) {
-        const _this = this;
-        const query = {
-            to: { $regex: new RegExp(filter), $options: 'i' },
-        };
+        try {
+            const _this = this;
+            const query = {
+                to: { $regex: new RegExp(filter), $options: 'i' },
+            };
 
-        const populate = [{ path: 'projectId', select: 'name' }];
-        const select = 'from to projectId content status error';
-        const [searchedCallLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({ query, skip, limit, select, populate }),
-            _this.countBy({ query }),
-        ]);
+            const populate = [{ path: 'projectId', select: 'name' }];
+            const select = 'from to projectId content status error';
+            const [searchedCallLogs, totalSearchCount] = await Promise.all([
+                _this.findBy({ query, skip, limit, select, populate }),
+                _this.countBy({ query }),
+            ]);
 
-        return { searchedCallLogs, totalSearchCount };
+            return { searchedCallLogs, totalSearchCount };
+        } catch (error) {
+            ErrorService.log('callLogsService.search', error);
+            throw error;
+        }
     },
 };
 

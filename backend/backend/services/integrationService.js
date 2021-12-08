@@ -246,38 +246,43 @@ module.exports = {
     },
 
     restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        const select =
-            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: [{ path: 'componentId', select: 'name' }],
-            },
-        ];
-        const integration = await _this.findBy({ query, select, populate });
-        if (integration && integration.length > 1) {
-            const integrations = await Promise.all(
-                integration.map(async integration => {
-                    const integrationId = integration._id;
-                    integration = await _this.updateOneBy(
-                        {
-                            _id: integrationId,
-                        },
-                        {
-                            deleted: false,
-                            deletedAt: null,
-                            deleteBy: null,
-                        }
-                    );
-                    return integration;
-                })
-            );
-            return integrations;
+        try {
+            const _this = this;
+            query.deleted = true;
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            const integration = await _this.findBy({ query, select, populate });
+            if (integration && integration.length > 1) {
+                const integrations = await Promise.all(
+                    integration.map(async integration => {
+                        const integrationId = integration._id;
+                        integration = await _this.updateOneBy(
+                            {
+                                _id: integrationId,
+                            },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        return integration;
+                    })
+                );
+                return integrations;
+            }
+        } catch (error) {
+            ErrorService.log('integrationService.restoreBy', error);
+            throw error;
         }
     },
     hardDeleteBy: async function(query) {

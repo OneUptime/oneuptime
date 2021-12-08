@@ -1290,7 +1290,7 @@ module.exports = {
 
 const _ = require('lodash');
 
-const incomingCheckAnd = async (payload, condition) => {
+const incomingCheckAnd = (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;

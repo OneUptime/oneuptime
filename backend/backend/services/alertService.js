@@ -81,23 +81,31 @@ module.exports = {
         projectId,
         alertPhoneNumber
     ) {
-        const project = await ProjectService.findOneBy({
-            query: { _id: projectId },
-            select: 'alertOptions',
-        });
-        const alertOptions = project.alertOptions;
-        let countryType = getCountryType(alertPhoneNumber);
-        if (countryType === 'us') {
-            countryType = 'billingUS';
-        } else if (countryType === 'non-us') {
-            countryType = 'billingNonUSCountries';
-        } else if (countryType === 'risk') {
-            countryType = 'billingRiskCountries';
+        try {
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'alertOptions',
+            });
+            const alertOptions = project.alertOptions;
+            let countryType = getCountryType(alertPhoneNumber);
+            if (countryType === 'us') {
+                countryType = 'billingUS';
+            } else if (countryType === 'non-us') {
+                countryType = 'billingNonUSCountries';
+            } else if (countryType === 'risk') {
+                countryType = 'billingRiskCountries';
+            }
+            if (alertOptions[countryType]) {
+                return true;
+            }
+            return false;
+        } catch (error) {
+            ErrorService.log(
+                'AlertService.doesPhoneNumberComplyWithHighRiskConfig',
+                error
+            );
+            throw error;
         }
-        if (alertOptions[countryType]) {
-            return true;
-        }
-        return false;
     },
     findBy: async function({ query, skip, limit, sort, populate, select }) {
         try {
@@ -189,138 +197,145 @@ module.exports = {
     },
 
     sendRealTimeUpdate: async function({ incidentId, projectId }) {
-        const _this = this;
+        try {
+            const _this = this;
 
-        const populateIncidentMessage = [
-            {
-                path: 'incidentId',
-                select: 'idNumber name slug',
-            },
-            {
-                path: 'createdById',
-                select: 'name',
-            },
-        ];
-
-        const selectIncidentMessage =
-            '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
-
-        const populateAlert = [
-            { path: 'userId', select: 'name' },
-            { path: 'monitorId', select: 'name' },
-            { path: 'projectId', select: 'name' },
-        ];
-
-        const selectAlert =
-            '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
-
-        const populate = [
-            { path: 'incidentId', select: 'name' },
-            { path: 'projectId', select: 'name' },
-            {
-                path: 'subscriberId',
-                select:
-                    'name contactEmail contactPhone contactWebhook countryCode',
-            },
-        ];
-        const select =
-            'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-        const selectOnCallScheduleStatus =
-            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
-
-        const populateOnCallScheduleStatus = [
-            { path: 'incidentId', select: 'name slug' },
-            { path: 'project', select: 'name slug' },
-            { path: 'scheduleId', select: 'name slug' },
-            { path: 'schedule', select: '_id name slug' },
-            {
-                path: 'activeEscalationId',
-                select: 'projectId teams scheduleId',
-            },
-        ];
-        const populateIncTimeline = [
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'probeId',
-                select: 'probeName probeImage',
-            },
-            { path: 'incidentId', select: 'idNumber slug' },
-        ];
-        const selectIncTimeline =
-            'incidentId createdById probeId createdByZapier createdAt status incident_state';
-        const [
-            incidentMsgs,
-            timeline,
-            alerts,
-            subscriberAlerts,
-        ] = await Promise.all([
-            IncidentMessageService.findBy({
-                query: {
-                    incidentId,
-                    type: 'internal',
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name slug',
                 },
-                select: selectIncidentMessage,
-                populate: populateIncidentMessage,
-            }),
-            IncidentTimelineService.findBy({
-                query: { incidentId },
-                select: selectIncTimeline,
-                populate: populateIncTimeline,
-            }),
-            _this.findBy({
-                query: {
-                    incidentId,
+                {
+                    path: 'createdById',
+                    select: 'name',
                 },
-                select: selectAlert,
-                populate: populateAlert,
-            }),
-            SubscriberAlertService.findBy({
-                query: { incidentId, projectId },
-                select,
-                populate,
-            }),
-        ]);
-        let incidentMessages = incidentMsgs;
-        const [subAlerts, callStatus] = await Promise.all([
-            Services.deduplicate(subscriberAlerts),
-            OnCallScheduleStatusService.findBy({
-                query: {
-                    incident: incidentId,
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const populateAlert = [
+                { path: 'userId', select: 'name' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
+
+            const selectAlert =
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
                 },
-                select: selectOnCallScheduleStatus,
-                populate: populateOnCallScheduleStatus,
-            }),
-        ]);
-        const callScheduleStatus = await Services.checkCallSchedule(callStatus);
-        const timelineAlerts = [
-            ...timeline,
-            ...alerts,
-            ...incidentMessages,
-        ].sort((a, b) => {
-            return b.createdAt - a.createdAt;
-        });
-        incidentMessages = [
-            ...timelineAlerts,
-            ...subAlerts,
-            ...callScheduleStatus,
-        ];
-        incidentMessages.sort(
-            (a, b) =>
-                typeof a.schedule !== 'object' && b.createdAt - a.createdAt
-        );
-        let filteredMsg = incidentMessages.filter(
-            a =>
-                a.status !== 'internal notes added' &&
-                a.status !== 'internal notes updated'
-        );
-        filteredMsg = await Services.rearrangeDuty(filteredMsg);
-        const result = {
-            data: filteredMsg,
-            incidentId,
-            projectId,
-        };
-        // run in the background
-        RealTimeService.sendIncidentTimeline(result);
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+                { path: 'incidentId', select: 'idNumber slug' },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            const [
+                incidentMsgs,
+                timeline,
+                alerts,
+                subscriberAlerts,
+            ] = await Promise.all([
+                IncidentMessageService.findBy({
+                    query: {
+                        incidentId,
+                        type: 'internal',
+                    },
+                    select: selectIncidentMessage,
+                    populate: populateIncidentMessage,
+                }),
+                IncidentTimelineService.findBy({
+                    query: { incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
+                }),
+                _this.findBy({
+                    query: {
+                        incidentId,
+                    },
+                    select: selectAlert,
+                    populate: populateAlert,
+                }),
+                SubscriberAlertService.findBy({
+                    query: { incidentId, projectId },
+                    select,
+                    populate,
+                }),
+            ]);
+            let incidentMessages = incidentMsgs;
+            const [subAlerts, callStatus] = await Promise.all([
+                Services.deduplicate(subscriberAlerts),
+                OnCallScheduleStatusService.findBy({
+                    query: {
+                        incident: incidentId,
+                    },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
+                }),
+            ]);
+            const callScheduleStatus = await Services.checkCallSchedule(
+                callStatus
+            );
+            const timelineAlerts = [
+                ...timeline,
+                ...alerts,
+                ...incidentMessages,
+            ].sort((a, b) => {
+                return b.createdAt - a.createdAt;
+            });
+            incidentMessages = [
+                ...timelineAlerts,
+                ...subAlerts,
+                ...callScheduleStatus,
+            ];
+            incidentMessages.sort(
+                (a, b) =>
+                    typeof a.schedule !== 'object' && b.createdAt - a.createdAt
+            );
+            let filteredMsg = incidentMessages.filter(
+                a =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
+            );
+            filteredMsg = await Services.rearrangeDuty(filteredMsg);
+            const result = {
+                data: filteredMsg,
+                incidentId,
+                projectId,
+            };
+            // run in the background
+            RealTimeService.sendIncidentTimeline(result);
+        } catch (error) {
+            ErrorService.log('alertService.sendRealTimeUpdate', error);
+            throw error;
+        }
     },
 
     countBy: async function(query) {
@@ -463,275 +478,299 @@ module.exports = {
         incident,
         monitorId,
     }) {
-        const _this = this;
-        const projectId = incident.projectId._id
-            ? incident.projectId._id
-            : incident.projectId;
+        try {
+            const _this = this;
+            const projectId = incident.projectId._id
+                ? incident.projectId._id
+                : incident.projectId;
 
-        if (!schedule || !incident) {
-            return;
-        }
-
-        //scheudle has no escalations. Skip.
-        if (!schedule.escalationIds || schedule.escalationIds.length === 0) {
-            return;
-        }
-
-        const monitorPopulate = [{ path: 'componentId', select: 'name' }];
-        const monitorSelect = '_id name data method componentId';
-        const selectOnCallScheduleStatus =
-            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
-
-        const populateOnCallScheduleStatus = [
-            { path: 'incidentId', select: 'name slug' },
-            { path: 'project', select: 'name slug' },
-            { path: 'scheduleId', select: 'name slug' },
-            { path: 'schedule', select: '_id name slug' },
-            {
-                path: 'activeEscalationId',
-                select: 'projectId teams scheduleId',
-            },
-        ];
-        const [monitor, callScheduleStatuses] = await Promise.all([
-            MonitorService.findOneBy({
-                query: { _id: monitorId },
-                populate: monitorPopulate,
-                select: monitorSelect,
-            }),
-            OnCallScheduleStatusService.findBy({
-                query: { incident: incident._id, schedule: schedule },
-                select: selectOnCallScheduleStatus,
-                populate: populateOnCallScheduleStatus,
-            }),
-        ]);
-
-        let onCallScheduleStatus = null;
-        let escalationId = null;
-        let currentEscalationStatus = null;
-        if (callScheduleStatuses.length === 0) {
-            //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
-            escalationId = schedule.escalationIds[0];
-
-            if (escalationId && escalationId._id) {
-                escalationId = escalationId._id;
+            if (!schedule || !incident) {
+                return;
             }
 
-            currentEscalationStatus = {
-                escalation: escalationId,
-                callRemindersSent: 0,
-                emailRemindersSent: 0,
-                smsRemindersSent: 0,
-                pushRemindersSent: 0,
-            };
+            //scheudle has no escalations. Skip.
+            if (
+                !schedule.escalationIds ||
+                schedule.escalationIds.length === 0
+            ) {
+                return;
+            }
 
-            //create new onCallScheduleStatus
-            onCallScheduleStatus = await OnCallScheduleStatusService.create({
-                project: projectId,
-                incident: incident._id,
-                activeEscalation: escalationId,
-                schedule: schedule._id,
-                incidentAcknowledged: false,
-                escalations: [currentEscalationStatus],
+            const monitorPopulate = [{ path: 'componentId', select: 'name' }];
+            const monitorSelect = '_id name data method componentId';
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+            const [monitor, callScheduleStatuses] = await Promise.all([
+                MonitorService.findOneBy({
+                    query: { _id: monitorId },
+                    populate: monitorPopulate,
+                    select: monitorSelect,
+                }),
+                OnCallScheduleStatusService.findBy({
+                    query: { incident: incident._id, schedule: schedule },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
+                }),
+            ]);
+
+            let onCallScheduleStatus = null;
+            let escalationId = null;
+            let currentEscalationStatus = null;
+            if (callScheduleStatuses.length === 0) {
+                //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
+                escalationId = schedule.escalationIds[0];
+
+                if (escalationId && escalationId._id) {
+                    escalationId = escalationId._id;
+                }
+
+                currentEscalationStatus = {
+                    escalation: escalationId,
+                    callRemindersSent: 0,
+                    emailRemindersSent: 0,
+                    smsRemindersSent: 0,
+                    pushRemindersSent: 0,
+                };
+
+                //create new onCallScheduleStatus
+                onCallScheduleStatus = await OnCallScheduleStatusService.create(
+                    {
+                        project: projectId,
+                        incident: incident._id,
+                        activeEscalation: escalationId,
+                        schedule: schedule._id,
+                        incidentAcknowledged: false,
+                        escalations: [currentEscalationStatus],
+                    }
+                );
+            } else {
+                onCallScheduleStatus = callScheduleStatuses[0];
+                currentEscalationStatus =
+                    onCallScheduleStatus.escalations[
+                        onCallScheduleStatus.escalations.length - 1
+                    ];
+                escalationId = currentEscalationStatus.escalation._id;
+            }
+
+            const selectEscalation =
+                'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+            const populateEscalation = [
+                { path: 'projectId', select: '_id name slug' },
+                {
+                    path: 'scheduleId',
+                    select: 'name isDefault slug',
+                    populate: { path: 'monitorIds', select: 'name' },
+                },
+                {
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                },
+                {
+                    path: 'teams.teamMembers.groups',
+                    select: 'teams name',
+                },
+            ];
+            const escalation = await EscalationService.findOneBy({
+                query: { _id: escalationId },
+                select: selectEscalation,
+                populate: populateEscalation,
             });
-        } else {
-            onCallScheduleStatus = callScheduleStatuses[0];
-            currentEscalationStatus =
-                onCallScheduleStatus.escalations[
-                    onCallScheduleStatus.escalations.length - 1
-                ];
-            escalationId = currentEscalationStatus.escalation._id;
-        }
 
-        const selectEscalation =
-            'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+            let shouldSendSMSReminder = false;
+            let shouldSendCallReminder = false;
+            let shouldSendEmailReminder = false;
+            let shouldSendPushReminder = false;
 
-        const populateEscalation = [
-            { path: 'projectId', select: '_id name slug' },
-            {
-                path: 'scheduleId',
-                select: 'name isDefault slug',
-                populate: { path: 'monitorIds', select: 'name' },
-            },
-            {
-                path: 'teams.teamMembers.user',
-                select: 'name email',
-            },
-            {
-                path: 'teams.teamMembers.groups',
-                select: 'teams name',
-            },
-        ];
-        const escalation = await EscalationService.findOneBy({
-            query: { _id: escalationId },
-            select: selectEscalation,
-            populate: populateEscalation,
-        });
+            if (!escalation) {
+                return;
+            }
 
-        let shouldSendSMSReminder = false;
-        let shouldSendCallReminder = false;
-        let shouldSendEmailReminder = false;
-        let shouldSendPushReminder = false;
-
-        if (!escalation) {
-            return;
-        }
-
-        const alertProgress = {
-            emailProgress: null,
-            smsProgress: null,
-            callProgress: null,
-            pushProgress: null,
-        };
-        const emailRem = currentEscalationStatus.emailRemindersSent + 1;
-        const smsRem = currentEscalationStatus.smsRemindersSent + 1;
-        const callRem = currentEscalationStatus.callRemindersSent + 1;
-        const pushRem = currentEscalationStatus.pushRemindersSent + 1;
-
-        if (emailRem > 1) {
-            alertProgress.emailProgress = {
-                current: emailRem,
-                total: escalation.emailReminders,
+            const alertProgress = {
+                emailProgress: null,
+                smsProgress: null,
+                callProgress: null,
+                pushProgress: null,
             };
-        }
+            const emailRem = currentEscalationStatus.emailRemindersSent + 1;
+            const smsRem = currentEscalationStatus.smsRemindersSent + 1;
+            const callRem = currentEscalationStatus.callRemindersSent + 1;
+            const pushRem = currentEscalationStatus.pushRemindersSent + 1;
 
-        if (callRem > 1) {
-            alertProgress.callProgress = {
-                current: callRem,
-                total: escalation.callReminders,
-            };
-        }
+            if (emailRem > 1) {
+                alertProgress.emailProgress = {
+                    current: emailRem,
+                    total: escalation.emailReminders,
+                };
+            }
 
-        if (smsRem > 1) {
-            alertProgress.smsProgress = {
-                current: smsRem,
-                total: escalation.smsReminders,
-            };
-        }
+            if (callRem > 1) {
+                alertProgress.callProgress = {
+                    current: callRem,
+                    total: escalation.callReminders,
+                };
+            }
 
-        if (pushRem > 1) {
-            alertProgress.pushProgress = {
-                current: pushRem,
-                total: escalation.pushReminders,
-            };
-        }
+            if (smsRem > 1) {
+                alertProgress.smsProgress = {
+                    current: smsRem,
+                    total: escalation.smsReminders,
+                };
+            }
 
-        shouldSendSMSReminder =
-            escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
-        shouldSendCallReminder =
-            escalation.callReminders >
-            currentEscalationStatus.callRemindersSent;
-        shouldSendEmailReminder =
-            escalation.emailReminders >
-            currentEscalationStatus.emailRemindersSent;
-        shouldSendPushReminder =
-            escalation.pushReminders >
-            currentEscalationStatus.pushRemindersSent;
+            if (pushRem > 1) {
+                alertProgress.pushProgress = {
+                    current: pushRem,
+                    total: escalation.pushReminders,
+                };
+            }
 
-        if (
-            !shouldSendSMSReminder &&
-            !shouldSendEmailReminder &&
-            !shouldSendCallReminder &&
-            !shouldSendPushReminder
-        ) {
-            _this.escalate({ schedule, incident, alertProgress, monitor });
-        } else {
-            _this.sendAlertsToTeamMembersInEscalationPolicy({
-                escalation,
-                monitor,
-                incident,
-                schedule,
-                onCallScheduleStatus,
-                alertProgress,
-            });
+            shouldSendSMSReminder =
+                escalation.smsReminders >
+                currentEscalationStatus.smsRemindersSent;
+            shouldSendCallReminder =
+                escalation.callReminders >
+                currentEscalationStatus.callRemindersSent;
+            shouldSendEmailReminder =
+                escalation.emailReminders >
+                currentEscalationStatus.emailRemindersSent;
+            shouldSendPushReminder =
+                escalation.pushReminders >
+                currentEscalationStatus.pushRemindersSent;
+
+            if (
+                !shouldSendSMSReminder &&
+                !shouldSendEmailReminder &&
+                !shouldSendCallReminder &&
+                !shouldSendPushReminder
+            ) {
+                _this.escalate({ schedule, incident, alertProgress, monitor });
+            } else {
+                _this.sendAlertsToTeamMembersInEscalationPolicy({
+                    escalation,
+                    monitor,
+                    incident,
+                    schedule,
+                    onCallScheduleStatus,
+                    alertProgress,
+                });
+            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendAlertsToTeamMembersInSchedule',
+                error
+            );
+            throw error;
         }
     },
 
     escalate: async function({ schedule, incident, alertProgress, monitor }) {
-        const _this = this;
-        const selectOnCallScheduleStatus =
-            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+        try {
+            const _this = this;
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-        const populateOnCallScheduleStatus = [
-            { path: 'incidentId', select: 'name slug' },
-            { path: 'project', select: 'name slug' },
-            { path: 'scheduleId', select: 'name slug' },
-            { path: 'schedule', select: '_id name slug' },
-            {
-                path: 'activeEscalationId',
-                select: 'projectId teams scheduleId',
-            },
-        ];
-        const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
-            query: { incident: incident._id, schedule: schedule._id },
-            select: selectOnCallScheduleStatus,
-            populate: populateOnCallScheduleStatus,
-        });
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+            const callScheduleStatuses = await OnCallScheduleStatusService.findBy(
+                {
+                    query: { incident: incident._id, schedule: schedule._id },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
+                }
+            );
 
-        if (callScheduleStatuses.length === 0) {
-            return;
-        }
-
-        const callScheduleStatus = callScheduleStatuses[0];
-
-        const activeEscalation = callScheduleStatus.activeEscalation;
-
-        if (!schedule.escalationIds || schedule.escalationIds.length === 0) {
-            return;
-        }
-
-        let nextEscalationPolicy = null;
-
-        //find next escalationPolicy.
-        let found = false;
-        for (let escalationId of schedule.escalationIds) {
-            if (found) {
-                nextEscalationPolicy = escalationId;
-                break;
+            if (callScheduleStatuses.length === 0) {
+                return;
             }
 
-            if (escalationId && escalationId._id) {
-                escalationId = escalationId._id;
+            const callScheduleStatus = callScheduleStatuses[0];
+
+            const activeEscalation = callScheduleStatus.activeEscalation;
+
+            if (
+                !schedule.escalationIds ||
+                schedule.escalationIds.length === 0
+            ) {
+                return;
             }
 
-            if (String(activeEscalation._id) === String(escalationId)) {
-                found = true;
-            }
-        }
+            let nextEscalationPolicy = null;
 
-        if (
-            !nextEscalationPolicy ||
-            nextEscalationPolicy._id.toString() !==
-                activeEscalation._id.toString()
-        ) {
+            //find next escalationPolicy.
+            let found = false;
+            for (let escalationId of schedule.escalationIds) {
+                if (found) {
+                    nextEscalationPolicy = escalationId;
+                    break;
+                }
+
+                if (escalationId && escalationId._id) {
+                    escalationId = escalationId._id;
+                }
+
+                if (String(activeEscalation._id) === String(escalationId)) {
+                    found = true;
+                }
+            }
+
+            if (
+                !nextEscalationPolicy ||
+                nextEscalationPolicy._id.toString() !==
+                    activeEscalation._id.toString()
+            ) {
+                const query = { _id: callScheduleStatus._id };
+                const data = { alertedEveryone: true };
+                await OnCallScheduleStatusService.updateOneBy({ query, data });
+                return; //can't escalate anymore.
+            }
+
+            callScheduleStatus.escalations.push({
+                escalation: nextEscalationPolicy,
+                callRemindersSent: 0,
+                emailRemindersSent: 0,
+                smsRemindersSent: 0,
+            });
+            callScheduleStatus.activeEscalation = nextEscalationPolicy;
+
             const query = { _id: callScheduleStatus._id };
-            const data = { alertedEveryone: true };
+            const data = {
+                escalations: callScheduleStatus.escalations,
+                activeEscalation: callScheduleStatus.activeEscalation,
+            };
             await OnCallScheduleStatusService.updateOneBy({ query, data });
-            return; //can't escalate anymore.
+
+            _this.sendAlertsToTeamMembersInEscalationPolicy({
+                escalation: nextEscalationPolicy,
+                monitor,
+                incident,
+                schedule,
+                onCallScheduleStatus: callScheduleStatus,
+                alertProgress,
+            });
+        } catch (error) {
+            ErrorService.log('alertService.escalate', error);
+            throw error;
         }
-
-        callScheduleStatus.escalations.push({
-            escalation: nextEscalationPolicy,
-            callRemindersSent: 0,
-            emailRemindersSent: 0,
-            smsRemindersSent: 0,
-        });
-        callScheduleStatus.activeEscalation = nextEscalationPolicy;
-
-        const query = { _id: callScheduleStatus._id };
-        const data = {
-            escalations: callScheduleStatus.escalations,
-            activeEscalation: callScheduleStatus.activeEscalation,
-        };
-        await OnCallScheduleStatusService.updateOneBy({ query, data });
-
-        _this.sendAlertsToTeamMembersInEscalationPolicy({
-            escalation: nextEscalationPolicy,
-            monitor,
-            incident,
-            schedule,
-            onCallScheduleStatus: callScheduleStatus,
-            alertProgress,
-        });
     },
 
     sendAlertsToTeamMembersInEscalationPolicy: async function({
@@ -742,270 +781,286 @@ module.exports = {
         onCallScheduleStatus,
         alertProgress,
     }) {
-        const _this = this;
-        const monitorId = monitor._id;
+        try {
+            const _this = this;
+            const monitorId = monitor._id;
 
-        const projectId = incident.projectId._id
-            ? incident.projectId._id
-            : incident.projectId;
+            const projectId = incident.projectId._id
+                ? incident.projectId._id
+                : incident.projectId;
 
-        const selectEscalation =
-            'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+            const selectEscalation =
+                'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
-        const populateEscalation = [
-            { path: 'projectId', select: '_id name slug' },
-            {
-                path: 'scheduleId',
-                select: 'name isDefault slug',
-                populate: {
-                    path: 'monitorIds',
-                    select: 'name',
+            const populateEscalation = [
+                { path: 'projectId', select: '_id name slug' },
+                {
+                    path: 'scheduleId',
+                    select: 'name isDefault slug',
+                    populate: {
+                        path: 'monitorIds',
+                        select: 'name',
+                    },
                 },
-            },
-            {
-                path: 'teams.teamMembers.user',
-                select: 'name email',
-            },
-            {
-                path: 'teams.teamMembers.groups',
-                select: 'teams name',
-            },
-        ];
-
-        const [project, ec] = await Promise.all([
-            ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: '_id alertEnable alertOptions slug name',
-            }),
-            EscalationService.findOneBy({
-                query: { _id: escalation._id },
-                select: selectEscalation,
-                populate: populateEscalation,
-            }),
-        ]);
-        escalation = ec;
-
-        const activeTeam = escalation.activeTeam;
-        const teamGroup = [];
-
-        if (activeTeam && activeTeam.teamMembers) {
-            activeTeam.teamMembers.forEach(team => {
-                if (team.groups) {
-                    teamGroup.push(team.groups);
-                }
-            });
-        }
-
-        const groupUsers = teamGroup.map(group => group.teams);
-        const groupUserIds = [].concat
-            .apply([], groupUsers)
-            .map(id => ({ userId: id }));
-        const filterdUserIds = groupUserIds.filter(user =>
-            activeTeam.teamMembers.some(team => team.userId !== user.userId)
-        );
-
-        const currentEscalationStatus =
-            onCallScheduleStatus.escalations[
-                onCallScheduleStatus.escalations.length - 1
+                {
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                },
+                {
+                    path: 'teams.teamMembers.groups',
+                    select: 'teams name',
+                },
             ];
 
-        const shouldSendSMSReminder =
-            escalation.smsReminders > currentEscalationStatus.smsRemindersSent;
-        const shouldSendCallReminder =
-            escalation.callReminders >
-            currentEscalationStatus.callRemindersSent;
-        const shouldSendEmailReminder =
-            escalation.emailReminders >
-            currentEscalationStatus.emailRemindersSent;
-        const shouldSendPushReminder =
-            escalation.pushReminders >
-            currentEscalationStatus.pushRemindersSent;
+            const [project, ec] = await Promise.all([
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: '_id alertEnable alertOptions slug name',
+                }),
+                EscalationService.findOneBy({
+                    query: { _id: escalation._id },
+                    select: selectEscalation,
+                    populate: populateEscalation,
+                }),
+            ]);
+            escalation = ec;
 
-        if (shouldSendCallReminder) {
-            currentEscalationStatus.callRemindersSent++;
-        }
+            const activeTeam = escalation.activeTeam;
+            const teamGroup = [];
 
-        if (shouldSendEmailReminder) {
-            currentEscalationStatus.emailRemindersSent++;
-        }
-
-        if (shouldSendSMSReminder) {
-            currentEscalationStatus.smsRemindersSent++;
-        }
-
-        if (shouldSendPushReminder) {
-            currentEscalationStatus.pushRemindersSent++;
-        }
-
-        if (!activeTeam.teamMembers || activeTeam.teamMembers.length === 0) {
-            return;
-        }
-
-        onCallScheduleStatus.escalations[
-            onCallScheduleStatus.escalations.length - 1
-        ] = currentEscalationStatus;
-        await OnCallScheduleStatusService.updateOneBy({
-            query: { _id: onCallScheduleStatus._id },
-            data: {
-                escalations: onCallScheduleStatus.escalations,
-            },
-        });
-
-        const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
-        for (const teamMember of allUsers) {
-            const isOnDuty = await _this.checkIsOnDuty(
-                teamMember.startTime,
-                teamMember.endTime
-            );
-
-            if (
-                (JSON.stringify(escalation.scheduleId._id) ==
-                    JSON.stringify(onCallScheduleStatus.schedule._id) ||
-                    JSON.stringify(escalation.scheduleId._id) ==
-                        JSON.stringify(onCallScheduleStatus.schedule)) &&
-                isOnDuty
-            ) {
-                await OnCallScheduleStatusService.updateOneBy({
-                    query: { _id: onCallScheduleStatus._id },
-                    data: {
-                        isOnDuty: true,
-                    },
+            if (activeTeam && activeTeam.teamMembers) {
+                activeTeam.teamMembers.forEach(team => {
+                    if (team.groups) {
+                        teamGroup.push(team.groups);
+                    }
                 });
             }
 
-            const user = await UserService.findOneBy({
-                query: { _id: teamMember.userId },
-                select: '_id alertPhoneNumber name email timezone',
+            const groupUsers = teamGroup.map(group => group.teams);
+            const groupUserIds = [].concat
+                .apply([], groupUsers)
+                .map(id => ({ userId: id }));
+            const filterdUserIds = groupUserIds.filter(user =>
+                activeTeam.teamMembers.some(team => team.userId !== user.userId)
+            );
+
+            const currentEscalationStatus =
+                onCallScheduleStatus.escalations[
+                    onCallScheduleStatus.escalations.length - 1
+                ];
+
+            const shouldSendSMSReminder =
+                escalation.smsReminders >
+                currentEscalationStatus.smsRemindersSent;
+            const shouldSendCallReminder =
+                escalation.callReminders >
+                currentEscalationStatus.callRemindersSent;
+            const shouldSendEmailReminder =
+                escalation.emailReminders >
+                currentEscalationStatus.emailRemindersSent;
+            const shouldSendPushReminder =
+                escalation.pushReminders >
+                currentEscalationStatus.pushRemindersSent;
+
+            if (shouldSendCallReminder) {
+                currentEscalationStatus.callRemindersSent++;
+            }
+
+            if (shouldSendEmailReminder) {
+                currentEscalationStatus.emailRemindersSent++;
+            }
+
+            if (shouldSendSMSReminder) {
+                currentEscalationStatus.smsRemindersSent++;
+            }
+
+            if (shouldSendPushReminder) {
+                currentEscalationStatus.pushRemindersSent++;
+            }
+
+            if (
+                !activeTeam.teamMembers ||
+                activeTeam.teamMembers.length === 0
+            ) {
+                return;
+            }
+
+            onCallScheduleStatus.escalations[
+                onCallScheduleStatus.escalations.length - 1
+            ] = currentEscalationStatus;
+            await OnCallScheduleStatusService.updateOneBy({
+                query: { _id: onCallScheduleStatus._id },
+                data: {
+                    escalations: onCallScheduleStatus.escalations,
+                },
             });
 
-            if (!user) {
-                continue;
+            const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
+            for (const teamMember of allUsers) {
+                const isOnDuty = await _this.checkIsOnDuty(
+                    teamMember.startTime,
+                    teamMember.endTime
+                );
+
+                if (
+                    (JSON.stringify(escalation.scheduleId._id) ==
+                        JSON.stringify(onCallScheduleStatus.schedule._id) ||
+                        JSON.stringify(escalation.scheduleId._id) ==
+                            JSON.stringify(onCallScheduleStatus.schedule)) &&
+                    isOnDuty
+                ) {
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: onCallScheduleStatus._id },
+                        data: {
+                            isOnDuty: true,
+                        },
+                    });
+                }
+
+                const user = await UserService.findOneBy({
+                    query: { _id: teamMember.userId },
+                    select: '_id alertPhoneNumber name email timezone',
+                });
+
+                if (!user) {
+                    continue;
+                }
+
+                if (!isOnDuty) {
+                    if (escalation.call && shouldSendCallReminder) {
+                        await _this.create({
+                            projectId:
+                                incident.projectId._id || incident.projectId,
+                            monitorId,
+                            alertVia: AlertType.Call,
+                            userId: user._id,
+                            incidentId: incident._id,
+                            schedule: schedule,
+                            escalation: escalation,
+                            onCallScheduleStatus: onCallScheduleStatus,
+                            alertStatus: 'Not on Duty',
+                            eventType: 'identified',
+                            alertProgress: alertProgress.callProgress,
+                        });
+                    }
+                    if (escalation.email && shouldSendEmailReminder) {
+                        await _this.create({
+                            projectId:
+                                incident.projectId._id || incident.projectId,
+                            monitorId,
+                            alertVia: AlertType.Email,
+                            userId: user._id,
+                            incidentId: incident._id,
+                            schedule: schedule,
+                            escalation: escalation,
+                            onCallScheduleStatus: onCallScheduleStatus,
+                            alertStatus: 'Not on Duty',
+                            eventType: 'identified',
+                            alertProgress: alertProgress.emailProgress,
+                        });
+                    }
+                    if (escalation.sms && shouldSendSMSReminder) {
+                        await _this.create({
+                            projectId:
+                                incident.projectId._id || incident.projectId,
+                            monitorId,
+                            alertVia: AlertType.SMS,
+                            userId: user._id,
+                            incidentId: incident._id,
+                            schedule: schedule,
+                            escalation: escalation,
+                            onCallScheduleStatus: onCallScheduleStatus,
+                            alertStatus: 'Not on Duty',
+                            eventType: 'identified',
+                            alertProgress: alertProgress.smsProgress,
+                        });
+                    }
+                    if (escalation.push && shouldSendPushReminder) {
+                        await _this.create({
+                            projectId:
+                                incident.projectId._id || incident.projectId,
+                            monitorId,
+                            alertVia: AlertType.Push,
+                            userId: user._id,
+                            incidentId: incident._id,
+                            schedule: schedule,
+                            escalation: escalation,
+                            onCallScheduleStatus: onCallScheduleStatus,
+                            alertStatus: 'Not on Duty',
+                            eventType: 'identified',
+                        });
+                    }
+
+                    continue;
+                } else {
+                    /**
+                     *  sendSMSAlert & sendCallAlert should not run in parallel
+                     *  otherwise we will have a wrong project balance in the end.
+                     *
+                     */
+
+                    if (escalation.sms && shouldSendSMSReminder) {
+                        await _this.sendSMSAlert({
+                            incident,
+                            user,
+                            project,
+                            monitor,
+                            schedule,
+                            escalation,
+                            onCallScheduleStatus,
+                            eventType: 'identified',
+                            smsProgress: alertProgress.smsProgress,
+                        });
+                    }
+
+                    if (escalation.email && shouldSendEmailReminder) {
+                        _this.sendEmailAlert({
+                            incident,
+                            user,
+                            project,
+                            monitor,
+                            schedule,
+                            escalation,
+                            onCallScheduleStatus,
+                            eventType: 'identified',
+                            emailProgress: alertProgress.emailProgress,
+                        });
+                    }
+
+                    if (escalation.call && shouldSendCallReminder) {
+                        await _this.sendCallAlert({
+                            incident,
+                            user,
+                            project,
+                            monitor,
+                            schedule,
+                            escalation,
+                            onCallScheduleStatus,
+                            eventType: 'identified',
+                            callProgress: alertProgress.callProgress,
+                        });
+                    }
+
+                    if (escalation.push && shouldSendPushReminder) {
+                        await _this.sendPushAlert({
+                            incident,
+                            user,
+                            monitor,
+                            schedule,
+                            escalation,
+                            onCallScheduleStatus,
+                            eventType: 'identified',
+                            pushProgress: alertProgress.pushProgress,
+                        });
+                    }
+                }
             }
-
-            if (!isOnDuty) {
-                if (escalation.call && shouldSendCallReminder) {
-                    await _this.create({
-                        projectId: incident.projectId._id || incident.projectId,
-                        monitorId,
-                        alertVia: AlertType.Call,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        schedule: schedule,
-                        escalation: escalation,
-                        onCallScheduleStatus: onCallScheduleStatus,
-                        alertStatus: 'Not on Duty',
-                        eventType: 'identified',
-                        alertProgress: alertProgress.callProgress,
-                    });
-                }
-                if (escalation.email && shouldSendEmailReminder) {
-                    await _this.create({
-                        projectId: incident.projectId._id || incident.projectId,
-                        monitorId,
-                        alertVia: AlertType.Email,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        schedule: schedule,
-                        escalation: escalation,
-                        onCallScheduleStatus: onCallScheduleStatus,
-                        alertStatus: 'Not on Duty',
-                        eventType: 'identified',
-                        alertProgress: alertProgress.emailProgress,
-                    });
-                }
-                if (escalation.sms && shouldSendSMSReminder) {
-                    await _this.create({
-                        projectId: incident.projectId._id || incident.projectId,
-                        monitorId,
-                        alertVia: AlertType.SMS,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        schedule: schedule,
-                        escalation: escalation,
-                        onCallScheduleStatus: onCallScheduleStatus,
-                        alertStatus: 'Not on Duty',
-                        eventType: 'identified',
-                        alertProgress: alertProgress.smsProgress,
-                    });
-                }
-                if (escalation.push && shouldSendPushReminder) {
-                    await _this.create({
-                        projectId: incident.projectId._id || incident.projectId,
-                        monitorId,
-                        alertVia: AlertType.Push,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        schedule: schedule,
-                        escalation: escalation,
-                        onCallScheduleStatus: onCallScheduleStatus,
-                        alertStatus: 'Not on Duty',
-                        eventType: 'identified',
-                    });
-                }
-
-                continue;
-            } else {
-                /**
-                 *  sendSMSAlert & sendCallAlert should not run in parallel
-                 *  otherwise we will have a wrong project balance in the end.
-                 *
-                 */
-
-                if (escalation.sms && shouldSendSMSReminder) {
-                    await _this.sendSMSAlert({
-                        incident,
-                        user,
-                        project,
-                        monitor,
-                        schedule,
-                        escalation,
-                        onCallScheduleStatus,
-                        eventType: 'identified',
-                        smsProgress: alertProgress.smsProgress,
-                    });
-                }
-
-                if (escalation.email && shouldSendEmailReminder) {
-                    _this.sendEmailAlert({
-                        incident,
-                        user,
-                        project,
-                        monitor,
-                        schedule,
-                        escalation,
-                        onCallScheduleStatus,
-                        eventType: 'identified',
-                        emailProgress: alertProgress.emailProgress,
-                    });
-                }
-
-                if (escalation.call && shouldSendCallReminder) {
-                    await _this.sendCallAlert({
-                        incident,
-                        user,
-                        project,
-                        monitor,
-                        schedule,
-                        escalation,
-                        onCallScheduleStatus,
-                        eventType: 'identified',
-                        callProgress: alertProgress.callProgress,
-                    });
-                }
-
-                if (escalation.push && shouldSendPushReminder) {
-                    await _this.sendPushAlert({
-                        incident,
-                        user,
-                        monitor,
-                        schedule,
-                        escalation,
-                        onCallScheduleStatus,
-                        eventType: 'identified',
-                        pushProgress: alertProgress.pushProgress,
-                    });
-                }
-            }
+        } catch (error) {
+            ErrorService.log(
+                'alertService.sendAlertsToTeamMembersInEscalationPolicy',
+                error
+            );
+            throw error;
         }
     },
 
@@ -1019,111 +1074,119 @@ module.exports = {
         eventType,
         pushProgress,
     }) {
-        const _this = this;
-        let pushMessage;
-        const userData = await UserService.findOneBy({
-            query: { _id: user._id },
-            select: 'identification',
-        });
-
-        const identification = userData.identification;
-
-        const options = {
-            vapidDetails: {
-                subject: process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
-                publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
-                privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
-            },
-            headers: {
-                'access-control-allow-headers':
-                    'content-encoding,encryption,crypto-key,ttl,encryption-key,content-type,authorization',
-                'access-control-allow-methods': 'POST',
-                'access-control-allow-origin': '*',
-                'access-control-expose-headers': 'location,www-authenticate',
-                'cache-control': 'max-age=86400',
-                'content-type': 'application/json',
-                server: 'nginx',
-                'strict-transport-security':
-                    'max-age=31536000;includeSubDomains',
-                'content-length': '179',
-                connection: 'Close',
-            },
-        };
-
-        if (pushProgress) {
-            pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
-        } else {
-            pushMessage = '';
-        }
-
-        // Create payload
-        const title = `${pushMessage}Incident #${incident.idNumber} is created`;
-        const body = `Please acknowledge or resolve this incident on OneUptime Dashboard.`;
-        const payload = JSON.stringify({ title, body });
-
-        // Pass object into sendNotification
-        if (identification.length > 0) {
-            let promiseFuncs = [];
-            for (const sub of identification) {
-                promiseFuncs = [
-                    ...promiseFuncs,
-                    webpush.sendNotification(
-                        sub.subscription,
-                        payload,
-                        options
-                    ),
-                ];
-            }
-            return Promise.all(promiseFuncs)
-                .then(async () => {
-                    return await _this.create({
-                        projectId: incident.projectId._id || incident.projectId,
-                        monitorId: monitor._id,
-                        schedule: schedule._id,
-                        escalation: escalation._id,
-                        onCallScheduleStatus: onCallScheduleStatus._id,
-                        alertVia: `${AlertType.Push} Notification`,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        eventType,
-                        alertStatus: 'Success',
-                        alertProgress: pushProgress,
-                    });
-                })
-                .catch(async e => {
-                    return await _this.create({
-                        projectId: incident.projectId._id || incident.projectId,
-                        monitorId: monitor._id,
-                        schedule: schedule._id,
-                        escalation: escalation._id,
-                        onCallScheduleStatus: onCallScheduleStatus._id,
-                        alertVia: `${AlertType.Push} Notification`,
-                        userId: user._id,
-                        incidentId: incident._id,
-                        eventType,
-                        alertStatus: 'Cannot Send',
-                        error: true,
-                        errorMessage: e.message,
-                        alertProgress: pushProgress,
-                    });
-                });
-        } else {
-            return await _this.create({
-                projectId: incident.projectId._id || incident.projectId,
-                monitorId: monitor._id,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                alertVia: `${AlertType.Push} Notification`,
-                userId: user._id,
-                incidentId: incident._id,
-                eventType,
-                alertStatus: 'Cannot Send',
-                error: true,
-                errorMessage:
-                    'Push Notification not allowed in the user dashboard',
-                alertProgress: pushProgress,
+        try {
+            const _this = this;
+            let pushMessage;
+            const userData = await UserService.findOneBy({
+                query: { _id: user._id },
+                select: 'identification',
             });
+
+            const identification = userData.identification;
+
+            const options = {
+                vapidDetails: {
+                    subject: process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
+                    publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
+                    privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
+                },
+                headers: {
+                    'access-control-allow-headers':
+                        'content-encoding,encryption,crypto-key,ttl,encryption-key,content-type,authorization',
+                    'access-control-allow-methods': 'POST',
+                    'access-control-allow-origin': '*',
+                    'access-control-expose-headers':
+                        'location,www-authenticate',
+                    'cache-control': 'max-age=86400',
+                    'content-type': 'application/json',
+                    server: 'nginx',
+                    'strict-transport-security':
+                        'max-age=31536000;includeSubDomains',
+                    'content-length': '179',
+                    connection: 'Close',
+                },
+            };
+
+            if (pushProgress) {
+                pushMessage = `Reminder ${pushProgress.current}/${pushProgress.total}: `;
+            } else {
+                pushMessage = '';
+            }
+
+            // Create payload
+            const title = `${pushMessage}Incident #${incident.idNumber} is created`;
+            const body = `Please acknowledge or resolve this incident on OneUptime Dashboard.`;
+            const payload = JSON.stringify({ title, body });
+
+            // Pass object into sendNotification
+            if (identification.length > 0) {
+                let promiseFuncs = [];
+                for (const sub of identification) {
+                    promiseFuncs = [
+                        ...promiseFuncs,
+                        webpush.sendNotification(
+                            sub.subscription,
+                            payload,
+                            options
+                        ),
+                    ];
+                }
+                return Promise.all(promiseFuncs)
+                    .then(async () => {
+                        return await _this.create({
+                            projectId:
+                                incident.projectId._id || incident.projectId,
+                            monitorId: monitor._id,
+                            schedule: schedule._id,
+                            escalation: escalation._id,
+                            onCallScheduleStatus: onCallScheduleStatus._id,
+                            alertVia: `${AlertType.Push} Notification`,
+                            userId: user._id,
+                            incidentId: incident._id,
+                            eventType,
+                            alertStatus: 'Success',
+                            alertProgress: pushProgress,
+                        });
+                    })
+                    .catch(async e => {
+                        return await _this.create({
+                            projectId:
+                                incident.projectId._id || incident.projectId,
+                            monitorId: monitor._id,
+                            schedule: schedule._id,
+                            escalation: escalation._id,
+                            onCallScheduleStatus: onCallScheduleStatus._id,
+                            alertVia: `${AlertType.Push} Notification`,
+                            userId: user._id,
+                            incidentId: incident._id,
+                            eventType,
+                            alertStatus: 'Cannot Send',
+                            error: true,
+                            errorMessage: e.message,
+                            alertProgress: pushProgress,
+                        });
+                    });
+            } else {
+                return await _this.create({
+                    projectId: incident.projectId._id || incident.projectId,
+                    monitorId: monitor._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    alertVia: `${AlertType.Push} Notification`,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    eventType,
+                    alertStatus: 'Cannot Send',
+                    error: true,
+                    errorMessage:
+                        'Push Notification not allowed in the user dashboard',
+                    alertProgress: pushProgress,
+                });
+            }
+        } catch (error) {
+            ErrorService.log('alertService.sendPushAlert', error);
+            throw error;
         }
     },
 
@@ -1143,25 +1206,25 @@ module.exports = {
             incident.probes.length > 0 && incident.probes[0].probeId.probeName;
         let date = new Date();
         const monitorId = monitor._id;
-        const accessToken = UserService.getAccessToken({
-            userId: user._id,
-            expiresIn: 12 * 60 * 60 * 1000,
-        });
-
-        const projectId = incident.projectId._id || incident.projectId;
-        const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
-        const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
-        const firstName = user.name;
-
-        if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-            date = moment(incident.createdAt)
-                .tz(user.timezone)
-                .format('LLLL');
-        }
-
         try {
+            const accessToken = UserService.getAccessToken({
+                userId: user._id,
+                expiresIn: 12 * 60 * 60 * 1000,
+            });
+
+            const projectId = incident.projectId._id || incident.projectId;
+            const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+            const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
+            const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
+            const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
+            const firstName = user.name;
+
+            if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
+                date = moment(incident.createdAt)
+                    .tz(user.timezone)
+                    .format('LLLL');
+            }
+
             const [
                 hasGlobalSmtpSettings,
                 hasCustomSmtpSettings,
@@ -1381,106 +1444,72 @@ module.exports = {
         eventType,
         callProgress,
     }) {
-        const _this = this;
-        let alert;
-        const date = new Date();
-        const monitorId = monitor._id;
-        const projectId = incident.projectId._id || incident.projectId;
-        const accessToken = UserService.getAccessToken({
-            userId: user._id,
-            expiresIn: 12 * 60 * 60 * 1000,
-        });
-        if (!user.alertPhoneNumber) {
-            return await _this.create({
-                projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.Call,
+        try {
+            const _this = this;
+            let alert;
+            const date = new Date();
+            const monitorId = monitor._id;
+            const projectId = incident.projectId._id || incident.projectId;
+            const accessToken = UserService.getAccessToken({
                 userId: user._id,
-                incidentId: incident._id,
-                alertStatus: null,
-                error: true,
-                eventType,
-                errorMessage: 'No phone number',
-                alertProgress: callProgress,
+                expiresIn: 12 * 60 * 60 * 1000,
             });
-        }
-
-        const [
-            hasGlobalTwilioSettings,
-            hasCustomTwilioSettings,
-        ] = await Promise.all([
-            GlobalConfigService.findOneBy({
-                query: { name: 'twilio' },
-                select: 'value',
-            }),
-            TwilioService.hasCustomSettings(projectId),
-        ]);
-        const areAlertsEnabledGlobally =
-            hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['call-enabled']
-                ? true
-                : false;
-
-        if (
-            !hasCustomTwilioSettings &&
-            ((IS_SAAS_SERVICE &&
-                (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
-        ) {
-            let errorMessageText;
-            if (!hasGlobalTwilioSettings) {
-                errorMessageText =
-                    'Twilio Settings not found on Admin Dashboard';
-            } else if (!areAlertsEnabledGlobally) {
-                errorMessageText = 'Alert Disabled on Admin Dashboard';
-            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
-                errorMessageText = 'Alert Disabled for this project';
-            }
-            return await _this.create({
-                projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.Call,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: null,
-                error: true,
-                eventType,
-                errorMessage: errorMessageText,
-                alertProgress: callProgress,
-            });
-        }
-
-        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                projectId,
-                user.alertPhoneNumber
-            );
-            if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                const countryType = getCountryType(user.alertPhoneNumber);
-                let errorMessageText;
-                if (countryType === 'us') {
-                    errorMessageText =
-                        'Calls for numbers inside US not enabled for this project';
-                } else if (countryType === 'non-us') {
-                    errorMessageText =
-                        'Calls for numbers outside US not enabled for this project';
-                } else {
-                    errorMessageText =
-                        'Calls to High Risk country not enabled for this project';
-                }
+            if (!user.alertPhoneNumber) {
                 return await _this.create({
                     projectId,
-                    monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
+                    alertVia: AlertType.Call,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    eventType,
+                    errorMessage: 'No phone number',
+                    alertProgress: callProgress,
+                });
+            }
+
+            const [
+                hasGlobalTwilioSettings,
+                hasCustomTwilioSettings,
+            ] = await Promise.all([
+                GlobalConfigService.findOneBy({
+                    query: { name: 'twilio' },
+                    select: 'value',
+                }),
+                TwilioService.hasCustomSettings(projectId),
+            ]);
+            const areAlertsEnabledGlobally =
+                hasGlobalTwilioSettings &&
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['call-enabled']
+                    ? true
+                    : false;
+
+            if (
+                !hasCustomTwilioSettings &&
+                ((IS_SAAS_SERVICE &&
+                    (!project.alertEnable || !areAlertsEnabledGlobally)) ||
+                    (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+            ) {
+                let errorMessageText;
+                if (!hasGlobalTwilioSettings) {
+                    errorMessageText =
+                        'Twilio Settings not found on Admin Dashboard';
+                } else if (!areAlertsEnabledGlobally) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
+                } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                    errorMessageText = 'Alert Disabled for this project';
+                }
+                return await _this.create({
+                    projectId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
                     alertVia: AlertType.Call,
                     userId: user._id,
                     incidentId: incident._id,
@@ -1492,91 +1521,130 @@ module.exports = {
                 });
             }
 
-            const status = await PaymentService.checkAndRechargeProjectBalance(
-                project,
-                user._id,
-                user.alertPhoneNumber,
-                AlertType.Call
-            );
-
-            if (!status.success) {
-                return await _this.create({
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
                     projectId,
-                    monitorId,
+                    user.alertPhoneNumber
+                );
+                if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                    const countryType = getCountryType(user.alertPhoneNumber);
+                    let errorMessageText;
+                    if (countryType === 'us') {
+                        errorMessageText =
+                            'Calls for numbers inside US not enabled for this project';
+                    } else if (countryType === 'non-us') {
+                        errorMessageText =
+                            'Calls for numbers outside US not enabled for this project';
+                    } else {
+                        errorMessageText =
+                            'Calls to High Risk country not enabled for this project';
+                    }
+                    return await _this.create({
+                        projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.Call,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        eventType,
+                        errorMessage: errorMessageText,
+                        alertProgress: callProgress,
+                    });
+                }
+
+                const status = await PaymentService.checkAndRechargeProjectBalance(
+                    project,
+                    user._id,
+                    user.alertPhoneNumber,
+                    AlertType.Call
+                );
+
+                if (!status.success) {
+                    return await _this.create({
+                        projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.Call,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        eventType,
+                        errorMessage: status.message,
+                        alertProgress: callProgress,
+                    });
+                }
+            }
+            const alertStatus = await TwilioService.sendIncidentCreatedCall(
+                date,
+                monitor.name,
+                user.alertPhoneNumber,
+                accessToken,
+                incident._id,
+                projectId,
+                incident.incidentType,
+                callProgress
+            );
+            if (alertStatus && alertStatus.code && alertStatus.code === 400) {
+                return await _this.create({
+                    projectId: project._id,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
                     alertVia: AlertType.Call,
                     userId: user._id,
                     incidentId: incident._id,
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: status.message,
+                    errorMessage: alertStatus.message,
                     alertProgress: callProgress,
                 });
-            }
-        }
-        const alertStatus = await TwilioService.sendIncidentCreatedCall(
-            date,
-            monitor.name,
-            user.alertPhoneNumber,
-            accessToken,
-            incident._id,
-            projectId,
-            incident.incidentType,
-            callProgress
-        );
-        if (alertStatus && alertStatus.code && alertStatus.code === 400) {
-            return await _this.create({
-                projectId: project._id,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.Call,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: null,
-                error: true,
-                eventType,
-                errorMessage: alertStatus.message,
-                alertProgress: callProgress,
-            });
-        } else if (alertStatus) {
-            alert = await _this.create({
-                projectId: project._id,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.Call,
-                userId: user._id,
-                incidentId: incident._id,
-                eventType,
-                alertStatus: 'Success',
-                alertProgress: callProgress,
-            });
-            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
-                    user._id,
-                    project,
-                    AlertType.Call,
-                    user.alertPhoneNumber
-                );
-
-                if (!balanceStatus.error) {
-                    await AlertChargeService.create(
-                        projectId,
-                        balanceStatus.chargeAmount,
-                        balanceStatus.closingBalance,
-                        alert._id,
-                        monitorId,
-                        incident._id,
+            } else if (alertStatus) {
+                alert = await _this.create({
+                    projectId: project._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
+                    alertVia: AlertType.Call,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    eventType,
+                    alertStatus: 'Success',
+                    alertProgress: callProgress,
+                });
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                    const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                        user._id,
+                        project,
+                        AlertType.Call,
                         user.alertPhoneNumber
                     );
+
+                    if (!balanceStatus.error) {
+                        await AlertChargeService.create(
+                            projectId,
+                            balanceStatus.chargeAmount,
+                            balanceStatus.closingBalance,
+                            alert._id,
+                            monitorId,
+                            incident._id,
+                            user.alertPhoneNumber
+                        );
+                    }
                 }
             }
+        } catch (error) {
+            ErrorService.log('alertService.sendCallAlert', error);
+            throw error;
         }
     },
 
@@ -1591,104 +1659,70 @@ module.exports = {
         eventType,
         smsProgress,
     }) {
-        const _this = this;
-        let alert;
-        const projectId = project._id;
-        const date = new Date();
-        const monitorId = monitor._id;
-        if (!user.alertPhoneNumber) {
-            return await _this.create({
-                projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.SMS,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: null,
-                error: true,
-                eventType,
-                errorMessage: 'No phone number',
-                alertProgress: smsProgress,
-            });
-        }
-
-        const [
-            hasGlobalTwilioSettings,
-            hasCustomTwilioSettings,
-        ] = await Promise.all([
-            GlobalConfigService.findOneBy({
-                query: { name: 'twilio' },
-                select: 'value',
-            }),
-            TwilioService.hasCustomSettings(projectId),
-        ]);
-        const areAlertsEnabledGlobally =
-            hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['sms-enabled']
-                ? true
-                : false;
-
-        if (
-            !hasCustomTwilioSettings &&
-            ((IS_SAAS_SERVICE &&
-                (!project.alertEnable || !areAlertsEnabledGlobally)) ||
-                (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
-        ) {
-            let errorMessageText;
-            if (!hasGlobalTwilioSettings) {
-                errorMessageText =
-                    'Twilio Settings not found on Admin Dashboard';
-            } else if (!areAlertsEnabledGlobally) {
-                errorMessageText = 'Alert Disabled on Admin Dashboard';
-            } else if (IS_SAAS_SERVICE && !project.alertEnable) {
-                errorMessageText = 'Alert Disabled for this project';
-            } else {
-                errorMessageText = 'Error';
-            }
-            return await _this.create({
-                projectId: incident.projectId._id || incident.projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.SMS,
-                userId: user._id,
-                incidentId: incident._id,
-                alertStatus: null,
-                error: true,
-                eventType,
-                errorMessage: errorMessageText,
-                alertProgress: smsProgress,
-            });
-        }
-
-        if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                incident.projectId._id || incident.projectId,
-                user.alertPhoneNumber
-            );
-            if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                const countryType = getCountryType(user.alertPhoneNumber);
-                let errorMessageText;
-                if (countryType === 'us') {
-                    errorMessageText =
-                        'SMS for numbers inside US not enabled for this project';
-                } else if (countryType === 'non-us') {
-                    errorMessageText =
-                        'SMS for numbers outside US not enabled for this project';
-                } else {
-                    errorMessageText =
-                        'SMS to High Risk country not enabled for this project';
-                }
+        try {
+            const _this = this;
+            let alert;
+            const projectId = project._id;
+            const date = new Date();
+            const monitorId = monitor._id;
+            if (!user.alertPhoneNumber) {
                 return await _this.create({
-                    projectId: incident.projectId._id || incident.projectId,
-                    monitorId,
+                    projectId,
                     schedule: schedule._id,
                     escalation: escalation._id,
                     onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    alertStatus: null,
+                    error: true,
+                    eventType,
+                    errorMessage: 'No phone number',
+                    alertProgress: smsProgress,
+                });
+            }
+
+            const [
+                hasGlobalTwilioSettings,
+                hasCustomTwilioSettings,
+            ] = await Promise.all([
+                GlobalConfigService.findOneBy({
+                    query: { name: 'twilio' },
+                    select: 'value',
+                }),
+                TwilioService.hasCustomSettings(projectId),
+            ]);
+            const areAlertsEnabledGlobally =
+                hasGlobalTwilioSettings &&
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['sms-enabled']
+                    ? true
+                    : false;
+
+            if (
+                !hasCustomTwilioSettings &&
+                ((IS_SAAS_SERVICE &&
+                    (!project.alertEnable || !areAlertsEnabledGlobally)) ||
+                    (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
+            ) {
+                let errorMessageText;
+                if (!hasGlobalTwilioSettings) {
+                    errorMessageText =
+                        'Twilio Settings not found on Admin Dashboard';
+                } else if (!areAlertsEnabledGlobally) {
+                    errorMessageText = 'Alert Disabled on Admin Dashboard';
+                } else if (IS_SAAS_SERVICE && !project.alertEnable) {
+                    errorMessageText = 'Alert Disabled for this project';
+                } else {
+                    errorMessageText = 'Error';
+                }
+                return await _this.create({
+                    projectId: incident.projectId._id || incident.projectId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
                     alertVia: AlertType.SMS,
                     userId: user._id,
                     incidentId: incident._id,
@@ -1700,98 +1734,137 @@ module.exports = {
                 });
             }
 
-            const status = await PaymentService.checkAndRechargeProjectBalance(
-                project,
-                user._id,
+            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                    incident.projectId._id || incident.projectId,
+                    user.alertPhoneNumber
+                );
+                if (!doesPhoneNumberComplyWithHighRiskConfig) {
+                    const countryType = getCountryType(user.alertPhoneNumber);
+                    let errorMessageText;
+                    if (countryType === 'us') {
+                        errorMessageText =
+                            'SMS for numbers inside US not enabled for this project';
+                    } else if (countryType === 'non-us') {
+                        errorMessageText =
+                            'SMS for numbers outside US not enabled for this project';
+                    } else {
+                        errorMessageText =
+                            'SMS to High Risk country not enabled for this project';
+                    }
+                    return await _this.create({
+                        projectId: incident.projectId._id || incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.SMS,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        eventType,
+                        errorMessage: errorMessageText,
+                        alertProgress: smsProgress,
+                    });
+                }
+
+                const status = await PaymentService.checkAndRechargeProjectBalance(
+                    project,
+                    user._id,
+                    user.alertPhoneNumber,
+                    AlertType.SMS
+                );
+
+                if (!status.success) {
+                    return await _this.create({
+                        projectId: incident.projectId._id || incident.projectId,
+                        monitorId,
+                        schedule: schedule._id,
+                        escalation: escalation._id,
+                        onCallScheduleStatus: onCallScheduleStatus._id,
+                        alertVia: AlertType.SMS,
+                        userId: user._id,
+                        incidentId: incident._id,
+                        alertStatus: null,
+                        error: true,
+                        eventType,
+                        errorMessage: status.message,
+                        alertProgress: smsProgress,
+                    });
+                }
+            }
+
+            const sendResult = await TwilioService.sendIncidentCreatedMessage(
+                date,
+                monitor.name,
                 user.alertPhoneNumber,
-                AlertType.SMS
+                incident._id,
+                user._id,
+                user.name,
+                incident.incidentType,
+                projectId,
+                smsProgress
             );
 
-            if (!status.success) {
-                return await _this.create({
+            if (sendResult && sendResult.code && sendResult.code === 400) {
+                await _this.create({
                     projectId: incident.projectId._id || incident.projectId,
                     monitorId,
-                    schedule: schedule._id,
-                    escalation: escalation._id,
-                    onCallScheduleStatus: onCallScheduleStatus._id,
                     alertVia: AlertType.SMS,
                     userId: user._id,
                     incidentId: incident._id,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
                     alertStatus: null,
                     error: true,
                     eventType,
-                    errorMessage: status.message,
+                    errorMessage: sendResult.message,
                     alertProgress: smsProgress,
                 });
-            }
-        }
-
-        const sendResult = await TwilioService.sendIncidentCreatedMessage(
-            date,
-            monitor.name,
-            user.alertPhoneNumber,
-            incident._id,
-            user._id,
-            user.name,
-            incident.incidentType,
-            projectId,
-            smsProgress
-        );
-
-        if (sendResult && sendResult.code && sendResult.code === 400) {
-            await _this.create({
-                projectId: incident.projectId._id || incident.projectId,
-                monitorId,
-                alertVia: AlertType.SMS,
-                userId: user._id,
-                incidentId: incident._id,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                alertStatus: null,
-                error: true,
-                eventType,
-                errorMessage: sendResult.message,
-                alertProgress: smsProgress,
-            });
-        } else if (sendResult) {
-            const alertStatus = 'Success';
-            alert = await _this.create({
-                projectId: incident.projectId._id || incident.projectId,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                monitorId,
-                alertVia: AlertType.SMS,
-                userId: user._id,
-                incidentId: incident._id,
-                eventType,
-                alertStatus,
-                alertProgress: smsProgress,
-            });
-            if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                // calculate charge per 160 chars
-                const segments = calcSmsSegments(sendResult.body);
-                const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
-                    user._id,
-                    project,
-                    AlertType.SMS,
-                    user.alertPhoneNumber,
-                    segments
-                );
-
-                if (!balanceStatus.error) {
-                    await AlertChargeService.create(
-                        incident.projectId._id || incident.projectId,
-                        balanceStatus.chargeAmount,
-                        balanceStatus.closingBalance,
-                        alert._id,
-                        monitorId,
-                        incident._id,
-                        user.alertPhoneNumber
+            } else if (sendResult) {
+                const alertStatus = 'Success';
+                alert = await _this.create({
+                    projectId: incident.projectId._id || incident.projectId,
+                    schedule: schedule._id,
+                    escalation: escalation._id,
+                    onCallScheduleStatus: onCallScheduleStatus._id,
+                    monitorId,
+                    alertVia: AlertType.SMS,
+                    userId: user._id,
+                    incidentId: incident._id,
+                    eventType,
+                    alertStatus,
+                    alertProgress: smsProgress,
+                });
+                if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
+                    // calculate charge per 160 chars
+                    const segments = calcSmsSegments(sendResult.body);
+                    const balanceStatus = await PaymentService.chargeAlertAndGetProjectBalance(
+                        user._id,
+                        project,
+                        AlertType.SMS,
+                        user.alertPhoneNumber,
+                        segments
                     );
+
+                    if (!balanceStatus.error) {
+                        await AlertChargeService.create(
+                            incident.projectId._id || incident.projectId,
+                            balanceStatus.chargeAmount,
+                            balanceStatus.closingBalance,
+                            alert._id,
+                            monitorId,
+                            incident._id,
+                            user.alertPhoneNumber
+                        );
+                    }
                 }
             }
+        } catch (error) {
+            ErrorService.log('alertService.sendSMSAlert', error);
+            throw error;
         }
     },
 
@@ -2266,25 +2339,25 @@ module.exports = {
     }) {
         const _this = this;
 
-        let date = new Date();
-        const accessToken = UserService.getAccessToken({
-            userId: user._id,
-            expiresIn: 12 * 60 * 60 * 1000,
-        });
-
         const projectId = incident.projectId._id || incident.projectId;
-        const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
-        const firstName = user.name;
-
-        if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-            date = moment(date)
-                .tz(user.timezone)
-                .format();
-        }
-
         try {
+            let date = new Date();
+            const accessToken = UserService.getAccessToken({
+                userId: user._id,
+                expiresIn: 12 * 60 * 60 * 1000,
+            });
+
+            const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+            const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
+            const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
+            const firstName = user.name;
+
+            if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
+                date = moment(date)
+                    .tz(user.timezone)
+                    .format();
+            }
+
             const [
                 hasGlobalSmtpSettings,
                 hasCustomSmtpSettings,
@@ -2631,25 +2704,25 @@ module.exports = {
         eventType,
     }) {
         const _this = this;
-
-        let date = new Date();
-        const accessToken = UserService.getAccessToken({
-            userId: user._id,
-            expiresIn: 12 * 60 * 60 * 1000,
-        });
-
         const projectId = incident.projectId._id || incident.projectId;
-        const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
-        const firstName = user.name;
-
-        if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-            date = moment(date)
-                .tz(user.timezone)
-                .format();
-        }
 
         try {
+            let date = new Date();
+            const accessToken = UserService.getAccessToken({
+                userId: user._id,
+                expiresIn: 12 * 60 * 60 * 1000,
+            });
+
+            const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+            const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
+            const firstName = user.name;
+
+            if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
+                date = moment(date)
+                    .tz(user.timezone)
+                    .format();
+            }
+
             const [
                 hasGlobalSmtpSettings,
                 hasCustomSmtpSettings,
@@ -3976,30 +4049,35 @@ module.exports = {
     },
 
     getSubProjectAlerts: async function(subProjectIds) {
-        const _this = this;
-        const populateAlert = [
-            { path: 'userId', select: 'name email' },
-            { path: 'monitorId', select: 'name' },
-            { path: 'projectId', select: 'name' },
-        ];
+        try {
+            const _this = this;
+            const populateAlert = [
+                { path: 'userId', select: 'name email' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
 
-        const selectAlert =
-            '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+            const selectAlert =
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-        const subProjectAlerts = await Promise.all(
-            subProjectIds.map(async id => {
-                const alerts = await _this.findBy({
-                    query: { projectId: id },
-                    skip: 0,
-                    limit: 10,
-                    select: selectAlert,
-                    populate: populateAlert,
-                });
-                const count = await _this.countBy({ projectId: id });
-                return { alerts, count, _id: id, skip: 0, limit: 10 };
-            })
-        );
-        return subProjectAlerts;
+            const subProjectAlerts = await Promise.all(
+                subProjectIds.map(async id => {
+                    const alerts = await _this.findBy({
+                        query: { projectId: id },
+                        skip: 0,
+                        limit: 10,
+                        select: selectAlert,
+                        populate: populateAlert,
+                    });
+                    const count = await _this.countBy({ projectId: id });
+                    return { alerts, count, _id: id, skip: 0, limit: 10 };
+                })
+            );
+            return subProjectAlerts;
+        } catch (error) {
+            ErrorService.log('alertService.getSubProjectAlerts', error);
+            throw error;
+        }
     },
 
     hardDeleteBy: async function(query) {
@@ -4013,12 +4091,31 @@ module.exports = {
     },
 
     restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        let alert = await _this.findBy({ query, select: '_id' });
-        if (alert && alert.length > 1) {
-            const alerts = await Promise.all(
-                alert.map(async alert => {
+        try {
+            const _this = this;
+            query.deleted = true;
+            let alert = await _this.findBy({ query, select: '_id' });
+            if (alert && alert.length > 1) {
+                const alerts = await Promise.all(
+                    alert.map(async alert => {
+                        const alertId = alert._id;
+                        alert = await _this.updateOneBy(
+                            {
+                                _id: alertId,
+                            },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        return alert;
+                    })
+                );
+                return alerts;
+            } else {
+                alert = alert[0];
+                if (alert) {
                     const alertId = alert._id;
                     alert = await _this.updateOneBy(
                         {
@@ -4030,71 +4127,69 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                    return alert;
-                })
-            );
-            return alerts;
-        } else {
-            alert = alert[0];
-            if (alert) {
-                const alertId = alert._id;
-                alert = await _this.updateOneBy(
-                    {
-                        _id: alertId,
-                    },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
+                }
+                return alert;
             }
-            return alert;
+        } catch (error) {
+            ErrorService.log('alertService.restoreBy', error);
+            throw error;
         }
     },
 
     //Return true, if the limit is not reached yet.
     checkPhoneAlertsLimit: async function(projectId) {
-        const _this = this;
-        const hasCustomSettings = await TwilioService.hasCustomSettings(
-            projectId
-        );
-        if (hasCustomSettings) {
-            return true;
-        }
-        const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-        const [alerts, smsCounts, project, twilioSettings] = await Promise.all([
-            _this.countBy({
-                projectId: projectId,
-                alertVia: { $in: [AlertType.Call, AlertType.SMS] },
-                error: { $in: [null, undefined, false] },
-                createdAt: { $gte: yesterday },
-            }),
-            SmsCountService.countBy({
-                projectId: projectId,
-                createdAt: { $gte: yesterday },
-            }),
-            ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'alertLimit',
-            }),
-            TwilioService.getSettings(),
-        ]);
-        let limit =
-            project && project.alertLimit
-                ? project.alertLimit
-                : twilioSettings['alert-limit'];
-        if (limit && typeof limit === 'string') {
-            limit = parseInt(limit, 10);
-        }
-        if (alerts + smsCounts <= limit) {
-            return true;
-        } else {
-            await ProjectService.updateOneBy(
-                { _id: projectId },
-                { alertLimitReached: true }
+        try {
+            const _this = this;
+            const hasCustomSettings = await TwilioService.hasCustomSettings(
+                projectId
             );
-            return false;
+            if (hasCustomSettings) {
+                return true;
+            }
+            const yesterday = new Date(
+                new Date().getTime() - 24 * 60 * 60 * 1000
+            );
+            const [
+                alerts,
+                smsCounts,
+                project,
+                twilioSettings,
+            ] = await Promise.all([
+                _this.countBy({
+                    projectId: projectId,
+                    alertVia: { $in: [AlertType.Call, AlertType.SMS] },
+                    error: { $in: [null, undefined, false] },
+                    createdAt: { $gte: yesterday },
+                }),
+                SmsCountService.countBy({
+                    projectId: projectId,
+                    createdAt: { $gte: yesterday },
+                }),
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'alertLimit',
+                }),
+                TwilioService.getSettings(),
+            ]);
+            let limit =
+                project && project.alertLimit
+                    ? project.alertLimit
+                    : twilioSettings['alert-limit'];
+            if (limit && typeof limit === 'string') {
+                limit = parseInt(limit, 10);
+            }
+            if (alerts + smsCounts <= limit) {
+                return true;
+            } else {
+                await ProjectService.updateOneBy(
+                    { _id: projectId },
+                    { alertLimitReached: true }
+                );
+                return false;
+            }
+        } catch (error) {
+            ErrorService.log('alertService.checkPhoneAlertsLimit', error);
+            throw error;
         }
     },
 
