@@ -7,7 +7,8 @@ saas:
   isSaasService: false
   stripe: 
     publicKey: #Stripe public and private key
-    privateKey: 
+    privateKey:
+    slackWebhook: https://hooks.slack.com/services/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 
   airtable: 
     key: #Airtbale key to store leads. 
     baseId: 

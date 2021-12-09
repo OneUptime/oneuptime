@@ -2,7 +2,7 @@ const express = require('express');
 const StripeService = require('../services/stripeService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
+// const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 
 const getUser = require('../middlewares/user').getUser;
@@ -17,22 +17,28 @@ const router = express.Router();
 // Params:
 // Param 1: webhookURL
 // Returns: 200: Event object with various status.
-router.post('/stripe/events', async function(req, res) {
+router.post('/events', async function(req, res) {
     try {
         const event = req.body;
         const customerId = event.data.object.customer;
         const subscriptionId = event.data.object.subscription;
         const chargeAttemptCount = event.data.object.attempt_count;
+        const invoiceUrl = event.data.object.hosted_invoice_url;
 
         if (!event.data.object.paid) {
-            const response = await StripeService.events(
+            const response = await StripeService.failedEvent(
                 customerId,
                 subscriptionId,
-                chargeAttemptCount
+                chargeAttemptCount,
+                invoiceUrl
             );
             return sendItemResponse(req, res, response);
         } else {
-            return sendEmptyResponse(req, res);
+            const response = await StripeService.successEvent(
+                customerId,
+                subscriptionId
+            );
+            return sendItemResponse(req, res, response);
         }
     } catch (error) {
         return sendErrorResponse(req, res, error);
