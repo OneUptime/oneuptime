@@ -486,23 +486,44 @@ module.exports = {
     },
 
     restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        const populateComponent = [
-            { path: 'projectId', select: 'name' },
-            { path: 'componentCategoryId', select: 'name' },
-        ];
+        try {
+            const _this = this;
+            query.deleted = true;
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
 
-        const selectComponent =
-            '_id createdAt name createdById projectId slug componentCategoryId';
-        let component = await _this.findBy({
-            query,
-            populate: populateComponent,
-            select: selectComponent,
-        });
-        if (component && component.length > 1) {
-            const components = await Promise.all(
-                component.map(async component => {
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            let component = await _this.findBy({
+                query,
+                populate: populateComponent,
+                select: selectComponent,
+            });
+            if (component && component.length > 1) {
+                const components = await Promise.all(
+                    component.map(async component => {
+                        const componentId = component._id;
+                        component = await _this.updateOneBy(
+                            { _id: componentId, deleted: true },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        await MonitorService.restoreBy({
+                            componentId,
+                            deleted: true,
+                        });
+                        return component;
+                    })
+                );
+                return components;
+            } else {
+                component = component[0];
+                if (component) {
                     const componentId = component._id;
                     component = await _this.updateOneBy(
                         { _id: componentId, deleted: true },
@@ -516,25 +537,12 @@ module.exports = {
                         componentId,
                         deleted: true,
                     });
-                    return component;
-                })
-            );
-            return components;
-        } else {
-            component = component[0];
-            if (component) {
-                const componentId = component._id;
-                component = await _this.updateOneBy(
-                    { _id: componentId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-                await MonitorService.restoreBy({ componentId, deleted: true });
+                }
+                return component;
             }
-            return component;
+        } catch (error) {
+            ErrorService.log('componentService.restoreBy', error);
+            throw error;
         }
     },
 };

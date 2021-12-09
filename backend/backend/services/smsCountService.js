@@ -86,22 +86,27 @@ module.exports = {
 
     search: async function({ filter, skip, limit }) {
         const _this = this;
-        const query = {
-            sendTo: { $regex: new RegExp(filter), $options: 'i' },
-        };
+        try {
+            const query = {
+                sendTo: { $regex: new RegExp(filter), $options: 'i' },
+            };
 
-        const populate = [
-            { path: 'projectId', select: 'name' },
-            { path: 'userId', select: 'name' },
-        ];
-        const select =
-            'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
-        const [searchedSmsLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({ query, skip, limit, select, populate }),
-            _this.countBy({ query }),
-        ]);
+            const populate = [
+                { path: 'projectId', select: 'name' },
+                { path: 'userId', select: 'name' },
+            ];
+            const select =
+                'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
+            const [searchedSmsLogs, totalSearchCount] = await Promise.all([
+                _this.findBy({ query, skip, limit, select, populate }),
+                _this.countBy({ query }),
+            ]);
 
-        return { searchedSmsLogs, totalSearchCount };
+            return { searchedSmsLogs, totalSearchCount };
+        } catch (error) {
+            ErrorService.log('smsCountService.search', error);
+            throw error;
+        }
     },
 
     validateResend: async function(userId) {

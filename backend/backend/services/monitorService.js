@@ -209,71 +209,115 @@ module.exports = {
     },
 
     markMonitorsAsShouldNotMonitor: async function(monitorIds) {
-        await MonitorModel.updateMany(
-            {
-                _id: { $in: monitorIds },
-            },
-            {
-                $set: { shouldNotMonitor: true },
-            }
-        );
+        try {
+            await MonitorModel.updateMany(
+                {
+                    _id: { $in: monitorIds },
+                },
+                {
+                    $set: { shouldNotMonitor: true },
+                }
+            );
+        } catch (error) {
+            ErrorService.log(
+                'monitorService.markMonitorsAsShouldNotMonitor',
+                error
+            );
+            throw error;
+        }
     },
 
     markMonitorsAsShouldMonitor: async function(monitorIds) {
-        await MonitorModel.updateMany(
-            {
-                _id: { $in: monitorIds },
-            },
-            {
-                $set: { shouldNotMonitor: false },
-            }
-        );
+        try {
+            await MonitorModel.updateMany(
+                {
+                    _id: { $in: monitorIds },
+                },
+                {
+                    $set: { shouldNotMonitor: false },
+                }
+            );
+        } catch (error) {
+            ErrorService.log(
+                'monitorService.markMonitorsAsShouldMonitor',
+                error
+            );
+            throw error;
+        }
     },
 
     unsetColumnsOfManyMonitors: async function(monitorIds, columns) {
-        await MonitorModel.updateMany(
-            {
-                _id: { $in: monitorIds },
-            },
-            {
-                $unset: { ...columns },
-            }
-        );
+        try {
+            await MonitorModel.updateMany(
+                {
+                    _id: { $in: monitorIds },
+                },
+                {
+                    $unset: { ...columns },
+                }
+            );
+        } catch (error) {
+            ErrorService.log(
+                'monitorService.unsetColumnsOfManyMonitors',
+                error
+            );
+            throw error;
+        }
     },
 
     updateManyIncidentCommunicationSla: async function(
         monitorIds,
         incidentCommunicationSlaId
     ) {
-        await MonitorModel.updateMany(
-            {
-                _id: { $in: monitorIds },
-            },
-            {
-                $set: { incidentCommunicationSla: incidentCommunicationSlaId },
-            }
-        );
+        try {
+            await MonitorModel.updateMany(
+                {
+                    _id: { $in: monitorIds },
+                },
+                {
+                    $set: {
+                        incidentCommunicationSla: incidentCommunicationSlaId,
+                    },
+                }
+            );
+        } catch (error) {
+            ErrorService.log(
+                'monitorService.updateManyIncidentCommunicationSla',
+                error
+            );
+            throw error;
+        }
     },
 
     updateManyMonitorSla: async function(monitorIds, monitorSlaId) {
-        await MonitorModel.updateMany(
-            {
-                _id: { $in: monitorIds },
-            },
-            {
-                $set: { monitorSla: monitorSlaId },
-            }
-        );
+        try {
+            await MonitorModel.updateMany(
+                {
+                    _id: { $in: monitorIds },
+                },
+                {
+                    $set: { monitorSla: monitorSlaId },
+                }
+            );
+        } catch (error) {
+            ErrorService.log('monitorService.updateManyMonitorSla', error);
+            throw error;
+        }
     },
 
     updateCriterion: async function(_id, lastMatchedCriterion) {
-        await MonitorModel.updateOne(
-            { _id },
-            { $set: { lastMatchedCriterion } },
-            {
-                new: true,
-            }
-        );
+        try {
+            await MonitorModel.updateOne(
+                { _id },
+                { $set: { lastMatchedCriterion } },
+                {
+                    new: true,
+                }
+            );
+        } catch (error) {
+            ErrorService.log('monitorService.updateCriterion', error);
+            throw error;
+        }
     },
 
     updateLighthouseScanStatus: async function(
@@ -281,71 +325,89 @@ module.exports = {
         lighthouseScanStatus,
         lighthouseScannedBy
     ) {
-        const updateData = {};
+        try {
+            const updateData = {};
 
-        if (lighthouseScanStatus !== 'scanning') {
-            updateData.lighthouseScannedAt = Date.now();
-            updateData.lighthouseScannedBy = lighthouseScannedBy;
-        } else {
-            updateData.fetchLightHouse = null;
-        }
-
-        await MonitorModel.updateOne(
-            { _id },
-            {
-                $set: {
-                    lighthouseScanStatus,
-                    ...updateData,
-                },
-            },
-            {
-                new: true,
+            if (lighthouseScanStatus !== 'scanning') {
+                updateData.lighthouseScannedAt = Date.now();
+                updateData.lighthouseScannedBy = lighthouseScannedBy;
+            } else {
+                updateData.fetchLightHouse = null;
             }
-        );
 
-        const select =
-            '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-        const populate = [
-            {
-                path: 'monitorSla',
-                select: 'frequency _id',
-            },
-            { path: 'componentId', select: 'name' },
-            { path: 'incidentCommunicationSla', select: '_id' },
-            { path: 'resourceCategory', select: 'name' },
-            { path: 'statusPageCategory', select: 'name' },
-        ];
-        const query = { _id };
+            await MonitorModel.updateOne(
+                { _id },
+                {
+                    $set: {
+                        lighthouseScanStatus,
+                        ...updateData,
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
 
-        const monitor = await this.findOneBy({ query, select, populate });
-        RealTimeService.monitorEdit(monitor);
-        return monitor;
+            const select =
+                '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+                { path: 'resourceCategory', select: 'name' },
+                { path: 'statusPageCategory', select: 'name' },
+            ];
+            const query = { _id };
+
+            const monitor = await this.findOneBy({ query, select, populate });
+            RealTimeService.monitorEdit(monitor);
+            return monitor;
+        } catch (error) {
+            ErrorService.log(
+                'monitorService.updateLighthouseScanStatus',
+                error
+            );
+            throw error;
+        }
     },
 
     disableMonitor: async function(_id, isDisabledOrEnable) {
-        await MonitorModel.updateOne(
-            { _id },
-            {
-                $set: {
-                    disabled: isDisabledOrEnable,
-                },
-            }
-        );
+        try {
+            await MonitorModel.updateOne(
+                { _id },
+                {
+                    $set: {
+                        disabled: isDisabledOrEnable,
+                    },
+                }
+            );
+        } catch (error) {
+            ErrorService.log('monitorService.disableMonitor', error);
+            throw error;
+        }
     },
 
     updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
-        await MonitorModel.updateOne(
-            { _id },
-            {
-                $set: {
-                    scriptRunStatus,
-                    scriptRunBy,
+        try {
+            await MonitorModel.updateOne(
+                { _id },
+                {
+                    $set: {
+                        scriptRunStatus,
+                        scriptRunBy,
+                    },
                 },
-            },
-            {
-                new: true,
-            }
-        );
+                {
+                    new: true,
+                }
+            );
+        } catch (error) {
+            ErrorService.log('monitorService.updateScriptStatus', error);
+            throw error;
+        }
     },
 
     updateOneBy: async function(query, data, unsetData) {
@@ -1661,33 +1723,41 @@ module.exports = {
     },
 
     restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        const select = '_id';
-        const monitor = await _this.findBy({ query, select });
-        if (monitor && monitor.length > 0) {
-            const monitors = await Promise.all(
-                monitor.map(async monitor => {
-                    const monitorId = monitor._id;
-                    monitor = await _this.updateOneBy(
-                        { _id: monitorId, deleted: true },
-                        {
-                            deleted: false,
-                            deletedAt: null,
-                            deleteBy: null,
-                        }
-                    );
-                    await Promise.all([
-                        IncidentService.restoreBy({
-                            'monitors.monitorId': monitorId,
-                            deleted: true,
-                        }),
-                        AlertService.restoreBy({ monitorId, deleted: true }),
-                    ]);
-                    return monitor;
-                })
-            );
-            return monitors;
+        try {
+            const _this = this;
+            query.deleted = true;
+            const select = '_id';
+            const monitor = await _this.findBy({ query, select });
+            if (monitor && monitor.length > 0) {
+                const monitors = await Promise.all(
+                    monitor.map(async monitor => {
+                        const monitorId = monitor._id;
+                        monitor = await _this.updateOneBy(
+                            { _id: monitorId, deleted: true },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        await Promise.all([
+                            IncidentService.restoreBy({
+                                'monitors.monitorId': monitorId,
+                                deleted: true,
+                            }),
+                            AlertService.restoreBy({
+                                monitorId,
+                                deleted: true,
+                            }),
+                        ]);
+                        return monitor;
+                    })
+                );
+                return monitors;
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.restoreBy', error);
+            throw error;
         }
     },
 
@@ -1787,7 +1857,7 @@ module.exports = {
         }
     },
 
-    calculateTime: async function(statuses, start, range) {
+    calculateTime: function(statuses, start, range) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -2014,36 +2084,41 @@ module.exports = {
     },
 
     changeMonitorComponent: async function(projectId, monitorId, componentId) {
-        const [monitor, component] = await Promise.all([
-            this.findOneBy({
-                query: { _id: monitorId },
-                select: 'projectId slug',
-            }),
-            componentService.findOneBy({
-                query: { _id: componentId },
-                select: 'projectId slug',
-            }),
-        ]);
+        try {
+            const [monitor, component] = await Promise.all([
+                this.findOneBy({
+                    query: { _id: monitorId },
+                    select: 'projectId slug',
+                }),
+                componentService.findOneBy({
+                    query: { _id: componentId },
+                    select: 'projectId slug',
+                }),
+            ]);
 
-        // ensure monitor and component belong to same project
-        if (
-            String(monitor.projectId) !== String(projectId) ||
-            String(component.projectId) !== String(projectId)
-        ) {
-            throw new Error(
-                'Monitor and component do not belong to the same project or sub-project'
+            // ensure monitor and component belong to same project
+            if (
+                String(monitor.projectId) !== String(projectId) ||
+                String(component.projectId) !== String(projectId)
+            ) {
+                throw new Error(
+                    'Monitor and component do not belong to the same project or sub-project'
+                );
+            }
+
+            const updatedMonitor = await this.updateOneBy(
+                { _id: monitorId },
+                { componentId }
             );
+
+            return updatedMonitor;
+        } catch (error) {
+            ErrorService.log('monitorService.changeMonitorComponent', error);
+            throw error;
         }
-
-        const updatedMonitor = await this.updateOneBy(
-            { _id: monitorId },
-            { componentId }
-        );
-
-        return updatedMonitor;
     },
 
-    calcTime: async function(statuses, start, range) {
+    calcTime: function(statuses, start, range) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;

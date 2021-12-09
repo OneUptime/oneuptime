@@ -282,12 +282,29 @@ module.exports = {
     },
 
     restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        let escalation = await _this.findBy({ query, select: '_id' });
-        if (escalation && escalation.length > 1) {
-            const escalations = await Promise.all(
-                escalation.map(async escalation => {
+        try {
+            const _this = this;
+            query.deleted = true;
+            let escalation = await _this.findBy({ query, select: '_id' });
+            if (escalation && escalation.length > 1) {
+                const escalations = await Promise.all(
+                    escalation.map(async escalation => {
+                        const escalationId = escalation._id;
+                        escalation = await _this.updateOneBy(
+                            { _id: escalationId, deleted: true },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        return escalation;
+                    })
+                );
+                return escalations;
+            } else {
+                escalation = escalation[0];
+                if (escalation) {
                     const escalationId = escalation._id;
                     escalation = await _this.updateOneBy(
                         { _id: escalationId, deleted: true },
@@ -297,24 +314,12 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                    return escalation;
-                })
-            );
-            return escalations;
-        } else {
-            escalation = escalation[0];
-            if (escalation) {
-                const escalationId = escalation._id;
-                escalation = await _this.updateOneBy(
-                    { _id: escalationId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
+                }
+                return escalation;
             }
-            return escalation;
+        } catch (error) {
+            ErrorService.log('escalationService.restoreBy', error);
+            throw error;
         }
     },
 };

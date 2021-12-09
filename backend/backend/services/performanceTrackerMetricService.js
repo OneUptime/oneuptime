@@ -291,8 +291,8 @@ module.exports = {
 
     createMetricsData: async function(appId, type, data, receivedAt) {
         const _this = this;
-        receivedAt = moment(receivedAt).format();
         try {
+            receivedAt = moment(receivedAt).format();
             // handle incoming/outgoing request
             const allData = [];
             for (const [key, value] of Object.entries(data)) {
@@ -336,11 +336,11 @@ module.exports = {
 
     structureMetricsTime: async function(appId, startDate, endDate) {
         const _this = this;
-        startDate = moment(startDate).format();
-        endDate = moment(endDate).format();
-
-        const select = 'metrics createdAt';
         try {
+            startDate = moment(startDate).format();
+            endDate = moment(endDate).format();
+
+            const select = 'metrics createdAt';
             // store the metrics according to createdAt
             // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
             const dataBank = {};
@@ -391,9 +391,9 @@ module.exports = {
     // setup the throughput data for frontend
     structureMetricsCount: async function(appId, startDate, endDate) {
         const _this = this;
-        startDate = moment(startDate).format();
-        endDate = moment(endDate).format();
         try {
+            startDate = moment(startDate).format();
+            endDate = moment(endDate).format();
             // store the metrics according to createdAt
             // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
             const dataBank = {};
@@ -444,9 +444,9 @@ module.exports = {
 
     structureMetricsError: async function(appId, startDate, endDate) {
         const _this = this;
-        startDate = moment(startDate).format();
-        endDate = moment(endDate).format();
         try {
+            startDate = moment(startDate).format();
+            endDate = moment(endDate).format();
             // store the metrics according to createdAt
             // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
             const dataBank = {};

@@ -139,22 +139,22 @@ module.exports = {
     },
     // get all error trackers by component ID
     async getErrorTrackersByComponentId(componentId, limit, skip) {
-        // Check if component exists
-        const componentCount = await ComponentService.countBy({
-            _id: componentId,
-        });
-        // send an error if the component doesnt exist
-        if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
-            error.code = 400;
-            ErrorService.log(
-                'errorTrackerService.getApplicationLogsByComponentId',
-                error
-            );
-            throw error;
-        }
-
         try {
+            // Check if component exists
+            const componentCount = await ComponentService.countBy({
+                _id: componentId,
+            });
+            // send an error if the component doesnt exist
+            if (!componentCount || componentCount === 0) {
+                const error = new Error('Component does not exist.');
+                error.code = 400;
+                ErrorService.log(
+                    'errorTrackerService.getApplicationLogsByComponentId',
+                    error
+                );
+                throw error;
+            }
+
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;

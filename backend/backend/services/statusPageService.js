@@ -1638,39 +1638,47 @@ module.exports = {
     getSubProjectStatusPages: async function(subProjectIds) {
         const _this = this;
 
-        const populateStatusPage = [
-            {
-                path: 'projectId',
-                select: 'name parentProjectId',
-                populate: { path: 'parentProjectId', select: '_id' },
-            },
-            {
-                path: 'domains.domainVerificationToken',
-                select: 'domain verificationToken verified ',
-            },
-            {
-                path: 'monitors.monitor',
-                select: 'name',
-            },
-        ];
+        try {
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
 
-        const selectStatusPage =
-            'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
+            const selectStatusPage =
+                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
-        const subProjectStatusPages = await Promise.all(
-            subProjectIds.map(async id => {
-                const statusPages = await _this.findBy({
-                    query: { projectId: id },
-                    skip: 0,
-                    limit: 10,
-                    select: selectStatusPage,
-                    populate: populateStatusPage,
-                });
-                const count = await _this.countBy({ projectId: id });
-                return { statusPages, count, _id: id, skip: 0, limit: 10 };
-            })
-        );
-        return subProjectStatusPages;
+            const subProjectStatusPages = await Promise.all(
+                subProjectIds.map(async id => {
+                    const statusPages = await _this.findBy({
+                        query: { projectId: id },
+                        skip: 0,
+                        limit: 10,
+                        select: selectStatusPage,
+                        populate: populateStatusPage,
+                    });
+                    const count = await _this.countBy({ projectId: id });
+                    return { statusPages, count, _id: id, skip: 0, limit: 10 };
+                })
+            );
+            return subProjectStatusPages;
+        } catch (error) {
+            ErrorService.log(
+                'statusPageService.getSubProjectStatusPages',
+                error
+            );
+            throw error;
+        }
     },
 
     hardDeleteBy: async function(query) {
@@ -1685,52 +1693,57 @@ module.exports = {
 
     restoreBy: async function(query) {
         const _this = this;
-        query.deleted = true;
+        try {
+            query.deleted = true;
 
-        const populateStatusPage = [
-            {
-                path: 'projectId',
-                select: 'name parentProjectId',
-                populate: { path: 'parentProjectId', select: '_id' },
-            },
-            {
-                path: 'domains.domainVerificationToken',
-                select: 'domain verificationToken verified ',
-            },
-            {
-                path: 'monitors.monitor',
-                select: 'name',
-            },
-        ];
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
 
-        const selectStatusPage =
-            'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+            const selectStatusPage =
+                'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const statusPage = await _this.findBy({
-            query,
-            populate: populateStatusPage,
-            select: selectStatusPage,
-        });
-        if (statusPage && statusPage.length > 1) {
-            const statusPages = await Promise.all(
-                statusPage.map(async statusPage => {
-                    const statusPageId = statusPage._id;
-                    statusPage = await _this.updateOneBy(
-                        { _id: statusPageId, deleted: true },
-                        {
-                            deleted: false,
-                            deletedAt: null,
-                            deleteBy: null,
-                        }
-                    );
-                    await SubscriberService.restoreBy({
-                        statusPageId,
-                        deleted: true,
-                    });
-                    return statusPage;
-                })
-            );
-            return statusPages;
+            const statusPage = await _this.findBy({
+                query,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
+            if (statusPage && statusPage.length > 1) {
+                const statusPages = await Promise.all(
+                    statusPage.map(async statusPage => {
+                        const statusPageId = statusPage._id;
+                        statusPage = await _this.updateOneBy(
+                            { _id: statusPageId, deleted: true },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        await SubscriberService.restoreBy({
+                            statusPageId,
+                            deleted: true,
+                        });
+                        return statusPage;
+                    })
+                );
+                return statusPages;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.restoreBy', error);
+            throw error;
         }
     },
     // get status pages for this incident
