@@ -17,6 +17,12 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+const { NODE_ENV } = process.env;
+if (!NODE_ENV || NODE_ENV === 'development') {
+    // Load env vars from /backend/.env
+    require('custom-env').env();
+}
+
 const fs = require('fs');
 const util = require('./util/db');
 const scripts = require('./scripts');
