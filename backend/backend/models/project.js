@@ -128,7 +128,10 @@ const projectSchema = new Schema({
         type: Date,
         default: null,
     },
-    hasPaid: { type: Boolean, default: true },
+    paymentSuccessDate: {
+        type: Date,
+        default: null,
+    },
 });
 
 module.exports = mongoose.model('Project', projectSchema);
