@@ -475,12 +475,13 @@ router.delete(
                 userId
             );
 
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'name email',
+            });
+
             if (project) {
                 const projectName = project.name;
-                const user = await UserService.findOneBy({
-                    query: { _id: userId },
-                    select: 'name email',
-                });
                 // SEND MAIL IN THE BACKGROUND
                 MailService.sendDeleteProjectEmail({
                     name: user.name,
@@ -489,10 +490,6 @@ router.delete(
                 });
             }
 
-            const user = await UserService.findOneBy({
-                query: { _id: userId },
-                select: 'name email',
-            });
             const record = await AirtableService.logProjectDeletionFeedback({
                 reason: feedback
                     ? feedback
