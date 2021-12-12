@@ -18,7 +18,7 @@ const Services = {
                     {
                         _id: project._id,
                     },
-                    { hasPaid: true }
+                    { paymentSuccessDate: Date.now() }
                 );
             }
             return { paymentStatus: 'success' };
@@ -27,6 +27,7 @@ const Services = {
             throw error;
         }
     },
+
     failedEvent: async function(
         customerId,
         subscriptionId,
@@ -73,13 +74,61 @@ const Services = {
                 if (chargeAttemptCount === 3) {
                     await ProjectService.updateOneBy(
                         { _id: project._id },
-                        { paymentFailedDate: new Date(), hasPaid: false } // date to keep track of last failed payment
+                        { paymentFailedDate: Date.now() } // date to keep track of last failed payment
                     );
                 }
             }
             return { paymentStatus: 'failed' };
         } catch (error) {
             ErrorService.log('stripeService.failedEvent', error);
+            throw error;
+        }
+    },
+
+    cancelEvent: async function(customerId, subscriptionId) {
+        try {
+            const [user, project] = await Promise.all([
+                UserService.findOneBy({
+                    query: { stripeCustomerId: customerId },
+                    select: 'name _id',
+                }),
+                ProjectService.findOneBy({
+                    query: { stripeSubscriptionId: subscriptionId },
+                    select: '_id users',
+                }),
+            ]);
+
+            if (project) {
+                let userId = user._id;
+                if (user && user._id) {
+                    await ProjectService.deleteBy(
+                        {
+                            stripeSubscriptionId: subscriptionId,
+                        },
+                        userId,
+                        false
+                    );
+                } else {
+                    for (const userObj of project.users) {
+                        if (userObj.role === 'Owner') {
+                            userId = userObj.userId;
+                            break;
+                        }
+                    }
+
+                    await ProjectService.deleteBy(
+                        {
+                            stripeSubscriptionId: subscriptionId,
+                        },
+                        userId,
+                        false
+                    );
+                }
+            }
+
+            return { projectDeleted: true };
+        } catch (error) {
+            ErrorService.log('stripeService.successEvent', error);
             throw error;
         }
     },
