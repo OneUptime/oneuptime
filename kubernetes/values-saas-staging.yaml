@@ -13,6 +13,7 @@ saas:
     stripe:
         publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
         privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN
+        slackWebhook: https://hooks.slack.com/services/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
     airtable:
         key: keye3gzJRafDIhRKg
         baseId: appgek0ngJaHhppeJ
