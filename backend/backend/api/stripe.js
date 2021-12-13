@@ -21,12 +21,13 @@ router.post('/events', async function(req, res) {
     try {
         const event = req.body;
         const customerId = event.data.object.customer;
-        const subscriptionId = event.data.object.subscription;
+        let subscriptionId = event.data.object.subscription;
         const chargeAttemptCount = event.data.object.attempt_count;
         const invoiceUrl = event.data.object.hosted_invoice_url;
         const webhookType = event.type;
 
         if (webhookType === 'customer.subscription.deleted') {
+            subscriptionId = event.data.object.id;
             const response = await StripeService.cancelEvent(
                 customerId,
                 subscriptionId
