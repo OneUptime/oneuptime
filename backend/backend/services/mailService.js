@@ -6471,7 +6471,8 @@ const _this = {
         projectName,
         email,
         name,
-        chargeAttemptStage
+        chargeAttemptStage,
+        invoiceUrl
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -6494,6 +6495,7 @@ const _this = {
                         name,
                         chargeAttemptStage,
                         dashboardURL: global.dashboardHost,
+                        invoiceUrl,
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
