@@ -20,27 +20,17 @@ async function run() {
             );
             // if subscription is already cancelled, then delete the project
             if (subscription && subscription.status === 'canceled') {
-                console.log(
-                    '** cancelled subscription **',
-                    subscription.id,
-                    subscription.customer
-                );
                 // integrate an axios call here to delete project for the init script
                 // we won't do that here, because alot of things should happen under the hood
                 // ensure to add cluster key to the request for validation
-                let response = null;
                 try {
-                    response = await deleteApi(
+                    await deleteApi(
                         `project/${project._id}/initScript/deleteProject`
                     );
                 } catch (error) {
+                    // eslint-disable-next-line no-console
                     console.log('** Init error: ', error);
                 }
-                console.log(
-                    '** deleted project **',
-                    response?._id,
-                    response?.deleted
-                );
             }
         }
     }
