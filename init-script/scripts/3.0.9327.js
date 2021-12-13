@@ -1,12 +1,3 @@
-// todo
-// fetch all project
-// grab subscriptionid and customerid
-// cancel the subscription
-// delete the project
-// update the hasPaid field in the collection to false
-
-// projects that are still active
-// update the hasPaid field in the collection to true
 const { find } = require('../util/db');
 const payment = require('../util/payment');
 const stripe = require('stripe')(payment.paymentPrivateKey);
@@ -29,11 +20,21 @@ async function run() {
             );
             // if subscription is already cancelled, then delete the project
             if (subscription && subscription.status === 'canceled') {
+                console.log(
+                    '** cancelled subscription **',
+                    subscription.id,
+                    subscription.customer
+                );
                 // integrate an axios call here to delete project for the init script
                 // we won't do that here, because alot of things should happen under the hood
                 // ensure to add cluster key to the request for validation
-                await deleteApi(
+                const project = await deleteApi(
                     `project/${project._id}/initScript/deleteProject`
+                );
+                console.log(
+                    '** deleted project **',
+                    project._id,
+                    project.deleted
                 );
             }
         }
