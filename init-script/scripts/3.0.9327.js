@@ -28,13 +28,13 @@ async function run() {
                 // integrate an axios call here to delete project for the init script
                 // we won't do that here, because alot of things should happen under the hood
                 // ensure to add cluster key to the request for validation
-                const project = await deleteApi(
+                const response = await deleteApi(
                     `project/${project._id}/initScript/deleteProject`
                 );
                 console.log(
                     '** deleted project **',
-                    project._id,
-                    project.deleted
+                    response._id,
+                    response.deleted
                 );
             }
         }
