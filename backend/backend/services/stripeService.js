@@ -1,13 +1,7 @@
 const Services = {
-    events: async function(customerId, subscriptionId, chargeAttemptCount) {
+    successEvent: async function(customerId, subscriptionId) {
         try {
-            const chargeAttemptStage =
-                chargeAttemptCount === 1
-                    ? 'first'
-                    : chargeAttemptCount === 2
-                    ? 'second'
-                    : 'third';
-
+            // eslint-disable-next-line no-unused-vars
             const [user, project] = await Promise.all([
                 UserService.findOneBy({
                     query: { stripeCustomerId: customerId },
@@ -15,26 +9,126 @@ const Services = {
                 }),
                 ProjectService.findOneBy({
                     query: { stripeSubscriptionId: subscriptionId },
-                    select: 'name',
+                    select: 'name _id',
                 }),
             ]);
 
-            MailService.sendPaymentFailedEmail(
-                project.name,
-                user.email,
-                user.name,
-                chargeAttemptStage
-            );
-
-            if (chargeAttemptCount === 3) {
-                await UserService.updateOneBy(
-                    { _id: user._id },
-                    { paymentFailedDate: new Date() }
+            if (project && project._id) {
+                await ProjectService.updateOneBy(
+                    {
+                        _id: project._id,
+                    },
+                    { paymentSuccessDate: Date.now() }
                 );
+            }
+            return { paymentStatus: 'success' };
+        } catch (error) {
+            ErrorService.log('stripeService.successEvent', error);
+            throw error;
+        }
+    },
+
+    failedEvent: async function(
+        customerId,
+        subscriptionId,
+        chargeAttemptCount,
+        invoiceUrl
+    ) {
+        try {
+            const [user, project] = await Promise.all([
+                UserService.findOneBy({
+                    query: { stripeCustomerId: customerId },
+                    select: 'email name _id',
+                }),
+                ProjectService.findOneBy({
+                    query: { stripeSubscriptionId: subscriptionId },
+                    select: 'name _id',
+                }),
+            ]);
+
+            if (project && project.name && project._id) {
+                const chargeAttemptStage =
+                    chargeAttemptCount === 1
+                        ? 'first'
+                        : chargeAttemptCount === 2
+                        ? 'second'
+                        : 'third';
+
+                if (user && user.email) {
+                    MailService.sendPaymentFailedEmail(
+                        project.name,
+                        user.email,
+                        user.name,
+                        chargeAttemptStage,
+                        invoiceUrl
+                    );
+                }
+
+                await sendSlackAlert(
+                    'Stripe Webhook Event',
+                    'stripeService.failedEvent',
+                    'Subscription Payment Failed',
+                    400
+                );
+
+                if (chargeAttemptCount === 3) {
+                    await ProjectService.updateOneBy(
+                        { _id: project._id },
+                        { paymentFailedDate: Date.now() } // date to keep track of last failed payment
+                    );
+                }
             }
             return { paymentStatus: 'failed' };
         } catch (error) {
-            ErrorService.log('stripeService.events', error);
+            ErrorService.log('stripeService.failedEvent', error);
+            throw error;
+        }
+    },
+
+    cancelEvent: async function(customerId, subscriptionId) {
+        try {
+            const [user, project] = await Promise.all([
+                UserService.findOneBy({
+                    query: { stripeCustomerId: customerId },
+                    select: 'name _id',
+                }),
+                ProjectService.findOneBy({
+                    query: { stripeSubscriptionId: subscriptionId },
+                    select: '_id users',
+                }),
+            ]);
+
+            if (project) {
+                let userId = user._id;
+                if (user && user._id) {
+                    await ProjectService.deleteBy(
+                        {
+                            stripeSubscriptionId: subscriptionId,
+                        },
+                        userId,
+                        false
+                    );
+                } else {
+                    for (const userObj of project.users) {
+                        if (userObj.role === 'Owner') {
+                            userId = userObj.userId;
+                            break;
+                        }
+                    }
+
+                    await ProjectService.deleteBy(
+                        {
+                            stripeSubscriptionId: subscriptionId,
+                        },
+                        userId,
+                        false
+                    );
+                }
+            }
+
+            return { projectDeleted: true };
+        } catch (error) {
+            ErrorService.log('stripeService.successEvent', error);
             throw error;
         }
     },
@@ -419,6 +513,14 @@ const Services = {
             if (confirmedPaymentIntent.status === 'succeeded') {
                 await this.updateBalance(confirmedPaymentIntent);
             }
+            if (confirmedPaymentIntent.status == 'requires_payment_method') {
+                await sendSlackAlert(
+                    'Confirm Payment Failed',
+                    'stripeService.confirmPayment',
+                    'Failed payment intent',
+                    400
+                );
+            }
             return confirmedPaymentIntent;
         } catch (error) {
             ErrorService.log('stripeService.confirmPayment', error);
@@ -461,6 +563,7 @@ const ProjectService = require('../services/projectService');
 const ProjectModel = require('../models/project');
 const MailService = require('../services/mailService');
 const ErrorService = require('../services/errorService');
+const { sendSlackAlert } = require('../utils/stripeHandlers');
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
