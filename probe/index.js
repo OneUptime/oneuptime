@@ -63,7 +63,20 @@ app.set('port', process.env.PORT || 3008);
 
 const monitorStore = {};
 
-app.get(['/probe/status', '/status'], function(req, res) {
+// handle probe1 status
+app.get(['/probe1/status', '/status'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'oneuptime-probe',
+        })
+    );
+});
+
+// handle probe2 status
+app.get(['/probe2/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
