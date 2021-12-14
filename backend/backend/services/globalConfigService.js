@@ -230,13 +230,15 @@ module.exports = {
             const globalConfig = await globalConfigQuery;
 
             if (globalConfig && globalConfig.name === 'twilio') {
-                globalConfig.value[
-                    'authentication-token'
-                ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['authentication-token'],
-                    globalConfig.value['iv'].buffer
-                );
-                delete globalConfig.value['iv'];
+                if (globalConfig.value['iv']) {
+                    globalConfig.value[
+                        'authentication-token'
+                    ] = await EncryptDecrypt.decrypt(
+                        globalConfig.value['authentication-token'],
+                        globalConfig.value['iv'].buffer
+                    );
+                    delete globalConfig.value['iv'];
+                }
             } else if (
                 globalConfig &&
                 globalConfig.name === 'smtp' &&
@@ -244,11 +246,15 @@ module.exports = {
                     (globalConfig.value.internalSmtp &&
                         globalConfig.value.customSmtp))
             ) {
-                globalConfig.value['password'] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['password'],
-                    globalConfig.value['iv'].buffer
-                );
-                delete globalConfig.value['iv'];
+                if (globalConfig.value['iv']) {
+                    globalConfig.value[
+                        'password'
+                    ] = await EncryptDecrypt.decrypt(
+                        globalConfig.value['password'],
+                        globalConfig.value['iv'].buffer
+                    );
+                    delete globalConfig.value['iv'];
+                }
             }
             return globalConfig;
         } catch (error) {
