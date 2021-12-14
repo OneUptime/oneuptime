@@ -174,6 +174,6 @@ fi
 ####### Remove backups older than {BACKUP_RETAIN_DAYS} days  ########
 
 echo "Removing backup older than ${BACKUP_RETAIN_DAYS} days."
-find $BACKUP_PATH* -mtime +${BACKUP_RETAIN_DAYS} -exec rm {} \; || echo "Removed!"
+find $BACKUP_PATH* -mtime +${BACKUP_RETAIN_DAYS} -exec rm -f {} \; || echo "Removed!"
 echo ""
 echo "Done - File Name: oneuptime-backup-$CURRENT_DATE.archive"

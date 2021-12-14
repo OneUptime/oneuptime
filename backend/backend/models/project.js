@@ -124,6 +124,14 @@ const projectSchema = new Schema({
     },
     replyAddress: String,
     unpaidSubscriptionNotifications: { type: String, default: '0' },
+    paymentFailedDate: {
+        type: Date,
+        default: null,
+    },
+    paymentSuccessDate: {
+        type: Date,
+        default: null,
+    },
 });
 
 module.exports = mongoose.model('Project', projectSchema);

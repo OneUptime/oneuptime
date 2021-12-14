@@ -118,6 +118,8 @@ spec:
                         value: {{ .Values.saas.stripe.publicKey }}
                       - name: STRIPE_PRIVATE_KEY
                         value: {{ .Values.saas.stripe.privateKey }}
+                      - name: SLACK_BILLING_WEBHOOK
+                        value: {{ .Values.saas.stripe.slackWebhook }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: TWITTER_BEARER_TOKEN

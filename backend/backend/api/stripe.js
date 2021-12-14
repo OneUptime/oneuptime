@@ -17,23 +17,43 @@ const router = express.Router();
 // Params:
 // Param 1: webhookURL
 // Returns: 200: Event object with various status.
-router.post('/stripe/events', async function(req, res) {
+router.post('/events', async function(req, res) {
     try {
         const event = req.body;
         const customerId = event.data.object.customer;
-        const subscriptionId = event.data.object.subscription;
+        let subscriptionId = event.data.object.subscription;
         const chargeAttemptCount = event.data.object.attempt_count;
+        const invoiceUrl = event.data.object.hosted_invoice_url;
+        const webhookType = event.type;
 
-        if (!event.data.object.paid) {
-            const response = await StripeService.events(
+        if (webhookType === 'customer.subscription.deleted') {
+            subscriptionId = event.data.object.id;
+            const response = await StripeService.cancelEvent(
                 customerId,
-                subscriptionId,
-                chargeAttemptCount
+                subscriptionId
             );
             return sendItemResponse(req, res, response);
-        } else {
-            return sendEmptyResponse(req, res);
         }
+
+        if (webhookType === 'invoice.payment_failed') {
+            const response = await StripeService.failedEvent(
+                customerId,
+                subscriptionId,
+                chargeAttemptCount,
+                invoiceUrl
+            );
+            return sendItemResponse(req, res, response);
+        }
+
+        if (webhookType === 'invoice.paid') {
+            const response = await StripeService.successEvent(
+                customerId,
+                subscriptionId
+            );
+            return sendItemResponse(req, res, response);
+        }
+
+        return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

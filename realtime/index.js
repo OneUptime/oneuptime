@@ -125,7 +125,7 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
-app.get('/realtime/stat', function(req, res) {
+app.get(['/realtime/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

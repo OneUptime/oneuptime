@@ -352,7 +352,7 @@ module.exports = {
 
     createSubscription: async function(stripeCustomerId, amount) {
         try {
-            const productId = await Plans.getReserveNumberProductId();
+            const productId = Plans.getReserveNumberProductId();
             const subscriptions = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: [

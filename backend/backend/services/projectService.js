@@ -118,7 +118,7 @@ module.exports = {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query, userId, cancelSub = true) {
         try {
             if (!query) {
                 query = {};
@@ -126,7 +126,7 @@ module.exports = {
             query.deleted = false;
             let project = await ProjectModel.findOne(query);
             if (project) {
-                if (project.stripeSubscriptionId) {
+                if (project.stripeSubscriptionId && cancelSub) {
                     await PaymentService.removeSubscription(
                         project.stripeSubscriptionId
                     );

@@ -71,6 +71,17 @@ app.use(bodyParser.json());
 
 app.use(require('./backend/api/settings'));
 
+app.get('/status', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'oneuptime-http-test-server',
+        })
+    );
+});
+
 app.get('/', function(req, res) {
     if (http.STATUS_CODES[global.httpServerResponse.statusCode]) {
         res.status(global.httpServerResponse.statusCode);
