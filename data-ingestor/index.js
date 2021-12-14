@@ -97,6 +97,17 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
+app.get(['/data-ingestor/status', '/status'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'oneuptime-data-ingestor',
+        })
+    );
+});
+
 app.use(['/probe', '/api/probe'], require('./api/probe'));
 
 app.use(Sentry.Handlers.errorHandler());

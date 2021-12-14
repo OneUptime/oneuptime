@@ -193,31 +193,6 @@ app.use(async function(req, res, next) {
     }
 });
 
-// app.use(async function(req, res, next) {
-//     const host = req.hostname;
-
-//     try {
-//         if (host && host === 'fyipe.com') {
-//             res.writeHead(301, {
-//                 Location: `https://oneuptime.com${req.url}`,
-//             });
-//             return res.end();
-//         }
-//         if (host && host === 'staging.fyipe.com') {
-//             res.writeHead(301, {
-//                 Location: `https://staging.oneuptime.com${req.url}`,
-//             });
-//             return res.end();
-//         }
-
-//         return next();
-//     } catch (error) {
-//         // eslint-disable-next-line no-console
-//         console.log('Status Page: Error with fetch', error);
-//         return next();
-//     }
-// });
-
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
@@ -257,6 +232,17 @@ app.use('/', async function(req, res, next) {
         console.log('Error with fetch', error);
         return next();
     }
+});
+
+app.get(['/status-page/status', '/status'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'oneuptime-status-page',
+        })
+    );
 });
 
 app.use(express.static(path.join(__dirname, 'build')));
