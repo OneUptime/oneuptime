@@ -56,16 +56,7 @@ const cronMinuteStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3015);
 
-http.listen(app.get('port'), function() {
-    // eslint-disable-next-line
-    console.log(
-        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${
-            config.serverUrl
-        }`
-    );
-});
-
-app.get('/', function(req, res) {
+app.get(['/lighthouse/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -90,6 +81,15 @@ cron.schedule('*/30 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);
+});
+
+http.listen(app.get('port'), function() {
+    // eslint-disable-next-line
+    console.log(
+        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${
+            config.serverUrl
+        }`
+    );
 });
 
 module.exports = app;
