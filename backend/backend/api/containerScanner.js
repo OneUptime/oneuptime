@@ -15,6 +15,7 @@ const RealTimeService = require('../services/realTimeService');
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
+const ErrorService = require('../services/errorService');
 
 router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,
@@ -40,7 +41,11 @@ router.post('/scanning', isAuthorizedContainerScanner, async function(
             { scanning: true }
         );
 
-        RealTimeService.handleScanning({ security: containerSecurity });
+        try {
+            RealTimeService.handleScanning({ security: containerSecurity });
+        } catch (error) {
+            ErrorService.log('realtimeService.handleScanning', error);
+        }
         return sendItemResponse(req, res, containerSecurity);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -116,12 +121,20 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
                 query: { _id: userId },
                 select: '_id email name',
             });
-            await MailService.sendContainerEmail(project, user);
+            try {
+                MailService.sendContainerEmail(project, user);
+            } catch (error) {
+                ErrorService.log('mailService.sendContainerEmail', error);
+            }
         }
-        RealTimeService.handleLog({
-            securityId: security.securityId,
-            securityLog: findLog,
-        });
+        try {
+            RealTimeService.handleLog({
+                securityId: security.securityId,
+                securityLog: findLog,
+            });
+        } catch (error) {
+            ErrorService.log('realtimeService.handleLog', error);
+        }
 
         return sendItemResponse(req, res, findLog);
     } catch (error) {

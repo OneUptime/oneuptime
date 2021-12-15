@@ -376,45 +376,52 @@ module.exports = {
                     const userInProject = projectUsers.find(
                         user => user.userId === member._id
                     );
-                    if (userInProject) {
-                        if (role === 'Viewer') {
-                            MailService.sendExistingStatusPageViewerMail(
-                                subProject,
-                                addedBy,
-                                member.email
+                    try {
+                        if (userInProject) {
+                            if (role === 'Viewer') {
+                                MailService.sendExistingStatusPageViewerMail(
+                                    subProject,
+                                    addedBy,
+                                    member.email
+                                );
+                            } else {
+                                MailService.sendExistingUserAddedToSubProjectMail(
+                                    subProject,
+                                    addedBy,
+                                    member.email
+                                );
+                            }
+                            NotificationService.create(
+                                project._id,
+                                `New user added to ${subProject.name} subproject by ${addedBy.name}`,
+                                addedBy.id,
+                                'information'
                             );
                         } else {
-                            MailService.sendExistingUserAddedToSubProjectMail(
-                                subProject,
-                                addedBy,
-                                member.email
+                            if (role === 'Viewer') {
+                                MailService.sendNewStatusPageViewerMail(
+                                    project,
+                                    addedBy,
+                                    member.email
+                                );
+                            } else {
+                                MailService.sendExistingUserAddedToProjectMail(
+                                    project,
+                                    addedBy,
+                                    member.email
+                                );
+                            }
+                            NotificationService.create(
+                                project._id,
+                                `New user added to the project by ${addedBy.name}`,
+                                addedBy.id,
+                                'information'
                             );
                         }
-                        NotificationService.create(
-                            project._id,
-                            `New user added to ${subProject.name} subproject by ${addedBy.name}`,
-                            addedBy.id,
-                            'information'
-                        );
-                    } else {
-                        if (role === 'Viewer') {
-                            MailService.sendNewStatusPageViewerMail(
-                                project,
-                                addedBy,
-                                member.email
-                            );
-                        } else {
-                            MailService.sendExistingUserAddedToProjectMail(
-                                project,
-                                addedBy,
-                                member.email
-                            );
-                        }
-                        NotificationService.create(
-                            project._id,
-                            `New user added to the project by ${addedBy.name}`,
-                            addedBy.id,
-                            'information'
+                    } catch (error) {
+                        ErrorService.log(
+                            'teamService.inviteTeamMembersMethod',
+                            error
                         );
                     }
                 } else {
@@ -426,26 +433,33 @@ module.exports = {
                     if (verificationToken) {
                         registerUrl = `${registerUrl}?token=${verificationToken.token}`;
                     }
-                    if (role === 'Viewer') {
-                        MailService.sendNewStatusPageViewerMail(
-                            project,
-                            addedBy,
-                            member.email
+                    try {
+                        if (role === 'Viewer') {
+                            MailService.sendNewStatusPageViewerMail(
+                                project,
+                                addedBy,
+                                member.email
+                            );
+                        } else {
+                            MailService.sendNewUserAddedToProjectMail(
+                                project,
+                                addedBy,
+                                member.email,
+                                registerUrl
+                            );
+                        }
+                        NotificationService.create(
+                            project._id,
+                            `New user added to the project by ${addedBy.name}`,
+                            addedBy.id,
+                            'information'
                         );
-                    } else {
-                        MailService.sendNewUserAddedToProjectMail(
-                            project,
-                            addedBy,
-                            member.email,
-                            registerUrl
+                    } catch (error) {
+                        ErrorService.log(
+                            'teamService.inviteTeamMembersMethod',
+                            error
                         );
                     }
-                    NotificationService.create(
-                        project._id,
-                        `New user added to the project by ${addedBy.name}`,
-                        addedBy.id,
-                        'information'
-                    );
                 }
                 members.push({
                     userId: member._id,
@@ -657,30 +671,34 @@ module.exports = {
                     ]);
                     project = projectObj;
 
-                    if (subProject) {
-                        MailService.sendRemoveFromSubProjectEmailToUser(
-                            subProject,
-                            user,
-                            member.email
-                        );
-                        NotificationService.create(
-                            project._id,
-                            `User removed from subproject ${subProject.name} by ${user.name}`,
-                            userId,
-                            'information'
-                        );
-                    } else {
-                        MailService.sendRemoveFromProjectEmailToUser(
-                            project,
-                            user,
-                            member.email
-                        );
-                        NotificationService.create(
-                            project._id,
-                            `User removed from the project by ${user.name}`,
-                            userId,
-                            'information'
-                        );
+                    try {
+                        if (subProject) {
+                            MailService.sendRemoveFromSubProjectEmailToUser(
+                                subProject,
+                                user,
+                                member.email
+                            );
+                            NotificationService.create(
+                                project._id,
+                                `User removed from subproject ${subProject.name} by ${user.name}`,
+                                userId,
+                                'information'
+                            );
+                        } else {
+                            MailService.sendRemoveFromProjectEmailToUser(
+                                project,
+                                user,
+                                member.email
+                            );
+                            NotificationService.create(
+                                project._id,
+                                `User removed from the project by ${user.name}`,
+                                userId,
+                                'information'
+                            );
+                        }
+                    } catch (error) {
+                        ErrorService.log('teamService.removeTeamMember', error);
                     }
                     let team = await _this.getTeamMembersBy({
                         _id: project._id,
@@ -714,11 +732,11 @@ module.exports = {
                     }
                     team = await _this.getTeamMembersBy({ _id: projectId });
                     // run in the background
-                    RealTimeService.deleteTeamMember(project._id, {
-                        response,
-                        teamMembers: team,
-                        projectId,
-                    });
+                    // RealTimeService.deleteTeamMember(project._id, {
+                    //     response,
+                    //     teamMembers: team,
+                    //     projectId,
+                    // });
                     return response;
                 }
             }
@@ -846,19 +864,26 @@ module.exports = {
                             select: 'email',
                         }),
                     ]);
-                    if (subProject) {
-                        MailService.sendChangeRoleEmailToUser(
-                            subProject,
-                            user,
-                            member.email,
-                            role
-                        );
-                    } else {
-                        MailService.sendChangeRoleEmailToUser(
-                            project,
-                            user,
-                            member.email,
-                            role
+                    try {
+                        if (subProject) {
+                            MailService.sendChangeRoleEmailToUser(
+                                subProject,
+                                user,
+                                member.email,
+                                role
+                            );
+                        } else {
+                            MailService.sendChangeRoleEmailToUser(
+                                project,
+                                user,
+                                member.email,
+                                role
+                            );
+                        }
+                    } catch (error) {
+                        ErrorService.log(
+                            'teamService.updateTeamMemberRole',
+                            error
                         );
                     }
 
@@ -892,12 +917,19 @@ module.exports = {
                         response = response.concat(subProjectTeamsUsers);
                     }
                     team = await _this.getTeamMembersBy({ _id: projectId });
-                    // run in the background
-                    RealTimeService.updateTeamMemberRole(project._id, {
-                        response,
-                        teamMembers: team,
-                        projectId,
-                    });
+                    try {
+                        // run in the background
+                        RealTimeService.updateTeamMemberRole(project._id, {
+                            response,
+                            teamMembers: team,
+                            projectId,
+                        });
+                    } catch (error) {
+                        ErrorService.log(
+                            'realtimeService.updateTeamMemberRole',
+                            error
+                        );
+                    }
                     const teams = response.map(res => res.team);
                     const flatTeams = flatten(teams);
                     const teamArr = flatTeams.filter(

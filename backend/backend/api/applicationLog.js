@@ -10,6 +10,8 @@ const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
 const RealTimeService = require('../services/realTimeService');
 const LogService = require('../services/logService');
+const ErrorService = require('../services/errorService');
+const NotificationService = require('../services/notificationService');
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
@@ -79,12 +81,21 @@ router.post(
                 }),
             ]);
 
-            component.projectId._id,
-                `A New Application Log was Created with name ${applicationLog.name} by ${user.name}`,
-                user._id,
-                'applicationlogaddremove';
-            // run in the background
-            RealTimeService.sendApplicationLogCreated(applicationLog);
+            try {
+                NotificationService.create(
+                    component.projectId._id,
+                    `A New Application Log was Created with name ${applicationLog.name} by ${user.name}`,
+                    user._id,
+                    'applicationlogaddremove'
+                );
+                // run in the background
+                RealTimeService.sendApplicationLogCreated(applicationLog);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.sendApplicationLogCreated',
+                    error
+                );
+            }
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -169,7 +180,11 @@ router.post('/:applicationLogId/log', isApplicationLogValid, async function(
 
         const log = await LogService.create(data);
 
-        RealTimeService.sendLogCreated(log);
+        try {
+            RealTimeService.sendLogCreated(log);
+        } catch (error) {
+            ErrorService.log('realtimeService.sendLogCreated', error);
+        }
         return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);

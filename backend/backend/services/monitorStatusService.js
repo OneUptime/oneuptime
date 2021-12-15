@@ -236,11 +236,18 @@ module.exports = {
                 populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor) {
-                // run in the background
-                RealTimeService.updateMonitorStatus(
-                    data,
-                    monitor.projectId._id
-                );
+                try {
+                    // run in the background
+                    RealTimeService.updateMonitorStatus(
+                        data,
+                        monitor.projectId._id
+                    );
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.updateMonitorStatus',
+                        error
+                    );
+                }
             }
         } catch (error) {
             ErrorService.log('MonitorStatusService.sendMonitorStatus', error);

@@ -312,12 +312,16 @@ module.exports = {
                 }),
             ]);
             if (monitor && monitor.projectId && monitor.projectId._id) {
-                // run in the background
-                RealTimeService.updateMonitorLog(
-                    data,
-                    logData,
-                    monitor.projectId._id
-                );
+                try {
+                    // run in the background
+                    RealTimeService.updateMonitorLog(
+                        data,
+                        logData,
+                        monitor.projectId._id
+                    );
+                } catch (error) {
+                    ErrorService.log('realtimeService.updateMonitorLog', error);
+                }
             }
         } catch (error) {
             ErrorService.log('monitorLogService.sendMonitorLog', error);

@@ -44,17 +44,26 @@ module.exports = {
             ) {
                 AlertService.sendScheduledEventInvestigationNoteToSubscribers(
                     scheduledEventMessage
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendScheduledEventInvestigationNoteToSubscribers',
+                        error
+                    );
+                });
             }
 
-            scheduledEventMessage.type === 'internal'
-                ? RealTimeService.addScheduledEventInternalNote(
-                      scheduledEventMessage
-                  )
-                : RealTimeService.addScheduledEventInvestigationNote(
-                      scheduledEventMessage,
-                      projectId
-                  );
+            try {
+                scheduledEventMessage.type === 'internal'
+                    ? RealTimeService.addScheduledEventInternalNote(
+                          scheduledEventMessage
+                      )
+                    : RealTimeService.addScheduledEventInvestigationNote(
+                          scheduledEventMessage,
+                          projectId
+                      );
+            } catch (error) {
+                ErrorService.log('scheduledEventNoteService.create', error);
+            }
 
             return scheduledEventMessage;
         } catch (error) {
@@ -105,12 +114,21 @@ module.exports = {
                 'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
             eventMessage = await this.findOneBy({ query, populate, select }); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
-            eventMessage.type === 'internal'
-                ? RealTimeService.updateScheduledEventInternalNote(eventMessage)
-                : RealTimeService.updateScheduledEventInvestigationNote(
-                      eventMessage,
-                      projectId
-                  );
+            try {
+                eventMessage.type === 'internal'
+                    ? RealTimeService.updateScheduledEventInternalNote(
+                          eventMessage
+                      )
+                    : RealTimeService.updateScheduledEventInvestigationNote(
+                          eventMessage,
+                          projectId
+                      );
+            } catch (error) {
+                ErrorService.log(
+                    'scheduledEventNoteService.updateOneBy',
+                    error
+                );
+            }
 
             return eventMessage;
         } catch (error) {
@@ -199,14 +217,18 @@ module.exports = {
                 throw error;
             }
 
-            deletedEventMessage.type === 'internal'
-                ? RealTimeService.deleteScheduledEventInternalNote(
-                      deletedEventMessage
-                  )
-                : RealTimeService.deleteScheduledEventInvestigationNote(
-                      deletedEventMessage,
-                      projectId
-                  );
+            try {
+                deletedEventMessage.type === 'internal'
+                    ? RealTimeService.deleteScheduledEventInternalNote(
+                          deletedEventMessage
+                      )
+                    : RealTimeService.deleteScheduledEventInvestigationNote(
+                          deletedEventMessage,
+                          projectId
+                      );
+            } catch (error) {
+                ErrorService.log('scheduledEventNoteService.deleteBy', error);
+            }
 
             return deletedEventMessage;
         } catch (error) {
