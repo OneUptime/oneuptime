@@ -26,48 +26,51 @@ module.exports = {
                 limit = parseInt(limit);
             }
             // Use aggregate to proccess data
-            const result = await IncidentModel.aggregate([
-                {
-                    $match: {
-                        $and: [
-                            { projectId: { $in: subProjectIds } },
-                            { resolved: true },
-                            { createdAt: { $gte: start, $lte: end } },
-                        ],
-                        $or: [{ deleted: false }],
-                    },
-                },
-                {
-                    $project: {
-                        resolveTime: {
-                            $subtract: ['$resolvedAt', '$createdAt'],
+            const result = await IncidentModel.aggregate(
+                [
+                    {
+                        $match: {
+                            $and: [
+                                { projectId: { $in: subProjectIds } },
+                                { resolved: true },
+                                { createdAt: { $gte: start, $lte: end } },
+                            ],
+                            $or: [{ deleted: false }],
                         },
-                        acknowledgeTime: {
-                            $subtract: ['$acknowledgedAt', '$createdAt'],
+                    },
+                    {
+                        $project: {
+                            resolveTime: {
+                                $subtract: ['$resolvedAt', '$createdAt'],
+                            },
+                            acknowledgeTime: {
+                                $subtract: ['$acknowledgedAt', '$createdAt'],
+                            },
+                            createdAt: 1,
+                            resolvedBy: 1,
                         },
-                        createdAt: 1,
-                        resolvedBy: 1,
                     },
-                },
-                {
-                    $group: {
-                        _id: '$resolvedBy',
-                        incidents: { $sum: 1 },
-                        averageAcknowledge: { $avg: '$acknowledgeTime' },
-                        averageResolved: { $avg: '$resolveTime' },
+                    {
+                        $group: {
+                            _id: '$resolvedBy',
+                            incidents: { $sum: 1 },
+                            averageAcknowledge: { $avg: '$acknowledgeTime' },
+                            averageResolved: { $avg: '$resolveTime' },
+                        },
                     },
-                },
-                { $sort: { incidents: -1 } },
-                {
-                    $facet: {
-                        members: [
-                            { $skip: skip || 0 },
-                            { $limit: limit || 10 },
-                        ],
-                        total: [{ $count: 'count' }],
+                    { $sort: { incidents: -1 } },
+                    {
+                        $facet: {
+                            members: [
+                                { $skip: skip || 0 },
+                                { $limit: limit || 10 },
+                            ],
+                            total: [{ $count: 'count' }],
+                        },
                     },
-                },
-            ]);
+                ],
+                { allowDiskUse: true }
+            );
 
             const arr = [];
             const wrapper = {};
@@ -126,49 +129,52 @@ module.exports = {
                 limit = parseInt(limit);
             }
             // Use aggregate to process data
-            const result = await IncidentModel.aggregate([
-                { $unwind: '$monitors' },
-                {
-                    $match: {
-                        $and: [
-                            { projectId: { $in: subProjectIds } },
-                            { resolved: true },
-                            { createdAt: { $gte: start, $lte: end } },
-                            { deleted: false },
-                        ],
-                    },
-                },
-                {
-                    $project: {
-                        resolveTime: {
-                            $subtract: ['$resolvedAt', '$createdAt'],
+            const result = await IncidentModel.aggregate(
+                [
+                    { $unwind: '$monitors' },
+                    {
+                        $match: {
+                            $and: [
+                                { projectId: { $in: subProjectIds } },
+                                { resolved: true },
+                                { createdAt: { $gte: start, $lte: end } },
+                                { deleted: false },
+                            ],
                         },
-                        acknowledgeTime: {
-                            $subtract: ['$acknowledgedAt', '$createdAt'],
+                    },
+                    {
+                        $project: {
+                            resolveTime: {
+                                $subtract: ['$resolvedAt', '$createdAt'],
+                            },
+                            acknowledgeTime: {
+                                $subtract: ['$acknowledgedAt', '$createdAt'],
+                            },
+                            createdAt: 1,
+                            monitors: 1,
                         },
-                        createdAt: 1,
-                        monitors: 1,
                     },
-                },
-                {
-                    $group: {
-                        _id: '$monitors.monitorId',
-                        incidents: { $sum: 1 },
-                        averageAcknowledge: { $avg: '$acknowledgeTime' },
-                        averageResolved: { $avg: '$resolveTime' },
+                    {
+                        $group: {
+                            _id: '$monitors.monitorId',
+                            incidents: { $sum: 1 },
+                            averageAcknowledge: { $avg: '$acknowledgeTime' },
+                            averageResolved: { $avg: '$resolveTime' },
+                        },
                     },
-                },
-                { $sort: { incidents: -1 } },
-                {
-                    $facet: {
-                        monitors: [
-                            { $skip: skip || 0 },
-                            { $limit: limit || 10 },
-                        ],
-                        total: [{ $count: 'count' }],
+                    { $sort: { incidents: -1 } },
+                    {
+                        $facet: {
+                            monitors: [
+                                { $skip: skip || 0 },
+                                { $limit: limit || 10 },
+                            ],
+                            total: [{ $count: 'count' }],
+                        },
                     },
-                },
-            ]);
+                ],
+                { allowDiskUse: true }
+            );
 
             const arr = [];
             const wrapper = {};
@@ -278,27 +284,30 @@ module.exports = {
                 inputFormat = 'YYYY';
                 outputFormat = 'YYYY';
             }
-            const result = await IncidentModel.aggregate([
-                {
-                    $match: {
-                        $and: [
-                            { projectId: { $in: subProjectIds } },
-                            { resolved: true },
-                            { createdAt: { $gte: start, $lte: end } },
-                        ],
-                    },
-                },
-                {
-                    $project: {
-                        resolveTime: {
-                            $subtract: ['$resolvedAt', '$createdAt'],
+            const result = await IncidentModel.aggregate(
+                [
+                    {
+                        $match: {
+                            $and: [
+                                { projectId: { $in: subProjectIds } },
+                                { resolved: true },
+                                { createdAt: { $gte: start, $lte: end } },
+                            ],
                         },
-                        createdAt: 1,
                     },
-                },
-                { $group: group },
-                { $sort: sort },
-            ]);
+                    {
+                        $project: {
+                            resolveTime: {
+                                $subtract: ['$resolvedAt', '$createdAt'],
+                            },
+                            createdAt: 1,
+                        },
+                    },
+                    { $group: group },
+                    { $sort: sort },
+                ],
+                { allowDiskUse: true }
+            );
 
             const formarted = [];
 
@@ -401,18 +410,21 @@ module.exports = {
                 inputFormat = 'YYYY';
                 outputFormat = 'YYYY';
             }
-            const result = await IncidentModel.aggregate([
-                {
-                    $match: {
-                        $and: [
-                            { projectId: { $in: subProjectIds } },
-                            { createdAt: { $gte: start, $lte: end } },
-                        ],
+            const result = await IncidentModel.aggregate(
+                [
+                    {
+                        $match: {
+                            $and: [
+                                { projectId: { $in: subProjectIds } },
+                                { createdAt: { $gte: start, $lte: end } },
+                            ],
+                        },
                     },
-                },
-                { $group: group },
-                { $sort: sort },
-            ]);
+                    { $group: group },
+                    { $sort: sort },
+                ],
+                { allowDiskUse: true }
+            );
             const formarted = [];
 
             for (const period of result) {
