@@ -72,7 +72,9 @@ module.exports = {
                     `${realtimeBaseUrl}/update-incident-timeline`,
                     { incidentTimeline: _incidentTimeline, projectId },
                     true
-                );
+                ).catch(error => {
+                    ErrorService.log('incidentTimelineService.create', error);
+                });
             }
 
             return incidentTimeline;

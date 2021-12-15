@@ -296,7 +296,9 @@ module.exports = {
                         projectId: monitor.projectId._id || monitor.projectId,
                     },
                     true
-                );
+                ).catch(error => {
+                    ErrorService.log('monitorLogService.sendMonitorLog', error);
+                });
             }
         } catch (error) {
             ErrorService.log('monitorLogService.sendMonitorLog', error);
