@@ -180,6 +180,11 @@ module.exports = {
                         schedule,
                         incident,
                         monitorId: monitor,
+                    }).catch(error => {
+                        ErrorService.log(
+                            'AlertService.sendAlertsToTeamMembersInSchedule',
+                            error
+                        );
                     });
                 }
             }

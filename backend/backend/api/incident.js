@@ -33,6 +33,7 @@ const onCallScheduleStatusService = require('../services/onCallScheduleStatusSer
 const Services = require('../utils/services');
 const joinNames = require('../utils/joinNames');
 const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+const ErrorService = require('../services/errorService');
 
 // data-ingestor will consume this api
 // create an incident and return the created incident
@@ -1071,7 +1072,12 @@ router.post(
                             data,
                             'created',
                             projectId
-                        );
+                        ).catch(error => {
+                            errorService.log(
+                                'AlertService.sendInvestigationNoteToSubscribers',
+                                error
+                            );
+                        });
                     }
                 } else {
                     const updatedMessage = {
@@ -1098,7 +1104,12 @@ router.post(
                             data,
                             'updated',
                             projectId
-                        );
+                        ).catch(error => {
+                            errorService.log(
+                                'AlertService.sendInvestigationNoteToSubscribers',
+                                error
+                            );
+                        });
                     }
                 }
                 // send project webhook notification
@@ -1352,8 +1363,15 @@ router.delete(
             if (incidentMessage) {
                 const status = `${incidentMessage.type} notes deleted`;
 
-                // RUN IN THE BACKGROUND
-                RealTimeService.deleteIncidentNote(incidentMessage);
+                try {
+                    // RUN IN THE BACKGROUND
+                    RealTimeService.deleteIncidentNote(incidentMessage);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.deleteIncidentNote',
+                        error
+                    );
+                }
 
                 const populateAlert = [
                     { path: 'userId', select: 'name' },
@@ -1676,8 +1694,12 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
             req.user.id
         );
         if (incident) {
-            // RUN IN THE BACKGROUND
-            RealTimeService.deleteIncident(incident);
+            try {
+                // RUN IN THE BACKGROUND
+                RealTimeService.deleteIncident(incident);
+            } catch (error) {
+                ErrorService.log('realtimeService.deleteIncident', error);
+            }
             return sendItemResponse(req, res, incident);
         } else {
             return sendErrorResponse(req, res, {

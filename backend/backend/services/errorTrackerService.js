@@ -207,13 +207,17 @@ module.exports = {
                     query: { _id: errorTracker.componentId._id },
                     select: 'projectId',
                 });
-                NotificationService.create(
-                    component.projectId,
-                    `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
-                    errorTracker.deletedById._id,
-                    'errorTrackeraddremove'
-                );
-                RealTimeService.sendErrorTrackerDelete(errorTracker);
+                try {
+                    NotificationService.create(
+                        component.projectId,
+                        `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
+                        errorTracker.deletedById._id,
+                        'errorTrackeraddremove'
+                    );
+                    RealTimeService.sendErrorTrackerDelete(errorTracker);
+                } catch (error) {
+                    ErrorService.log('errorTrackerService.deleteBy', error);
+                }
                 return errorTracker;
             } else {
                 return null;
@@ -259,8 +263,12 @@ module.exports = {
 
             errorTracker = await this.findOneBy({ query, select, populate });
 
-            // run in the background
-            RealTimeService.errorTrackerKeyReset(errorTracker);
+            try {
+                // run in the background
+                RealTimeService.errorTrackerKeyReset(errorTracker);
+            } catch (error) {
+                ErrorService.log('realtimeService.errorTrackerKeyReset', error);
+            }
 
             return errorTracker;
         } catch (error) {

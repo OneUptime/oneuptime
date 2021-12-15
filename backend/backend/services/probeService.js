@@ -183,8 +183,12 @@ module.exports = {
             });
             if (probe) {
                 delete probe.deleted;
-                // run in the background
-                RealTimeService.updateProbe(probe, monitorId);
+                try {
+                    // run in the background
+                    RealTimeService.updateProbe(probe, monitorId);
+                } catch (error) {
+                    ErrorService.log('realtimeService.updateProbe', error);
+                }
             }
         } catch (error) {
             ErrorService.log('ProbeService.sendProbe', error);

@@ -234,11 +234,18 @@ module.exports = {
                 populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor && monitor.projectId && monitor.projectId._id) {
-                // run in the background
-                RealTimeService.updateLighthouseLog(
-                    data,
-                    monitor.projectId._id
-                );
+                try {
+                    // run in the background
+                    RealTimeService.updateLighthouseLog(
+                        data,
+                        monitor.projectId._id
+                    );
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.updateLighthouseLog',
+                        error
+                    );
+                }
             }
         } catch (error) {
             ErrorService.log('lighthouseLogService.sendLighthouseLog', error);
@@ -254,10 +261,17 @@ module.exports = {
                 limit: 5,
                 skip: 0,
             });
-            await RealTimeService.updateAllLighthouseLog(projectId, {
-                monitorId,
-                logs,
-            });
+            try {
+                await RealTimeService.updateAllLighthouseLog(projectId, {
+                    monitorId,
+                    logs,
+                });
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.updateAllLighthouseLog',
+                    error
+                );
+            }
         } catch (error) {
             ErrorService.log(
                 'lighthouseLogService.updateAllLighthouseLog',

@@ -322,9 +322,16 @@ module.exports = {
             ]);
             // send realtime update to frontend
             // handle this in the background, so we don't delay api calls
-            RealTimeService.sendTimeMetrics(appId, time);
-            RealTimeService.sendThroughputMetrics(appId, count);
-            RealTimeService.sendErrorMetrics(appId, error);
+            try {
+                RealTimeService.sendTimeMetrics(appId, time);
+                RealTimeService.sendThroughputMetrics(appId, count);
+                RealTimeService.sendErrorMetrics(appId, error);
+            } catch (error) {
+                ErrorService.log(
+                    'performanceTrackerMetricService.createMetricsData',
+                    error
+                );
+            }
         } catch (error) {
             ErrorService.log(
                 'performanceTrackerMetricService.createMetricsData',

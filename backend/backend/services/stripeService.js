@@ -54,22 +54,26 @@ const Services = {
                         ? 'second'
                         : 'third';
 
-                if (user && user.email) {
-                    MailService.sendPaymentFailedEmail(
-                        project.name,
-                        user.email,
-                        user.name,
-                        chargeAttemptStage,
-                        invoiceUrl
-                    );
-                }
+                try {
+                    if (user && user.email) {
+                        MailService.sendPaymentFailedEmail(
+                            project.name,
+                            user.email,
+                            user.name,
+                            chargeAttemptStage,
+                            invoiceUrl
+                        );
+                    }
 
-                await sendSlackAlert(
-                    'Stripe Webhook Event',
-                    'stripeService.failedEvent',
-                    'Subscription Payment Failed',
-                    400
-                );
+                    await sendSlackAlert(
+                        'Stripe Webhook Event',
+                        'stripeService.failedEvent',
+                        'Subscription Payment Failed',
+                        400
+                    );
+                } catch (error) {
+                    ErrorService.log('stripeService.failedEvent', error);
+                }
 
                 if (chargeAttemptCount === 3) {
                     await ProjectService.updateOneBy(
