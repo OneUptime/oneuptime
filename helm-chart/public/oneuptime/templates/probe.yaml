@@ -49,10 +49,7 @@ spec:
                         value: {{ $.Values.newRelic.probe.appName}}
                       {{- end }}
                       - name: CLUSTER_KEY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
-                            key: clusterkey
+                        value: {{ .Values.clusterKey }}
                       {{- if $.Values.saas.isSaasService }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
