@@ -350,7 +350,9 @@ module.exports = {
                 `${realtimeBaseUrl}/update-incident`,
                 { incident: updatedIncident, projectId },
                 true
-            );
+            ).catch(error => {
+                ErrorService.log('incidentService.updateOneBy', error);
+            });
 
             return updatedIncident;
         } catch (error) {

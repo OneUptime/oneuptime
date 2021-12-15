@@ -94,7 +94,12 @@ module.exports = {
                         parentProjectId,
                     },
                     true
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'lighthouseLogService.sendLighthouseLog',
+                        error
+                    );
+                });
             }
         } catch (error) {
             ErrorService.log('lighthouseLogService.sendLighthouseLog', error);
