@@ -67,14 +67,13 @@ module.exports = {
                     : incidentTimeline.projectId._id ||
                       incidentTimeline.projectId;
 
-                const postData = JSON.stringify({
-                    incidentTimeline: _incidentTimeline,
-                    projectId,
-                });
                 // realtime update
                 postApi(
                     `${realtimeBaseUrl}/update-incident-timeline`,
-                    postData,
+                    {
+                        incidentTimeline: _incidentTimeline,
+                        projectId,
+                    },
                     true
                 ).catch(error => {
                     ErrorService.log('incidentTimelineService.create', error);

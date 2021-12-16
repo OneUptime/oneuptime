@@ -285,17 +285,16 @@ module.exports = {
                         : project._id
                     : monitor.projectId._id || monitor.projectId;
 
-                const postData = JSON.stringify({
-                    data,
-                    monitorId: data.monitorId,
-                    logData,
-                    parentProjectId,
-                    projectId: monitor.projectId._id || monitor.projectId,
-                });
                 // realtime update
                 postApi(
                     `${realtimeBaseUrl}/update-monitor-log`,
-                    postData,
+                    {
+                        data,
+                        monitorId: data.monitorId,
+                        logData,
+                        parentProjectId,
+                        projectId: monitor.projectId._id || monitor.projectId,
+                    },
                     true
                 ).catch(error => {
                     ErrorService.log('monitorLogService.sendMonitorLog', error);
