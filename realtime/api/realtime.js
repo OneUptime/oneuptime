@@ -103,7 +103,8 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
     res
 ) {
     try {
-        const { incidentTimeline, projectId } = req.body;
+        const body = req.body;
+        const { incidentTimeline, projectId } = JSON.parse(body);
 
         RealtimeService.updateIncidentTimeline({ incidentTimeline, projectId });
         return sendEmptyResponse(req, res);
@@ -114,7 +115,8 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
 
 router.post('/update-incident', isAuthorizedService, async function(req, res) {
     try {
-        const { incident, projectId } = req.body;
+        const body = JSON.parse(req.body);
+        const { incident, projectId } = body;
 
         RealtimeService.updateIncident({ incident, projectId });
         return sendEmptyResponse(req, res);
@@ -426,13 +428,14 @@ router.post('/update-monitor-log', isAuthorizedService, async function(
     res
 ) {
     try {
+        const body = req.body;
         const {
             data,
             logData,
             projectId,
             parentProjectId,
             monitorId,
-        } = req.body;
+        } = JSON.parse(body);
 
         RealtimeService.updateMonitorLog({
             data,
@@ -452,7 +455,8 @@ router.post('/update-lighthouse-log', isAuthorizedService, async function(
     res
 ) {
     try {
-        const { data, projectId, monitorId, parentProjectId } = req.body;
+        const body = req.body;
+        const { data, projectId, monitorId, parentProjectId } = body;
 
         RealtimeService.updateLighthouseLog({
             data,
@@ -490,7 +494,10 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
     res
 ) {
     try {
-        const { data, projectId, monitorId, parentProjectId } = req.body;
+        const body = req.body;
+        const { data, projectId, monitorId, parentProjectId } = JSON.parse(
+            body
+        );
 
         RealtimeService.updateMonitorStatus({
             projectId,
