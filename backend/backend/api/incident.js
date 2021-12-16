@@ -45,7 +45,7 @@ router.post(
             const data = req.body;
 
             // Call the IncidentService
-            const incident = await IncidentService.create(JSON.parse(data));
+            const incident = await IncidentService.create(data);
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -60,8 +60,7 @@ router.post(
     isAuthorizedService,
     async function(req, res) {
         try {
-            const body = req.body;
-            const { incidentId, name, probeId } = JSON.parse(body);
+            const { incidentId, name, probeId } = req.body;
 
             const incident = await IncidentService.acknowledge(
                 incidentId,
@@ -83,8 +82,7 @@ router.post(
     isAuthorizedService,
     async function(req, res) {
         try {
-            const body = req.body;
-            const { incidentId, name, probeId } = JSON.parse(body);
+            const { incidentId, name, probeId } = req.body;
 
             const incident = await IncidentService.resolve(
                 incidentId,

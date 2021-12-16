@@ -329,21 +329,20 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    const postData = JSON.stringify({
-                        projectId: monitor.projectId,
-                        monitors: [data.monitorId],
-                        createdById: null,
-                        incidentType: 'online',
-                        probeId: data.probeId,
-                        reason: data.reason,
-                        response: data.response,
-                        ...(matchedCriterion && {
-                            matchedCriterion,
-                        }),
-                    });
                     const response = await postApi(
                         'api/incident/data-ingestor/create-incident',
-                        postData
+                        {
+                            projectId: monitor.projectId,
+                            monitors: [data.monitorId],
+                            createdById: null,
+                            incidentType: 'online',
+                            probeId: data.probeId,
+                            reason: data.reason,
+                            response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
+                        }
                     );
                     const incident = response;
 
@@ -412,21 +411,20 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    const postData = JSON.stringify({
-                        projectId: monitor.projectId,
-                        monitors: [data.monitorId],
-                        createdById: null,
-                        incidentType: 'degraded',
-                        probeId: data.probeId,
-                        reason: data.reason,
-                        response: data.response,
-                        ...(matchedCriterion && {
-                            matchedCriterion,
-                        }),
-                    });
                     const response = await postApi(
                         'api/incident/data-ingestor/create-incident',
-                        postData
+                        {
+                            projectId: monitor.projectId,
+                            monitors: [data.monitorId],
+                            createdById: null,
+                            incidentType: 'degraded',
+                            probeId: data.probeId,
+                            reason: data.reason,
+                            response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
+                        }
                     );
                     const incident = response;
 
@@ -495,21 +493,20 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    const postData = JSON.stringify({
-                        projectId: monitor.projectId,
-                        monitors: [data.monitorId],
-                        createdById: null,
-                        incidentType: 'offline',
-                        probeId: data.probeId,
-                        reason: data.reason,
-                        response: data.response,
-                        ...(matchedCriterion && {
-                            matchedCriterion,
-                        }),
-                    });
                     const response = await postApi(
                         'api/incident/data-ingestor/create-incident',
-                        postData
+                        {
+                            projectId: monitor.projectId,
+                            monitors: [data.monitorId],
+                            createdById: null,
+                            incidentType: 'offline',
+                            probeId: data.probeId,
+                            reason: data.reason,
+                            response: data.response,
+                            ...(matchedCriterion && {
+                                matchedCriterion,
+                            }),
+                        }
                     );
                     const incident = response;
 
@@ -661,26 +658,24 @@ module.exports = {
                 ) {
                     if (autoAcknowledge) {
                         if (!incident.acknowledged) {
-                            const postData = JSON.stringify({
-                                incidentId: incident._id.toString(),
-                                name: 'oneuptime',
-                                probeId: data.probeId,
-                            });
                             await postApi(
                                 'api/incident/data-ingestor/acknowledge-incident',
-                                postData
+                                {
+                                    incidentId: incident._id.toString(),
+                                    name: 'oneuptime',
+                                    probeId: data.probeId,
+                                }
                             );
                         }
                     }
                     if (autoResolve) {
-                        const postData = JSON.stringify({
-                            incidentId: incident._id.toString(),
-                            name: 'oneuptime',
-                            probeId: data.probeId,
-                        });
                         await postApi(
                             'api/incident/data-ingestor/resolve-incident',
-                            postData
+                            {
+                                incidentId: incident._id.toString(),
+                                name: 'oneuptime',
+                                probeId: data.probeId,
+                            }
                         );
                     }
                 }

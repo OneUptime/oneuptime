@@ -103,8 +103,7 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
     res
 ) {
     try {
-        const body = req.body;
-        const { incidentTimeline, projectId } = JSON.parse(body);
+        const { incidentTimeline, projectId } = req.body;
 
         RealtimeService.updateIncidentTimeline({ incidentTimeline, projectId });
         return sendEmptyResponse(req, res);
@@ -115,8 +114,7 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
 
 router.post('/update-incident', isAuthorizedService, async function(req, res) {
     try {
-        const body = JSON.parse(req.body);
-        const { incident, projectId } = body;
+        const { incident, projectId } = req.body;
 
         RealtimeService.updateIncident({ incident, projectId });
         return sendEmptyResponse(req, res);
@@ -428,14 +426,13 @@ router.post('/update-monitor-log', isAuthorizedService, async function(
     res
 ) {
     try {
-        const body = req.body;
         const {
             data,
             logData,
             projectId,
             parentProjectId,
             monitorId,
-        } = JSON.parse(body);
+        } = req.body;
 
         RealtimeService.updateMonitorLog({
             data,
@@ -494,10 +491,7 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
     res
 ) {
     try {
-        const body = req.body;
-        const { data, projectId, monitorId, parentProjectId } = JSON.parse(
-            body
-        );
+        const { data, projectId, monitorId, parentProjectId } = req.body;
 
         RealtimeService.updateMonitorStatus({
             projectId,

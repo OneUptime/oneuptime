@@ -345,16 +345,17 @@ module.exports = {
                     : project._id
                 : updatedIncident.projectId._id || updatedIncident.projectId;
 
-            const postData = JSON.stringify({
-                incident: updatedIncident,
-                projectId,
-            });
             // realtime update
-            postApi(`${realtimeBaseUrl}/update-incident`, postData, true).catch(
-                error => {
-                    ErrorService.log('incidentService.updateOneBy', error);
-                }
-            );
+            postApi(
+                `${realtimeBaseUrl}/update-incident`,
+                {
+                    incident: updatedIncident,
+                    projectId,
+                },
+                true
+            ).catch(error => {
+                ErrorService.log('incidentService.updateOneBy', error);
+            });
 
             return updatedIncident;
         } catch (error) {
