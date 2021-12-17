@@ -15,13 +15,6 @@ const _this = {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
-            // eslint-disable-next-line no-console
-            console.log(
-                'POST REQUEST: ',
-                withBaseUrl ? `${url}` : `${serverUrl}/${url}`
-            );
-            // eslint-disable-next-line no-console
-            console.log('POST REQUEST DATA: ', data);
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
             axios({
@@ -49,11 +42,6 @@ const _this = {
     getApi: (url, withBaseUrl = false) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // eslint-disable-next-line no-console
-            console.log(
-                'GET REQUEST: ',
-                withBaseUrl ? `${url}` : `${serverUrl}/${url}`
-            );
             axios({
                 method: 'GET',
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
@@ -76,13 +64,6 @@ const _this = {
     putApi: (url, data, withBaseUrl) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // eslint-disable-next-line no-console
-            console.log(
-                'PUT REQUEST: ',
-                withBaseUrl ? `${url}` : `${serverUrl}/${url}`
-            );
-            // eslint-disable-next-line no-console
-            console.log('PUT REQUEST DATA: ', data);
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
             axios({
@@ -110,11 +91,6 @@ const _this = {
     deleteApi: (url, data, withBaseUrl) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // eslint-disable-next-line no-console
-            console.log(
-                'DELETE REQUEST: ',
-                withBaseUrl ? `${url}` : `${serverUrl}/${url}`
-            );
             axios({
                 method: 'DELETE',
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
