@@ -1034,7 +1034,8 @@ module.exports = {
     searchProjects: async function(query, skip, limit) {
         const _this = this;
         try {
-            let projects = await _this.findBy({ query, limit, skip });
+            const select = '_id slug name';
+            let projects = await _this.findBy({ query, limit, skip, select });
 
             projects = await Promise.all(
                 projects.map(async project => {
