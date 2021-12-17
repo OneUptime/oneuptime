@@ -87,7 +87,17 @@ app.get(['/probe2/status', '/status'], function(req, res) {
     );
 });
 
-app.get('/monitorCount', function(req, res) {
+app.get(['/probe1/monitorCount', '/monitorCount'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            monitorCount: Object.keys(monitorStore).length,
+            monitors: monitorStore,
+        })
+    );
+});
+
+app.get(['/probe2/monitorCount', '/monitorCount'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

@@ -2043,7 +2043,12 @@ module.exports = {
             if (!data.hideAnnouncement && data.announcementToggle) {
                 AlertService.sendAnnouncementNotificationToSubscribers(
                     response
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendAnnouncementNotificationToSubscribers',
+                        error
+                    );
+                });
             }
 
             const log = {

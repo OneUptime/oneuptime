@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const NotificationService = require('../services/notificationService');
+const ErrorService = require('../services/errorService');
 const PerformanceTrackerService = require('../services/performanceTrackerService');
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
 const { decode } = require('js-base64');
@@ -51,12 +52,16 @@ router.post(
                 data
             );
 
-            NotificationService.create(
-                performanceTracker.componentId.projectId._id,
-                `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
-                performanceTracker.createdById._id,
-                'performanceTrackeraddremove'
-            );
+            try {
+                NotificationService.create(
+                    performanceTracker.componentId.projectId._id,
+                    `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
+                    performanceTracker.createdById._id,
+                    'performanceTrackeraddremove'
+                );
+            } catch (error) {
+                ErrorService.log('notificationService.create', error);
+            }
             // await RealTimeService.sendPerformanceTrackerCreated(
             //     performanceTracker
             // );

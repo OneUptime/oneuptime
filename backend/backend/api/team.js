@@ -16,6 +16,7 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const ErrorService = require('../services/errorService');
 
 // Route
 // Description: Getting details of team members of the project.
@@ -187,11 +188,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: 'Something went wrong. Please try again.',
             });
         } else {
-            // run in the background
-            RealTimeService.createTeamMember(projectId, {
-                users,
-                userId: userId.id,
-            });
+            try {
+                // run in the background
+                RealTimeService.createTeamMember(projectId, {
+                    users,
+                    userId: userId.id,
+                });
+            } catch (error) {
+                ErrorService.log('realtimeService.createTeamMember', error);
+            }
             return sendItemResponse(req, res, users);
         }
     } catch (error) {
@@ -308,12 +313,16 @@ router.put(
                     'Administrator'
                 );
 
-                NotificationService.create(
-                    projectId,
-                    `A team members role was updated by ${req.user.name}`,
-                    req.user.id,
-                    'information'
-                );
+                try {
+                    NotificationService.create(
+                        projectId,
+                        `A team members role was updated by ${req.user.name}`,
+                        req.user.id,
+                        'information'
+                    );
+                } catch (error) {
+                    ErrorService.log('notificationService.create', error);
+                }
                 return sendItemResponse(req, res, teamMembers);
             } else {
                 // Call the TeamService
@@ -323,12 +332,16 @@ router.put(
                     teamMemberId,
                     data.role
                 );
-                NotificationService.create(
-                    projectId,
-                    `A team members role was updated by ${req.user.name}`,
-                    req.user.id,
-                    'information'
-                );
+                try {
+                    NotificationService.create(
+                        projectId,
+                        `A team members role was updated by ${req.user.name}`,
+                        req.user.id,
+                        'information'
+                    );
+                } catch (error) {
+                    ErrorService.log('notificationService.create', error);
+                }
                 return sendItemResponse(req, res, updatedTeamMembers);
             }
         } catch (error) {

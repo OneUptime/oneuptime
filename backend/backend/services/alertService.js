@@ -330,8 +330,12 @@ module.exports = {
                 incidentId,
                 projectId,
             };
-            // run in the background
-            RealTimeService.sendIncidentTimeline(result);
+            try {
+                // run in the background
+                RealTimeService.sendIncidentTimeline(result);
+            } catch (error) {
+                ErrorService.log('realtimeService.sendIncidentTimeline', error);
+            }
         } catch (error) {
             ErrorService.log('alertService.sendRealTimeUpdate', error);
             throw error;

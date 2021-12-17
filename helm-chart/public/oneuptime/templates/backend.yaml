@@ -109,10 +109,7 @@ spec:
                         value: {{ .Values.newRelic.backend.appName}}
                       {{- end }}
                       - name: CLUSTER_KEY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
-                            key: clusterkey
+                        value: {{ .Values.clusterKey }}
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
                         value: {{ .Values.saas.stripe.publicKey }}
