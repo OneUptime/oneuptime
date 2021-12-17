@@ -123,13 +123,6 @@ cron.schedule('*/2 * * * *', () => {
     }, cronMinuteStartTime * 1000);
 });
 
-// This cron runs every 12th hour
-// cron.schedule('0 */12 * * *', () => {
-//     setTimeout(() => {
-//         Main.runJob(monitorStore);
-//     }, cronMinuteStartTime * 1000);
-// });
-
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
