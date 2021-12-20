@@ -158,22 +158,25 @@ export class ProjectDetails extends Component {
                                                         flex: 'none',
                                                     }}
                                                 >
-                                                    {
-                                                        <div
-                                                            className={`Badge Badge--color--${
-                                                                this.props
-                                                                    .project
-                                                                    .deleted
-                                                                    ? 'red'
-                                                                    : this.props
-                                                                          .project
-                                                                          .isBlocked
-                                                                    ? 'yellow'
-                                                                    : 'green'
-                                                            } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
-                                                        >
-                                                            <span
-                                                                className={`Badge-text Text-color--${
+                                                    Status
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        maxWidth: '270px',
+                                                    }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label"
+                                                        style={{
+                                                            width: '10rem',
+                                                            textAlign: 'left',
+                                                            flex: 'none',
+                                                        }}
+                                                    >
+                                                        {
+                                                            <div
+                                                                className={`Badge Badge--color--${
                                                                     this.props
                                                                         .project
                                                                         .deleted
@@ -184,30 +187,41 @@ export class ProjectDetails extends Component {
                                                                               .isBlocked
                                                                         ? 'yellow'
                                                                         : 'green'
-                                                                } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
-                                                                <span>
-                                                                    {this.props
-                                                                        .project
-                                                                        .deleted
-                                                                        ? 'Deleted'
-                                                                        : this
-                                                                              .props
-                                                                              .project
-                                                                              .isBlocked
-                                                                        ? 'Blocked'
-                                                                        : 'Active'}
+                                                                <span
+                                                                    className={`Badge-text Text-color--${
+                                                                        this
+                                                                            .props
+                                                                            .project
+                                                                            .deleted
+                                                                            ? 'red'
+                                                                            : this
+                                                                                  .props
+                                                                                  .project
+                                                                                  .isBlocked
+                                                                            ? 'yellow'
+                                                                            : 'green'
+                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                >
+                                                                    <span>
+                                                                        {this
+                                                                            .props
+                                                                            .project
+                                                                            .deleted
+                                                                            ? 'Deleted'
+                                                                            : this
+                                                                                  .props
+                                                                                  .project
+                                                                                  .isBlocked
+                                                                            ? 'Blocked'
+                                                                            : 'Active'}
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                        </div>
-                                                    }
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        maxWidth: '270px',
-                                                    }}
-                                                ></div>
+                                                            </div>
+                                                        }
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </fieldset>
