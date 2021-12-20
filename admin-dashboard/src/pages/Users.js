@@ -9,6 +9,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import UserAddModal from '../components/user/UserAddModal';
+import * as _ from 'lodash';
 
 class Users extends Component {
     constructor(props) {
@@ -169,10 +170,11 @@ class Users extends Component {
                                                                         <input
                                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                             placeholder="Search Users"
-                                                                            onChange={
+                                                                            onChange={_.debounce(
                                                                                 this
-                                                                                    .onChange
-                                                                            }
+                                                                                    .onChange,
+                                                                                500
+                                                                            )}
                                                                         />
                                                                     </div>
                                                                     <div>
