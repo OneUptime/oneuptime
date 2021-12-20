@@ -283,9 +283,12 @@ class Users extends Component {
                                                                       ? ''
                                                                       : 's'
                                                               })`
-                                                            : `${user.users
-                                                                  .count ||
-                                                                  ''} OneUptime User${
+                                                            : user.users
+                                                                  .count &&
+                                                              `${
+                                                                  user.users
+                                                                      .count
+                                                              } OneUptime User${
                                                                   user.users
                                                                       .count ===
                                                                   1
