@@ -25,7 +25,7 @@ reset=$(tput sgr 0)
 
 # # Delete all the monitor logs before 3 days before taking the backup.
 THREE_DAYS_AGO=$(date -d "-3 days" +"%Y-%m-%d")
-THREE_MONTHS_AGO=$(date -d "-120 days" +"%Y-%m-%d")
+THREE_MONTHS_AGO=$(date -d "-90 days" +"%Y-%m-%d")
 SIX_MONTHS_AGO=$(date -d "-180 days" +"%Y-%m-%d")
 
 function HELP() {
