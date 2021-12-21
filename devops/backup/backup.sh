@@ -81,6 +81,17 @@ while getopts "u:p:n:l:t:v:h" opt; do
 done
 
 function BACKUP_SUCCESS(){
+  curl --request POST \
+    --url https://events.pagerduty.com/v2/change/enqueue \
+    --header 'Content-Type: application/json' \
+    --data '{
+    "routing_key": "a92c8fef8b394f01d02a9f9c0e1317f5",
+    "payload": {
+      "summary": "Backup created successfully on vm. Archive: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive",
+      "source": "production-db-backup-vm"
+    }
+  }'
+
     curl -X POST -H 'Content-type: application/json' --data '{
     "blocks": [
       {
@@ -101,6 +112,19 @@ function BACKUP_SUCCESS(){
 }
 
 function BACKUP_FAIL_SERVER(){
+  curl --request POST \
+    --url https://events.pagerduty.com/v2/enqueue \
+    --header 'Content-Type: application/json' \
+    --data '{
+    "payload": {
+      "summary": "Could not create backup on vm. Archive: '$BACKUP_PATH'/oneuptime-backup-'$CURRENT_DATE'.archive",
+      "severity": "error",
+      "source": "production-db-backup-vm"
+    },
+    "routing_key": "a92c8fef8b394f01d02a9f9c0e1317f5",
+    "event_action": "trigger"
+  }'
+
     curl -X POST -H 'Content-type: application/json' --data '{
     "blocks": [
       {
