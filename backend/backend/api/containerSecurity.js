@@ -7,6 +7,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
+const ErrorService = require('../services/errorService');
 
 const router = express.Router();
 
@@ -65,7 +66,14 @@ router.post(
             const containerSecurity = await ContainerSecurityService.create(
                 data
             );
-            RealTimeService.sendContainerSecurityCreated(containerSecurity);
+            try {
+                RealTimeService.sendContainerSecurityCreated(containerSecurity);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.sendContainerSecurityCreated',
+                    error
+                );
+            }
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -371,9 +379,13 @@ router.post(
                 { scanned: false }
             ); //This helps the container scanner to pull the container
 
-            RealTimeService.handleScanning({
-                security: updatedContainerSecurity,
-            });
+            try {
+                RealTimeService.handleScanning({
+                    security: updatedContainerSecurity,
+                });
+            } catch (error) {
+                ErrorService.log('realtimeService.handleScanning', error);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

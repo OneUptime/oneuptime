@@ -15,6 +15,7 @@ const RealTimeService = require('../services/realTimeService');
 const ScheduleService = require('../services/scheduleService');
 const ProbeService = require('../services/probeService');
 const ComponentService = require('../services/componentService');
+const ErrorService = require('../services/errorService');
 const Api = require('../utils/api');
 
 const router = express.Router();
@@ -253,15 +254,19 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
 
         if (monitor) {
-            NotificationService.create(
-                monitor.projectId._id || monitor.projectId,
-                `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
-                user._id,
-                'monitoraddremove'
-            );
+            try {
+                NotificationService.create(
+                    monitor.projectId._id || monitor.projectId,
+                    `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
+                    user._id,
+                    'monitoraddremove'
+                );
 
-            // RUN REALTIME SERVICE IN THE BACKGROUND
-            RealTimeService.sendMonitorCreated(monitor);
+                // RUN REALTIME SERVICE IN THE BACKGROUND
+                RealTimeService.sendMonitorCreated(monitor);
+            } catch (error) {
+                ErrorService.log('realtimeService.sendMonitorCreated', error);
+            }
         }
 
         return sendItemResponse(req, res, monitor);

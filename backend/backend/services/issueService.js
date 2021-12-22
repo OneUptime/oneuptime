@@ -182,15 +182,19 @@ module.exports = {
                     query: { _id: componentId },
                     select: 'projectId',
                 });
-                NotificationService.create(
-                    component.projectId,
-                    `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
-                    issue.deletedById._id,
-                    'errorTrackerIssueaddremove'
-                );
 
-                // run in the background
-                RealTimeService.sendErrorTrackerIssueDelete(issue);
+                try {
+                    NotificationService.create(
+                        component.projectId,
+                        `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
+                        issue.deletedById._id,
+                        'errorTrackerIssueaddremove'
+                    );
+                    // run in the background
+                    RealTimeService.sendErrorTrackerIssueDelete(issue);
+                } catch (error) {
+                    ErrorService.log('issueService.deleteBy', error);
+                }
                 return issue;
             } else {
                 return null;

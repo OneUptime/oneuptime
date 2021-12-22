@@ -208,8 +208,15 @@ module.exports = {
                         select: selectIncidentMessage,
                         populate: populateIncidentMessage,
                     });
-                    // run in the background
-                    RealTimeService.addIncidentNote(incidentMessage);
+                    try {
+                        // run in the background
+                        RealTimeService.addIncidentNote(incidentMessage);
+                    } catch (error) {
+                        ErrorService.log(
+                            'realtimeService.addIncidentNote',
+                            error
+                        );
+                    }
 
                     incidentNoteArr.push(incidentMessage);
                 })
@@ -371,14 +378,18 @@ module.exports = {
                     });
 
                     const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
-                    NotificationService.create(
-                        incident.projectId,
-                        msg,
-                        null,
-                        'warning'
-                    );
-                    // run in the background
-                    RealTimeService.sendCreatedIncident(incident);
+                    try {
+                        NotificationService.create(
+                            incident.projectId,
+                            msg,
+                            null,
+                            'warning'
+                        );
+                        // run in the background
+                        RealTimeService.sendCreatedIncident(incident);
+                    } catch (error) {
+                        ErrorService.log('zapierService.createIncident', error);
+                    }
 
                     let project = await ProjectService.findOneBy({
                         query: { _id: monitorObj.project._id },

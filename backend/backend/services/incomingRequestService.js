@@ -1530,7 +1530,12 @@ module.exports = {
                                     data,
                                     'created',
                                     data.projectId
-                                );
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendInvestigationNoteToSubscriber',
+                                        error
+                                    );
+                                });
                             }
                             noteResponse.push(incident);
                             incidentsWithNote.push(String(incident._id));
@@ -1545,7 +1550,12 @@ module.exports = {
                                     data,
                                     'created',
                                     data.projectId
-                                );
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendInvestigationNoteToSubscribers',
+                                        error
+                                    );
+                                });
                             }
                             noteResponse.push(incident);
                         }

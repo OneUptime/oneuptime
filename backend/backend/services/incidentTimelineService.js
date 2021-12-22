@@ -47,7 +47,14 @@ module.exports = {
                 const _incidentTimeline = Object.assign({}, incidentTimeline, {
                     projectId: incident.projectId._id || incident.projectId,
                 });
-                RealTimeService.updateIncidentTimeline(_incidentTimeline);
+                try {
+                    RealTimeService.updateIncidentTimeline(_incidentTimeline);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.updateIncidentTimeline',
+                        error
+                    );
+                }
             }
 
             return incidentTimeline;

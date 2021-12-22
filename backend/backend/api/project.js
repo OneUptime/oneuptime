@@ -17,6 +17,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const isAuthorizedService = require('../middlewares/serviceAuthorization')
     .isAuthorizedService;
+const ErrorService = require('../services/errorService');
 
 // Route
 // Description: Creating new Porject by Admin.
@@ -128,7 +129,14 @@ router.post('/create', getUser, async function(req, res) {
                         subscriptionnew.stripeSubscriptionId;
                 }
                 const project = await ProjectService.create(data);
-                MailService.sendCreateProjectMail(projectName, user.email);
+                try {
+                    MailService.sendCreateProjectMail(projectName, user.email);
+                } catch (error) {
+                    ErrorService.log(
+                        'mailService.sendCreateProjectMail',
+                        error
+                    );
+                }
                 return sendItemResponse(req, res, project);
             } else {
                 if (IS_SAAS_SERVICE) {
@@ -144,11 +152,18 @@ router.post('/create', getUser, async function(req, res) {
                             query: { _id: userId },
                             select: 'email name',
                         });
-                        MailService.sendPaymentFailedEmail(
-                            projectName,
-                            user.email,
-                            user.name
-                        );
+                        try {
+                            MailService.sendPaymentFailedEmail(
+                                projectName,
+                                user.email,
+                                user.name
+                            );
+                        } catch (error) {
+                            ErrorService.log(
+                                'mailService.sendPaymentFailedEmail',
+                                error
+                            );
+                        }
                     }
                     if (!data.stripeSubscriptionId) {
                         data.stripeSubscriptionId =
@@ -166,7 +181,14 @@ router.post('/create', getUser, async function(req, res) {
 
                 user = foundUser;
 
-                MailService.sendCreateProjectMail(projectName, user.email);
+                try {
+                    MailService.sendCreateProjectMail(projectName, user.email);
+                } catch (error) {
+                    ErrorService.log(
+                        'mailService.sendCreateProjectMail',
+                        error
+                    );
+                }
                 return sendItemResponse(req, res, project);
             }
         } else {
@@ -484,12 +506,19 @@ router.delete(
 
             if (project) {
                 const projectName = project.name;
-                // SEND MAIL IN THE BACKGROUND
-                MailService.sendDeleteProjectEmail({
-                    name: user.name,
-                    userEmail: user.email,
-                    projectName,
-                });
+                try {
+                    // SEND MAIL IN THE BACKGROUND
+                    MailService.sendDeleteProjectEmail({
+                        name: user.name,
+                        userEmail: user.email,
+                        projectName,
+                    });
+                } catch (error) {
+                    ErrorService.log(
+                        'mailService.sendDeleteProjectEmail',
+                        error
+                    );
+                }
             }
 
             const record = await AirtableService.logProjectDeletionFeedback({
@@ -611,12 +640,16 @@ router.post(
                 }),
             ]);
             const email = user.email;
-            MailService.sendChangePlanMail(
-                projectName,
-                oldPlan,
-                newPlan,
-                email
-            );
+            try {
+                MailService.sendChangePlanMail(
+                    projectName,
+                    oldPlan,
+                    newPlan,
+                    email
+                );
+            } catch (error) {
+                ErrorService.log('mailService.sendChangePlanMail', error);
+            }
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -692,12 +725,16 @@ router.put(
                     }),
                 ]);
                 const email = user.email;
-                MailService.sendChangePlanMail(
-                    projectName,
-                    oldPlan,
-                    newPlan,
-                    email
-                );
+                try {
+                    MailService.sendChangePlanMail(
+                        projectName,
+                        oldPlan,
+                        newPlan,
+                        email
+                    );
+                } catch (error) {
+                    ErrorService.log('mailService.sendChangePlanMail', error);
+                }
                 return sendItemResponse(req, res, updatedProject);
             }
         } catch (error) {
@@ -747,12 +784,19 @@ router.post(
                 select: 'email',
             });
             const email = user.email;
-            MailService.sendUpgradeToEnterpriseMail(
-                projectName,
-                projectId,
-                oldPlan,
-                email
-            );
+            try {
+                MailService.sendUpgradeToEnterpriseMail(
+                    projectName,
+                    projectId,
+                    oldPlan,
+                    email
+                );
+            } catch (error) {
+                ErrorService.log(
+                    'mailService.sendUpgradeToEnterpriseMail',
+                    error
+                );
+            }
             return sendItemResponse(req, res, 'Mail Sent Successfully!');
         } catch (error) {
             return sendErrorResponse(req, res, error);

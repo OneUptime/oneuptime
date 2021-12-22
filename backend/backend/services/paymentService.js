@@ -450,13 +450,17 @@ module.exports = {
                         type: 'action',
                         client_secret: paymentIntent.client_secret,
                     };
-                    NotificationService.create(
-                        projectId,
-                        message,
-                        userId,
-                        null,
-                        meta
-                    );
+                    try {
+                        NotificationService.create(
+                            projectId,
+                            message,
+                            userId,
+                            null,
+                            meta
+                        );
+                    } catch (error) {
+                        ErrorService.log('paymentService.chargeAlert', error);
+                    }
                 }
 
                 // confirm payment intent

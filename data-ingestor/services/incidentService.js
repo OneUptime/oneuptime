@@ -348,9 +348,14 @@ module.exports = {
             // realtime update
             postApi(
                 `${realtimeBaseUrl}/update-incident`,
-                { incident: updatedIncident, projectId },
+                {
+                    incident: updatedIncident,
+                    projectId,
+                },
                 true
-            );
+            ).catch(error => {
+                ErrorService.log('incidentService.updateOneBy', error);
+            });
 
             return updatedIncident;
         } catch (error) {

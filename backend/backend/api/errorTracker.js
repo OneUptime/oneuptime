@@ -29,6 +29,7 @@ const IssueService = require('../services/issueService');
 const TeamService = require('../services/teamService');
 const IssueMemberService = require('../services/issueMemberService');
 const IssueTimelineService = require('../services/issueTimelineService');
+const ErrorService = require('../services/errorService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -83,14 +84,21 @@ router.post(
                 }),
             ]);
 
-            NotificationService.create(
-                component.projectId._id,
-                `A New Error Tracker was Created with name ${errorTracker.name} by ${user.name}`,
-                user._id,
-                'errortrackeraddremove'
-            );
-            // run in the background
-            RealTimeService.sendErrorTrackerCreated(errorTracker);
+            try {
+                NotificationService.create(
+                    component.projectId._id,
+                    `A New Error Tracker was Created with name ${errorTracker.name} by ${user.name}`,
+                    user._id,
+                    'errortrackeraddremove'
+                );
+                // run in the background
+                RealTimeService.sendErrorTrackerCreated(errorTracker);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.sendErrorTrackerCreated',
+                    error
+                );
+            }
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -360,8 +368,12 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
 
         issue = errorTrackerIssue.totalErrorEvents[0];
 
-        // run in the background
-        RealTimeService.sendErrorEventCreated({ errorEvent, issue });
+        try {
+            // run in the background
+            RealTimeService.sendErrorEventCreated({ errorEvent, issue });
+        } catch (error) {
+            ErrorService.log('realtimeService.sendErrorEventCreated', error);
+        }
         return sendItemResponse(req, res, errorEvent);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -683,8 +695,15 @@ router.post(
                     });
                     issues.push(issue);
 
-                    // update a timeline object
-                    RealTimeService.sendIssueStatusChange(issue, action);
+                    try {
+                        // update a timeline object
+                        RealTimeService.sendIssueStatusChange(issue, action);
+                    } catch (error) {
+                        ErrorService.log(
+                            'realtimeService.sendIssueStatusChange',
+                            error
+                        );
+                    }
                 }
             }
 

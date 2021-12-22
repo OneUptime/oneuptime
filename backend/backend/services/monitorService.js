@@ -363,7 +363,11 @@ module.exports = {
             const query = { _id };
 
             const monitor = await this.findOneBy({ query, select, populate });
-            RealTimeService.monitorEdit(monitor);
+            try {
+                RealTimeService.monitorEdit(monitor);
+            } catch (error) {
+                ErrorService.log('realtimeService.monitorEdit', error);
+            }
             return monitor;
         } catch (error) {
             ErrorService.log(
@@ -495,8 +499,12 @@ module.exports = {
                 { path: 'statusPageCategory', select: 'name' },
             ];
             const monitor = await this.findOneBy({ query, select, populate });
-            // run in the background
-            RealTimeService.monitorEdit(monitor);
+            try {
+                // run in the background
+                RealTimeService.monitorEdit(monitor);
+            } catch (error) {
+                ErrorService.log('realtimeService.monitorEdit', error);
+            }
 
             return monitor;
         } catch (error) {
@@ -719,22 +727,26 @@ module.exports = {
                     })
                 );
 
-                NotificationService.create(
-                    monitor.projectId,
-                    `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
-                    monitor.deletedById._id,
-                    'monitoraddremove'
-                );
+                try {
+                    NotificationService.create(
+                        monitor.projectId,
+                        `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
+                        monitor.deletedById._id,
+                        'monitoraddremove'
+                    );
 
-                // run in the background
-                // no need to delay request
-                StatusPageService.removeMonitor(monitor._id);
-                ScheduleService.removeMonitor(monitor._id);
-                ScheduledEventService.removeMonitor(monitor._id, userId);
-                IncomingRequestService.removeMonitor(monitor._id);
-                IncidentService.removeMonitor(monitor._id, userId);
-                IntegrationService.removeMonitor(monitor._id, userId);
-                RealTimeService.sendMonitorDelete(monitor);
+                    // run in the background
+                    // no need to delay request
+                    StatusPageService.removeMonitor(monitor._id);
+                    ScheduleService.removeMonitor(monitor._id);
+                    ScheduledEventService.removeMonitor(monitor._id, userId);
+                    IncomingRequestService.removeMonitor(monitor._id);
+                    IncidentService.removeMonitor(monitor._id, userId);
+                    IntegrationService.removeMonitor(monitor._id, userId);
+                    RealTimeService.sendMonitorDelete(monitor);
+                } catch (error) {
+                    ErrorService.log('monitorService.deleteBy', error);
+                }
 
                 return monitor;
             } else {
@@ -1847,8 +1859,12 @@ module.exports = {
                         select,
                         populate,
                     });
-                    // run in the background
-                    RealTimeService.monitorEdit(monitorData);
+                    try {
+                        // run in the background
+                        RealTimeService.monitorEdit(monitorData);
+                    } catch (error) {
+                        ErrorService.log('realtimeService.monitorEdit', error);
+                    }
                 }
             }
         } catch (error) {

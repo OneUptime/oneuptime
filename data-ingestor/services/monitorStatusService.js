@@ -188,7 +188,12 @@ module.exports = {
                         parentProjectId,
                     },
                     true
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MonitorStatusService.sendMonitorStatus',
+                        error
+                    );
+                });
             }
         } catch (error) {
             ErrorService.log('MonitorStatusService.sendMonitorStatus', error);

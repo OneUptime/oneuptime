@@ -231,13 +231,20 @@ module.exports = {
                     },
                 });
             if (performanceTracker) {
-                NotificationService.create(
-                    performanceTracker.componentId.projectId._id ||
-                        performanceTracker.componentId.projectId,
-                    `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
-                    performanceTracker.deletedById._id,
-                    'performanceTrackeraddremove'
-                );
+                try {
+                    NotificationService.create(
+                        performanceTracker.componentId.projectId._id ||
+                            performanceTracker.componentId.projectId,
+                        `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
+                        performanceTracker.deletedById._id,
+                        'performanceTrackeraddremove'
+                    );
+                } catch (error) {
+                    ErrorService.log(
+                        'performanceTrackerService.deleteBy',
+                        error
+                    );
+                }
                 // await RealTimeService.sendPerformanceTrackerDelete(
                 //     performanceTracker
                 // );

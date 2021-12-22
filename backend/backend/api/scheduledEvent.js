@@ -11,6 +11,7 @@ const { getSubProjects } = require('../middlewares/subProject');
 const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
 const moment = require('moment');
 const MonitorService = require('../services/monitorService');
+const ErrorService = require('../services/errorService');
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -321,7 +322,12 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
                 // handle this asynchronous operation in the background
                 AlertService.sendCancelledScheduledEventToSubscribers(
                     scheduledEvent
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendCancelledScheduledEventToSubscribers',
+                        error
+                    );
+                });
             }
 
             await ScheduledEventNoteService.create({

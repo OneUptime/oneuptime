@@ -11,13 +11,17 @@ module.exports = {
                 status,
             });
 
-            MailService.sendLoginEmail(
-                user.email,
-                ipLocation,
-                result,
-                user.twoFactorEnabled,
-                status
-            );
+            try {
+                MailService.sendLoginEmail(
+                    user.email,
+                    ipLocation,
+                    result,
+                    user.twoFactorEnabled,
+                    status
+                );
+            } catch (error) {
+                ErrorService.log('mailService.sendLoginEmail', error);
+            }
         } catch (error) {
             ErrorService.log('loginHistory.create', error);
             throw error;
