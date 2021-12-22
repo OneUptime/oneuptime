@@ -69,7 +69,8 @@ const Services = {
                         'Stripe Webhook Event',
                         'stripeService.failedEvent',
                         'Subscription Payment Failed',
-                        400
+                        400,
+                        invoiceUrl
                     );
                 } catch (error) {
                     ErrorService.log('stripeService.failedEvent', error);

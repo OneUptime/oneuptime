@@ -100,10 +100,6 @@ module.exports = {
     },
 
     sendErrorResponse: function(req, res, error) {
-        //log error to the console.
-        // eslint-disable-next-line no-console
-        console.error(error);
-
         if (error.statusCode && error.message) {
             res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
             return res

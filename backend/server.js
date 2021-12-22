@@ -6,6 +6,7 @@ if (process.env.NEW_RELIC_LICENSE_KEY) {
 const express = require('express');
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
+const logger = require('./backend/config/logger');
 const app = express();
 
 const { NODE_ENV } = process.env;
@@ -37,22 +38,17 @@ Sentry.init({
 });
 
 process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Server Shutting Shutdown');
+    logger.info('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in server process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error('Unhandled rejection in server process occurred');
+    logger.error(err);
 });
 
 process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in server process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error('Uncaught exception in server process occurred');
+    logger.error(err);
 });
 
 const path = require('path');
@@ -77,6 +73,8 @@ const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
 const Gl = require('greenlock');
+const ErrorService = require('./backend/services/errorService');
+const { createLogger } = require('winston');
 
 // try {
 //     io.adapter(
@@ -388,8 +386,7 @@ require('./backend/workers/main');
 
 app.set('port', process.env.PORT || 3002);
 const server = http.listen(app.get('port'), function() {
-    // eslint-disable-next-line
-    console.log('Server Started on port ' + app.get('port'));
+    logger.info('Server Started on port ' + app.get('port'));
 });
 
 mongoose.connection.on('connected', async () => {
@@ -422,7 +419,7 @@ mongoose.connection.on('connected', async () => {
         // global.greenlock = greenlock;
     } catch (error) {
         // eslint-disable-next-line no-console
-        console.log('GREENLOCK INIT ERROR: ', error);
+        ErrorService.log('GREENLOCK INIT ERROR: ', error);
     }
 });
 

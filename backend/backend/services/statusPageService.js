@@ -1088,7 +1088,6 @@ module.exports = {
                     );
                 });
                 const count = events.length;
-                // console.log(events);
 
                 return { events, count };
             } else {
