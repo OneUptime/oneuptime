@@ -18,7 +18,7 @@ export class ProjectDetails extends Component {
                                             type="submit"
                                             style={{ float: 'right' }}
                                         >
-                                            <span>View Project</span>
+                                            <span>Goto Project</span>
                                         </button>
                                     </div>
                                     <span>Project Details</span>
@@ -64,7 +64,8 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null &&
+                                                        this.props.project.name
                                                             ? this.props.project
                                                                   .name
                                                             : 'LOADING...'}
@@ -100,7 +101,8 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null &&
+                                                        this.props.project._id
                                                             ? this.props.project
                                                                   ._id
                                                             : 'LOADING...'}
@@ -136,7 +138,9 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null &&
+                                                        this.props.project
+                                                            .apiKey
                                                             ? this.props.project
                                                                   .apiKey
                                                             : 'LOADING...'}
@@ -207,15 +211,20 @@ export class ProjectDetails extends Component {
                                                                     <span>
                                                                         {this
                                                                             .props
-                                                                            .project
-                                                                            .deleted
-                                                                            ? 'Deleted'
-                                                                            : this
+                                                                            .project !==
+                                                                        null
+                                                                            ? this
                                                                                   .props
                                                                                   .project
-                                                                                  .isBlocked
-                                                                            ? 'Blocked'
-                                                                            : 'Active'}
+                                                                                  .deleted
+                                                                                ? 'Deleted'
+                                                                                : this
+                                                                                      .props
+                                                                                      .project
+                                                                                      .isBlocked
+                                                                                ? 'Blocked'
+                                                                                : 'Active'
+                                                                            : 'LOADING...'}
                                                                     </span>
                                                                 </span>
                                                             </div>
