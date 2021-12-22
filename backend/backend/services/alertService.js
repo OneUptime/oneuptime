@@ -448,9 +448,6 @@ module.exports = {
                     monitor
                 );
 
-                // for (const schedules of scheduleList) {
-                //     console.log('***** each schedle *******', schedules);
-                // }
                 if (scheduleList.length > 0) {
                     for (const schedule of scheduleList) {
                         _this.sendAlertsToTeamMembersInSchedule({

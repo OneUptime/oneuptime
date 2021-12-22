@@ -100,6 +100,10 @@ spec:
                         value: {{ .Values.haraka.fromEmail }}
                       - name: INTERNAL_SMTP_NAME
                         value: {{ .Values.haraka.fromName }}
+                      - name: LOGSTASH_HOST
+                        value: {{ .Values.logstashHost | quote }}
+                      - name: LOGSTASH_PORT
+                        value: {{ .Values.logstashPort | quote }}
                       {{- if .Values.newRelic.backend.licenseKey }}
                       - name: NEW_RELIC_LICENSE_KEY
                         value: {{ .Values.newRelic.backend.licenseKey }}

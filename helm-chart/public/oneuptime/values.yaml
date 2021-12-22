@@ -301,3 +301,6 @@ applicationScanner:
 containerScanner:
   name: US
   key: s9KOOlCVyly0XykZVjDe
+
+logstashHost: 54.153.39.163
+logstashPort: 1514
