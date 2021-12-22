@@ -138,5 +138,5 @@ sentry:
     statusPage:
         dsn: https://4257f73998344bddbf600fd11ef42050@o1080398.ingest.sentry.io/6086232
 
-logstashHost:
-logstashPort:
+logstashHost: 54.153.39.163
+logstashPort: 1514
