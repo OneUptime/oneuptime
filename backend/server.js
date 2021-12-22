@@ -3,18 +3,18 @@ if (process.env.NEW_RELIC_LICENSE_KEY) {
     require('newrelic');
 }
 
-const express = require('express');
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
-const logger = require('./backend/config/logger');
-const app = express();
-
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
     require('custom-env').env();
 }
+
+const express = require('express');
+const Sentry = require('@sentry/node');
+const Tracing = require('@sentry/tracing');
+const logger = require('./backend/config/logger');
+const app = express();
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -74,7 +74,6 @@ const cors = require('cors');
 const mongoose = require('./backend/config/db');
 const Gl = require('greenlock');
 const ErrorService = require('./backend/services/errorService');
-const { createLogger } = require('winston');
 
 // try {
 //     io.adapter(
