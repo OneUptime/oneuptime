@@ -1,0 +1,41 @@
+version: '3.2'
+services:
+    # elasticsearch
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+        container_name: elasticsearch
+        volumes:
+            - elasticsearch_data:/usr/share/elasticsearch/data
+            - ./elastic/elasticsearch.yaml:/usr/share/elasticsearch/config/elasticsearch.yml
+        ports:
+            - 9200:9200
+            - 9300:9300
+        environment:
+            discovery.type: single-node
+
+    # kibana
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.16.2
+        container_name: kibana
+        volumes:
+            - ./elastic/kibana.yaml:/usr/share/kibana/config/kibana.yml
+        ports:
+            - 5601:5601
+
+    # logstash
+    logstash:
+        image: docker.elastic.co/logstash/logstash:7.16.2
+        container_name: logstash
+        volumes:
+            - ./elastic/logging.conf:/usr/share/logstash/pipeline/logging.conf
+            - ./elastic/logstash.yaml:/usr/share/logstash/config/logstash.yml
+        ports:
+            - 1514:1514/udp
+            - 1515:1515
+            - 1515:1515/udp
+        depends_on:
+            - elasticsearch
+
+volumes:
+    elasticsearch_data:
+        driver: local
