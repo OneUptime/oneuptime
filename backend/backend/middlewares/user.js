@@ -102,10 +102,14 @@ const _this = {
             } else {
                 req.authorizationType = 'USER';
             }
-            UserService.updateOneBy(
-                { _id: req.user.id },
-                { lastActive: Date.now() }
-            );
+            try {
+                UserService.updateOneBy(
+                    { _id: req.user.id },
+                    { lastActive: Date.now() }
+                );
+            } catch (error) {
+                ErrorService.log('UserService.updateOneBy', error);
+            }
             if (next) {
                 return next();
             } else {
