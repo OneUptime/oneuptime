@@ -12,7 +12,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     const limit = req.query.limit || 10;
 
     const selectSso =
-        '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl';
+        '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
     try {
         const [ssos, count] = await Promise.all([
             SsoService.findBy({ query: {}, limit, skip, select: selectSso }),
@@ -25,7 +25,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.delete('/:id', getUser, isUserMasterAdmin, async function(req, res) {
+router.delete('/:id', getUser, async function(req, res) {
     try {
         const sso = await SsoService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, sso);
@@ -34,7 +34,7 @@ router.delete('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/', getUser, async function(req, res) {
     const data = req.body;
     try {
         const sso = await SsoService.create(data);
@@ -44,10 +44,10 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/:id', getUser, async function(req, res) {
     try {
         const selectSso =
-            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl';
+            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
 
         const sso = await SsoService.findOneBy({
             query: { _id: req.params.id },
@@ -59,11 +59,36 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
+router.put('/:id', getUser, async function(req, res) {
     try {
         const data = req.body;
         const sso = await SsoService.updateBy({ _id: req.params.id }, data);
         return sendItemResponse(req, res, sso);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+// USER API ENDPOINT TO GET SSO INTEGRATION
+router.get('/:projectId/ssos', getUser, async function(req, res) {
+    try {
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const { projectId } = req.params;
+
+        const selectSso =
+            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
+        const [ssos, count] = await Promise.all([
+            SsoService.findBy({
+                query: { projectId },
+                limit,
+                skip,
+                select: selectSso,
+            }),
+            SsoService.countBy({ projectId }),
+        ]);
+
+        return sendListResponse(req, res, ssos, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
