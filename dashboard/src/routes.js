@@ -1,10 +1,15 @@
 import pages from './pages';
-import { IS_SAAS_SERVICE } from './config';
+import { IS_SAAS_SERVICE, User, PricingPlan } from './config';
 import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
 import ErrorEventView from './pages/ErrorEventView';
 import WebhookSettings from './pages/WebhookSettings';
 import AutomatedScripView from './pages/AutomatedScripView';
+
+const currentProject = JSON.parse(User.getProject());
+const isScalePlan = currentProject.stripePlanId
+    ? PricingPlan.getPlanById(currentProject.stripePlanId).category === 'Scale'
+    : false;
 
 const {
     Home,
@@ -56,6 +61,7 @@ const {
     PerformanceTrackerView,
     PerformanceTracker,
     AutomationScript,
+    SsoPage,
 } = pages;
 
 export const groups = [
@@ -529,6 +535,16 @@ export const groups = [
                         component: Billing,
                         index: 1,
                         shortcut: 's+b',
+                    },
+                    {
+                        title: 'Sso',
+                        path: '/dashboard/project/:slug/settings/sso',
+                        icon: 'integration',
+                        visible: isScalePlan,
+                        subRoutes: [],
+                        component: SsoPage,
+                        index: 5,
+                        shortcut: 's+o',
                     },
                     {
                         title: 'Integrations',
