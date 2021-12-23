@@ -51,16 +51,18 @@ module.exports = {
 
             const response = [];
             for (let i = 0; i < users.length; i++) {
-                if (users[i]) {
-                    response.push({
-                        userId: users[i]._id,
-                        email: users[i].email,
-                        name: users[i].name,
-                        role: projectMembers[i].role,
-                        lastActive: users[i].lastActive,
-                        show: projectMembers[i].show,
-                    });
-                }
+                const memberDetail = projectMembers.filter(
+                    member => member.userId === users[i]._id.toString()
+                )[0];
+
+                response.push({
+                    userId: users[i]._id,
+                    email: users[i].email,
+                    name: users[i].name,
+                    role: memberDetail.role,
+                    lastActive: users[i].lastActive,
+                    show: memberDetail.show,
+                });
             }
             return response;
         } catch (error) {
