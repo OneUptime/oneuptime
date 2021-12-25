@@ -12,6 +12,8 @@ services:
             - 9300:9300
         environment:
             discovery.type: single-node
+            ELASTIC_PASSWORD: 23weqdsacfsregh
+            xpack.security.enabled: 'true'
 
     # kibana
     kibana:
@@ -21,6 +23,9 @@ services:
             - ./elastic/kibana.yaml:/usr/share/kibana/config/kibana.yml
         ports:
             - 5601:5601
+        environment:
+            - ELASTICSEARCH_USERNAME=elastic
+            - ELASTICSEARCH_PASSWORD=23weqdsacfsregh
 
     # logstash
     logstash:
@@ -35,6 +40,20 @@ services:
             - 1515:1515/udp
         depends_on:
             - elasticsearch
+
+    # nginx for proxy
+    nginx:
+        restart: always
+        image: nginx:latest
+        container_name: kibana_nginx
+        volumes:
+            - ./default.conf:/etc/nginx/conf.d/default.conf
+            - ./certs:/etc/nginx/certs
+        ports:
+            - 80:80
+            - 443:443
+        depends_on:
+            - kibana
 
 volumes:
     elasticsearch_data:
