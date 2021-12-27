@@ -31,7 +31,7 @@ fs.readdir(directory, function(err, files) {
     const mainChunkRegex = /main\.(.+)\.chunk\.(js)$/;
     if (err) {
         // eslint-disable-next-line no-console
-        console.log('Unable to scan directory: ', err);
+        console.log('Error: Unable to scan directory: ', err);
     }
     for (let i = 0; i < files.length; i++) {
         if (chunkRegex.test(files[i])) {
