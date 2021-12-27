@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const isScaleOrMasterAdmin = require('../middlewares/user')
+    .isScaleOrMasterAdmin;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -34,7 +36,7 @@ router.delete('/:id', getUser, async function(req, res) {
     }
 });
 
-router.post('/', getUser, async function(req, res) {
+router.post('/', getUser, isScaleOrMasterAdmin, async function(req, res) {
     const data = req.body;
     try {
         const sso = await SsoService.create(data);
@@ -70,7 +72,10 @@ router.put('/:id', getUser, async function(req, res) {
 });
 
 // USER API ENDPOINT TO GET SSO INTEGRATION
-router.get('/:projectId/ssos', getUser, async function(req, res) {
+router.get('/:projectId/ssos', getUser, isScaleOrMasterAdmin, async function(
+    req,
+    res
+) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;

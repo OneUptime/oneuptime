@@ -1,15 +1,10 @@
 import pages from './pages';
-import { IS_SAAS_SERVICE, User, PricingPlan } from './config';
+import { IS_SAAS_SERVICE } from './config';
 import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
 import ErrorEventView from './pages/ErrorEventView';
 import WebhookSettings from './pages/WebhookSettings';
 import AutomatedScripView from './pages/AutomatedScripView';
-
-const currentProject = JSON.parse(User.getProject());
-const isScalePlan = currentProject.stripePlanId
-    ? PricingPlan.getPlanById(currentProject.stripePlanId).category === 'Scale'
-    : false;
 
 const {
     Home,
@@ -540,7 +535,7 @@ export const groups = [
                         title: 'Sso',
                         path: '/dashboard/project/:slug/settings/sso',
                         icon: 'integration',
-                        visible: isScalePlan,
+                        visible: true,
                         subRoutes: [],
                         component: SsoPage,
                         index: 5,

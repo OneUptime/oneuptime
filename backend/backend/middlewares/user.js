@@ -12,6 +12,7 @@ const ErrorService = require('../services/errorService');
 const ProjectService = require('../services/projectService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const apiMiddleware = require('../middlewares/api');
+const { getPlanById } = require('../config/plans');
 
 const _this = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
@@ -262,6 +263,75 @@ const _this = {
             } else {
                 return false;
             }
+        }
+    },
+
+    isScaleOrMasterAdmin: async function(req, res, next) {
+        try {
+            const projectId = apiMiddleware.getProjectId(req);
+
+            if (_this.isUserMasterAdmin(req, res)) {
+                if (next) {
+                    return next();
+                } else {
+                    return true;
+                }
+            }
+
+            if (projectId) {
+                if (!apiMiddleware.isValidProjectId(projectId)) {
+                    return sendErrorResponse(req, res, {
+                        message: 'Project Id is not valid',
+                        code: 400,
+                    });
+                }
+
+                if (apiMiddleware.hasAPIKey(req)) {
+                    return apiMiddleware.isValidProjectIdAndApiKey(
+                        req,
+                        res,
+                        next
+                    );
+                }
+            } else {
+                if (res) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Project Id is missing',
+                    });
+                } else {
+                    return false;
+                }
+            }
+
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'stripePlanId',
+            });
+
+            const isScalePlan = project?.stripePlanId
+                ? getPlanById(project.stripePlanId).category === 'Scale'
+                : false;
+
+            if (isScalePlan) {
+                if (next) {
+                    return next();
+                } else {
+                    return true;
+                }
+            } else {
+                if (res) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'You are not authorized.',
+                    });
+                } else {
+                    return false;
+                }
+            }
+        } catch (error) {
+            ErrorService.log('user.isScaleOrMasterAdmin', error);
+            throw error;
         }
     },
 };

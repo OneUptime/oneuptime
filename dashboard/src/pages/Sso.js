@@ -3,15 +3,25 @@ import { connect } from 'react-redux';
 import { PropTypes } from 'prop-types';
 import Fade from 'react-reveal/Fade';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+import { SHOULD_LOG_ANALYTICS, User, PricingPlan } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import Sso from '../components/settings/Sso';
+import { history } from '../store';
 
 class SsoPage extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > INTEGRATION');
+        }
+
+        const currentProject = JSON.parse(User.getProject());
+        const isScalePlan = currentProject?.stripePlanId
+            ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===
+              'Scale'
+            : false;
+        if (!isScalePlan) {
+            history.push(`/dashboard/project/${currentProject.slug}`);
         }
     }
     render() {
