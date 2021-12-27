@@ -64,6 +64,7 @@ const Groups = lazy(() => import('./Group'));
 const PerformanceTrackerView = lazy(() => import('./PerformanceTrackerView'));
 const PerformanceTracker = lazy(() => import('./PerformanceTracker'));
 const AutomationScript = lazy(() => import('./AutomationScript'));
+const SsoPage = lazy(() => import('./Sso'));
 
 export default {
     ChangePassword,
@@ -117,4 +118,5 @@ export default {
     PerformanceTrackerView,
     PerformanceTracker,
     AutomationScript,
+    SsoPage,
 };

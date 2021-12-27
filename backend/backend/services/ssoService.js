@@ -68,8 +68,22 @@ module.exports = {
             const sso = new SsoModel();
             sso['saml-enabled'] = data['saml-enabled'] || false;
 
+            if (data.projectId) {
+                sso.projectId = data.projectId;
+            }
+
             if (!data.domain) {
                 const error = new Error('Domain must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoService.create', error);
+                throw error;
+            }
+            const domainExists = await this.findOneBy({
+                query: { domain: data.domain },
+                select: 'domain',
+            });
+            if (domainExists) {
+                const error = new Error('Domain already exist');
                 error.code = 400;
                 ErrorService.log('ssoService.create', error);
                 throw error;
@@ -144,6 +158,23 @@ module.exports = {
                 delete query.createdAt;
             }
             query.deleted = false;
+
+            let domainExists = null;
+            if (data.domain) {
+                domainExists = await this.findOneBy({
+                    query: { domain: data.domain, _id: { $ne: query._id } },
+                    select: 'domain',
+                });
+            }
+
+            if (domainExists) {
+                const error = new Error('Domain already exist');
+                error.code = 400;
+                ErrorService.log('ssoService.updateBy', error);
+                throw error;
+            }
+
+            delete data.projectId;
 
             await SsoModel.updateMany(query, {
                 $set: data,
