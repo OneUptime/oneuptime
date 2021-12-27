@@ -22,6 +22,27 @@ const path = require('path');
 const app = express();
 const compression = require('compression');
 
+const fs = require('fs');
+
+let chunkFile, mainChunkFile;
+const directory = path.join(__dirname, 'build', 'static', 'js');
+fs.readdir(directory, function(err, files) {
+    const chunkRegex = /3\.(.+)\.chunk\.(js)$/;
+    const mainChunkRegex = /main\.(.+)\.chunk\.(js)$/;
+    if (err) {
+        // eslint-disable-next-line no-console
+        console.log('Unable to scan directory: ', err);
+    }
+    for (let i = 0; i < files.length; i++) {
+        if (chunkRegex.test(files[i])) {
+            chunkFile = files[i];
+        }
+        if (mainChunkRegex.test(files[i])) {
+            mainChunkFile = files[i];
+        }
+    }
+});
+
 app.use(compression());
 
 app.use(async function(req, res, next) {
@@ -68,6 +89,32 @@ app.get(['/env.js', '/accounts/env.js'], function(req, res) {
 
 app.use(express.static(path.join(__dirname, 'build')));
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
+
+app.use(/^\/dashboard\/static\/js\/3\.(.+)\.chunk\.js$/, function(
+    req,
+    res,
+    next
+) {
+    if (chunkFile) {
+        res.sendFile(path.join(__dirname, 'build', 'static', 'js', chunkFile));
+    } else {
+        return next();
+    }
+});
+app.use(/^\/dashboard\/static\/js\/main\.(.+)\.chunk\.js$/, function(
+    req,
+    res,
+    next
+) {
+    if (mainChunkFile) {
+        res.sendFile(
+            path.join(__dirname, 'build', 'static', 'js', mainChunkFile)
+        );
+    } else {
+        return next();
+    }
+});
+
 app.use(
     '/accounts/static/js',
     express.static(path.join(__dirname, 'build/static/js'))
