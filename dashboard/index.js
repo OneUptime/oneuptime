@@ -138,7 +138,10 @@ app.use(
         let baseUrls = req.baseUrl;
         baseUrls = baseUrls.split('/');
 
+        console.log('** base url **', baseUrls);
+
         const fileName = baseUrls[baseUrls.length - 1];
+        console.log('** file name **', fileName);
         if (fileName) {
             res.sendFile(
                 path.join(__dirname, 'build', 'static', 'js', fileName)
@@ -156,7 +159,10 @@ app.use(/^\/dashboard\/static\/js\/main\.(.+)\.chunk\.js$/, function(
     let baseUrls = req.baseUrl;
     baseUrls = baseUrls.split('/');
 
+    console.log('** main base url **', baseUrls);
+
     const fileName = baseUrls[baseUrls.length - 1];
+    console.log('** main file name **', fileName);
     if (fileName) {
         res.sendFile(path.join(__dirname, 'build', 'static', 'js', fileName));
     } else {
