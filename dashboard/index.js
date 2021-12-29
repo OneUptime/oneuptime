@@ -139,7 +139,11 @@ app.use(
         let baseUrls = req.baseUrl;
         baseUrls = baseUrls.split('/');
 
+        console.log('** base url **', baseUrls);
+        console.log('** req.url **', req.url);
+
         const fileName = baseUrls[baseUrls.length - 1];
+        console.log('** file name **', fileName);
         if (fileName) {
             res.sendFile(
                 path.join(__dirname, 'build', 'static', 'js', fileName)
