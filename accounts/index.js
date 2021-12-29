@@ -67,8 +67,6 @@ app.get(['/env.js', '/accounts/env.js'], function(req, res) {
 });
 
 app.use(express.static(path.join(__dirname, 'build')));
-app.use('/accounts', express.static(path.join(__dirname, 'build')));
-
 app.use(
     /^\/accounts\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
     function(req, res, next) {
@@ -85,6 +83,7 @@ app.use(
         }
     }
 );
+
 app.use(/^\/accounts\/static\/js\/main\.(.+)\.chunk\.js$/, function(
     req,
     res,
@@ -100,6 +99,8 @@ app.use(/^\/accounts\/static\/js\/main\.(.+)\.chunk\.js$/, function(
         return next();
     }
 });
+
+app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
 app.use(
     '/accounts/static/js',
