@@ -66,6 +66,7 @@ module.exports = {
                     delete monitorStore[key];
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
+                    global.Sentry.captureException(e);
                 }
             }
 

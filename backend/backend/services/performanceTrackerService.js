@@ -157,22 +157,23 @@ module.exports = {
         skip
     ) {
         const _this = this;
-        // Check if component exists
-        const componentCount = await ComponentService.countBy({
-            _id: componentId,
-        });
-        // send an error if the component doesnt exist
-        if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
-            error.code = 400;
-            ErrorService.log(
-                'performanceTrackerService.getPerformanceTrackerByComponentId',
-                error
-            );
-            throw error;
-        }
 
         try {
+            // Check if component exists
+            const componentCount = await ComponentService.countBy({
+                _id: componentId,
+            });
+            // send an error if the component doesnt exist
+            if (!componentCount || componentCount === 0) {
+                const error = new Error('Component does not exist.');
+                error.code = 400;
+                ErrorService.log(
+                    'performanceTrackerService.getPerformanceTrackerByComponentId',
+                    error
+                );
+                throw error;
+            }
+
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
 
@@ -230,13 +231,20 @@ module.exports = {
                     },
                 });
             if (performanceTracker) {
-                NotificationService.create(
-                    performanceTracker.componentId.projectId._id ||
-                        performanceTracker.componentId.projectId,
-                    `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
-                    performanceTracker.deletedById._id,
-                    'performanceTrackeraddremove'
-                );
+                try {
+                    NotificationService.create(
+                        performanceTracker.componentId.projectId._id ||
+                            performanceTracker.componentId.projectId,
+                        `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
+                        performanceTracker.deletedById._id,
+                        'performanceTrackeraddremove'
+                    );
+                } catch (error) {
+                    ErrorService.log(
+                        'performanceTrackerService.deleteBy',
+                        error
+                    );
+                }
                 // await RealTimeService.sendPerformanceTrackerDelete(
                 //     performanceTracker
                 // );

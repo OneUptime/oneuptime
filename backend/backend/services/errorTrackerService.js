@@ -139,22 +139,22 @@ module.exports = {
     },
     // get all error trackers by component ID
     async getErrorTrackersByComponentId(componentId, limit, skip) {
-        // Check if component exists
-        const componentCount = await ComponentService.countBy({
-            _id: componentId,
-        });
-        // send an error if the component doesnt exist
-        if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
-            error.code = 400;
-            ErrorService.log(
-                'errorTrackerService.getApplicationLogsByComponentId',
-                error
-            );
-            throw error;
-        }
-
         try {
+            // Check if component exists
+            const componentCount = await ComponentService.countBy({
+                _id: componentId,
+            });
+            // send an error if the component doesnt exist
+            if (!componentCount || componentCount === 0) {
+                const error = new Error('Component does not exist.');
+                error.code = 400;
+                ErrorService.log(
+                    'errorTrackerService.getApplicationLogsByComponentId',
+                    error
+                );
+                throw error;
+            }
+
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
@@ -207,13 +207,17 @@ module.exports = {
                     query: { _id: errorTracker.componentId._id },
                     select: 'projectId',
                 });
-                NotificationService.create(
-                    component.projectId,
-                    `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
-                    errorTracker.deletedById._id,
-                    'errorTrackeraddremove'
-                );
-                RealTimeService.sendErrorTrackerDelete(errorTracker);
+                try {
+                    NotificationService.create(
+                        component.projectId,
+                        `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
+                        errorTracker.deletedById._id,
+                        'errorTrackeraddremove'
+                    );
+                    RealTimeService.sendErrorTrackerDelete(errorTracker);
+                } catch (error) {
+                    ErrorService.log('errorTrackerService.deleteBy', error);
+                }
                 return errorTracker;
             } else {
                 return null;
@@ -259,8 +263,12 @@ module.exports = {
 
             errorTracker = await this.findOneBy({ query, select, populate });
 
-            // run in the background
-            RealTimeService.errorTrackerKeyReset(errorTracker);
+            try {
+                // run in the background
+                RealTimeService.errorTrackerKeyReset(errorTracker);
+            } catch (error) {
+                ErrorService.log('realtimeService.errorTrackerKeyReset', error);
+            }
 
             return errorTracker;
         } catch (error) {

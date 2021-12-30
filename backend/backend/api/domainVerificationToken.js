@@ -99,7 +99,7 @@ router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { skip, limit } = req.query;
     const selectDomainVerify =
-        'domain createdAt verificationToken verifiedAt updatedAt projectId';
+        'domain createdAt verificationToken verifiedAt updatedAt projectId verified';
     const populateDomainVerify = [{ path: 'projectId', select: 'name slug' }];
     try {
         // a unique case where we have to consider the subProject as well

@@ -18,6 +18,7 @@ const {
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
+const ErrorService = require('../services/errorService');
 
 // Route
 // Description: Updating profile setting.
@@ -202,7 +203,14 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         query: { _id: userId },
                         select: '_id email name',
                     });
-                    await MailService.sendLighthouseEmail(project, user);
+                    try {
+                        MailService.sendLighthouseEmail(project, user);
+                    } catch (error) {
+                        ErrorService.log(
+                            'mailservice.sendLighthouseEmail',
+                            error
+                        );
+                    }
                 }
             }
         }

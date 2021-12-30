@@ -64,45 +64,46 @@ module.exports = {
     },
 
     create: async function(data) {
-        const sso = new SsoModel();
-        sso['saml-enabled'] = data['saml-enabled'] || false;
-
-        if (!data.domain) {
-            const error = new Error('Domain must be defined.');
-            error.code = 400;
-            ErrorService.log('ssoService.create', error);
-            throw error;
-        }
-        sso.domain = data.domain;
-
-        if (!data.entityId) {
-            const error = new Error('Application ID must be defined');
-            error.code = 400;
-            ErrorService.log('ssoService.create', error);
-            throw error;
-        }
-        sso.entityId = data.entityId;
-
-        if (!data.remoteLoginUrl) {
-            const error = new Error('Remote Login Url must be defined.');
-            error.code = 400;
-            ErrorService.log('ssoService.create', error);
-            throw error;
-        }
-        sso.remoteLoginUrl = data.remoteLoginUrl;
-
-        sso.certificateFingerprint = data.certificateFingerprint;
-
-        if (!data.remoteLogoutUrl) {
-            const error = new Error('Remote Logout URL must be defined.');
-            error.code = 400;
-            ErrorService.log('ssoService.create', error);
-            throw error;
-        }
-        sso.remoteLogoutUrl = data.remoteLogoutUrl;
-
-        sso.ipRanges = data.ipRanges;
         try {
+            const sso = new SsoModel();
+            sso['saml-enabled'] = data['saml-enabled'] || false;
+
+            if (!data.domain) {
+                const error = new Error('Domain must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoService.create', error);
+                throw error;
+            }
+            sso.domain = data.domain;
+
+            if (!data.entityId) {
+                const error = new Error('Application ID must be defined');
+                error.code = 400;
+                ErrorService.log('ssoService.create', error);
+                throw error;
+            }
+            sso.entityId = data.entityId;
+
+            if (!data.remoteLoginUrl) {
+                const error = new Error('Remote Login Url must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoService.create', error);
+                throw error;
+            }
+            sso.remoteLoginUrl = data.remoteLoginUrl;
+
+            sso.certificateFingerprint = data.certificateFingerprint;
+
+            if (!data.remoteLogoutUrl) {
+                const error = new Error('Remote Logout URL must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoService.create', error);
+                throw error;
+            }
+            sso.remoteLogoutUrl = data.remoteLogoutUrl;
+
+            sso.ipRanges = data.ipRanges;
+
             const savedSso = await sso.save();
             return savedSso;
         } catch (error) {

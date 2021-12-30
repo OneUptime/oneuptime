@@ -250,7 +250,12 @@ module.exports = {
                 MonitorService.updateAllMonitorStatus(
                     { _id: { $in: data.monitors } },
                     { monitorStatus: data.incidentType.toLowerCase() }
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MonitorService.updateAllMonitorStatus',
+                        error
+                    );
+                });
 
                 // ********* TODO ************
                 // notification is an array of notifications
@@ -320,8 +325,15 @@ module.exports = {
                     populate,
                 });
 
-                // run in the background
-                RealTimeService.sendCreatedIncident(incident);
+                try {
+                    // run in the background
+                    RealTimeService.sendCreatedIncident(incident);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.sendCreatedIncident',
+                        error
+                    );
+                }
 
                 // run in the background
                 IncidentMessageService.create({
@@ -332,6 +344,8 @@ module.exports = {
                     type: 'investigation',
                     incident_state: 'Identified',
                     post_statuspage: true,
+                }).catch(error => {
+                    ErrorService.log('IncidentMessageService.create', error);
                 });
 
                 await IncidentTimelineService.create({
@@ -406,7 +420,12 @@ module.exports = {
                 MonitorService.updateAllMonitorStatus(
                     { _id: { $in: monitors } },
                     { monitorStatus: 'online' }
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MonitorService.updateAllMonitorStatus',
+                        error
+                    );
+                });
 
                 const populateIncTimeline = [
                     { path: 'createdById', select: 'name' },
@@ -530,7 +549,11 @@ module.exports = {
                 populate,
             });
 
-            RealTimeService.updateIncident(updatedIncident);
+            try {
+                RealTimeService.updateIncident(updatedIncident);
+            } catch (error) {
+                ErrorService.log('realtimeService.updateIncident', error);
+            }
 
             return updatedIncident;
         } catch (error) {
@@ -585,7 +608,11 @@ module.exports = {
 
     async _sendIncidentCreatedAlert(incident) {
         try {
-            ZapierService.pushToZapier('incident_created', incident);
+            ZapierService.pushToZapier('incident_created', incident).catch(
+                error => {
+                    ErrorService.log('ZapierService.pushToZapier', error);
+                }
+            );
             // await RealTimeService.sendCreatedIncident(incident);
 
             const notifications = [];
@@ -595,10 +622,25 @@ module.exports = {
             );
 
             // handle this asynchronous operation in the background
-            AlertService.sendCreatedIncidentToSubscribers(incident, monitors);
+            AlertService.sendCreatedIncidentToSubscribers(
+                incident,
+                monitors
+            ).catch(error => {
+                ErrorService.log(
+                    'AlertService.sendCreatedIncidentToSubscribers',
+                    error
+                );
+            });
 
             for (const monitor of monitors) {
-                AlertService.sendCreatedIncident(incident, monitor);
+                AlertService.sendCreatedIncident(incident, monitor).catch(
+                    error => {
+                        ErrorService.log(
+                            'AlertService.sendCreatedIncident',
+                            error
+                        );
+                    }
+                );
 
                 let notification = {};
                 // send slack notification
@@ -608,7 +650,9 @@ module.exports = {
                     monitor,
                     INCIDENT_CREATED,
                     monitor.componentId
-                );
+                ).catch(error => {
+                    ErrorService.log('SlackService.sendNotification', error);
+                });
                 // send webhook notification
                 WebHookService.sendIntegrationNotification(
                     incident.projectId._id || incident.projectId,
@@ -616,7 +660,12 @@ module.exports = {
                     monitor,
                     INCIDENT_CREATED,
                     monitor.componentId
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'WebHookService.sendIntegrationNotification',
+                        error
+                    );
+                });
                 // send Ms Teams notification
                 MsTeamsService.sendNotification(
                     incident.projectId._id || incident.projectId,
@@ -624,41 +673,50 @@ module.exports = {
                     monitor,
                     INCIDENT_CREATED,
                     monitor.componentId
-                );
+                ).catch(error => {
+                    ErrorService.log('MsTeamsService.sendNotification', error);
+                });
 
                 const meta = {
                     type: 'Incident',
                     componentId: monitor.componentId._id || monitor.componentId,
                     incidentId: incident._id,
                 };
-                if (!incident.createdById) {
-                    if (incident.createdByIncomingHttpRequest) {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
-                        notification = await NotificationService.create(
-                            incident.projectId._id || incident.projectId,
-                            msg,
-                            'incoming http request',
-                            'warning',
-                            meta
-                        );
+                try {
+                    if (!incident.createdById) {
+                        if (incident.createdByIncomingHttpRequest) {
+                            const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
+                            notification = await NotificationService.create(
+                                incident.projectId._id || incident.projectId,
+                                msg,
+                                'incoming http request',
+                                'warning',
+                                meta
+                            );
+                        } else {
+                            const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
+                            notification = await NotificationService.create(
+                                incident.projectId._id || incident.projectId,
+                                msg,
+                                'oneuptime',
+                                'warning',
+                                meta
+                            );
+                        }
                     } else {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
+                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
                         notification = await NotificationService.create(
                             incident.projectId._id || incident.projectId,
                             msg,
-                            'oneuptime',
+                            incident.createdById.name,
                             'warning',
                             meta
                         );
                     }
-                } else {
-                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
-                    notification = await NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        msg,
-                        incident.createdById.name,
-                        'warning',
-                        meta
+                } catch (error) {
+                    ErrorService.log(
+                        'incidentService._sendIncidentCreatedAlert',
+                        error
                     );
                 }
 
@@ -714,20 +772,24 @@ module.exports = {
                     incident.createdAt
                 );
 
-                if (isEmpty(httpRequest)) {
-                    NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        `An Incident was acknowledged by ${name}`,
-                        userId,
-                        'acknowledge'
-                    );
-                } else {
-                    NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
-                        userId,
-                        'acknowledge'
-                    );
+                try {
+                    if (isEmpty(httpRequest)) {
+                        NotificationService.create(
+                            incident.projectId._id || incident.projectId,
+                            `An Incident was acknowledged by ${name}`,
+                            userId,
+                            'acknowledge'
+                        );
+                    } else {
+                        NotificationService.create(
+                            incident.projectId._id || incident.projectId,
+                            `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
+                            userId,
+                            'acknowledge'
+                        );
+                    }
+                } catch (error) {
+                    ErrorService.log('notificationService.create', error);
                 }
 
                 // Ping webhook
@@ -768,6 +830,8 @@ module.exports = {
                     post_statuspage: true,
                     monitors,
                     ignoreCounter: true,
+                }).catch(error => {
+                    ErrorService.log('IncidentMessageService.create', error);
                 });
 
                 await IncidentTimelineService.create({
@@ -784,7 +848,12 @@ module.exports = {
                 AlertService.sendAcknowledgedIncidentToSubscribers(
                     incident,
                     monitors
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendAcknowledgedIncidentToSubscribers',
+                        error
+                    );
+                });
 
                 for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
@@ -794,7 +863,12 @@ module.exports = {
                         INCIDENT_ACKNOWLEDGED,
                         component,
                         downtimestring
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'WebHookService.sendIntegrationNotification',
+                            error
+                        );
+                    });
 
                     SlackService.sendNotification(
                         incident.projectId._id || incident.projectId,
@@ -803,7 +877,12 @@ module.exports = {
                         INCIDENT_ACKNOWLEDGED,
                         component,
                         downtimestring
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'SlackService.sendNotification',
+                            error
+                        );
+                    });
 
                     MsTeamsService.sendNotification(
                         incident.projectId._id || incident.projectId,
@@ -812,16 +891,33 @@ module.exports = {
                         INCIDENT_ACKNOWLEDGED,
                         component,
                         downtimestring
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'MsTeamsService.sendNotification',
+                            error
+                        );
+                    });
 
                     AlertService.sendAcknowledgedIncidentMail(
                         incident,
                         monitor
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'AlertService.sendAcknowledgedIncidentMail',
+                            error
+                        );
+                    });
                 }
 
-                RealTimeService.incidentAcknowledged(incident);
-                ZapierService.pushToZapier('incident_acknowledge', incident);
+                try {
+                    ZapierService.pushToZapier(
+                        'incident_acknowledge',
+                        incident
+                    );
+                    RealTimeService.incidentAcknowledged(incident);
+                } catch (error) {
+                    ErrorService.log('incidentService.acknowledge', error);
+                }
             } else {
                 const populate = [
                     {
@@ -924,7 +1020,12 @@ module.exports = {
             MonitorService.updateAllMonitorStatus(
                 { _id: { $in: monitors } },
                 { monitorStatus: 'online' }
-            );
+            ).catch(error => {
+                ErrorService.log(
+                    'MonitorService.updateAllMonitorStatus',
+                    error
+                );
+            });
 
             // automatically create resolved incident note
             await IncidentMessageService.create({
@@ -951,7 +1052,15 @@ module.exports = {
 
             const statusData = [];
             // send notificaton to subscribers
-            AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
+            AlertService.sendResolvedIncidentToSubscribers(
+                incident,
+                monitors
+            ).catch(error => {
+                ErrorService.log(
+                    'AlertService.sendResolvedIncidentToSubscribers',
+                    error
+                );
+            });
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
@@ -976,8 +1085,12 @@ module.exports = {
             }
             await MonitorStatusService.createMany(statusData);
 
-            RealTimeService.incidentResolved(incident);
-            ZapierService.pushToZapier('incident_resolve', incident);
+            try {
+                RealTimeService.incidentResolved(incident);
+                ZapierService.pushToZapier('incident_resolve', incident);
+            } catch (error) {
+                ErrorService.log('incidentService.resolve', error);
+            }
 
             return incident;
         } catch (error) {
@@ -1005,163 +1118,178 @@ module.exports = {
         userId,
         isHome = false
     ) {
-        const _this = this;
-        let incidentsUnresolved = await _this.findBy({
-            query: { projectId: { $in: subProjectIds }, resolved: false },
-            select: '_id notClosedBy',
-        });
-        incidentsUnresolved = incidentsUnresolved.map(incident => {
-            if (incident.notClosedBy.indexOf(userId) < 0) {
-                return _this.updateOneBy(
-                    { _id: incident._id },
-                    { notClosedBy: [userId] }
-                );
-            } else {
-                return incident;
-            }
-        });
-        await Promise.all(incidentsUnresolved);
-        const populate = [
-            {
-                path: 'monitors.monitorId',
-                select: 'name slug componentId projectId type',
-                populate: [
-                    { path: 'componentId', select: 'name slug' },
-                    { path: 'projectId', select: 'name slug' },
-                ],
-            },
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'acknowledgedBy', select: 'name' },
-            { path: 'incidentPriority', select: 'name color' },
-            {
-                path: 'acknowledgedByIncomingHttpRequest',
-                select: 'name',
-            },
-            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'probeName _id probeImage' },
-        ];
-        const select =
-            'slug createdAt notifications reason response acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+        try {
+            const _this = this;
+            let incidentsUnresolved = await _this.findBy({
+                query: { projectId: { $in: subProjectIds }, resolved: false },
+                select: '_id notClosedBy',
+            });
+            incidentsUnresolved = incidentsUnresolved.map(incident => {
+                if (incident.notClosedBy.indexOf(userId) < 0) {
+                    return _this.updateOneBy(
+                        { _id: incident._id },
+                        { notClosedBy: [userId] }
+                    );
+                } else {
+                    return incident;
+                }
+            });
+            await Promise.all(incidentsUnresolved);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id probeImage' },
+            ];
+            const select =
+                'slug createdAt notifications reason response acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        incidentsUnresolved = await _this.findBy({
-            query: { projectId: { $in: subProjectIds }, resolved: false },
-            populate,
-            select,
-        });
-        const incidentsResolved = await _this.findBy({
-            query: {
-                projectId: { $in: subProjectIds },
-                resolved: true,
-                notClosedBy: userId,
-            },
-            populate,
-            select,
-        });
+            incidentsUnresolved = await _this.findBy({
+                query: { projectId: { $in: subProjectIds }, resolved: false },
+                populate,
+                select,
+            });
+            const incidentsResolved = await _this.findBy({
+                query: {
+                    projectId: { $in: subProjectIds },
+                    resolved: true,
+                    notClosedBy: userId,
+                },
+                populate,
+                select,
+            });
 
-        return isHome
-            ? incidentsUnresolved
-            : incidentsUnresolved.concat(incidentsResolved);
+            return isHome
+                ? incidentsUnresolved
+                : incidentsUnresolved.concat(incidentsResolved);
+        } catch (error) {
+            ErrorService.log('incidentService.getUnresolvedIncidents', error);
+            throw error;
+        }
     },
 
     getSubProjectIncidents: async function(projectId) {
-        const _this = this;
-        const populate = [
-            {
-                path: 'monitors.monitorId',
-                select: 'name slug componentId projectId type',
-                populate: [
-                    { path: 'componentId', select: 'name slug' },
-                    { path: 'projectId', select: 'name slug' },
-                ],
-            },
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'acknowledgedBy', select: 'name' },
-            { path: 'incidentPriority', select: 'name color' },
-            {
-                path: 'acknowledgedByIncomingHttpRequest',
-                select: 'name',
-            },
-            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'probeName _id probeImage' },
-        ];
-        const select =
-            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+        try {
+            const _this = this;
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id probeImage' },
+            ];
+            const select =
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const monitors = await MonitorService.findBy({
-            query: { projectId },
-            select: '_id',
-        });
-        const monitorIds = monitors.map(monitor => monitor._id);
+            const monitors = await MonitorService.findBy({
+                query: { projectId },
+                select: '_id',
+            });
+            const monitorIds = monitors.map(monitor => monitor._id);
 
-        const query = {
-            'monitors.monitorId': { $in: monitorIds },
-        };
+            const query = {
+                'monitors.monitorId': { $in: monitorIds },
+            };
 
-        const [incidents, count] = await Promise.all([
-            _this.findBy({
-                query,
-                limit: 10,
-                skip: 0,
-                select,
-                populate,
-            }),
-            _this.countBy(query),
-        ]);
+            const [incidents, count] = await Promise.all([
+                _this.findBy({
+                    query,
+                    limit: 10,
+                    skip: 0,
+                    select,
+                    populate,
+                }),
+                _this.countBy(query),
+            ]);
 
-        return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
+            return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
+        } catch (error) {
+            ErrorService.log('incidentService.getSubProjectIncidents', error);
+            throw error;
+        }
     },
 
     getComponentIncidents: async function(projectId, componentId) {
-        const _this = this;
-        const monitors = await MonitorService.findBy({
-            query: { projectId, componentId },
-            select: '_id',
-        });
-        const monitorIds = monitors.map(monitor => monitor._id);
+        try {
+            const _this = this;
+            const monitors = await MonitorService.findBy({
+                query: { projectId, componentId },
+                select: '_id',
+            });
+            const monitorIds = monitors.map(monitor => monitor._id);
 
-        const query = {
-            'monitors.monitorId': { $in: monitorIds },
-        };
+            const query = {
+                'monitors.monitorId': { $in: monitorIds },
+            };
 
-        const populate = [
-            {
-                path: 'monitors.monitorId',
-                select: 'name slug componentId projectId type',
-                populate: [
-                    { path: 'componentId', select: 'name slug' },
-                    { path: 'projectId', select: 'name slug' },
-                ],
-            },
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'acknowledgedBy', select: 'name' },
-            { path: 'incidentPriority', select: 'name color' },
-            {
-                path: 'acknowledgedByIncomingHttpRequest',
-                select: 'name',
-            },
-            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'probeName _id probeImage' },
-        ];
-        const select =
-            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id probeImage' },
+            ];
+            const select =
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const [incidents, count] = await Promise.all([
-            _this.findBy({ query, limit: 10, skip: 0, select, populate }),
-            _this.countBy(query),
-        ]);
-        const componentIncidents = [
-            { incidents, _id: projectId, count, skip: 0, limit: 10 },
-        ];
-        return componentIncidents;
+            const [incidents, count] = await Promise.all([
+                _this.findBy({ query, limit: 10, skip: 0, select, populate }),
+                _this.countBy(query),
+            ]);
+            const componentIncidents = [
+                { incidents, _id: projectId, count, skip: 0, limit: 10 },
+            ];
+            return componentIncidents;
+        } catch (error) {
+            ErrorService.log('incidentService.getComponentIncidents', error);
+            throw error;
+        }
     },
 
     getProjectComponentIncidents: async function(
@@ -1170,48 +1298,56 @@ module.exports = {
         limit,
         skip
     ) {
-        const _this = this;
-        const monitors = await MonitorService.findBy({
-            query: { componentId: componentId },
-            select: '_id',
-        });
-        const monitorIds = monitors.map(monitor => monitor._id);
+        try {
+            const _this = this;
+            const monitors = await MonitorService.findBy({
+                query: { componentId: componentId },
+                select: '_id',
+            });
+            const monitorIds = monitors.map(monitor => monitor._id);
 
-        const query = {
-            projectId,
-            'monitors.monitorId': { $in: monitorIds },
-        };
+            const query = {
+                projectId,
+                'monitors.monitorId': { $in: monitorIds },
+            };
 
-        const populate = [
-            {
-                path: 'monitors.monitorId',
-                select: 'name slug componentId projectId type',
-                populate: [
-                    { path: 'componentId', select: 'name slug' },
-                    { path: 'projectId', select: 'name slug' },
-                ],
-            },
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'acknowledgedBy', select: 'name' },
-            { path: 'incidentPriority', select: 'name color' },
-            {
-                path: 'acknowledgedByIncomingHttpRequest',
-                select: 'name',
-            },
-            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'probeName _id probeImage' },
-        ];
-        const select =
-            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id probeImage' },
+            ];
+            const select =
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const [incidents, count] = await Promise.all([
-            _this.findBy({ query, limit, skip, select, populate }),
-            _this.countBy(query),
-        ]);
-        return { incidents, count, _id: projectId };
+            const [incidents, count] = await Promise.all([
+                _this.findBy({ query, limit, skip, select, populate }),
+                _this.countBy(query),
+            ]);
+            return { incidents, count, _id: projectId };
+        } catch (error) {
+            ErrorService.log(
+                'incidentService.getProjectComponentIncidents',
+                error
+            );
+            throw error;
+        }
     },
     sendIncidentResolvedNotification: async function(incident, name, monitor) {
         try {
@@ -1250,7 +1386,9 @@ module.exports = {
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
-            );
+            ).catch(error => {
+                ErrorService.log('SlackService.sendNotification', error);
+            });
             // Ping webhook
             WebHookService.sendIntegrationNotification(
                 incident.projectId._id || incident.projectId,
@@ -1259,7 +1397,12 @@ module.exports = {
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
-            );
+            ).catch(error => {
+                ErrorService.log(
+                    'WebHookService.sendIntegrationNotification',
+                    error
+                );
+            });
             // Ms Teams
             MsTeamsService.sendNotification(
                 incident.projectId._id || incident.projectId,
@@ -1268,9 +1411,18 @@ module.exports = {
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
-            );
+            ).catch(error => {
+                ErrorService.log('MsTeamsService.sendNotification', error);
+            });
 
-            AlertService.sendResolveIncidentMail(incident, monitor);
+            AlertService.sendResolveIncidentMail(incident, monitor).catch(
+                error => {
+                    ErrorService.log(
+                        'AlertService.sendResolveIncidentMail',
+                        error
+                    );
+                }
+            );
 
             const msg = `${
                 monitor.name
@@ -1279,14 +1431,21 @@ module.exports = {
                     resolvedincident.resolvedBy.name) ||
                 'oneuptime'}`;
 
-            NotificationService.create(
-                incident.projectId._id || incident.projectId,
-                msg,
-                resolvedincident.resolvedBy
-                    ? resolvedincident.resolvedBy._id
-                    : 'oneuptime',
-                'success'
-            );
+            try {
+                NotificationService.create(
+                    incident.projectId._id || incident.projectId,
+                    msg,
+                    resolvedincident.resolvedBy
+                        ? resolvedincident.resolvedBy._id
+                        : 'oneuptime',
+                    'success'
+                );
+            } catch (error) {
+                ErrorService.log(
+                    'incidentService.sendIncidentResolvedNotification',
+                    error
+                );
+            }
         } catch (error) {
             ErrorService.log(
                 'incidentService.sendIncidentResolvedNotification',
@@ -1307,17 +1466,31 @@ module.exports = {
                     incident,
                     data,
                     monitor
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'SlackService.sendIncidentNoteNotification',
+                        error
+                    );
+                });
 
                 MsTeamsService.sendIncidentNoteNotification(
                     projectId,
                     incident,
                     data,
                     monitor
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MsTeamsService.sendIncidentNoteNotification',
+                        error
+                    );
+                });
             }
 
-            ZapierService.pushToZapier('incident_note', incident, data);
+            ZapierService.pushToZapier('incident_note', incident, data).catch(
+                error => {
+                    ErrorService.log('ZapierService.pushToZapier', error);
+                }
+            );
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;
@@ -1335,17 +1508,36 @@ module.exports = {
     },
 
     restoreBy: async function(query) {
-        const _this = this;
-        query.deleted = true;
-        let incident = await _this.findBy({ query, select: '_id' });
-        if (incident && incident.length > 0) {
-            const incidents = await Promise.all(
-                incident.map(async incident => {
+        try {
+            const _this = this;
+            query.deleted = true;
+            let incident = await _this.findBy({ query, select: '_id' });
+            if (incident && incident.length > 0) {
+                const incidents = await Promise.all(
+                    incident.map(async incident => {
+                        const incidentId = incident._id;
+                        incident = await _this.updateOneBy(
+                            {
+                                _id: incidentId,
+                                deleted: true,
+                            },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        return incident;
+                    })
+                );
+                return incidents;
+            } else {
+                incident = incident[0];
+                if (incident) {
                     const incidentId = incident._id;
                     incident = await _this.updateOneBy(
                         {
                             _id: incidentId,
-                            deleted: true,
                         },
                         {
                             deleted: false,
@@ -1353,26 +1545,12 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                    return incident;
-                })
-            );
-            return incidents;
-        } else {
-            incident = incident[0];
-            if (incident) {
-                const incidentId = incident._id;
-                incident = await _this.updateOneBy(
-                    {
-                        _id: incidentId,
-                    },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
+                }
+                return incident;
             }
-            return incident;
+        } catch (error) {
+            ErrorService.log('incidentService.restoreBy', error);
+            throw error;
         }
     },
 
@@ -1474,9 +1652,16 @@ module.exports = {
                         populate,
                     });
 
-                    // run in the background
-                    if (updatedIncident) {
-                        RealTimeService.deleteIncident(updatedIncident);
+                    try {
+                        // run in the background
+                        if (updatedIncident) {
+                            RealTimeService.deleteIncident(updatedIncident);
+                        }
+                    } catch (error) {
+                        ErrorService.log(
+                            'realtimeService.deleteIncident',
+                            error
+                        );
                     }
                 })
             );
@@ -1487,116 +1672,144 @@ module.exports = {
     },
 
     startInterval: async function(projectId, monitors, incident) {
-        const _this = this;
+        try {
+            const _this = this;
 
-        monitors = monitors.map(monitor => monitor.monitorId);
-        const [monitorList, currentIncident] = await Promise.all([
-            MonitorService.findBy({
-                query: { _id: { $in: monitors } },
-                select: 'incidentCommunicationSla',
-                populate: [
-                    {
-                        path: 'incidentCommunicationSla',
-                        select: '_id duration deleted',
-                    },
-                ],
-            }),
-            // refetch the incident
-            _this.findOneBy({
-                query: { _id: incident._id },
-                select: 'breachedCommunicationSla _id projectId',
-            }),
-        ]);
+            monitors = monitors.map(monitor => monitor.monitorId);
+            const [monitorList, currentIncident] = await Promise.all([
+                MonitorService.findBy({
+                    query: { _id: { $in: monitors } },
+                    select: 'incidentCommunicationSla',
+                    populate: [
+                        {
+                            path: 'incidentCommunicationSla',
+                            select: '_id duration deleted',
+                        },
+                    ],
+                }),
+                // refetch the incident
+                _this.findOneBy({
+                    query: { _id: incident._id },
+                    select: 'breachedCommunicationSla _id projectId',
+                }),
+            ]);
 
-        if (!currentIncident.breachedCommunicationSla) {
-            const slaList = {};
-            let fetchedDefault = false;
+            if (!currentIncident.breachedCommunicationSla) {
+                const slaList = {};
+                let fetchedDefault = false;
 
-            for (const monitor of monitorList) {
-                let sla = monitor.incidentCommunicationSla;
-                // don't fetch default communication sla twice
-                if (!sla && !fetchedDefault) {
-                    sla = await IncidentCommunicationSlaService.findOneBy({
-                        query: { projectId: projectId, isDefault: true },
-                        select: '_id duration deleted',
-                    });
-                    fetchedDefault = true;
+                for (const monitor of monitorList) {
+                    let sla = monitor.incidentCommunicationSla;
+                    // don't fetch default communication sla twice
+                    if (!sla && !fetchedDefault) {
+                        sla = await IncidentCommunicationSlaService.findOneBy({
+                            query: { projectId: projectId, isDefault: true },
+                            select: '_id duration deleted',
+                        });
+                        fetchedDefault = true;
+                    }
+                    if (sla && !slaList[sla._id] && !sla.deleted) {
+                        slaList[sla._id] = sla;
+                    }
                 }
-                if (sla && !slaList[sla._id] && !sla.deleted) {
-                    slaList[sla._id] = sla;
+
+                // grab the lowest sla and apply to the incident
+                let lowestSla = {};
+                for (const [, value] of Object.entries(slaList)) {
+                    if (!lowestSla.duration) {
+                        lowestSla = value;
+                    } else {
+                        lowestSla =
+                            Number(value.duration) < Number(lowestSla.duration)
+                                ? value
+                                : lowestSla;
+                    }
+                }
+
+                if (!isEmpty(lowestSla)) {
+                    const incidentCommunicationSla = lowestSla;
+
+                    if (
+                        incidentCommunicationSla &&
+                        !incidentCommunicationSla.deleted
+                    ) {
+                        let countDown = incidentCommunicationSla.duration * 60;
+                        const alertTime =
+                            incidentCommunicationSla.alertTime * 60;
+
+                        const data = {
+                            projectId,
+                            incidentCommunicationSla,
+                            incident: currentIncident,
+                            alertTime,
+                        };
+
+                        // count down every second
+                        const intervalId = setInterval(async () => {
+                            countDown -= 1;
+
+                            // const minutes = Math.floor(countDown / 60);
+                            // let seconds = countDown % 60;
+                            // seconds =
+                            //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+
+                            // await was left out here because we care about the slaCountDown
+                            // and also to ensure that it was delivered successfully
+                            try {
+                                RealTimeService.sendSlaCountDown(
+                                    currentIncident,
+                                    `${countDown}`
+                                );
+                            } catch (error) {
+                                ErrorService.log(
+                                    'realtimeService.sendSlaCountDown',
+                                    error
+                                );
+                            }
+
+                            if (countDown === alertTime) {
+                                // send mail to team
+                                AlertService.sendSlaEmailToTeamMembers(
+                                    data
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendSlaEmailToTeamMembers',
+                                        error
+                                    );
+                                });
+                            }
+
+                            if (countDown === 0) {
+                                _this.clearInterval(currentIncident._id);
+
+                                await _this.updateOneBy(
+                                    { _id: currentIncident._id },
+                                    { breachedCommunicationSla: true }
+                                );
+
+                                // send mail to team
+                                AlertService.sendSlaEmailToTeamMembers(
+                                    data,
+                                    true
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendSlaEmailToTeamMembers',
+                                        error
+                                    );
+                                });
+                            }
+                        }, 1000);
+
+                        intervals.push({
+                            incidentId: currentIncident._id,
+                            intervalId,
+                        });
+                    }
                 }
             }
-
-            // grab the lowest sla and apply to the incident
-            let lowestSla = {};
-            for (const [, value] of Object.entries(slaList)) {
-                if (!lowestSla.duration) {
-                    lowestSla = value;
-                } else {
-                    lowestSla =
-                        Number(value.duration) < Number(lowestSla.duration)
-                            ? value
-                            : lowestSla;
-                }
-            }
-
-            if (!isEmpty(lowestSla)) {
-                const incidentCommunicationSla = lowestSla;
-
-                if (
-                    incidentCommunicationSla &&
-                    !incidentCommunicationSla.deleted
-                ) {
-                    let countDown = incidentCommunicationSla.duration * 60;
-                    const alertTime = incidentCommunicationSla.alertTime * 60;
-
-                    const data = {
-                        projectId,
-                        incidentCommunicationSla,
-                        incident: currentIncident,
-                        alertTime,
-                    };
-
-                    // count down every second
-                    const intervalId = setInterval(async () => {
-                        countDown -= 1;
-
-                        // const minutes = Math.floor(countDown / 60);
-                        // let seconds = countDown % 60;
-                        // seconds =
-                        //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
-
-                        // await was left out here because we care about the slaCountDown
-                        // and also to ensure that it was delivered successfully
-                        RealTimeService.sendSlaCountDown(
-                            currentIncident,
-                            `${countDown}`
-                        );
-
-                        if (countDown === alertTime) {
-                            // send mail to team
-                            AlertService.sendSlaEmailToTeamMembers(data);
-                        }
-
-                        if (countDown === 0) {
-                            _this.clearInterval(currentIncident._id);
-
-                            await _this.updateOneBy(
-                                { _id: currentIncident._id },
-                                { breachedCommunicationSla: true }
-                            );
-
-                            // send mail to team
-                            AlertService.sendSlaEmailToTeamMembers(data, true);
-                        }
-                    }, 1000);
-
-                    intervals.push({
-                        incidentId: currentIncident._id,
-                        intervalId,
-                    });
-                }
-            }
+        } catch (error) {
+            ErrorService.log('incidentService.startInterval', error);
+            throw error;
         }
     },
 
@@ -1611,22 +1824,27 @@ module.exports = {
     },
 
     refreshInterval: async function(incidentId) {
-        const _this = this;
-        for (const interval of intervals) {
-            if (String(interval.incidentId) === String(incidentId)) {
-                _this.clearInterval(incidentId);
+        try {
+            const _this = this;
+            for (const interval of intervals) {
+                if (String(interval.incidentId) === String(incidentId)) {
+                    _this.clearInterval(incidentId);
 
-                const incident = await _this.findOneBy({
-                    query: { _id: incidentId },
-                    select: 'monitors projectId _id',
-                });
-                await _this.startInterval(
-                    incident.projectId._id || incident.projectId,
-                    incident.monitors,
-                    incident
-                );
-                break;
+                    const incident = await _this.findOneBy({
+                        query: { _id: incidentId },
+                        select: 'monitors projectId _id',
+                    });
+                    await _this.startInterval(
+                        incident.projectId._id || incident.projectId,
+                        incident.monitors,
+                        incident
+                    );
+                    break;
+                }
             }
+        } catch (error) {
+            ErrorService.log('incidentService.refreshInterval', error);
+            throw error;
         }
     },
 };

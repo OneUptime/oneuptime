@@ -84,10 +84,14 @@ module.exports = {
                 populate: populateNotification,
             });
 
-            // run this in the background
-            RealTimeService.sendNotification(
-                populatedNotification || notification
-            );
+            try {
+                // run this in the background
+                RealTimeService.sendNotification(
+                    populatedNotification || notification
+                );
+            } catch (error) {
+                ErrorService.log('realtimeService.sendNotification', error);
+            }
 
             return populatedNotification || notification;
         } catch (error) {

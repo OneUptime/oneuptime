@@ -16,6 +16,7 @@ const RealtimeService = require('../services/realTimeService');
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
+const ErrorService = require('../services/errorService');
 
 // Route
 // Description: Updating profile setting.
@@ -49,7 +50,11 @@ router.post('/scanning', isAuthorizedApplicationScanner, async function(
             { scanning: true }
         );
 
-        RealtimeService.handleScanning({ security: applicationSecurity });
+        try {
+            RealtimeService.handleScanning({ security: applicationSecurity });
+        } catch (error) {
+            ErrorService.log('realtimeService.handleScanning', error);
+        }
         return sendItemResponse(req, res, applicationSecurity);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -230,13 +235,21 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
                 query: { _id: userId },
                 select: '_id email name',
             });
-            await MailService.sendApplicationEmail(project, user);
+            try {
+                MailService.sendApplicationEmail(project, user);
+            } catch (error) {
+                ErrorService.log('mailService.sendApplicationEmail', error);
+            }
         }
 
-        RealtimeService.handleLog({
-            securityId: securityLog.securityId,
-            securityLog: findLog,
-        });
+        try {
+            RealtimeService.handleLog({
+                securityId: securityLog.securityId,
+                securityLog: findLog,
+            });
+        } catch (error) {
+            ErrorService.log('realtimeService.handleLog', error);
+        }
         return sendItemResponse(req, res, securityLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);

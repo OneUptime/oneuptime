@@ -140,6 +140,17 @@ app.use(['/dashboard/api/version', '/dashboard/version'], function(req, res) {
     res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
+app.get(['/dashboard/status', '/status'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'oneuptime-dashboard',
+        })
+    );
+});
+
 app.use(express.static(path.join(__dirname, 'build')));
 app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 app.use(/^\/dashboard\/static\/js\/2\.(.+)\.chunk\.js$/, function(

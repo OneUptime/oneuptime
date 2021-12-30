@@ -15,6 +15,8 @@ spec:
                   name: {{ printf "%s-%s" .Release.Name "init-script"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
+                      - name: SERVER_URL
+                        value: {{ template "oneuptime.serverUrl" $ }}
                       - name: MONGO_URL
                         value:  {{ template "oneuptime.mongodbConnectionString" . }}
                       - name: NODE_ENV
@@ -24,6 +26,14 @@ spec:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" .Release.Name "configmap"  }}
                             key: encryptionkey
+                      - name: CLUSTER_KEY
+                        value: {{ .Values.clusterKey }}
+                      {{- if .Values.saas.isSaasService }}
+                      - name: STRIPE_PUBLIC_KEY
+                        value: {{ .Values.saas.stripe.publicKey }}
+                      - name: STRIPE_PRIVATE_KEY
+                        value: {{ .Values.saas.stripe.privateKey }}
+                      {{- end }}
             restartPolicy: Never
 ---
 ####################################

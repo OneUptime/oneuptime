@@ -124,12 +124,24 @@ module.exports = {
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedScheduledEventToSubscribers(
                     scheduledEvent
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendCreatedScheduledEventToSubscribers',
+                        error
+                    );
+                });
             }
 
             if (!recurring) {
-                // run in the background
-                RealTimeService.addScheduledEvent(scheduledEvent);
+                try {
+                    // run in the background
+                    RealTimeService.addScheduledEvent(scheduledEvent);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.addScheduledEvent',
+                        error
+                    );
+                }
             }
             return scheduledEvent;
         } catch (error) {
@@ -218,8 +230,12 @@ module.exports = {
                 throw error;
             }
 
-            // run in the background
-            RealTimeService.updateScheduledEvent(updatedScheduledEvent);
+            try {
+                // run in the background
+                RealTimeService.updateScheduledEvent(updatedScheduledEvent);
+            } catch (error) {
+                ErrorService.log('realtimeService.updateScheduledEvent', error);
+            }
 
             return updatedScheduledEvent;
         } catch (error) {
@@ -294,8 +310,12 @@ module.exports = {
                 throw error;
             }
 
-            // run in the background
-            RealTimeService.deleteScheduledEvent(scheduledEvent);
+            try {
+                // run in the background
+                RealTimeService.deleteScheduledEvent(scheduledEvent);
+            } catch (error) {
+                ErrorService.log('realtimeService.deleteScheduledEvent', error);
+            }
 
             return scheduledEvent;
         } catch (error) {
@@ -381,75 +401,91 @@ module.exports = {
     },
 
     getSubProjectScheduledEvents: async function(subProjectIds) {
-        const populateScheduledEvent = [
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: { path: 'componentId', select: 'name slug' },
-            },
-        ];
-        const selectScheduledEvent =
-            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+        try {
+            const populateScheduledEvent = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+            ];
+            const selectScheduledEvent =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const subProjectScheduledEvents = await Promise.all(
-            subProjectIds.map(async id => {
-                const scheduledEvents = await this.findBy({
-                    query: { projectId: id },
-                    limit: 10,
-                    skip: 0,
-                    populate: populateScheduledEvent,
-                    select: selectScheduledEvent,
-                });
-                const count = await this.countBy({ projectId: id });
-                return {
-                    scheduledEvents,
-                    count,
-                    project: id,
-                    skip: 0,
-                    limit: 10,
-                };
-            })
-        );
-        return subProjectScheduledEvents;
+            const subProjectScheduledEvents = await Promise.all(
+                subProjectIds.map(async id => {
+                    const scheduledEvents = await this.findBy({
+                        query: { projectId: id },
+                        limit: 10,
+                        skip: 0,
+                        populate: populateScheduledEvent,
+                        select: selectScheduledEvent,
+                    });
+                    const count = await this.countBy({ projectId: id });
+                    return {
+                        scheduledEvents,
+                        count,
+                        project: id,
+                        skip: 0,
+                        limit: 10,
+                    };
+                })
+            );
+            return subProjectScheduledEvents;
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.getSubProjectScheduledEvents',
+                error
+            );
+            throw error;
+        }
     },
 
     getSubProjectOngoingScheduledEvents: async function(subProjectIds, query) {
-        const populate = [
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: { path: 'componentId', select: 'name slug' },
-            },
-        ];
-        const select =
-            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+        try {
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const subProjectOngoingScheduledEvents = await Promise.all(
-            subProjectIds.map(async id => {
-                const ongoingScheduledEvents = await this.findBy({
-                    query: { projectId: id, ...query },
-                    populate,
-                    select,
-                });
-                const count = await this.countBy({
-                    projectId: id,
-                    ...query,
-                });
-                return {
-                    ongoingScheduledEvents,
-                    count,
-                    project: id,
-                };
-            })
-        );
+            const subProjectOngoingScheduledEvents = await Promise.all(
+                subProjectIds.map(async id => {
+                    const ongoingScheduledEvents = await this.findBy({
+                        query: { projectId: id, ...query },
+                        populate,
+                        select,
+                    });
+                    const count = await this.countBy({
+                        projectId: id,
+                        ...query,
+                    });
+                    return {
+                        ongoingScheduledEvents,
+                        count,
+                        project: id,
+                    };
+                })
+            );
 
-        return subProjectOngoingScheduledEvents;
+            return subProjectOngoingScheduledEvents;
+        } catch (error) {
+            ErrorService.log(
+                'scheduledEventService.getSubProjectOngoingScheduledEvents',
+                error
+            );
+            throw error;
+        }
     },
 
     countBy: async function(query) {
@@ -528,7 +564,14 @@ module.exports = {
                             populate,
                         });
 
-                        RealTimeService.updateScheduledEvent(updatedEvent);
+                        try {
+                            RealTimeService.updateScheduledEvent(updatedEvent);
+                        } catch (error) {
+                            ErrorService.log(
+                                'realtimeService.updateScheduledEvent',
+                                error
+                            );
+                        }
                     } else {
                         // delete the scheduled event when no monitor is remaining
                         let deletedEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -549,7 +592,14 @@ module.exports = {
                             .populate('createdById', 'name')
                             .execPopulate();
 
-                        RealTimeService.deleteScheduledEvent(deletedEvent);
+                        try {
+                            RealTimeService.deleteScheduledEvent(deletedEvent);
+                        } catch (error) {
+                            ErrorService.log(
+                                'realtimeService.deleteScheduledEvent',
+                                error
+                            );
+                        }
                     }
                 })
             );
@@ -661,12 +711,24 @@ module.exports = {
                 // handle this asynchronous operation in the background
                 AlertService.sendResolvedScheduledEventToSubscribers(
                     resolvedScheduledEvent
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendResolvedScheduledEventToSubscribers',
+                        error
+                    );
+                });
             }
 
-            // realtime update
-            // run in the background
-            RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+            try {
+                // realtime update
+                // run in the background
+                RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.resolveScheduledEvent',
+                    error
+                );
+            }
 
             return resolvedScheduledEvent;
         } catch (error) {

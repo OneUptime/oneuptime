@@ -153,16 +153,21 @@ module.exports = {
     },
 
     getRequestUrl: async function(projectId, requestId) {
-        // create a unique request url
-        // update incomingRequest collection with the new url
-        const _this = this;
-        const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
-        const updatedIncomingRequest = await _this.updateOneBy(
-            { requestId, projectId },
-            { url: requestUrl },
-            true
-        );
-        return updatedIncomingRequest;
+        try {
+            // create a unique request url
+            // update incomingRequest collection with the new url
+            const _this = this;
+            const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
+            const updatedIncomingRequest = await _this.updateOneBy(
+                { requestId, projectId },
+                { url: requestUrl },
+                true
+            );
+            return updatedIncomingRequest;
+        } catch (error) {
+            ErrorService.log('incomingRequestService.getRequestUrl', error);
+            throw error;
+        }
     },
 
     updateOneBy: async function(query, data, excludeMonitors) {
@@ -1525,7 +1530,12 @@ module.exports = {
                                     data,
                                     'created',
                                     data.projectId
-                                );
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendInvestigationNoteToSubscriber',
+                                        error
+                                    );
+                                });
                             }
                             noteResponse.push(incident);
                             incidentsWithNote.push(String(incident._id));
@@ -1540,7 +1550,12 @@ module.exports = {
                                     data,
                                     'created',
                                     data.projectId
-                                );
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendInvestigationNoteToSubscribers',
+                                        error
+                                    );
+                                });
                             }
                             noteResponse.push(incident);
                         }

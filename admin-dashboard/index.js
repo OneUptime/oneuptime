@@ -61,6 +61,17 @@ app.get(['/env.js', '/admin/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
+app.get(['/admin/status', '/status'], function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'oneuptime-admin-dashboard',
+        })
+    );
+});
+
 app.use(express.static(path.join(__dirname, 'build')));
 app.use('/admin', express.static(path.join(__dirname, 'build')));
 app.use(
