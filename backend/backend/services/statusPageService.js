@@ -2211,32 +2211,32 @@ module.exports = {
 
     fetchTweets: async handle => {
         try {
-            const userData = await axios.get(
-                `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${bearer}`,
-                    },
-                }
-            );
+            // const userData = await axios.get(
+            //     `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
+            //     {
+            //         headers: {
+            //             Authorization: `Bearer ${bearer}`,
+            //         },
+            //     }
+            // );
 
-            const userId = userData?.data?.data?.id || false;
-            let response = '';
+            // const userId = userData?.data?.data?.id || false;
+            // let response = '';
 
-            if (userId) {
-                const tweetData = await axios.get(
-                    `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${bearer}`,
-                        },
-                    }
-                );
+            // if (userId) {
+            //     const tweetData = await axios.get(
+            //         `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
+            //         {
+            //             headers: {
+            //                 Authorization: `Bearer ${bearer}`,
+            //             },
+            //         }
+            //     );
 
-                response = tweetData.data.data;
-            }
+            //     response = tweetData.data.data;
+            // }
 
-            return response;
+            return [];
         } catch (error) {
             ErrorService.log('statusPageService.fetchTweets', error);
             throw error;
