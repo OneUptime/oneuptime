@@ -300,7 +300,11 @@ module.exports = {
                 scanning: false,
             });
 
-            RealTimeService.handleScanning({ security: containerSecurity });
+            try {
+                RealTimeService.handleScanning({ security: containerSecurity });
+            } catch (error) {
+                ErrorService.log('realtimeService.handleScanning', error);
+            }
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateScanTime', error);

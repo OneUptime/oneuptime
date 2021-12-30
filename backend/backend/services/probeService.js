@@ -183,8 +183,12 @@ module.exports = {
             });
             if (probe) {
                 delete probe.deleted;
-                // run in the background
-                RealTimeService.updateProbe(probe, monitorId);
+                try {
+                    // run in the background
+                    RealTimeService.updateProbe(probe, monitorId);
+                } catch (error) {
+                    ErrorService.log('realtimeService.updateProbe', error);
+                }
             }
         } catch (error) {
             ErrorService.log('ProbeService.sendProbe', error);
@@ -1293,7 +1297,7 @@ module.exports = {
 
 const _ = require('lodash');
 
-const incomingCheckAnd = async (payload, condition) => {
+const incomingCheckAnd = (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;

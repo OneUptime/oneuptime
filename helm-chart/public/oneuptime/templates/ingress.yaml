@@ -66,6 +66,18 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "haraka"  }}
               servicePort: 80
+          - path: /application
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "app-scan"  }}
+              servicePort: 80
+          - path: /container
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "cont-scan"  }}
+              servicePort: 80
+          - path: /lighthouse
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "lighthouse"  }}
+              servicePort: 80
           - path: /script
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "script"  }}

@@ -500,50 +500,55 @@ module.exports = {
 
     getSubProjectSchedules: async function(subProjectIds) {
         const _this = this;
-        const subProjectSchedules = await Promise.all(
-            subProjectIds.map(async id => {
-                const populate = [
-                    { path: 'userIds', select: 'name' },
-                    { path: 'createdById', select: 'name' },
-                    { path: 'monitorIds', select: 'name' },
-                    {
-                        path: 'projectId',
-                        select: '_id name slug',
-                    },
-                    {
-                        path: 'escalationIds',
-                        select: 'teams',
-                        populate: {
-                            path: 'teams.teamMembers.userId',
-                            select: 'name email',
+        try {
+            const subProjectSchedules = await Promise.all(
+                subProjectIds.map(async id => {
+                    const populate = [
+                        { path: 'userIds', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                        { path: 'monitorIds', select: 'name' },
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
                         },
-                    },
-                    {
-                        path: 'escalationIds',
-                        select: 'teams',
-                        populate: {
-                            path: 'teams.teamMembers.groupId',
-                            select: 'name',
+                        {
+                            path: 'escalationIds',
+                            select: 'teams',
+                            populate: {
+                                path: 'teams.teamMembers.userId',
+                                select: 'name email',
+                            },
                         },
-                    },
-                ];
+                        {
+                            path: 'escalationIds',
+                            select: 'teams',
+                            populate: {
+                                path: 'teams.teamMembers.groupId',
+                                select: 'name',
+                            },
+                        },
+                    ];
 
-                const select =
-                    '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault  userIds';
+                    const select =
+                        '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault  userIds';
 
-                const query = { projectId: id };
-                const schedules = await _this.findBy({
-                    query,
-                    limit: 10,
-                    skip: 0,
-                    populate,
-                    select,
-                });
-                const count = await _this.countBy(query);
-                return { schedules, count, _id: id, skip: 0, limit: 10 };
-            })
-        );
-        return subProjectSchedules;
+                    const query = { projectId: id };
+                    const schedules = await _this.findBy({
+                        query,
+                        limit: 10,
+                        skip: 0,
+                        populate,
+                        select,
+                    });
+                    const count = await _this.countBy(query);
+                    return { schedules, count, _id: id, skip: 0, limit: 10 };
+                })
+            );
+            return subProjectSchedules;
+        } catch (error) {
+            ErrorService.log('scheduleService.getSubProjectSchedules', error);
+            throw error;
+        }
     },
 
     hardDeleteBy: async function(query) {
@@ -558,49 +563,54 @@ module.exports = {
 
     restoreBy: async function(query) {
         const _this = this;
-        query.deleted = true;
-        const populate = [
-            { path: 'userIds', select: 'name' },
-            { path: 'createdById', select: 'name' },
-            { path: 'monitorIds', select: 'name' },
-            {
-                path: 'projectId',
-                select: '_id name slug',
-            },
-            {
-                path: 'escalationIds',
-                select: 'teams',
-                populate: {
-                    path: 'teams.teamMembers.userId',
-                    select: 'name email',
+        try {
+            query.deleted = true;
+            const populate = [
+                { path: 'userIds', select: 'name' },
+                { path: 'createdById', select: 'name' },
+                { path: 'monitorIds', select: 'name' },
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
                 },
-            },
-        ];
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name email',
+                    },
+                },
+            ];
 
-        const select =
-            '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
+            const select =
+                '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        const schedule = await _this.findBy({ query, populate, select });
-        if (schedule && schedule.length > 1) {
-            const schedules = await Promise.all(
-                schedule.map(async schedule => {
-                    const scheduleId = schedule._id;
-                    schedule = await _this.updateOneBy(
-                        { _id: scheduleId, deleted: true },
-                        {
-                            deleted: false,
-                            deletedAt: null,
-                            deleteBy: null,
-                        }
-                    );
-                    await EscalationService.restoreBy({
-                        scheduleId,
-                        deleted: true,
-                    });
-                    return schedule;
-                })
-            );
-            return schedules;
+            const schedule = await _this.findBy({ query, populate, select });
+            if (schedule && schedule.length > 1) {
+                const schedules = await Promise.all(
+                    schedule.map(async schedule => {
+                        const scheduleId = schedule._id;
+                        schedule = await _this.updateOneBy(
+                            { _id: scheduleId, deleted: true },
+                            {
+                                deleted: false,
+                                deletedAt: null,
+                                deleteBy: null,
+                            }
+                        );
+                        await EscalationService.restoreBy({
+                            scheduleId,
+                            deleted: true,
+                        });
+                        return schedule;
+                    })
+                );
+                return schedules;
+            }
+        } catch (error) {
+            ErrorService.log('scheduleService.restoreBy', error);
+            throw error;
         }
     },
 };

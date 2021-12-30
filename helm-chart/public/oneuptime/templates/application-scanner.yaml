@@ -43,10 +43,7 @@ spec:
                     - name: APPLICATION_SCANNER_KEY
                       value: {{ .Values.applicationScanner.key }}
                     - name: CLUSTER_KEY
-                      valueFrom:
-                        configMapKeyRef:
-                          name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
-                          key: clusterkey
+                      value: {{ .Values.clusterKey }}
                 ports:
                     - containerPort: {{ .Values.host.applicationScannerPort }}
                       hostPort: {{ .Values.host.applicationScannerPort }}

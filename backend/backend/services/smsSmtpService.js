@@ -36,12 +36,16 @@ module.exports = {
 
         if (!query.deleted) query.deleted = false;
 
-        if (data.authToken) {
-            const iv = Crypto.randomBytes(16);
-            data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
-            data.iv = iv;
-        }
         try {
+            if (data.authToken) {
+                const iv = Crypto.randomBytes(16);
+                data.authToken = await EncryptDecrypt.encrypt(
+                    data.authToken,
+                    iv
+                );
+                data.iv = iv;
+            }
+
             const updatedTwilioSettings = await TwilioModel.findOneAndUpdate(
                 query,
                 {

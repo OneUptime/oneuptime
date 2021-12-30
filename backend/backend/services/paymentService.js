@@ -352,7 +352,7 @@ module.exports = {
 
     createSubscription: async function(stripeCustomerId, amount) {
         try {
-            const productId = await Plans.getReserveNumberProductId();
+            const productId = Plans.getReserveNumberProductId();
             const subscriptions = await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: [
@@ -450,13 +450,17 @@ module.exports = {
                         type: 'action',
                         client_secret: paymentIntent.client_secret,
                     };
-                    NotificationService.create(
-                        projectId,
-                        message,
-                        userId,
-                        null,
-                        meta
-                    );
+                    try {
+                        NotificationService.create(
+                            projectId,
+                            message,
+                            userId,
+                            null,
+                            meta
+                        );
+                    } catch (error) {
+                        ErrorService.log('paymentService.chargeAlert', error);
+                    }
                 }
 
                 // confirm payment intent

@@ -157,74 +157,84 @@ module.exports = {
     //Param 3: role: Role set by Admin.
     //Returns: promise
     inviteTeamMembers: async function(addedByUserId, projectId, emails, role) {
-        const addedBy = await UserService.findOneBy({
-            query: { _id: addedByUserId },
-            select: 'name _id',
-        });
-        emails = emails.toLowerCase().split(',');
-        const _this = this;
-        let subProject = null;
-
-        //Checks if users to be added to project are not duplicate.
-        let duplicateEmail = false;
-        emails.forEach(function(element, index) {
-            // Find if there is a duplicate or not
-            if (emails.indexOf(element, index + 1) > -1) {
-                duplicateEmail = true;
-            }
-        });
-
-        if (duplicateEmail) {
-            const error = new Error('Duplicate email present. Please check.');
-            error.code = 400;
-            throw error;
-        } else {
-            let project = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'parentProjectId seats',
+        try {
+            const addedBy = await UserService.findOneBy({
+                query: { _id: addedByUserId },
+                select: 'name _id',
             });
-            if (project && project.parentProjectId) {
-                subProject = project;
-                project = await ProjectService.findOneBy({
-                    query: { _id: subProject.parentProjectId },
-                    select: 'seats',
-                });
-            }
-            const teamMembers = await _this.getTeamMembers(projectId);
-            let projectSeats = project.seats;
-            if (typeof projectSeats === 'string') {
-                projectSeats = parseInt(projectSeats);
-            }
+            emails = emails.toLowerCase().split(',');
+            const _this = this;
+            let subProject = null;
 
-            // Checks if users to be added as team members are already present or not.
-            const isUserInProject = await _this.checkUser(teamMembers, emails);
-            if (isUserInProject) {
+            //Checks if users to be added to project are not duplicate.
+            let duplicateEmail = false;
+            emails.forEach(function(element, index) {
+                // Find if there is a duplicate or not
+                if (emails.indexOf(element, index + 1) > -1) {
+                    duplicateEmail = true;
+                }
+            });
+
+            if (duplicateEmail) {
                 const error = new Error(
-                    'These users are already members of the project.'
+                    'Duplicate email present. Please check.'
                 );
                 error.code = 400;
-                ErrorService.log('TeamService.inviteTeamMembers', error);
                 throw error;
             } else {
-                // Get no of users to be added
-                const extraUsersToAdd = emails.length;
-                try {
-                    const invite = await _this.inviteTeamMembersMethod(
-                        projectId,
-                        emails,
-                        role,
-                        addedBy,
-                        extraUsersToAdd
+                let project = await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'parentProjectId seats',
+                });
+                if (project && project.parentProjectId) {
+                    subProject = project;
+                    project = await ProjectService.findOneBy({
+                        query: { _id: subProject.parentProjectId },
+                        select: 'seats',
+                    });
+                }
+                const teamMembers = await _this.getTeamMembers(projectId);
+                let projectSeats = project.seats;
+                if (typeof projectSeats === 'string') {
+                    projectSeats = parseInt(projectSeats);
+                }
+
+                // Checks if users to be added as team members are already present or not.
+                const isUserInProject = await _this.checkUser(
+                    teamMembers,
+                    emails
+                );
+                if (isUserInProject) {
+                    const error = new Error(
+                        'These users are already members of the project.'
                     );
-                    return invite;
-                } catch (error) {
-                    ErrorService.log(
-                        'TeamService.inviteTeamMembersMethod',
-                        error
-                    );
+                    error.code = 400;
+                    ErrorService.log('TeamService.inviteTeamMembers', error);
                     throw error;
+                } else {
+                    // Get no of users to be added
+                    const extraUsersToAdd = emails.length;
+                    try {
+                        const invite = await _this.inviteTeamMembersMethod(
+                            projectId,
+                            emails,
+                            role,
+                            addedBy,
+                            extraUsersToAdd
+                        );
+                        return invite;
+                    } catch (error) {
+                        ErrorService.log(
+                            'TeamService.inviteTeamMembersMethod',
+                            error
+                        );
+                        throw error;
+                    }
                 }
             }
+        } catch (error) {
+            ErrorService.log('teamService.inviteTeamMembers', error);
+            throw error;
         }
     },
 
@@ -234,25 +244,30 @@ module.exports = {
     //Returns: promise
     getTeamMembers: async function(projectId) {
         const _this = this;
-        const subProject = await ProjectService.findOneBy({
-            query: { _id: projectId },
-            select: 'parentProjectId',
-        });
-        if (subProject && subProject.parentProjectId) {
-            const project = await ProjectService.findOneBy({
-                query: { _id: subProject.parentProjectId },
-                select: '_id',
+        try {
+            const subProject = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId',
             });
-            return await _this.getTeamMembersBy({
-                _id: project._id,
-            });
+            if (subProject && subProject.parentProjectId) {
+                const project = await ProjectService.findOneBy({
+                    query: { _id: subProject.parentProjectId },
+                    select: '_id',
+                });
+                return await _this.getTeamMembersBy({
+                    _id: project._id,
+                });
+            }
+            if (subProject) {
+                return await _this.getTeamMembersBy({
+                    _id: subProject._id,
+                });
+            }
+            return [];
+        } catch (error) {
+            ErrorService.log('teamService.getTeamMembers', error);
+            throw error;
         }
-        if (subProject) {
-            return await _this.getTeamMembersBy({
-                _id: subProject._id,
-            });
-        }
-        return [];
     },
 
     isValidBusinessEmails: function(emails) {
@@ -271,22 +286,28 @@ module.exports = {
     async checkUser(teamMembers, emails) {
         const teamMembersEmail = [];
 
-        for (let i = 0; i < teamMembers.length; i++) {
-            const user = await UserService.findOneBy({
-                query: { _id: teamMembers[i].userId },
-                select: 'email',
-            });
-            teamMembersEmail.push(user.email);
-        }
-
-        for (let i = 0; i < teamMembersEmail.length; i++) {
-            if (
-                emails.filter(email => email === teamMembersEmail[i]).length > 0
-            ) {
-                return true;
+        try {
+            for (let i = 0; i < teamMembers.length; i++) {
+                const user = await UserService.findOneBy({
+                    query: { _id: teamMembers[i].userId },
+                    select: 'email',
+                });
+                teamMembersEmail.push(user.email);
             }
+
+            for (let i = 0; i < teamMembersEmail.length; i++) {
+                if (
+                    emails.filter(email => email === teamMembersEmail[i])
+                        .length > 0
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (error) {
+            ErrorService.log('teamService.checkUser', error);
+            throw error;
         }
-        return false;
     },
 
     //Description: Invite new team members method.
@@ -355,45 +376,52 @@ module.exports = {
                     const userInProject = projectUsers.find(
                         user => user.userId === member._id
                     );
-                    if (userInProject) {
-                        if (role === 'Viewer') {
-                            MailService.sendExistingStatusPageViewerMail(
-                                subProject,
-                                addedBy,
-                                member.email
+                    try {
+                        if (userInProject) {
+                            if (role === 'Viewer') {
+                                MailService.sendExistingStatusPageViewerMail(
+                                    subProject,
+                                    addedBy,
+                                    member.email
+                                );
+                            } else {
+                                MailService.sendExistingUserAddedToSubProjectMail(
+                                    subProject,
+                                    addedBy,
+                                    member.email
+                                );
+                            }
+                            NotificationService.create(
+                                project._id,
+                                `New user added to ${subProject.name} subproject by ${addedBy.name}`,
+                                addedBy.id,
+                                'information'
                             );
                         } else {
-                            MailService.sendExistingUserAddedToSubProjectMail(
-                                subProject,
-                                addedBy,
-                                member.email
+                            if (role === 'Viewer') {
+                                MailService.sendNewStatusPageViewerMail(
+                                    project,
+                                    addedBy,
+                                    member.email
+                                );
+                            } else {
+                                MailService.sendExistingUserAddedToProjectMail(
+                                    project,
+                                    addedBy,
+                                    member.email
+                                );
+                            }
+                            NotificationService.create(
+                                project._id,
+                                `New user added to the project by ${addedBy.name}`,
+                                addedBy.id,
+                                'information'
                             );
                         }
-                        NotificationService.create(
-                            project._id,
-                            `New user added to ${subProject.name} subproject by ${addedBy.name}`,
-                            addedBy.id,
-                            'information'
-                        );
-                    } else {
-                        if (role === 'Viewer') {
-                            MailService.sendNewStatusPageViewerMail(
-                                project,
-                                addedBy,
-                                member.email
-                            );
-                        } else {
-                            MailService.sendExistingUserAddedToProjectMail(
-                                project,
-                                addedBy,
-                                member.email
-                            );
-                        }
-                        NotificationService.create(
-                            project._id,
-                            `New user added to the project by ${addedBy.name}`,
-                            addedBy.id,
-                            'information'
+                    } catch (error) {
+                        ErrorService.log(
+                            'teamService.inviteTeamMembersMethod',
+                            error
                         );
                     }
                 } else {
@@ -405,26 +433,33 @@ module.exports = {
                     if (verificationToken) {
                         registerUrl = `${registerUrl}?token=${verificationToken.token}`;
                     }
-                    if (role === 'Viewer') {
-                        MailService.sendNewStatusPageViewerMail(
-                            project,
-                            addedBy,
-                            member.email
+                    try {
+                        if (role === 'Viewer') {
+                            MailService.sendNewStatusPageViewerMail(
+                                project,
+                                addedBy,
+                                member.email
+                            );
+                        } else {
+                            MailService.sendNewUserAddedToProjectMail(
+                                project,
+                                addedBy,
+                                member.email,
+                                registerUrl
+                            );
+                        }
+                        NotificationService.create(
+                            project._id,
+                            `New user added to the project by ${addedBy.name}`,
+                            addedBy.id,
+                            'information'
                         );
-                    } else {
-                        MailService.sendNewUserAddedToProjectMail(
-                            project,
-                            addedBy,
-                            member.email,
-                            registerUrl
+                    } catch (error) {
+                        ErrorService.log(
+                            'teamService.inviteTeamMembersMethod',
+                            error
                         );
                     }
-                    NotificationService.create(
-                        project._id,
-                        `New user added to the project by ${addedBy.name}`,
-                        addedBy.id,
-                        'information'
-                    );
                 }
                 members.push({
                     userId: member._id,
@@ -539,164 +574,175 @@ module.exports = {
     //Returns: promise
     removeTeamMember: async function(projectId, userId, teamMemberUserId) {
         const _this = this;
-        let index;
-        let subProject = null;
+        try {
+            let index;
+            let subProject = null;
 
-        if (userId === teamMemberUserId) {
-            const error = new Error('Admin User cannot delete himself');
-            error.code = 400;
-            ErrorService.log('teamService.inviteTeamMembers', error);
-            throw error;
-        } else {
-            let project = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'parentProjectId users _id',
-            });
-            if (project.parentProjectId) {
-                subProject = project;
-                project = await ProjectService.findOneBy({
-                    query: { _id: subProject.parentProjectId },
-                    select: 'users _id',
-                });
-            }
-            if (subProject) {
-                for (let i = 0; i < subProject.users.length; i++) {
-                    if (teamMemberUserId == subProject.users[i].userId) {
-                        index = i;
-                        break;
-                    } else {
-                        index = -1;
-                    }
-                }
-            } else {
-                for (let i = 0; i < project.users.length; i++) {
-                    if (teamMemberUserId == project.users[i].userId) {
-                        index = i;
-                        break;
-                    } else {
-                        index = -1;
-                    }
-                }
-            }
-            // Checks if team member to be removed is present in the project or not.
-            if (index === -1) {
-                const error = new Error(
-                    'Member to be deleted from the project does not exist.'
-                );
+            if (userId === teamMemberUserId) {
+                const error = new Error('Admin User cannot delete himself');
                 error.code = 400;
-                ErrorService.log('teamService.removeTeamMember', error);
+                ErrorService.log('teamService.inviteTeamMembers', error);
                 throw error;
             } else {
+                let project = await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'parentProjectId users _id',
+                });
+                if (project.parentProjectId) {
+                    subProject = project;
+                    project = await ProjectService.findOneBy({
+                        query: { _id: subProject.parentProjectId },
+                        select: 'users _id',
+                    });
+                }
                 if (subProject) {
-                    // removes team member from subProject
-                    await ProjectService.exitProject(
-                        subProject._id,
-                        teamMemberUserId,
-                        userId
-                    );
+                    for (let i = 0; i < subProject.users.length; i++) {
+                        if (teamMemberUserId == subProject.users[i].userId) {
+                            index = i;
+                            break;
+                        } else {
+                            index = -1;
+                        }
+                    }
                 } else {
-                    // removes team member from project
-                    await ProjectService.exitProject(
-                        project._id,
-                        teamMemberUserId,
-                        userId
+                    for (let i = 0; i < project.users.length; i++) {
+                        if (teamMemberUserId == project.users[i].userId) {
+                            index = i;
+                            break;
+                        } else {
+                            index = -1;
+                        }
+                    }
+                }
+                // Checks if team member to be removed is present in the project or not.
+                if (index === -1) {
+                    const error = new Error(
+                        'Member to be deleted from the project does not exist.'
                     );
-                    // remove user from all subProjects.
-                    const subProjects = await ProjectService.findBy({
+                    error.code = 400;
+                    ErrorService.log('teamService.removeTeamMember', error);
+                    throw error;
+                } else {
+                    if (subProject) {
+                        // removes team member from subProject
+                        await ProjectService.exitProject(
+                            subProject._id,
+                            teamMemberUserId,
+                            userId
+                        );
+                    } else {
+                        // removes team member from project
+                        await ProjectService.exitProject(
+                            project._id,
+                            teamMemberUserId,
+                            userId
+                        );
+                        // remove user from all subProjects.
+                        const subProjects = await ProjectService.findBy({
+                            query: { parentProjectId: project._id },
+                            select: '_id',
+                        });
+                        if (subProjects.length > 0) {
+                            await Promise.all(
+                                subProjects.map(async subProject => {
+                                    await ProjectService.exitProject(
+                                        subProject._id,
+                                        teamMemberUserId,
+                                        userId
+                                    );
+                                })
+                            );
+                        }
+                    }
+
+                    const [projectObj, user, member] = await Promise.all([
+                        ProjectService.findOneBy({
+                            query: { _id: project._id },
+                            select: '_id name',
+                        }),
+                        UserService.findOneBy({
+                            query: { _id: userId },
+                            select: 'name',
+                        }),
+                        UserService.findOneBy({
+                            query: { _id: teamMemberUserId },
+                            select: 'email',
+                        }),
+                    ]);
+                    project = projectObj;
+
+                    try {
+                        if (subProject) {
+                            MailService.sendRemoveFromSubProjectEmailToUser(
+                                subProject,
+                                user,
+                                member.email
+                            );
+                            NotificationService.create(
+                                project._id,
+                                `User removed from subproject ${subProject.name} by ${user.name}`,
+                                userId,
+                                'information'
+                            );
+                        } else {
+                            MailService.sendRemoveFromProjectEmailToUser(
+                                project,
+                                user,
+                                member.email
+                            );
+                            NotificationService.create(
+                                project._id,
+                                `User removed from the project by ${user.name}`,
+                                userId,
+                                'information'
+                            );
+                        }
+                    } catch (error) {
+                        ErrorService.log('teamService.removeTeamMember', error);
+                    }
+                    let team = await _this.getTeamMembersBy({
+                        _id: project._id,
+                    });
+
+                    // send response
+                    let response = [];
+                    let teamusers = {
+                        projectId: project._id,
+                        team: team,
+                    };
+                    response.push(teamusers);
+                    const subProjectTeams = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
                         select: '_id',
                     });
-                    if (subProjects.length > 0) {
-                        await Promise.all(
-                            subProjects.map(async subProject => {
-                                await ProjectService.exitProject(
-                                    subProject._id,
-                                    teamMemberUserId,
-                                    userId
-                                );
+                    if (subProjectTeams.length > 0) {
+                        const subProjectTeamsUsers = await Promise.all(
+                            subProjectTeams.map(async subProject => {
+                                team = await _this.getTeamMembersBy({
+                                    _id: subProject._id,
+                                });
+                                teamusers = {
+                                    projectId: subProject._id,
+                                    team: team,
+                                };
+                                return teamusers;
                             })
                         );
+                        response = response.concat(subProjectTeamsUsers);
                     }
+                    team = await _this.getTeamMembersBy({ _id: projectId });
+                    // run in the background
+                    // RealTimeService.deleteTeamMember(project._id, {
+                    //     response,
+                    //     teamMembers: team,
+                    //     projectId,
+                    // });
+                    return response;
                 }
-
-                const [projectObj, user, member] = await Promise.all([
-                    ProjectService.findOneBy({
-                        query: { _id: project._id },
-                        select: '_id name',
-                    }),
-                    UserService.findOneBy({
-                        query: { _id: userId },
-                        select: 'name',
-                    }),
-                    UserService.findOneBy({
-                        query: { _id: teamMemberUserId },
-                        select: 'email',
-                    }),
-                ]);
-                project = projectObj;
-
-                if (subProject) {
-                    MailService.sendRemoveFromSubProjectEmailToUser(
-                        subProject,
-                        user,
-                        member.email
-                    );
-                    NotificationService.create(
-                        project._id,
-                        `User removed from subproject ${subProject.name} by ${user.name}`,
-                        userId,
-                        'information'
-                    );
-                } else {
-                    MailService.sendRemoveFromProjectEmailToUser(
-                        project,
-                        user,
-                        member.email
-                    );
-                    NotificationService.create(
-                        project._id,
-                        `User removed from the project by ${user.name}`,
-                        userId,
-                        'information'
-                    );
-                }
-                let team = await _this.getTeamMembersBy({ _id: project._id });
-
-                // send response
-                let response = [];
-                let teamusers = {
-                    projectId: project._id,
-                    team: team,
-                };
-                response.push(teamusers);
-                const subProjectTeams = await ProjectService.findBy({
-                    query: { parentProjectId: project._id },
-                    select: '_id',
-                });
-                if (subProjectTeams.length > 0) {
-                    const subProjectTeamsUsers = await Promise.all(
-                        subProjectTeams.map(async subProject => {
-                            team = await _this.getTeamMembersBy({
-                                _id: subProject._id,
-                            });
-                            teamusers = {
-                                projectId: subProject._id,
-                                team: team,
-                            };
-                            return teamusers;
-                        })
-                    );
-                    response = response.concat(subProjectTeamsUsers);
-                }
-                team = await _this.getTeamMembersBy({ _id: projectId });
-                // run in the background
-                RealTimeService.deleteTeamMember(project._id, {
-                    response,
-                    teamMembers: team,
-                    projectId,
-                });
-                return response;
             }
+        } catch (error) {
+            ErrorService.log('teamService.removeTeamMember', error);
+            throw error;
         }
     },
 
@@ -818,19 +864,26 @@ module.exports = {
                             select: 'email',
                         }),
                     ]);
-                    if (subProject) {
-                        MailService.sendChangeRoleEmailToUser(
-                            subProject,
-                            user,
-                            member.email,
-                            role
-                        );
-                    } else {
-                        MailService.sendChangeRoleEmailToUser(
-                            project,
-                            user,
-                            member.email,
-                            role
+                    try {
+                        if (subProject) {
+                            MailService.sendChangeRoleEmailToUser(
+                                subProject,
+                                user,
+                                member.email,
+                                role
+                            );
+                        } else {
+                            MailService.sendChangeRoleEmailToUser(
+                                project,
+                                user,
+                                member.email,
+                                role
+                            );
+                        }
+                    } catch (error) {
+                        ErrorService.log(
+                            'teamService.updateTeamMemberRole',
+                            error
                         );
                     }
 
@@ -864,12 +917,19 @@ module.exports = {
                         response = response.concat(subProjectTeamsUsers);
                     }
                     team = await _this.getTeamMembersBy({ _id: projectId });
-                    // run in the background
-                    RealTimeService.updateTeamMemberRole(project._id, {
-                        response,
-                        teamMembers: team,
-                        projectId,
-                    });
+                    try {
+                        // run in the background
+                        RealTimeService.updateTeamMemberRole(project._id, {
+                            response,
+                            teamMembers: team,
+                            projectId,
+                        });
+                    } catch (error) {
+                        ErrorService.log(
+                            'realtimeService.updateTeamMemberRole',
+                            error
+                        );
+                    }
                     const teams = response.map(res => res.team);
                     const flatTeams = flatten(teams);
                     const teamArr = flatTeams.filter(

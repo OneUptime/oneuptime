@@ -307,12 +307,16 @@ module.exports = {
             if (verificationToken) {
                 const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
                 // Checking for already verified user so that he/she will not recieve another email verification
-                if (!user.isVerified) {
-                    MailService.sendVerifyEmail(
-                        verificationTokenURL,
-                        user.name,
-                        email
-                    );
+                try {
+                    if (!user.isVerified) {
+                        MailService.sendVerifyEmail(
+                            verificationTokenURL,
+                            user.name,
+                            email
+                        );
+                    }
+                } catch (error) {
+                    ErrorService.log('mailService.sendVerifyEmail', error);
                 }
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
@@ -446,8 +450,12 @@ module.exports = {
     },
     getUserIpLocation: async function(clientIP) {
         try {
-            const ipLocation = await iplocation(clientIP);
-            return ipLocation;
+            const geo = geoip.lookup(clientIP);
+            if (geo) {
+                geo.ip = clientIP;
+                return geo;
+            }
+            return {};
         } catch (error) {
             return {};
         }
@@ -458,15 +466,20 @@ module.exports = {
         numberOfCodes,
         firstCounter = 0
     ) {
-        hotp.options = { digits: 8 };
-        const backupCodes = [];
+        try {
+            hotp.options = { digits: 8 };
+            const backupCodes = [];
 
-        for (let i = 0; i < numberOfCodes; i++) {
-            const counter = firstCounter + i;
-            const token = hotp.generate(secretKey, counter);
-            backupCodes.push({ code: token, counter });
+            for (let i = 0; i < numberOfCodes; i++) {
+                const counter = firstCounter + i;
+                const token = hotp.generate(secretKey, counter);
+                backupCodes.push({ code: token, counter });
+            }
+            return backupCodes;
+        } catch (error) {
+            ErrorService.log('userService.generateUserBackupCodes', error);
+            throw error;
         }
-        return backupCodes;
     },
 
     verifyUserBackupCode: async function(code, secretKey, counter) {
@@ -1007,159 +1020,183 @@ module.exports = {
 
     getAllUsers: async function(skip, limit) {
         const _this = this;
-        const select =
-            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        let users = await _this.findBy({
-            query: { _id: { $ne: null }, deleted: { $ne: null } },
-            skip,
-            limit,
-            select,
-        });
-        users = await Promise.all(
-            users.map(async user => {
-                // find user subprojects and parent projects
-                let userProjects = await ProjectService.findBy({
-                    query: { 'users.userId': user._id },
-                    select: 'parentProjectId',
-                });
-                let parentProjectIds = [];
-                let projectIds = [];
-                if (userProjects.length > 0) {
-                    const subProjects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? project : null
-                        )
-                        .filter(subProject => subProject !== null);
-                    parentProjectIds = subProjects.map(
-                        subProject =>
-                            subProject.parentProjectId._id ||
-                            subProject.parentProjectId
-                    );
-                    const projects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? null : project
-                        )
-                        .filter(project => project !== null);
-                    projectIds = projects.map(project => project._id);
-                }
-                const populate = [{ path: 'parentProjectId', select: 'name' }];
-                const select =
-                    '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-                userProjects = await ProjectService.findBy({
-                    query: {
-                        $or: [
-                            { _id: { $in: parentProjectIds } },
-                            { _id: { $in: projectIds } },
-                        ],
-                    },
-                    select,
-                    populate,
-                });
-                return await Object.assign({}, user._doc || user, {
-                    projects: userProjects,
-                });
-            })
-        );
-        return users;
+        try {
+            const select =
+                'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
+            let users = await _this.findBy({
+                query: { _id: { $ne: null }, deleted: { $ne: null } },
+                skip,
+                limit,
+                select,
+            });
+            users = await Promise.all(
+                users.map(async user => {
+                    // find user subprojects and parent projects
+                    let userProjects = await ProjectService.findBy({
+                        query: { 'users.userId': user._id },
+                        select: 'parentProjectId',
+                    });
+                    let parentProjectIds = [];
+                    let projectIds = [];
+                    if (userProjects.length > 0) {
+                        const subProjects = userProjects
+                            .map(project =>
+                                project.parentProjectId ? project : null
+                            )
+                            .filter(subProject => subProject !== null);
+                        parentProjectIds = subProjects.map(
+                            subProject =>
+                                subProject.parentProjectId._id ||
+                                subProject.parentProjectId
+                        );
+                        const projects = userProjects
+                            .map(project =>
+                                project.parentProjectId ? null : project
+                            )
+                            .filter(project => project !== null);
+                        projectIds = projects.map(project => project._id);
+                    }
+                    const populate = [
+                        { path: 'parentProjectId', select: 'name' },
+                    ];
+                    const select =
+                        '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+                    userProjects = await ProjectService.findBy({
+                        query: {
+                            $or: [
+                                { _id: { $in: parentProjectIds } },
+                                { _id: { $in: projectIds } },
+                            ],
+                        },
+                        select,
+                        populate,
+                    });
+                    return await Object.assign({}, user._doc || user, {
+                        projects: userProjects,
+                    });
+                })
+            );
+            return users;
+        } catch (error) {
+            ErrorService.log('userService.getAllUsers', error);
+            throw error;
+        }
     },
 
     restoreBy: async function(query) {
         const _this = this;
-        query.deleted = true;
+        try {
+            query.deleted = true;
 
-        const select = '_id';
-        let user = await _this.findBy({ query, select });
-        if (user && user.length > 1) {
-            const users = await Promise.all(
-                user.map(async user => {
+            const select = '_id';
+            let user = await _this.findBy({ query, select });
+            if (user && user.length > 1) {
+                const users = await Promise.all(
+                    user.map(async user => {
+                        query._id = user._id;
+                        user = await _this.updateOneBy(query._id, {
+                            deleted: false,
+                            deletedBy: null,
+                            deletedAt: null,
+                        });
+                        return user;
+                    })
+                );
+                return users;
+            } else {
+                user = user[0];
+                if (user) {
                     query._id = user._id;
-                    user = await _this.updateOneBy(query._id, {
+                    user = await _this.updateOneBy(query, {
                         deleted: false,
                         deletedBy: null,
                         deletedAt: null,
                     });
-                    return user;
-                })
-            );
-            return users;
-        } else {
-            user = user[0];
-            if (user) {
-                query._id = user._id;
-                user = await _this.updateOneBy(query, {
-                    deleted: false,
-                    deletedBy: null,
-                    deletedAt: null,
-                });
+                }
+                return user;
             }
-            return user;
+        } catch (error) {
+            ErrorService.log('userService.restoreBy', error);
+            throw error;
         }
     },
 
     addNotes: async function(userId, notes) {
         const _this = this;
-        const user = await _this.updateOneBy(
-            {
-                _id: userId,
-            },
-            {
-                adminNotes: notes,
-            }
-        );
-        return user;
+        try {
+            const user = await _this.updateOneBy(
+                {
+                    _id: userId,
+                },
+                {
+                    adminNotes: notes,
+                }
+            );
+            return user;
+        } catch (error) {
+            ErrorService.log('userService.addNotes', error);
+            throw error;
+        }
     },
 
     searchUsers: async function(query, skip, limit) {
         const _this = this;
-        const select =
-            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        let users = await _this.findBy({ query, skip, limit, select });
-        users = await Promise.all(
-            users.map(async user => {
-                // find user subprojects and parent projects
-                let userProjects = await ProjectService.findBy({
-                    query: { 'users.userId': user._id },
-                    select: 'parentProjectId',
-                });
-                let parentProjectIds = [];
-                let projectIds = [];
-                if (userProjects.length > 0) {
-                    const subProjects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? project : null
-                        )
-                        .filter(subProject => subProject !== null);
-                    parentProjectIds = subProjects.map(
-                        subProject =>
-                            subProject.parentProjectId._id ||
-                            subProject.parentProjectId
-                    );
-                    const projects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? null : project
-                        )
-                        .filter(project => project !== null);
-                    projectIds = projects.map(project => project._id);
-                }
-                const populate = [{ path: 'parentProjectId', select: 'name' }];
-                const select =
-                    '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-                userProjects = await ProjectService.findBy({
-                    query: {
-                        $or: [
-                            { _id: { $in: parentProjectIds } },
-                            { _id: { $in: projectIds } },
-                        ],
-                    },
-                    select,
-                    populate,
-                });
-                return await Object.assign({}, user._doc || user, {
-                    projects: userProjects,
-                });
-            })
-        );
-        return users;
+        try {
+            const select =
+                'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
+            let users = await _this.findBy({ query, skip, limit, select });
+            users = await Promise.all(
+                users.map(async user => {
+                    // find user subprojects and parent projects
+                    let userProjects = await ProjectService.findBy({
+                        query: { 'users.userId': user._id },
+                        select: 'parentProjectId',
+                    });
+                    let parentProjectIds = [];
+                    let projectIds = [];
+                    if (userProjects.length > 0) {
+                        const subProjects = userProjects
+                            .map(project =>
+                                project.parentProjectId ? project : null
+                            )
+                            .filter(subProject => subProject !== null);
+                        parentProjectIds = subProjects.map(
+                            subProject =>
+                                subProject.parentProjectId._id ||
+                                subProject.parentProjectId
+                        );
+                        const projects = userProjects
+                            .map(project =>
+                                project.parentProjectId ? null : project
+                            )
+                            .filter(project => project !== null);
+                        projectIds = projects.map(project => project._id);
+                    }
+                    const populate = [
+                        { path: 'parentProjectId', select: 'name' },
+                    ];
+                    const select =
+                        '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+                    userProjects = await ProjectService.findBy({
+                        query: {
+                            $or: [
+                                { _id: { $in: parentProjectIds } },
+                                { _id: { $in: projectIds } },
+                            ],
+                        },
+                        select,
+                        populate,
+                    });
+                    return await Object.assign({}, user._doc || user, {
+                        projects: userProjects,
+                    });
+                })
+            );
+            return users;
+        } catch (error) {
+            ErrorService.log('userService.searchUsers', error);
+            throw error;
+        }
     },
 
     hardDeleteBy: async function(query) {
@@ -1193,7 +1230,7 @@ const crypto = require('crypto');
 const ProjectService = require('./projectService');
 const ErrorService = require('./errorService');
 const jwt = require('jsonwebtoken');
-const iplocation = require('iplocation').default;
+const geoip = require('geoip-lite');
 const jwtSecretKey = process.env['JWT_SECRET'];
 const { IS_SAAS_SERVICE, IS_TESTING } = require('../config/server');
 const { NODE_ENV } = process.env;

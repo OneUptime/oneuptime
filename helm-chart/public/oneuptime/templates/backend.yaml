@@ -100,6 +100,10 @@ spec:
                         value: {{ .Values.haraka.fromEmail }}
                       - name: INTERNAL_SMTP_NAME
                         value: {{ .Values.haraka.fromName }}
+                      - name: LOGSTASH_HOST
+                        value: {{ .Values.logstashHost | quote }}
+                      - name: LOGSTASH_PORT
+                        value: {{ .Values.logstashPort | quote }}
                       {{- if .Values.newRelic.backend.licenseKey }}
                       - name: NEW_RELIC_LICENSE_KEY
                         value: {{ .Values.newRelic.backend.licenseKey }}
@@ -109,15 +113,14 @@ spec:
                         value: {{ .Values.newRelic.backend.appName}}
                       {{- end }}
                       - name: CLUSTER_KEY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
-                            key: clusterkey
+                        value: {{ .Values.clusterKey }}
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
                         value: {{ .Values.saas.stripe.publicKey }}
                       - name: STRIPE_PRIVATE_KEY
                         value: {{ .Values.saas.stripe.privateKey }}
+                      - name: SLACK_BILLING_WEBHOOK
+                        value: {{ .Values.saas.stripe.slackWebhook }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: TWITTER_BEARER_TOKEN

@@ -55,87 +55,86 @@ module.exports = {
     },
 
     create: async function(data) {
-        if (!data.domain) {
-            const error = new Error('Domain must be defined.');
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-        if (!mongoose.Types.ObjectId.isValid(data.domain)) {
-            const error = new Error("Domain id isn't valid.");
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-
-        if (!data.project) {
-            const error = new Error('Project  must be defined.');
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-        if (!mongoose.Types.ObjectId.isValid(data.domain)) {
-            const error = new Error("Domain id isn't valid.");
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-
-        if (!data.role) {
-            const error = new Error('Role must be defined.');
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-        if (!['Administrator', 'Member', 'Viewer'].includes(data.role)) {
-            const error = new Error('Invalid role.');
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-
-        const { domain, project } = data;
-        const query = { domain, project };
-
-        const sso = await SsoService.findOneBy({
-            query: { _id: domain },
-            select: '_id',
-        });
-        if (!sso) {
-            const error = new Error("Domain doesn't exist.");
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-
-        const projectObj = await ProjectService.findOneBy({
-            query: { _id: project },
-            select: 'users _id',
-        });
-        if (!projectObj) {
-            const error = new Error("Project doesn't exist.");
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-
-        const search = await this.countBy(query);
-
-        if (search && search > 0) {
-            const error = new Error(
-                '[Domain-Project] are already associated to a default role.'
-            );
-            error.code = 400;
-            ErrorService.log('ssoDefaultRolesService.create', error);
-            throw error;
-        }
-
-        const ssoDefaultRole = new ssoDefaultRolesModel();
-        ssoDefaultRole.domain = data.domain;
-        ssoDefaultRole.project = data.project;
-        ssoDefaultRole.role = data.role;
-
         try {
+            if (!data.domain) {
+                const error = new Error('Domain must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+            if (!mongoose.Types.ObjectId.isValid(data.domain)) {
+                const error = new Error("Domain id isn't valid.");
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+
+            if (!data.project) {
+                const error = new Error('Project  must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+            if (!mongoose.Types.ObjectId.isValid(data.domain)) {
+                const error = new Error("Domain id isn't valid.");
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+
+            if (!data.role) {
+                const error = new Error('Role must be defined.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+            if (!['Administrator', 'Member', 'Viewer'].includes(data.role)) {
+                const error = new Error('Invalid role.');
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+
+            const { domain, project } = data;
+            const query = { domain, project };
+
+            const sso = await SsoService.findOneBy({
+                query: { _id: domain },
+                select: '_id',
+            });
+            if (!sso) {
+                const error = new Error("Domain doesn't exist.");
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+
+            const projectObj = await ProjectService.findOneBy({
+                query: { _id: project },
+                select: 'users _id',
+            });
+            if (!projectObj) {
+                const error = new Error("Project doesn't exist.");
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+
+            const search = await this.countBy(query);
+
+            if (search && search > 0) {
+                const error = new Error(
+                    '[Domain-Project] are already associated to a default role.'
+                );
+                error.code = 400;
+                ErrorService.log('ssoDefaultRolesService.create', error);
+                throw error;
+            }
+
+            const ssoDefaultRole = new ssoDefaultRolesModel();
+            ssoDefaultRole.domain = data.domain;
+            ssoDefaultRole.project = data.project;
+            ssoDefaultRole.role = data.role;
             const savedSso = await ssoDefaultRole.save();
             //Add existing users to the project.
             const { _id: ssoId } = sso;
@@ -294,37 +293,50 @@ module.exports = {
 
         if (!query.deleted) query.deleted = false;
 
-        const count = await ssoDefaultRolesModel.countDocuments(query);
-        return count;
+        try {
+            const count = await ssoDefaultRolesModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('ssoDefaultRolesService.countBy', error);
+            throw error;
+        }
     },
     addUserToDefaultProjects: async function({ domain, userId }) {
-        const populateDefaultRoleSso = [
-            { path: 'domain', select: '_id domain' },
-            { path: 'project', select: '_id name' },
-        ];
+        try {
+            const populateDefaultRoleSso = [
+                { path: 'domain', select: '_id domain' },
+                { path: 'project', select: '_id name' },
+            ];
 
-        const ssoDefaultRoles = await this.findBy({
-            query: { domain },
-            select: 'project role',
-            populate: populateDefaultRoleSso,
-        });
-        if (!ssoDefaultRoles.length) return;
-
-        for (const ssoDefaultRole of ssoDefaultRoles) {
-            const { project, role } = ssoDefaultRole;
-            const { _id: projectId } = project;
-            const projectObj = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'users',
+            const ssoDefaultRoles = await this.findBy({
+                query: { domain },
+                select: 'project role',
+                populate: populateDefaultRoleSso,
             });
-            if (!projectObj) continue;
+            if (!ssoDefaultRoles.length) return;
 
-            const { users } = projectObj;
-            users.push({
-                userId,
-                role,
-            });
-            await ProjectService.updateOneBy({ _id: projectId }, { users });
+            for (const ssoDefaultRole of ssoDefaultRoles) {
+                const { project, role } = ssoDefaultRole;
+                const { _id: projectId } = project;
+                const projectObj = await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'users',
+                });
+                if (!projectObj) continue;
+
+                const { users } = projectObj;
+                users.push({
+                    userId,
+                    role,
+                });
+                await ProjectService.updateOneBy({ _id: projectId }, { users });
+            }
+        } catch (error) {
+            ErrorService.log(
+                'ssoDefaultRolesService.addUserToDefaultProjects',
+                error
+            );
+            throw error;
         }
     },
     hardDeleteBy: async function(query) {

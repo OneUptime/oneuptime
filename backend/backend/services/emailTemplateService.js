@@ -161,49 +161,59 @@ module.exports = {
     },
 
     getTemplates: async function(projectId) {
-        const _this = this;
-        const select = 'projectId subject body emailType allowedVariables';
-        const templates = await Promise.all(
-            defaultTemplate.map(async template => {
-                const emailTemplate = await _this.findOneBy({
-                    query: {
-                        projectId: projectId,
-                        emailType: template.emailType,
-                    },
-                    select,
-                    populate: [{ path: 'projectId', select: 'nmae' }],
-                });
-                return emailTemplate != null && emailTemplate != undefined
-                    ? emailTemplate
-                    : template;
-            })
-        );
-        return templates;
+        try {
+            const _this = this;
+            const select = 'projectId subject body emailType allowedVariables';
+            const templates = await Promise.all(
+                defaultTemplate.map(async template => {
+                    const emailTemplate = await _this.findOneBy({
+                        query: {
+                            projectId: projectId,
+                            emailType: template.emailType,
+                        },
+                        select,
+                        populate: [{ path: 'projectId', select: 'nmae' }],
+                    });
+                    return emailTemplate != null && emailTemplate != undefined
+                        ? emailTemplate
+                        : template;
+                })
+            );
+            return templates;
+        } catch (error) {
+            ErrorService.log('emailTemplateService.getTemplates', error);
+            throw error;
+        }
     },
 
     resetTemplate: async function(projectId, templateId) {
-        const _this = this;
-        const select = 'projectId subject body emailType allowedVariables';
-        const oldTemplate = await _this.findOneBy({
-            query: { _id: templateId },
-            select,
-            populate: [{ path: 'projectId', select: 'nmae' }],
-        });
-        const newTemplate = defaultTemplate.filter(
-            template => template.emailType === oldTemplate.emailType
-        )[0];
-        const resetTemplate = await _this.updateOneBy(
-            {
-                _id: oldTemplate._id,
-            },
-            {
-                emailType: newTemplate.emailType,
-                subject: newTemplate.subject,
-                body: newTemplate.body,
-                allowedVariables: newTemplate.allowedVariables,
-            }
-        );
-        return resetTemplate;
+        try {
+            const _this = this;
+            const select = 'projectId subject body emailType allowedVariables';
+            const oldTemplate = await _this.findOneBy({
+                query: { _id: templateId },
+                select,
+                populate: [{ path: 'projectId', select: 'nmae' }],
+            });
+            const newTemplate = defaultTemplate.filter(
+                template => template.emailType === oldTemplate.emailType
+            )[0];
+            const resetTemplate = await _this.updateOneBy(
+                {
+                    _id: oldTemplate._id,
+                },
+                {
+                    emailType: newTemplate.emailType,
+                    subject: newTemplate.subject,
+                    body: newTemplate.body,
+                    allowedVariables: newTemplate.allowedVariables,
+                }
+            );
+            return resetTemplate;
+        } catch (error) {
+            ErrorService.log('emailTemplateService.resetTemplate', error);
+            throw error;
+        }
     },
 
     hardDeleteBy: async function(query) {

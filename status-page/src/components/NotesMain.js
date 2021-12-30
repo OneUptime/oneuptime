@@ -72,12 +72,15 @@ class NotesMain extends Component {
     handleIncidentStatus = (incident, timelines) => {
         let incidentTimeline = null,
             timelineStatus = null;
-        timelines.map(timeline => {
-            if (String(incident._id) === String(timeline.incidentId)) {
-                incidentTimeline = timeline;
-            }
-            return timeline;
-        });
+
+        if (timelines && Array.isArray(timelines) && timelines.length > 0) {
+            timelines.map(timeline => {
+                if (String(incident._id) === String(timeline.incidentId)) {
+                    incidentTimeline = timeline;
+                }
+                return timeline;
+            });
+        }
 
         if (incidentTimeline) {
             if (incident.resolved) {

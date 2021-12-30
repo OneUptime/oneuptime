@@ -31,8 +31,12 @@ module.exports = {
             });
 
             if (incidentMessage && incidentMessage.postOnStatusPage) {
-                // run in the background
-                RealTimeService.addIncidentNote(incidentMessage);
+                try {
+                    // run in the background
+                    RealTimeService.addIncidentNote(incidentMessage);
+                } catch (error) {
+                    ErrorService.log('realtimeService.addIncidentNote', error);
+                }
             }
 
             return incidentMessage;
@@ -69,7 +73,14 @@ module.exports = {
 
             // run in the background
             //RealTimeService.applicationLogKeyReset(applicationLog);
-            RealTimeService.updateIncidentNote(incidentMessage);
+            try {
+                RealTimeService.updateIncidentNote(incidentMessage);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.applicationLogKeyReset',
+                    error
+                );
+            }
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.updateOneBy', error);

@@ -7,7 +7,8 @@ saas:
   isSaasService: false
   stripe: 
     publicKey: #Stripe public and private key
-    privateKey: 
+    privateKey:
+    slackWebhook:
   airtable: 
     key: #Airtbale key to store leads. 
     baseId: 
@@ -99,6 +100,11 @@ image:
   restartPolicy: Always
 
 replicaCount: 1
+
+
+# manually add a key here
+# the key usually go out of sync unexpectedly
+clusterKey: fadew5465746ggdtbgw
 
 ##################################################################################
 ## IMPORTANT: 
@@ -295,3 +301,6 @@ applicationScanner:
 containerScanner:
   name: US
   key: s9KOOlCVyly0XykZVjDe
+
+logstashHost: 54.153.39.163
+logstashPort: 1514

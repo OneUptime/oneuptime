@@ -7,6 +7,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
+const ErrorService = require('../services/errorService');
 
 const router = express.Router();
 
@@ -64,7 +65,16 @@ router.post(
             const applicationSecurity = await ApplicationSecurityService.create(
                 data
             );
-            RealTimeService.sendApplicationSecurityCreated(applicationSecurity);
+            try {
+                RealTimeService.sendApplicationSecurityCreated(
+                    applicationSecurity
+                );
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.sendApplicationSecurityCreated',
+                    error
+                );
+            }
             return sendItemResponse(req, res, applicationSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -384,9 +394,13 @@ router.post(
                 { scanned: false }
             ); //This helps the application scanner to pull the application
 
-            RealTimeService.handleScanning({
-                security: updatedApplicationSecurity,
-            });
+            try {
+                RealTimeService.handleScanning({
+                    security: updatedApplicationSecurity,
+                });
+            } catch (error) {
+                ErrorService.log('realtimeService.handleScanning', error);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
