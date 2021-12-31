@@ -838,12 +838,15 @@ module.exports = {
     },
 
     updateProbeStatus: async function(probeId) {
+        console.log("Updating Probe Status")
         try {
             const probe = await ProbeModel.findOneAndUpdate(
                 { _id: probeId },
                 { $set: { lastAlive: Date.now() } },
                 { new: true }
             );
+            console.log("Probe Status Updated!")
+            console.log(probe)
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);

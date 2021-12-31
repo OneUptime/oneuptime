@@ -65,7 +65,16 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 //fetch tweets from user twitter handle
 router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
-        const { handle } = req.body;
+        let { handle } = req.body;
+
+        if(handle.includes("https://twitter.com/")){
+            handle = handle.replace("https://twitter.com/","");
+        }
+
+        if(handle.includes("http://twitter.com/")){
+            handle = handle.replace("http://twitter.com/","");
+        }
+
         if (!handle || (handle && handle.trim().length === 0)) {
             return sendErrorResponse(req, res, {
                 code: 400,
