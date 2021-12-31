@@ -20,6 +20,7 @@
         "ejs": "^3.1.6",
         "express": "^4.17.1",
         "express-rate-limit": "^5.2.6",
+        "express-request-id": "^1.4.1",
         "fyipe-acme-http-01": "^3.0.10432",
         "fyipe-gl-manager": "^3.0.13361",
         "fyipe-le-store": "^3.0.10432",

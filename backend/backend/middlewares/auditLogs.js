@@ -14,6 +14,9 @@ const sendErrorResponse = require('./response').sendErrorResponse;
 const { getProjectId } = require('./api');
 const GlobalConfigService = require('../services/globalConfigService');
 
+// TODO: This should be stored in a shared cache like redis. 
+let shouldStoreLogs = null;
+
 module.exports = {
     log: async function(req, res, next) {
         try {
@@ -37,16 +40,19 @@ module.exports = {
                 let projectId = getProjectId(req, res);
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
-                const auditLogStatus = await GlobalConfigService.findOneBy({
-                    query: { name: 'auditLogMonitoringStatus' },
-                    select: 'value',
-                });
-                // check if the global config has auditLog flag and is storing logs before trying to store logs
-                const shouldStoreLogs = !(
-                    auditLogStatus && !auditLogStatus.value
-                );
-                //  skip storing if audit log config exist and it is not storing
+                if (shouldStoreLogs === null) {
+                    const auditLogStatus = await GlobalConfigService.findOneBy({
+                        query: { name: 'auditLogMonitoringStatus' },
+                        select: 'value',
+                    });
 
+                    // check if the global config has auditLog flag and is storing logs before trying to store logs
+                    shouldStoreLogs = !(
+                        auditLogStatus && !auditLogStatus.value
+                    );
+                }
+
+                //  skip storing if audit log config exist and it is not storing
                 if (shouldStoreLogs) {
                     // store logs if storing
                     const parsedUrl = url.parse(req.originalUrl);

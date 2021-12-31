@@ -14,7 +14,11 @@ const express = require('express');
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
 const logger = require('./backend/config/logger');
+const expressRequestId = require('express-request-id')();
+
 const app = express();
+
+app.use(expressRequestId);
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -72,7 +76,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
-const Gl = require('greenlock');
+// const Gl = require('greenlock');
 const ErrorService = require('./backend/services/errorService');
 
 // try {
@@ -375,7 +379,7 @@ app.use(
 app.use(['/api'], require('./backend/api/apiStatus'));
 
 app.use('/*', function(req, res) {
-    res.status(404).send('Api endpoint not found');
+    res.status(404).send('Endpoint not found.');
 });
 
 app.use(Sentry.Handlers.errorHandler());

@@ -67,12 +67,12 @@ router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
         let { handle } = req.body;
 
-        if(handle.includes("https://twitter.com/")){
-            handle = handle.replace("https://twitter.com/","");
+        if (handle.includes('https://twitter.com/')) {
+            handle = handle.replace('https://twitter.com/', '');
         }
 
-        if(handle.includes("http://twitter.com/")){
-            handle = handle.replace("http://twitter.com/","");
+        if (handle.includes('http://twitter.com/')) {
+            handle = handle.replace('http://twitter.com/', '');
         }
 
         if (!handle || (handle && handle.trim().length === 0)) {
