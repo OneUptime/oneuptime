@@ -37,17 +37,11 @@ router.get('/', async (req, res) => {
                 },
                 select: 'status lastOperation',
             });
+            
             if (!status) {
                 status = await ApiStatusService.create(data);
             }
-
-            if (status) {
-                data.lastOperation = 'update';
-                status = await ApiStatusService.updateOneBy(
-                    { _id: status._id },
-                    data
-                );
-            }
+            
         } catch (error) {
             response.database.status = 'Down';
             response.database.message = error.message;
