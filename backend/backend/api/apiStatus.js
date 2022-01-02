@@ -29,29 +29,29 @@ router.get('/', async (req, res) => {
             },
         };
 
-        // // handle db related operation to test the health
-        // try {
-        //     let status = await ApiStatusService.findOneBy({
-        //         query: {
-        //             status: 'online',
-        //         },
-        //         select: 'status lastOperation',
-        //     });
-        //     if (!status) {
-        //         status = await ApiStatusService.create(data);
-        //     }
+        // handle db related operation to test the health
+        try {
+            let status = await ApiStatusService.findOneBy({
+                query: {
+                    status: 'online',
+                },
+                select: 'status lastOperation',
+            });
+            if (!status) {
+                status = await ApiStatusService.create(data);
+            }
 
-        //     if (status) {
-        //         data.lastOperation = 'update';
-        //         status = await ApiStatusService.updateOneBy(
-        //             { _id: status._id },
-        //             data
-        //         );
-        //     }
-        // } catch (error) {
-        //     response.database.status = 'Down';
-        //     response.database.message = error.message;
-        // }
+            if (status) {
+                data.lastOperation = 'update';
+                status = await ApiStatusService.updateOneBy(
+                    { _id: status._id },
+                    data
+                );
+            }
+        } catch (error) {
+            response.database.status = 'Down';
+            response.database.message = error.message;
+        }
 
         // handle redis related operation to test the health
         try {
