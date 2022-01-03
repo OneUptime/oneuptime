@@ -67,11 +67,46 @@ app.get(['/env.js', '/accounts/env.js'], function(req, res) {
 });
 
 app.use(express.static(path.join(__dirname, 'build')));
-app.use('/accounts', express.static(path.join(__dirname, 'build')));
+
 app.use(
     '/accounts/static/js',
-    express.static(path.join(__dirname, 'build/static/js'))
+    express.static(path.join(__dirname, 'build', 'static', 'js'))
 );
+
+// app.use(
+//     /^\/accounts\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
+//     function(req, res, next) {
+//         let baseUrls = req.baseUrl;
+//         baseUrls = baseUrls.split('/');
+
+//         const fileName = baseUrls[baseUrls.length - 1];
+//         if (fileName) {
+//             res.sendFile(
+//                 path.join(__dirname, 'build', 'static', 'js', fileName)
+//             );
+//         } else {
+//             return next();
+//         }
+//     }
+// );
+
+// app.use(/^\/accounts\/static\/js\/main\.(.+)\.chunk\.js$/, function(
+//     req,
+//     res,
+//     next
+// ) {
+//     let baseUrls = req.baseUrl;
+//     baseUrls = baseUrls.split('/');
+
+//     const fileName = baseUrls[baseUrls.length - 1];
+//     if (fileName) {
+//         res.sendFile(path.join(__dirname, 'build', 'static', 'js', fileName));
+//     } else {
+//         return next();
+//     }
+// });
+
+app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
 app.get('/*', function(req, res) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
