@@ -174,7 +174,11 @@ router.post('/signup', async function(req, res) {
                 );
 
                 // Call the MailService.
-                MailService.sendSignupMail(user.email, user.name);
+                try {
+                    MailService.sendSignupMail(user.email, user.name);
+                } catch (error) {
+                    ErrorService.log('mailService.sendSignupMail', error);
+                }
                 if (!verified) {
                     UserService.sendToken(user, user.email);
                 }
@@ -235,8 +239,12 @@ router.post('/signup', async function(req, res) {
             }
             // Call the UserService.
             user = await UserService.signup(data);
-            // Call the MailService.
-            MailService.sendSignupMail(user.email, user.name);
+            try {
+                // Call the MailService.
+                MailService.sendSignupMail(user.email, user.name);
+            } catch (error) {
+                ErrorService.log('mailService.sendSignupMail', error);
+            }
 
             // create access token and refresh token.
             const authUserObj = {
@@ -843,8 +851,12 @@ router.post('/forgot-password', async function(req, res) {
         // Call the UserService.
         const user = await UserService.forgotPassword(data.email);
         const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
-        // Call the MailService.
-        MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
+        try {
+            // Call the MailService.
+            MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
+        } catch (error) {
+            ErrorService.log('mailService.sendForgetPasswordMail', error);
+        }
 
         return sendItemResponse(req, res, {
             message: 'User received mail succcessfully.',
@@ -900,8 +912,12 @@ router.post('/reset-password', async function(req, res) {
             });
         }
 
-        // Call the MailService.
-        MailService.sendResetPasswordConfirmMail(user.email);
+        try {
+            // Call the MailService.
+            MailService.sendResetPasswordConfirmMail(user.email);
+        } catch (error) {
+            ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
+        }
         return sendItemResponse(req, res, {
             message: 'User password has been reset successfully.',
         });

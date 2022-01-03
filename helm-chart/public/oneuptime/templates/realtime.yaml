@@ -32,10 +32,7 @@ spec:
                       - name: PORT
                         value: {{ .Values.host.realtimePort | quote }}
                       - name: CLUSTER_KEY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
-                            key: clusterkey
+                        value: {{ .Values.clusterKey }}
                       - name: NODE_ENV
                         value: {{ .Values.nodeEnv }}
                       - name: SENTRY_DSN

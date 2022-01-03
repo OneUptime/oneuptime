@@ -65,7 +65,16 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 //fetch tweets from user twitter handle
 router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
-        const { handle } = req.body;
+        let { handle } = req.body;
+
+        if (handle.includes('https://twitter.com/')) {
+            handle = handle.replace('https://twitter.com/', '');
+        }
+
+        if (handle.includes('http://twitter.com/')) {
+            handle = handle.replace('http://twitter.com/', '');
+        }
+
         if (!handle || (handle && handle.trim().length === 0)) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -123,8 +132,12 @@ router.put(
                 populate: populateStatusPage,
                 select: selectStatusPage,
             });
-            // run in the background
-            RealTimeService.statusPageEdit(updatedStatusPage);
+            try {
+                // run in the background
+                RealTimeService.statusPageEdit(updatedStatusPage);
+            } catch (error) {
+                ErrorService.log('realtimeService.statuspageEdit', error);
+            }
             return sendItemResponse(req, res, updatedStatusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -169,8 +182,12 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
-        // run in the background
-        RealTimeService.statusPageEdit(updatedStatusPage);
+        try {
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
+        } catch (error) {
+            ErrorService.log('realtimeService.statusPageEdit', error);
+        }
         return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -619,17 +636,25 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 select: selectStatusPage,
             });
 
-            RealTimeService.statusPageEdit(updatedStatusPage);
+            try {
+                RealTimeService.statusPageEdit(updatedStatusPage);
+            } catch (error) {
+                ErrorService.log('realtimeService.statusPageEdit', error);
+            }
 
             if (updatedStatusPage?.twitterHandle) {
                 const tweets = await StatusPageService.fetchTweets(
                     updatedStatusPage.twitterHandle
                 );
-                RealTimeService.updateTweets(
-                    tweets,
-                    updatedStatusPage._id,
-                    updatedStatusPage.projectId
-                );
+                try {
+                    RealTimeService.updateTweets(
+                        tweets,
+                        updatedStatusPage._id,
+                        updatedStatusPage.projectId
+                    );
+                } catch (error) {
+                    ErrorService.log('realtimeService.updateTweets', error);
+                }
             }
 
             return sendItemResponse(req, res, statusPage);

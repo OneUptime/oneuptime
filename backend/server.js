@@ -3,17 +3,22 @@ if (process.env.NEW_RELIC_LICENSE_KEY) {
     require('newrelic');
 }
 
-const express = require('express');
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
-const app = express();
-
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
     require('custom-env').env();
 }
+
+const express = require('express');
+const Sentry = require('@sentry/node');
+const Tracing = require('@sentry/tracing');
+const logger = require('./backend/config/logger');
+const expressRequestId = require('express-request-id')();
+
+const app = express();
+
+app.use(expressRequestId);
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -37,22 +42,17 @@ Sentry.init({
 });
 
 process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Server Shutting Shutdown');
+    logger.info('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in server process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error('Unhandled rejection in server process occurred');
+    logger.error(err);
 });
 
 process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in server process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error('Uncaught exception in server process occurred');
+    logger.error(err);
 });
 
 const path = require('path');
@@ -76,7 +76,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
-const Gl = require('greenlock');
+// const Gl = require('greenlock');
+const ErrorService = require('./backend/services/errorService');
 
 // try {
 //     io.adapter(
@@ -378,7 +379,7 @@ app.use(
 app.use(['/api'], require('./backend/api/apiStatus'));
 
 app.use('/*', function(req, res) {
-    res.status(404).send('Api endpoint not found');
+    res.status(404).send('Endpoint not found.');
 });
 
 app.use(Sentry.Handlers.errorHandler());
@@ -388,42 +389,40 @@ require('./backend/workers/main');
 
 app.set('port', process.env.PORT || 3002);
 const server = http.listen(app.get('port'), function() {
-    // eslint-disable-next-line
-    console.log('Server Started on port ' + app.get('port'));
+    logger.info('Server Started on port ' + app.get('port'));
 });
 
 mongoose.connection.on('connected', async () => {
     try {
-        const greenlock = Gl.create({
-            manager: 'oneuptime-gl-manager',
-            packageRoot: process.cwd(),
-            maintainerEmail: 'certs@fyipe.com',
-            staging: false,
-            notify: function(event, details) {
-                if ('error' === event) {
-                    // `details` is an error object in this case
-                    // eslint-disable-next-line no-console
-                    console.error('Greenlock Notify: ', details);
-                }
-            },
-            challenges: {
-                'http-01': {
-                    module: 'oneuptime-acme-http-01',
-                },
-            },
-            store: {
-                module: 'oneuptime-le-store',
-            },
-        });
-
-        await greenlock.manager.defaults({
-            agreeToTerms: true,
-            subscriberEmail: 'certs@fyipe.com',
-        });
-        global.greenlock = greenlock;
+        // const greenlock = Gl.create({
+        //     manager: 'oneuptime-gl-manager',
+        //     packageRoot: process.cwd(),
+        //     maintainerEmail: 'certs@fyipe.com',
+        //     staging: false,
+        //     notify: function(event, details) {
+        //         if ('error' === event) {
+        //             // `details` is an error object in this case
+        //             // eslint-disable-next-line no-console
+        //             console.error('Greenlock Notify: ', details);
+        //         }
+        //     },
+        //     challenges: {
+        //         'http-01': {
+        //             module: 'oneuptime-acme-http-01',
+        //         },
+        //     },
+        //     store: {
+        //         module: 'oneuptime-le-store',
+        //     },
+        // });
+        // await greenlock.manager.defaults({
+        //     agreeToTerms: true,
+        //     subscriberEmail: 'certs@fyipe.com',
+        // });
+        // global.greenlock = greenlock;
     } catch (error) {
         // eslint-disable-next-line no-console
-        console.log('GREENLOCK INIT ERROR: ', error);
+        ErrorService.log('GREENLOCK INIT ERROR: ', error);
     }
 });
 

@@ -452,7 +452,8 @@ router.post('/update-lighthouse-log', isAuthorizedService, async function(
     res
 ) {
     try {
-        const { data, projectId, monitorId, parentProjectId } = req.body;
+        const body = req.body;
+        const { data, projectId, monitorId, parentProjectId } = body;
 
         RealtimeService.updateLighthouseLog({
             data,

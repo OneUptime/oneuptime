@@ -1088,7 +1088,6 @@ module.exports = {
                     );
                 });
                 const count = events.length;
-                // console.log(events);
 
                 return { events, count };
             } else {
@@ -2043,7 +2042,12 @@ module.exports = {
             if (!data.hideAnnouncement && data.announcementToggle) {
                 AlertService.sendAnnouncementNotificationToSubscribers(
                     response
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendAnnouncementNotificationToSubscribers',
+                        error
+                    );
+                });
             }
 
             const log = {

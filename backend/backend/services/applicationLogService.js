@@ -195,14 +195,18 @@ module.exports = {
                     query: { _id: applicationLog.componentId._id },
                     select: 'projectId',
                 });
-                NotificationService.create(
-                    component.projectId,
-                    `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
-                    applicationLog.deletedById._id,
-                    'applicationLogaddremove'
-                );
-                // run in the background
-                RealTimeService.sendApplicationLogDelete(applicationLog);
+                try {
+                    NotificationService.create(
+                        component.projectId,
+                        `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
+                        applicationLog.deletedById._id,
+                        'applicationLogaddremove'
+                    );
+                    // run in the background
+                    RealTimeService.sendApplicationLogDelete(applicationLog);
+                } catch (error) {
+                    ErrorService.log('applicationLogService.deleteBy', error);
+                }
                 return applicationLog;
             } else {
                 return null;
@@ -248,8 +252,15 @@ module.exports = {
                 'componentId name slug resourceCategory showQuickStart createdById key';
             applicationLog = await this.findOneBy({ query, populate, select });
 
-            // run in the background
-            RealTimeService.applicationLogKeyReset(applicationLog);
+            try {
+                // run in the background
+                RealTimeService.applicationLogKeyReset(applicationLog);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.applicationLogKeyReset',
+                    error
+                );
+            }
 
             return applicationLog;
         } catch (error) {

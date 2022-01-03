@@ -12,9 +12,7 @@ const GlobalConfig = require('./utils/globalConfig');
 
 // eslint-disable-next-line
 let token,
-    projectId,
-    anotherUser,
-    log = obj => console.log(obj);
+    projectId;
 
 describe('Slack API', function() {
     this.timeout(20000);

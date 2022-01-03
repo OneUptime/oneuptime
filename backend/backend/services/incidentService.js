@@ -250,7 +250,12 @@ module.exports = {
                 MonitorService.updateAllMonitorStatus(
                     { _id: { $in: data.monitors } },
                     { monitorStatus: data.incidentType.toLowerCase() }
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MonitorService.updateAllMonitorStatus',
+                        error
+                    );
+                });
 
                 // ********* TODO ************
                 // notification is an array of notifications
@@ -320,8 +325,15 @@ module.exports = {
                     populate,
                 });
 
-                // run in the background
-                RealTimeService.sendCreatedIncident(incident);
+                try {
+                    // run in the background
+                    RealTimeService.sendCreatedIncident(incident);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.sendCreatedIncident',
+                        error
+                    );
+                }
 
                 // run in the background
                 IncidentMessageService.create({
@@ -332,6 +344,8 @@ module.exports = {
                     type: 'investigation',
                     incident_state: 'Identified',
                     post_statuspage: true,
+                }).catch(error => {
+                    ErrorService.log('IncidentMessageService.create', error);
                 });
 
                 await IncidentTimelineService.create({
@@ -406,7 +420,12 @@ module.exports = {
                 MonitorService.updateAllMonitorStatus(
                     { _id: { $in: monitors } },
                     { monitorStatus: 'online' }
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MonitorService.updateAllMonitorStatus',
+                        error
+                    );
+                });
 
                 const populateIncTimeline = [
                     { path: 'createdById', select: 'name' },
@@ -530,7 +549,11 @@ module.exports = {
                 populate,
             });
 
-            RealTimeService.updateIncident(updatedIncident);
+            try {
+                RealTimeService.updateIncident(updatedIncident);
+            } catch (error) {
+                ErrorService.log('realtimeService.updateIncident', error);
+            }
 
             return updatedIncident;
         } catch (error) {
@@ -585,7 +608,11 @@ module.exports = {
 
     async _sendIncidentCreatedAlert(incident) {
         try {
-            ZapierService.pushToZapier('incident_created', incident);
+            ZapierService.pushToZapier('incident_created', incident).catch(
+                error => {
+                    ErrorService.log('ZapierService.pushToZapier', error);
+                }
+            );
             // await RealTimeService.sendCreatedIncident(incident);
 
             const notifications = [];
@@ -595,10 +622,25 @@ module.exports = {
             );
 
             // handle this asynchronous operation in the background
-            AlertService.sendCreatedIncidentToSubscribers(incident, monitors);
+            AlertService.sendCreatedIncidentToSubscribers(
+                incident,
+                monitors
+            ).catch(error => {
+                ErrorService.log(
+                    'AlertService.sendCreatedIncidentToSubscribers',
+                    error
+                );
+            });
 
             for (const monitor of monitors) {
-                AlertService.sendCreatedIncident(incident, monitor);
+                AlertService.sendCreatedIncident(incident, monitor).catch(
+                    error => {
+                        ErrorService.log(
+                            'AlertService.sendCreatedIncident',
+                            error
+                        );
+                    }
+                );
 
                 let notification = {};
                 // send slack notification
@@ -608,7 +650,9 @@ module.exports = {
                     monitor,
                     INCIDENT_CREATED,
                     monitor.componentId
-                );
+                ).catch(error => {
+                    ErrorService.log('SlackService.sendNotification', error);
+                });
                 // send webhook notification
                 WebHookService.sendIntegrationNotification(
                     incident.projectId._id || incident.projectId,
@@ -616,7 +660,12 @@ module.exports = {
                     monitor,
                     INCIDENT_CREATED,
                     monitor.componentId
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'WebHookService.sendIntegrationNotification',
+                        error
+                    );
+                });
                 // send Ms Teams notification
                 MsTeamsService.sendNotification(
                     incident.projectId._id || incident.projectId,
@@ -624,41 +673,50 @@ module.exports = {
                     monitor,
                     INCIDENT_CREATED,
                     monitor.componentId
-                );
+                ).catch(error => {
+                    ErrorService.log('MsTeamsService.sendNotification', error);
+                });
 
                 const meta = {
                     type: 'Incident',
                     componentId: monitor.componentId._id || monitor.componentId,
                     incidentId: incident._id,
                 };
-                if (!incident.createdById) {
-                    if (incident.createdByIncomingHttpRequest) {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
-                        notification = await NotificationService.create(
-                            incident.projectId._id || incident.projectId,
-                            msg,
-                            'incoming http request',
-                            'warning',
-                            meta
-                        );
+                try {
+                    if (!incident.createdById) {
+                        if (incident.createdByIncomingHttpRequest) {
+                            const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
+                            notification = await NotificationService.create(
+                                incident.projectId._id || incident.projectId,
+                                msg,
+                                'incoming http request',
+                                'warning',
+                                meta
+                            );
+                        } else {
+                            const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
+                            notification = await NotificationService.create(
+                                incident.projectId._id || incident.projectId,
+                                msg,
+                                'oneuptime',
+                                'warning',
+                                meta
+                            );
+                        }
                     } else {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
+                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
                         notification = await NotificationService.create(
                             incident.projectId._id || incident.projectId,
                             msg,
-                            'oneuptime',
+                            incident.createdById.name,
                             'warning',
                             meta
                         );
                     }
-                } else {
-                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
-                    notification = await NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        msg,
-                        incident.createdById.name,
-                        'warning',
-                        meta
+                } catch (error) {
+                    ErrorService.log(
+                        'incidentService._sendIncidentCreatedAlert',
+                        error
                     );
                 }
 
@@ -714,20 +772,24 @@ module.exports = {
                     incident.createdAt
                 );
 
-                if (isEmpty(httpRequest)) {
-                    NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        `An Incident was acknowledged by ${name}`,
-                        userId,
-                        'acknowledge'
-                    );
-                } else {
-                    NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
-                        userId,
-                        'acknowledge'
-                    );
+                try {
+                    if (isEmpty(httpRequest)) {
+                        NotificationService.create(
+                            incident.projectId._id || incident.projectId,
+                            `An Incident was acknowledged by ${name}`,
+                            userId,
+                            'acknowledge'
+                        );
+                    } else {
+                        NotificationService.create(
+                            incident.projectId._id || incident.projectId,
+                            `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
+                            userId,
+                            'acknowledge'
+                        );
+                    }
+                } catch (error) {
+                    ErrorService.log('notificationService.create', error);
                 }
 
                 // Ping webhook
@@ -768,6 +830,8 @@ module.exports = {
                     post_statuspage: true,
                     monitors,
                     ignoreCounter: true,
+                }).catch(error => {
+                    ErrorService.log('IncidentMessageService.create', error);
                 });
 
                 await IncidentTimelineService.create({
@@ -784,7 +848,12 @@ module.exports = {
                 AlertService.sendAcknowledgedIncidentToSubscribers(
                     incident,
                     monitors
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendAcknowledgedIncidentToSubscribers',
+                        error
+                    );
+                });
 
                 for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
@@ -794,7 +863,12 @@ module.exports = {
                         INCIDENT_ACKNOWLEDGED,
                         component,
                         downtimestring
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'WebHookService.sendIntegrationNotification',
+                            error
+                        );
+                    });
 
                     SlackService.sendNotification(
                         incident.projectId._id || incident.projectId,
@@ -803,7 +877,12 @@ module.exports = {
                         INCIDENT_ACKNOWLEDGED,
                         component,
                         downtimestring
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'SlackService.sendNotification',
+                            error
+                        );
+                    });
 
                     MsTeamsService.sendNotification(
                         incident.projectId._id || incident.projectId,
@@ -812,16 +891,33 @@ module.exports = {
                         INCIDENT_ACKNOWLEDGED,
                         component,
                         downtimestring
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'MsTeamsService.sendNotification',
+                            error
+                        );
+                    });
 
                     AlertService.sendAcknowledgedIncidentMail(
                         incident,
                         monitor
-                    );
+                    ).catch(error => {
+                        ErrorService.log(
+                            'AlertService.sendAcknowledgedIncidentMail',
+                            error
+                        );
+                    });
                 }
 
-                RealTimeService.incidentAcknowledged(incident);
-                ZapierService.pushToZapier('incident_acknowledge', incident);
+                try {
+                    ZapierService.pushToZapier(
+                        'incident_acknowledge',
+                        incident
+                    );
+                    RealTimeService.incidentAcknowledged(incident);
+                } catch (error) {
+                    ErrorService.log('incidentService.acknowledge', error);
+                }
             } else {
                 const populate = [
                     {
@@ -924,7 +1020,12 @@ module.exports = {
             MonitorService.updateAllMonitorStatus(
                 { _id: { $in: monitors } },
                 { monitorStatus: 'online' }
-            );
+            ).catch(error => {
+                ErrorService.log(
+                    'MonitorService.updateAllMonitorStatus',
+                    error
+                );
+            });
 
             // automatically create resolved incident note
             await IncidentMessageService.create({
@@ -951,7 +1052,15 @@ module.exports = {
 
             const statusData = [];
             // send notificaton to subscribers
-            AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
+            AlertService.sendResolvedIncidentToSubscribers(
+                incident,
+                monitors
+            ).catch(error => {
+                ErrorService.log(
+                    'AlertService.sendResolvedIncidentToSubscribers',
+                    error
+                );
+            });
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
@@ -976,8 +1085,12 @@ module.exports = {
             }
             await MonitorStatusService.createMany(statusData);
 
-            RealTimeService.incidentResolved(incident);
-            ZapierService.pushToZapier('incident_resolve', incident);
+            try {
+                RealTimeService.incidentResolved(incident);
+                ZapierService.pushToZapier('incident_resolve', incident);
+            } catch (error) {
+                ErrorService.log('incidentService.resolve', error);
+            }
 
             return incident;
         } catch (error) {
@@ -1273,7 +1386,9 @@ module.exports = {
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
-            );
+            ).catch(error => {
+                ErrorService.log('SlackService.sendNotification', error);
+            });
             // Ping webhook
             WebHookService.sendIntegrationNotification(
                 incident.projectId._id || incident.projectId,
@@ -1282,7 +1397,12 @@ module.exports = {
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
-            );
+            ).catch(error => {
+                ErrorService.log(
+                    'WebHookService.sendIntegrationNotification',
+                    error
+                );
+            });
             // Ms Teams
             MsTeamsService.sendNotification(
                 incident.projectId._id || incident.projectId,
@@ -1291,9 +1411,18 @@ module.exports = {
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
-            );
+            ).catch(error => {
+                ErrorService.log('MsTeamsService.sendNotification', error);
+            });
 
-            AlertService.sendResolveIncidentMail(incident, monitor);
+            AlertService.sendResolveIncidentMail(incident, monitor).catch(
+                error => {
+                    ErrorService.log(
+                        'AlertService.sendResolveIncidentMail',
+                        error
+                    );
+                }
+            );
 
             const msg = `${
                 monitor.name
@@ -1302,14 +1431,21 @@ module.exports = {
                     resolvedincident.resolvedBy.name) ||
                 'oneuptime'}`;
 
-            NotificationService.create(
-                incident.projectId._id || incident.projectId,
-                msg,
-                resolvedincident.resolvedBy
-                    ? resolvedincident.resolvedBy._id
-                    : 'oneuptime',
-                'success'
-            );
+            try {
+                NotificationService.create(
+                    incident.projectId._id || incident.projectId,
+                    msg,
+                    resolvedincident.resolvedBy
+                        ? resolvedincident.resolvedBy._id
+                        : 'oneuptime',
+                    'success'
+                );
+            } catch (error) {
+                ErrorService.log(
+                    'incidentService.sendIncidentResolvedNotification',
+                    error
+                );
+            }
         } catch (error) {
             ErrorService.log(
                 'incidentService.sendIncidentResolvedNotification',
@@ -1330,17 +1466,31 @@ module.exports = {
                     incident,
                     data,
                     monitor
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'SlackService.sendIncidentNoteNotification',
+                        error
+                    );
+                });
 
                 MsTeamsService.sendIncidentNoteNotification(
                     projectId,
                     incident,
                     data,
                     monitor
-                );
+                ).catch(error => {
+                    ErrorService.log(
+                        'MsTeamsService.sendIncidentNoteNotification',
+                        error
+                    );
+                });
             }
 
-            ZapierService.pushToZapier('incident_note', incident, data);
+            ZapierService.pushToZapier('incident_note', incident, data).catch(
+                error => {
+                    ErrorService.log('ZapierService.pushToZapier', error);
+                }
+            );
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;
@@ -1502,9 +1652,16 @@ module.exports = {
                         populate,
                     });
 
-                    // run in the background
-                    if (updatedIncident) {
-                        RealTimeService.deleteIncident(updatedIncident);
+                    try {
+                        // run in the background
+                        if (updatedIncident) {
+                            RealTimeService.deleteIncident(updatedIncident);
+                        }
+                    } catch (error) {
+                        ErrorService.log(
+                            'realtimeService.deleteIncident',
+                            error
+                        );
                     }
                 })
             );
@@ -1598,14 +1755,28 @@ module.exports = {
 
                             // await was left out here because we care about the slaCountDown
                             // and also to ensure that it was delivered successfully
-                            RealTimeService.sendSlaCountDown(
-                                currentIncident,
-                                `${countDown}`
-                            );
+                            try {
+                                RealTimeService.sendSlaCountDown(
+                                    currentIncident,
+                                    `${countDown}`
+                                );
+                            } catch (error) {
+                                ErrorService.log(
+                                    'realtimeService.sendSlaCountDown',
+                                    error
+                                );
+                            }
 
                             if (countDown === alertTime) {
                                 // send mail to team
-                                AlertService.sendSlaEmailToTeamMembers(data);
+                                AlertService.sendSlaEmailToTeamMembers(
+                                    data
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendSlaEmailToTeamMembers',
+                                        error
+                                    );
+                                });
                             }
 
                             if (countDown === 0) {
@@ -1620,7 +1791,12 @@ module.exports = {
                                 AlertService.sendSlaEmailToTeamMembers(
                                     data,
                                     true
-                                );
+                                ).catch(error => {
+                                    ErrorService.log(
+                                        'AlertService.sendSlaEmailToTeamMembers',
+                                        error
+                                    );
+                                });
                             }
                         }, 1000);
 

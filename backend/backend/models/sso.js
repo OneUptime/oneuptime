@@ -44,6 +44,11 @@ const ssoSchema = new Schema({
         ref: 'User',
         index: true,
     },
+    projectId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Project',
+        index: true,
+    },
 });
 
 module.exports = mongoose.model('Sso', ssoSchema);
