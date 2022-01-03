@@ -34,30 +34,35 @@ module.exports = {
                     projectMembers = projectMembers.concat(users);
                 });
             }
-            let usersId = projectMembers.map(user => user.userId.toString());
+
+            let usersId = [];
+            projectMembers.map(user => {
+                if (user.show) {
+                    usersId.push(user.userId.toString());
+                }
+            });
+
             usersId = [...new Set(usersId)];
 
-            const users = [];
-            for (const id of usersId) {
-                const user = await UserService.findOneBy({
-                    query: { _id: id },
-                    select: '_id email name lastActive',
-                });
-                users.push(user);
-            }
+            const users = await UserService.findBy({
+                query: { _id: usersId },
+                select: '_id email name lastActive',
+            });
 
             const response = [];
             for (let i = 0; i < users.length; i++) {
-                if (users[i] && projectMembers[i].show) {
-                    response.push({
-                        userId: users[i]._id,
-                        email: users[i].email,
-                        name: users[i].name,
-                        role: projectMembers[i].role,
-                        lastActive: users[i].lastActive,
-                        show: projectMembers[i].show,
-                    });
-                }
+                const memberDetail = projectMembers.filter(
+                    member => member.userId === users[i]._id.toString()
+                )[0];
+
+                response.push({
+                    userId: users[i]._id,
+                    email: users[i].email,
+                    name: users[i].name,
+                    role: memberDetail.role,
+                    lastActive: users[i].lastActive,
+                    show: memberDetail.show,
+                });
             }
             return response;
         } catch (error) {

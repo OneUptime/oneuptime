@@ -29,7 +29,9 @@ function TeamMemberProfile({
     currentProject,
     switchToProjectViewerNav,
 }) {
-    if (!projectId) {
+    if (User.getActiveSubProjectId().length > 1) {
+        projectId = User.getActiveSubProjectId();
+    } else if (!projectId) {
         projectId = User.getCurrentProjectId();
     }
     const memberId = match.params.memberId;
