@@ -27,8 +27,9 @@ module.exports = {
     decryptPassword: async function(security) {
         try {
             const values = [];
-            for (let i = 0; i <= 15; i++)
-                values.push(security.gitCredential.iv[i]);
+            for (let i = 0; i <= 15; i++) {
+                values.push(security.gitCredential.iv.data[i]);
+            }
             const iv = Buffer.from(values);
             security.gitCredential.gitPassword = await this.decrypt(
                 security.gitCredential.gitPassword,
@@ -37,7 +38,7 @@ module.exports = {
             return security;
         } catch (error) {
             ErrorService.log(
-                'applicatioinSecurityService.decryptPassword',
+                'applicationSecurityService.decryptPassword',
                 error
             );
             throw error;
