@@ -485,7 +485,7 @@ const mapStateToProps = state => {
 const NewApplicationSecurityForm = reduxForm({
     form: 'ApplicationSecurityForm',
     destroyOnUnmount: true,
-    enableReinitialize: false,
+    enableReinitialize: true,
 })(ApplicationSecurityForm);
 
 export default connect(
