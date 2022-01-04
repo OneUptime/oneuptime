@@ -1259,7 +1259,8 @@ const mapStateToProps = state => {
     state.monitor.monitorsList.monitors.forEach(monitorObj => {
         monitorObj.monitors.forEach(monitor => monitors.push(monitor));
     });
-
+    // eslint-disable-next-line no-console
+    console.log('Form Values: ', state.form.newCreateSchedule);
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
         requesting: state.scheduledEvent.currentScheduledEvent.requesting,

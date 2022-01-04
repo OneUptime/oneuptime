@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const crypto = require('crypto');
 const EncryptionKeys = require('./encryptionKeys');
 const algorithm = EncryptionKeys.algorithm;
@@ -19,10 +20,15 @@ const {
     updateApplicationSecurityToFailed,
 } = require('./applicationSecurityUpdate');
 
+const { NodeSSH } = require('node-ssh');
+
+const ssh = new NodeSSH();
+
 module.exports = {
     scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanApplicationSecurity(decryptedSecurity);
+        await this.sshScanApplicationSecurity(decryptedSecurity);
     },
     decryptPassword: async function(security) {
         try {
@@ -56,6 +62,20 @@ module.exports = {
             }
         });
         return promise;
+    },
+    sshScanApplicationSecurity: async () => {
+        try {
+            let securityDir = 'new_application_security';
+            securityDir = await createDir(securityDir);
+            const cloneDirectory = `${uuidv1()}security`; // always create unique paths
+            Path.resolve(securityDir, cloneDirectory);
+            await git(securityDir).clone(
+                'git@github.com:adeoluwadavid/framer-motion.git',
+                cloneDirectory
+            );
+        } catch (e) {
+            console.log('Error: ', e);
+        }
     },
     scanApplicationSecurity: async security => {
         try {

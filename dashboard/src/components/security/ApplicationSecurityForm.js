@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -55,8 +56,10 @@ class ApplicationSecurityForm extends Component {
             requestingGitCredentials,
             gitCredentials,
             resourceCategoryList,
+            useGit,
+            formValues,
         } = this.props;
-
+        console.log('Form V: ', formValues);
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -181,7 +184,127 @@ class ApplicationSecurityForm extends Component {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="bs-Fieldset-row bs-u-justify--center">
+                                                <div>
+                                                    <fieldset
+                                                        style={{
+                                                            padding: 0,
+                                                            marginBottom: 10,
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-rows">
+                                                            <div
+                                                                className="bs-Fieldset-row"
+                                                                style={{
+                                                                    padding: 0,
+                                                                    display:
+                                                                        'block',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <label
+                                                                        className="bs-Radio"
+                                                                        style={{
+                                                                            marginRight:
+                                                                                '12px',
+                                                                        }}
+                                                                        htmlFor="useGitCredentials"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="radio"
+                                                                            name="useGit"
+                                                                            className="bs-Radio-source"
+                                                                            id="useGitCredentials"
+                                                                            value="useGitCredentials"
+                                                                            style={{
+                                                                                width: 0,
+                                                                            }}
+                                                                        />
+                                                                        <span className="bs-Radio-button"></span>
+                                                                        <div
+                                                                            className="Box-root"
+                                                                            style={{
+                                                                                paddingLeft:
+                                                                                    '10px',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                Use
+                                                                                Git
+                                                                                Credentials
+                                                                            </span>
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </fieldset>
+                                                    <fieldset
+                                                        style={{
+                                                            padding: 0,
+                                                            marginBottom: 10,
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-rows">
+                                                            <div
+                                                                className="bs-Fieldset-row"
+                                                                style={{
+                                                                    padding: 0,
+                                                                    display:
+                                                                        'block',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="bs-Fieldset-field"
+                                                                    style={{
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <label
+                                                                        className="bs-Radio"
+                                                                        style={{
+                                                                            marginRight:
+                                                                                '12px',
+                                                                        }}
+                                                                        htmlFor="useGitSsh"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="radio"
+                                                                            name="useGit"
+                                                                            className="bs-Radio-source"
+                                                                            id="useGitSsh"
+                                                                            value="useGitSsh"
+                                                                            style={{
+                                                                                width: 0,
+                                                                            }}
+                                                                        />
+                                                                        <span className="bs-Radio-button"></span>
+                                                                        <div
+                                                                            className="Box-root"
+                                                                            style={{
+                                                                                paddingLeft:
+                                                                                    '10px',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                Use
+                                                                                Git
+                                                                                SSH
+                                                                            </span>
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </fieldset>
+                                                </div>
+                                                {formValues && formValues.values.useGit==='useGitCredentials' && (<div className="bs-Fieldset-row bs-u-justify--center">
                                                     <label className="bs-Fieldset-label Fieldset-extra">
                                                         Git Credential
                                                     </label>
@@ -241,7 +364,8 @@ class ApplicationSecurityForm extends Component {
                                                             </span>
                                                         </p>
                                                     </div>
-                                                </div>
+                                                </div>)
+                                        }
                                             </div>
                                         </fieldset>
                                     </div>
@@ -341,6 +465,7 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => {
+    console.log('The State: ', state);
     return {
         isRequesting: state.security.addApplication.requesting,
         addApplicationError: state.security.addApplication.error,
@@ -349,13 +474,18 @@ const mapStateToProps = state => {
         resourceCategoryList:
             state.resourceCategories.resourceCategoryListForNewResource
                 .resourceCategories,
+        initialValues: {
+            useGitCredentials: true,
+            useGit: 'useGitCredentials',
+        },
+        formValues: state.form.ApplicationSecurityForm,
     };
 };
 
 const NewApplicationSecurityForm = reduxForm({
     form: 'ApplicationSecurityForm',
     destroyOnUnmount: true,
-    enableReinitialize: true,
+    enableReinitialize: false,
 })(ApplicationSecurityForm);
 
 export default connect(
