@@ -20,10 +20,10 @@ const {
     updateApplicationSecurityToFailed,
 } = require('./applicationSecurityUpdate');
 
-const { NodeSSH } = require('node-ssh');
+// const { NodeSSH } = require('node-ssh');
+// const ssh = new NodeSSH();
 
-const ssh = new NodeSSH();
-
+const { Client } = require('ssh2');
 module.exports = {
     scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
@@ -65,14 +65,134 @@ module.exports = {
     },
     sshScanApplicationSecurity: async () => {
         try {
-            let securityDir = 'new_application_security';
+            const myFile = fs.readFileSync('/Users/adewole/.ssh/id_ed25519');
+            console.log('My File: ', myFile);
+            let securityDir = 'ssh_application_security_dir';
             securityDir = await createDir(securityDir);
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             Path.resolve(securityDir, cloneDirectory);
-            await git(securityDir).clone(
-                'git@github.com:adeoluwadavid/framer-motion.git',
-                cloneDirectory
-            );
+            const conn = new Client();
+
+            conn.on('ready', () => {
+                console.log('Client :: ready');
+                return new Promise(() => {
+                    git(securityDir)
+                        .silent(true)
+                        .clone(
+                            'git@github.com:adeoluwadavid/RabbitMQ.git',
+                            cloneDirectory
+                        );
+                    // .then(() => {
+                    //     const output = spawn('npm', ['install'], {
+                    //         cwd: repoPath,
+                    //     });
+                    //     output.on('error', error => {
+                    //         error.code = 500;
+                    //         throw error;
+                    //     });
+
+                    //     output.on('close', () => {
+                    //         let auditOutput = '';
+                    //         const audit = spawn('npm', ['audit', '--json'], {
+                    //             cwd: repoPath,
+                    //         });
+
+                    //         audit.on('error', error => {
+                    //             error.code = 500;
+                    //             throw error;
+                    //         });
+
+                    //         audit.stdout.on('data', data => {
+                    //             const strData = data.toString();
+                    //             auditOutput += strData;
+                    //         });
+
+                    //         audit.on('close', async () => {
+                    //             let advisories = [];
+                    //             auditOutput = JSON.parse(auditOutput); // parse the stringified json
+                    //             for (const key in auditOutput.vulnerabilities) {
+                    //                 advisories.push(
+                    //                     auditOutput.vulnerabilities[key]
+                    //                 );
+                    //             }
+
+                    //             const criticalArr = [],
+                    //                 highArr = [],
+                    //                 moderateArr = [],
+                    //                 lowArr = [];
+                    //             advisories.map(advisory => {
+                    //                 if (advisory.severity === 'critical') {
+                    //                     criticalArr.push(advisory);
+                    //                 }
+                    //                 if (advisory.severity === 'high') {
+                    //                     highArr.push(advisory);
+                    //                 }
+                    //                 if (advisory.severity === 'moderate') {
+                    //                     moderateArr.push(advisory);
+                    //                 }
+                    //                 if (advisory.severity === 'low') {
+                    //                     lowArr.push(advisory);
+                    //                 }
+                    //                 return advisory;
+                    //             });
+
+                    //             // restructure advisories from the most critical case to the least critical(low)
+                    //             advisories = [
+                    //                 ...criticalArr,
+                    //                 ...highArr,
+                    //                 ...moderateArr,
+                    //                 ...lowArr,
+                    //             ];
+
+                    //             const auditData = {
+                    //                 dependencies:
+                    //                     auditOutput.metadata.dependencies,
+                    //                 devDependencies:
+                    //                     auditOutput.metadata.devDependencies,
+                    //                 optionalDependencies:
+                    //                     auditOutput.metadata
+                    //                         .optionalDependencies,
+                    //                 totalDependencies:
+                    //                     auditOutput.metadata.totalDependencies,
+                    //                 vulnerabilities:
+                    //                     auditOutput.metadata.vulnerabilities,
+                    //                 advisories,
+                    //             };
+
+                    //             const resolvedLog = await updateApplicationSecurityLogService(
+                    //                 {
+                    //                     securityId: security._id,
+                    //                     componentId: security.componentId._id,
+                    //                     data: auditData,
+                    //                 }
+                    //             );
+                    //             await updateApplicationSecurityScanTime({
+                    //                 _id: security._id,
+                    //             });
+                    //             await deleteFolderRecursive(repoPath);
+                    //             return resolve(resolvedLog);
+                    //         });
+                    //     });
+                    // })
+                    // .catch(async error => {
+                    //     await updateApplicationSecurityToFailed(security);
+                    //     error.message =
+                    //         'Authentication failed please check your git credentials or git repository url';
+                    //     ErrorService.log(
+                    //         'applicationSecurityUpdate.updateApplicationSecurityToFailed',
+                    //         error
+                    //     );
+
+                    //     await deleteFolderRecursive(repoPath);
+                    //     return reject(error);
+                    // });
+                });
+            }).connect({
+                host: 'github.com',
+                port: 22,
+                username: 'git',
+                privateKey: myFile,
+            });
         } catch (e) {
             console.log('Error: ', e);
         }

@@ -174,7 +174,7 @@ class ApplicationSecurityForm extends Component {
                                                             type="text"
                                                             name="gitRepositoryUrl"
                                                             id="gitRepositoryUrl"
-                                                            placeholder="https://github.com/bitcoin/bitcoin"
+                                                            placeholder= "https://github.com/bitcoin/bitcoin" 
                                                             disabled={
                                                                 isRequesting
                                                             }
@@ -184,188 +184,136 @@ class ApplicationSecurityForm extends Component {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <fieldset
+
+                                                <label
+                                                    className="bs-Radio"
+                                                    style={{
+                                                       
+                                                         marginLeft: '200px',
+                                                    }}
+                                                    htmlFor="useGitCredentials"
+                                                >
+                                                    <Field
+                                                        component="input"
+                                                        type="radio"
+                                                        name="useGit"
+                                                        className="bs-Radio-source"
+                                                        id="useGitCredentials"
+                                                        value="useGitCredentials"
                                                         style={{
-                                                            padding: 0,
-                                                            marginBottom: 10,
+                                                            width: 0,
+                                                        }}
+                                                    />
+                                                    <span className="bs-Radio-button"></span>
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            paddingLeft: '10px',
                                                         }}
                                                     >
-                                                        <div className="bs-Fieldset-rows">
-                                                            <div
-                                                                className="bs-Fieldset-row"
-                                                                style={{
-                                                                    padding: 0,
-                                                                    display:
-                                                                        'block',
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    className="bs-Fieldset-field"
-                                                                    style={{
-                                                                        padding: 0,
-                                                                    }}
-                                                                >
-                                                                    <label
-                                                                        className="bs-Radio"
-                                                                        style={{
-                                                                            marginRight:
-                                                                                '12px',
-                                                                        }}
-                                                                        htmlFor="useGitCredentials"
-                                                                    >
-                                                                        <Field
-                                                                            component="input"
-                                                                            type="radio"
-                                                                            name="useGit"
-                                                                            className="bs-Radio-source"
-                                                                            id="useGitCredentials"
-                                                                            value="useGitCredentials"
-                                                                            style={{
-                                                                                width: 0,
-                                                                            }}
-                                                                        />
-                                                                        <span className="bs-Radio-button"></span>
-                                                                        <div
-                                                                            className="Box-root"
-                                                                            style={{
-                                                                                paddingLeft:
-                                                                                    '10px',
-                                                                            }}
-                                                                        >
-                                                                            <span>
-                                                                                Use
-                                                                                Git
-                                                                                Credentials
-                                                                            </span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </fieldset>
-                                                    <fieldset
-                                                        style={{
-                                                            padding: 0,
-                                                            marginBottom: 10,
-                                                        }}
-                                                    >
-                                                        <div className="bs-Fieldset-rows">
-                                                            <div
-                                                                className="bs-Fieldset-row"
-                                                                style={{
-                                                                    padding: 0,
-                                                                    display:
-                                                                        'block',
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    className="bs-Fieldset-field"
-                                                                    style={{
-                                                                        padding: 0,
-                                                                    }}
-                                                                >
-                                                                    <label
-                                                                        className="bs-Radio"
-                                                                        style={{
-                                                                            marginRight:
-                                                                                '12px',
-                                                                        }}
-                                                                        htmlFor="useGitSsh"
-                                                                    >
-                                                                        <Field
-                                                                            component="input"
-                                                                            type="radio"
-                                                                            name="useGit"
-                                                                            className="bs-Radio-source"
-                                                                            id="useGitSsh"
-                                                                            value="useGitSsh"
-                                                                            style={{
-                                                                                width: 0,
-                                                                            }}
-                                                                        />
-                                                                        <span className="bs-Radio-button"></span>
-                                                                        <div
-                                                                            className="Box-root"
-                                                                            style={{
-                                                                                paddingLeft:
-                                                                                    '10px',
-                                                                            }}
-                                                                        >
-                                                                            <span>
-                                                                                Use
-                                                                                Git
-                                                                                SSH
-                                                                            </span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </fieldset>
-                                                </div>
-                                                {formValues && formValues.values.useGit==='useGitCredentials' && (<div className="bs-Fieldset-row bs-u-justify--center">
-                                                    <label className="bs-Fieldset-label Fieldset-extra">
-                                                        Git Credential
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <Field
-                                                            className="db-select-nw"
-                                                            component={
-                                                                RenderSelect
-                                                            }
-                                                            name="gitCredential"
-                                                            id="gitCredential"
-                                                            placeholder="Git Credential"
-                                                            required="required"
-                                                            style={{
-                                                                height: '28px',
-                                                            }}
-                                                            options={[
-                                                                {
-                                                                    value: '',
-                                                                    label:
-                                                                        'Select a Git Credential',
-                                                                },
-                                                                ...(gitCredentials &&
-                                                                gitCredentials.length >
-                                                                    0
-                                                                    ? gitCredentials.map(
-                                                                          gitCredential => ({
-                                                                              value:
-                                                                                  gitCredential._id,
-                                                                              label:
-                                                                                  gitCredential.gitUsername,
-                                                                          })
-                                                                      )
-                                                                    : []),
-                                                            ]}
-                                                        />
-                                                        <p
-                                                            className="bs-Fieldset-explanation"
-                                                            style={{
-                                                                color:
-                                                                    '#4c4c4c',
-                                                                textDecoration:
-                                                                    'underline',
-                                                                cursor:
-                                                                    'pointer',
-                                                            }}
-                                                        >
-                                                            <span
-                                                                onClick={
-                                                                    this
-                                                                        .handleGitCredential
-                                                                }
-                                                                id="addCredentialBtn"
-                                                            >
-                                                                Add a git
-                                                                credential
-                                                            </span>
-                                                        </p>
+                                                        <span>
+                                                            Use Git Credentials
+                                                        </span>
                                                     </div>
-                                                </div>)
-                                        }
+                                                </label>
+                                                <div>
+                                                <label
+                                                    className="bs-Radio"
+                                                    style={{
+                                                        marginLeft: '200px',
+                                                    }}
+                                                    htmlFor="useGitSsh"
+                                                >
+                                                    <Field
+                                                        component="input"
+                                                        type="radio"
+                                                        name="useGit"
+                                                        className="bs-Radio-source"
+                                                        id="useGitSsh"
+                                                        value="useGitSsh"
+                                                        style={{
+                                                            width: 0,
+                                                        }}
+                                                    />
+                                                    <span className="bs-Radio-button"></span>
+                                                    <div
+                                                        className="Box-root"
+                                                        style={{
+                                                            paddingLeft: '10px',
+                                                        }}
+                                                    >
+                                                        <span>Use Git SSH</span>
+                                                    </div>
+                                                </label>
+                                                </div> 
+                                                {formValues &&
+                                                    formValues.values?.useGit ===
+                                                        'useGitCredentials' && (
+                                                        <div className="bs-Fieldset-row bs-u-justify--center">
+                                                            <label className="bs-Fieldset-label Fieldset-extra">
+                                                                Git Credential
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="gitCredential"
+                                                                    id="gitCredential"
+                                                                    placeholder="Git Credential"
+                                                                    required="required"
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select a Git Credential',
+                                                                        },
+                                                                        ...(gitCredentials &&
+                                                                        gitCredentials.length >
+                                                                            0
+                                                                            ? gitCredentials.map(
+                                                                                  gitCredential => ({
+                                                                                      value:
+                                                                                          gitCredential._id,
+                                                                                      label:
+                                                                                          gitCredential.gitUsername,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <p
+                                                                    className="bs-Fieldset-explanation"
+                                                                    style={{
+                                                                        color:
+                                                                            '#4c4c4c',
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                        cursor:
+                                                                            'pointer',
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        onClick={
+                                                                            this
+                                                                                .handleGitCredential
+                                                                        }
+                                                                        id="addCredentialBtn"
+                                                                    >
+                                                                        Add a
+                                                                        git
+                                                                        credential
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                             </div>
                                         </fieldset>
                                     </div>
