@@ -78,6 +78,8 @@ const cors = require('cors');
 const mongoose = require('./backend/config/db');
 // const Gl = require('greenlock');
 const ErrorService = require('./backend/services/errorService');
+const { getUser } = require('./backend/middlewares/user');
+const { getProjectId } = require('./backend/middlewares/api');
 
 // try {
 //     io.adapter(
@@ -103,6 +105,30 @@ app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
+
+app.use(function(req, res, next) {
+    const host = req.hostname;
+    const completeUrl = `https://${host}${req.url}`;
+    // log all data to logger
+    const logdata = {
+        params: req.params,
+        query: req.query,
+        body: req.body,
+        url: completeUrl,
+        host: req.headers.host,
+        userAgent: req.headers['sec-ch-ua'],
+    };
+
+    req = getUser(req, res);
+    req = getProjectId(req);
+
+    logdata.userId = req.user.id;
+    logdata.projectId = req.projectId;
+    req.logdata = logdata;
+
+    logger.info(logdata);
+    next();
+});
 
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
