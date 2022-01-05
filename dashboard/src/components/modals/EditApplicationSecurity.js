@@ -80,6 +80,8 @@ class EditApplicationSecurity extends Component {
             gitCredentials,
             resourceCategoryList,
         } = this.props;
+        // eslint-disable-next-line no-console
+        console.log('GitCredentials: ', gitCredentials);
         const { applicationSecurityId } = propArr[0];
 
         return (
@@ -243,7 +245,7 @@ class EditApplicationSecurity extends Component {
                                                                                 value:
                                                                                     '',
                                                                                 label:
-                                                                                    'Select a Git Credential',
+                                                                                    'Select a Git Credential or SSH',
                                                                             },
                                                                             ...(gitCredentials &&
                                                                             gitCredentials.length >
@@ -253,7 +255,8 @@ class EditApplicationSecurity extends Component {
                                                                                           value:
                                                                                               gitCredential._id,
                                                                                           label:
-                                                                                              gitCredential.gitUsername,
+                                                                                              gitCredential.gitUsername ||
+                                                                                              gitCredential.sshTitle,
                                                                                       })
                                                                                   )
                                                                                 : []),

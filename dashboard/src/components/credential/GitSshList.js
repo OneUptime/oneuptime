@@ -11,10 +11,10 @@ import DeleteCredentialModal from './DeleteCredentialModal';
 import GitCredentialModal from './GitCredentialModal';
 import paginate from '../../utils/paginate';
 
-const GitCredentialList = ({
+const GitSshList = ({
     isRequesting,
     error,
-    gitCredentials,
+    gitSsh,
     projectId,
     deleteGitCredential,
     deleteError,
@@ -91,11 +91,11 @@ const GitCredentialList = ({
     };
 
     const { next_page, pre_page, data, count } = paginate(
-        gitCredentials.filter(obj => obj.gitUsername),
+        gitSsh.filter(obj => obj.sshTitle),
         page,
         10
     );
-    gitCredentials = data;
+    gitSsh = data;
     const numberOfPages = Math.ceil(parseInt(count) / 10);
 
     return (
@@ -105,12 +105,12 @@ const GitCredentialList = ({
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                <span>Git Credentials</span>
+                                <span>Git SSH</span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
                                     Here&#39;s a list of all the available git
-                                    credentials for this project
+                                    ssh for this project
                                 </span>
                             </span>
                         </div>
@@ -127,7 +127,7 @@ const GitCredentialList = ({
                                             <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                         </div>
                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                            <span>Add Credential</span>
+                                            <span>Add Ssh</span>
                                             <span className="new-btn__keycode">
                                                 N
                                             </span>
@@ -148,7 +148,7 @@ const GitCredentialList = ({
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Git Username</span>
+                                            <span>Ssh Title</span>
                                         </span>
                                     </div>
                                 </td>
@@ -172,7 +172,7 @@ const GitCredentialList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {gitCredentials.map((gitCredential, index) => (
+                            {gitSsh.map((gitCredential, index) => (
                                 <tr
                                     key={gitCredential._id}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
@@ -186,10 +186,10 @@ const GitCredentialList = ({
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
                                                         <span
-                                                            id={`gitUsername_${gitCredential.gitUsername}`}
+                                                            id={`sshTitle_${gitCredential.sshTitle}`}
                                                         >
                                                             {
-                                                                gitCredential.gitUsername
+                                                                gitCredential.sshTitle
                                                             }
                                                         </span>
                                                     </div>
@@ -207,9 +207,7 @@ const GitCredentialList = ({
                                         <div>
                                             <div
                                                 className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                style={{
-                                                    paddingRight: '29px',
-                                                }}
+                                                style={{ paddingRight: '29px' }}
                                             >
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
@@ -249,7 +247,7 @@ const GitCredentialList = ({
                         </tbody>
                     </table>
                 </div>
-                <ShouldRender if={!isRequesting && gitCredentials.length === 0}>
+                <ShouldRender if={!isRequesting && gitSsh.length === 0}>
                     <div
                         className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
                         style={{
@@ -259,7 +257,7 @@ const GitCredentialList = ({
                         }}
                         id="noGitCredential"
                     >
-                        There are no git credentials for this project
+                        There are no git ssh for this project
                     </div>
                 </ShouldRender>
 
@@ -312,10 +310,10 @@ const GitCredentialList = ({
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
                                     {numberOfPages > 0
-                                        ? `Page ${page} of ${numberOfPages} (${count} Git Credential${
+                                        ? `Page ${page} of ${numberOfPages} (${count} Git Ssh${
                                               count === 1 ? '' : 's'
                                           })`
-                                        : `${count} Git Credential${
+                                        : `${count} Git Ssh${
                                               count === 1 ? '' : 's'
                                           }`}
                                 </span>
@@ -364,12 +362,12 @@ const GitCredentialList = ({
     );
 };
 
-GitCredentialList.displayName = 'GitCredentialList';
+GitSshList.displayName = 'GitSshList';
 
-GitCredentialList.propTypes = {
+GitSshList.propTypes = {
     error: PropTypes.string,
     isRequesting: PropTypes.bool.isRequired,
-    gitCredentials: PropTypes.array,
+    gitSsh: PropTypes.array,
     projectId: PropTypes.string,
     deleteGitCredential: PropTypes.func,
     openModal: PropTypes.func,
@@ -394,4 +392,4 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(GitCredentialList);
+export default connect(mapStateToProps, mapDispatchToProps)(GitSshList);
