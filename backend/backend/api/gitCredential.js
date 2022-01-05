@@ -50,26 +50,6 @@ router.post(
                     message: 'Git Credential or Ssh is required',
                 });
             }
-            // if (!gitUsername || !gitUsername.trim()) {
-            //     return sendErrorResponse(req, res, {
-            //         code: 400,
-            //         message: 'Git Username is required',
-            //     });
-            // }
-
-            // if (!gitPassword) {
-            //     return sendErrorResponse(req, res, {
-            //         code: 400,
-            //         message: 'Please provide a password',
-            //     });
-            // }
-
-            // const response = await GitCredentialService.create({
-            //     gitUsername,
-            //     gitPassword,
-            //     projectId,
-            // });
-            // return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
