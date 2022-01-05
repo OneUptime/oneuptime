@@ -203,7 +203,6 @@ module.exports = {
             }).connect({
                 // This is where we use the ssh private Key to connect to github
                 host: 'github.com',
-                // port: 22,
                 username: 'git',
                 privateKey: security.gitCredential.sshPrivateKey,
             });
