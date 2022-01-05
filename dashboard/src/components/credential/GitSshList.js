@@ -40,7 +40,7 @@ const GitSshList = ({
                 });
             },
             content: DeleteCredentialModal,
-            propArr: [{ credentialType: 'git', projectId }],
+            propArr: [{ credentialType: 'git', projectId, ssh: 'ssh' }],
         });
     };
 
