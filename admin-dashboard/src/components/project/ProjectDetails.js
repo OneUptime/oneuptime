@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { DASHBOARD_URL } from '../../config';
 
 export class ProjectDetails extends Component {
     render() {
@@ -17,6 +18,9 @@ export class ProjectDetails extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                             type="submit"
                                             style={{ float: 'right' }}
+                                            onClick={() =>
+                                                (window.location = `${DASHBOARD_URL}/project/${this.props.project.slug}`)
+                                            }
                                         >
                                             <span>Goto Project</span>
                                         </button>
