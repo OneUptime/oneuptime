@@ -77,16 +77,17 @@ module.exports = {
             const repoPath = Path.resolve(securityDir, cloneDirectory);
             const conn = new Client();
 
+            const url = security.gitRepositoryUrl.split(
+                'https://github.com/'
+            )[1];
+
             conn.on('ready', () => {
                 // eslint-disable-next-line no-console
                 console.log('SSH Client :: ready');
                 return new Promise((resolve, reject) => {
                     git(securityDir)
                         .silent(true)
-                        .clone(
-                            'git@github.com:adeoluwadavid/my_portfolio_website.git',
-                            cloneDirectory
-                        )
+                        .clone(`git@github.com:${url}.git`, cloneDirectory)
                         .then(() => {
                             const output = spawn('npm', ['install'], {
                                 cwd: repoPath,
