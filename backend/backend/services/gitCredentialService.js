@@ -4,6 +4,7 @@ const ErrorService = require('./errorService');
 const { encrypt } = require('../config/encryptDecrypt');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const fs = require('fs');
 
 module.exports = {
     findOneBy: async function({ query, populate, select }) {
@@ -58,32 +59,64 @@ module.exports = {
     },
     create: async function(data) {
         try {
-            const { gitUsername, gitPassword, projectId } = data;
-
-            const gitCredential = await this.findOneBy({
-                query: { gitUsername, projectId },
-                select: '_id',
-            });
-
-            if (gitCredential) {
-                const error = new Error(
-                    'Git Credential already exist in this project'
-                );
-                error.code = 400;
-                ErrorService.log('gitCredentialService.create', error);
-                throw error;
-            }
-
-            const iv = Crypto.randomBytes(16);
-            const encryptedPassword = await encrypt(gitPassword, iv);
-
-            const response = await GitCredentialModel.create({
+            const {
                 gitUsername,
-                gitPassword: encryptedPassword,
+                gitPassword,
                 projectId,
-                iv,
-            });
-            return response;
+                sshTitle,
+                sshPrivateKey,
+            } = data;
+
+            if (gitUsername && gitPassword) {
+                const gitCredential = await this.findOneBy({
+                    query: { gitUsername, projectId },
+                    select: '_id',
+                });
+                if (gitCredential) {
+                    const error = new Error(
+                        'Git Credential already exist in this project'
+                    );
+                    error.code = 400;
+                    ErrorService.log('gitCredentialService.create', error);
+                    throw error;
+                }
+
+                const iv = Crypto.randomBytes(16);
+                const encryptedPassword = await encrypt(gitPassword, iv);
+
+                const response = await GitCredentialModel.create({
+                    gitUsername,
+                    gitPassword: encryptedPassword,
+                    projectId,
+                    iv,
+                });
+                return response;
+            } else if (sshTitle && sshPrivateKey) {
+                const gitSsh = await this.findOneBy({
+                    query: { sshTitle, projectId },
+                    select: '_id',
+                });
+                if (gitSsh) {
+                    const error = new Error(
+                        'Git Ssh already exist in this project'
+                    );
+                    error.code = 400;
+                    ErrorService.log('gitCredentialService.create', error);
+                    throw error;
+                }
+                const sshPrivateKeyFile = fs.readFileSync(sshPrivateKey);
+
+                const iv = Crypto.randomBytes(16);
+                const encryptedPassword = await encrypt(sshPrivateKeyFile, iv);
+
+                const response = await GitCredentialModel.create({
+                    sshTitle,
+                    sshPrivateKey: encryptedPassword,
+                    projectId,
+                    iv,
+                });
+                return response;
+            }
         } catch (error) {
             ErrorService.log('gitCredentialService.create', error);
             throw error;

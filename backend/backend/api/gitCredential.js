@@ -13,29 +13,63 @@ router.post(
     isAuthorized,
     async (req, res) => {
         try {
-            const { gitUsername, gitPassword } = req.body;
-            const { projectId } = req.params;
-
-            if (!gitUsername || !gitUsername.trim()) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Git Username is required',
-                });
-            }
-
-            if (!gitPassword) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Please provide a password',
-                });
-            }
-
-            const response = await GitCredentialService.create({
+            const {
                 gitUsername,
                 gitPassword,
-                projectId,
-            });
-            return sendItemResponse(req, res, response);
+                sshTitle,
+                sshPrivateKey,
+            } = req.body;
+            // eslint-disable-next-line no-console
+            console.log('Body: ', req.body);
+            const { projectId } = req.params;
+
+            // if (!gitUsername || !gitPassword || !sshTitle || !sshPrivateKey) {
+            //     return sendErrorResponse(req, res, {
+            //         code: 400,
+            //         message: 'Git Credential or Ssh is required',
+            //     });
+            // }
+
+            if (gitUsername && gitPassword) {
+                const response = await GitCredentialService.create({
+                    gitUsername,
+                    gitPassword,
+                    projectId,
+                });
+                return sendItemResponse(req, res, response);
+            } else if (sshTitle && sshPrivateKey) {
+                const response = await GitCredentialService.create({
+                    sshTitle,
+                    sshPrivateKey,
+                    projectId,
+                });
+                return sendItemResponse(req, res, response);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Git Credential or Ssh is required',
+                });
+            }
+            // if (!gitUsername || !gitUsername.trim()) {
+            //     return sendErrorResponse(req, res, {
+            //         code: 400,
+            //         message: 'Git Username is required',
+            //     });
+            // }
+
+            // if (!gitPassword) {
+            //     return sendErrorResponse(req, res, {
+            //         code: 400,
+            //         message: 'Please provide a password',
+            //     });
+            // }
+
+            // const response = await GitCredentialService.create({
+            //     gitUsername,
+            //     gitPassword,
+            //     projectId,
+            // });
+            // return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -51,7 +85,7 @@ router.get(
             const { projectId } = req.params;
 
             const selectGitCredentials =
-                'gitUsername gitPassword iv projectId deleted';
+                'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted';
 
             const populateGitCredentials = [
                 { path: 'projectId', select: 'name slug' },

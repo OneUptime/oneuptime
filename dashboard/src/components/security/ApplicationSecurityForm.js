@@ -13,6 +13,7 @@ import { addApplicationSecurity } from '../../actions/security';
 import { getGitCredentials } from '../../actions/credential';
 import { openModal } from '../../actions/modal';
 import GitCredentialModal from '../credential/GitCredentialModal';
+import GitSshModal from '../credential/GitSshModal';
 
 class ApplicationSecurityForm extends Component {
     componentDidMount() {
@@ -47,6 +48,15 @@ class ApplicationSecurityForm extends Component {
             propArr: [{ projectId }],
         });
     };
+    handleGitSSH = () => {
+        const { openModal, projectId } = this.props;
+
+        openModal({
+            id: projectId,
+            content: GitSshModal,
+            propArr: [{ projectId }],
+        });
+    };
 
     render() {
         const {
@@ -56,10 +66,9 @@ class ApplicationSecurityForm extends Component {
             requestingGitCredentials,
             gitCredentials,
             resourceCategoryList,
-            useGit,
             formValues,
         } = this.props;
-        console.log('Form V: ', formValues);
+        console.log('Git Credentials ', gitCredentials);
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -277,7 +286,7 @@ class ApplicationSecurityForm extends Component {
                                                                         ...(gitCredentials &&
                                                                         gitCredentials.length >
                                                                             0
-                                                                            ? gitCredentials.map(
+                                                                            ? gitCredentials.filter(obj => obj.gitUsername).map(
                                                                                   gitCredential => ({
                                                                                       value:
                                                                                           gitCredential._id,
@@ -309,6 +318,74 @@ class ApplicationSecurityForm extends Component {
                                                                         Add a
                                                                         git
                                                                         credential
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                {formValues &&
+                                                    formValues.values?.useGit ===
+                                                        'useGitSsh' && (
+                                                        <div className="bs-Fieldset-row bs-u-justify--center">
+                                                            <label className="bs-Fieldset-label Fieldset-extra">
+                                                                Git SSH
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="gitCredential"
+                                                                    id="gitCredential"
+                                                                    placeholder="Git SSH"
+                                                                    required="required"
+                                                                    style={{
+                                                                        height:
+                                                                            '28px',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select a Git SSH',
+                                                                        },
+                                                                        ...(gitCredentials &&
+                                                                        gitCredentials.length >
+                                                                            0
+                                                                            ? gitCredentials.filter(obj => obj.sshTitle).map(
+                                                                                  gitCredential => ({
+                                                                                      value:
+                                                                                          gitCredential._id,
+                                                                                      label:
+                                                                                          gitCredential.sshTitle,
+                                                                                  })
+                                                                              )
+                                                                            : []),
+                                                                    ]}
+                                                                />
+                                                                <p
+                                                                    className="bs-Fieldset-explanation"
+                                                                    style={{
+                                                                        color:
+                                                                            '#4c4c4c',
+                                                                        textDecoration:
+                                                                            'underline',
+                                                                        cursor:
+                                                                            'pointer',
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        onClick={
+                                                                            this
+                                                                                .handleGitSSH
+                                                                        }
+                                                                        id="addCredentialBtn"
+                                                                    >
+                                                                        Add a
+                                                                        git
+                                                                        ssh
                                                                     </span>
                                                                 </p>
                                                             </div>
