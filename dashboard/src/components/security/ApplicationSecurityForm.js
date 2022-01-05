@@ -49,7 +49,6 @@ class ApplicationSecurityForm extends Component {
     };
     handleGitSSH = () => {
         const { openModal, projectId } = this.props;
-
         openModal({
             id: projectId,
             content: GitSshModal,
@@ -344,7 +343,7 @@ class ApplicationSecurityForm extends Component {
                                                                         RenderSelect
                                                                     }
                                                                     name="gitCredential"
-                                                                    id="gitCredential"
+                                                                    id="gitSsh"
                                                                     placeholder="Git SSH"
                                                                     required="required"
                                                                     style={{
@@ -393,7 +392,7 @@ class ApplicationSecurityForm extends Component {
                                                                             this
                                                                                 .handleGitSSH
                                                                         }
-                                                                        id="addCredentialBtn"
+                                                                        id="addSshBtn"
                                                                     >
                                                                         Add a
                                                                         git ssh

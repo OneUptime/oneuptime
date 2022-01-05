@@ -80,8 +80,6 @@ class EditApplicationSecurity extends Component {
             gitCredentials,
             resourceCategoryList,
         } = this.props;
-        // eslint-disable-next-line no-console
-        console.log('GitCredentials: ', gitCredentials);
         const { applicationSecurityId } = propArr[0];
 
         return (
