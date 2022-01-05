@@ -207,8 +207,12 @@ module.exports = {
                 username: 'git',
                 privateKey: security.gitCredential.sshPrivateKey,
             });
-        } catch (e) {
-            console.log('Error: ', e);
+        } catch (error) {
+            ErrorService.log(
+                'applicationScannerService.scanApplicationSecurity',
+                error
+            );
+            throw error;
         }
     },
     scanApplicationSecurity: async security => {
