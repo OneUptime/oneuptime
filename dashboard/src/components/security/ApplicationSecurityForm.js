@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -68,7 +67,6 @@ class ApplicationSecurityForm extends Component {
             resourceCategoryList,
             formValues,
         } = this.props;
-        console.log('Git Credentials ', gitCredentials);
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -183,7 +181,7 @@ class ApplicationSecurityForm extends Component {
                                                             type="text"
                                                             name="gitRepositoryUrl"
                                                             id="gitRepositoryUrl"
-                                                            placeholder= "https://github.com/bitcoin/bitcoin" 
+                                                            placeholder="https://github.com/bitcoin/bitcoin"
                                                             disabled={
                                                                 isRequesting
                                                             }
@@ -197,8 +195,7 @@ class ApplicationSecurityForm extends Component {
                                                 <label
                                                     className="bs-Radio"
                                                     style={{
-                                                       
-                                                         marginLeft: '200px',
+                                                        marginLeft: '200px',
                                                     }}
                                                     htmlFor="useGitCredentials"
                                                 >
@@ -226,37 +223,41 @@ class ApplicationSecurityForm extends Component {
                                                     </div>
                                                 </label>
                                                 <div>
-                                                <label
-                                                    className="bs-Radio"
-                                                    style={{
-                                                        marginLeft: '200px',
-                                                    }}
-                                                    htmlFor="useGitSsh"
-                                                >
-                                                    <Field
-                                                        component="input"
-                                                        type="radio"
-                                                        name="useGit"
-                                                        className="bs-Radio-source"
-                                                        id="useGitSsh"
-                                                        value="useGitSsh"
+                                                    <label
+                                                        className="bs-Radio"
                                                         style={{
-                                                            width: 0,
+                                                            marginLeft: '200px',
                                                         }}
-                                                    />
-                                                    <span className="bs-Radio-button"></span>
-                                                    <div
-                                                        className="Box-root"
-                                                        style={{
-                                                            paddingLeft: '10px',
-                                                        }}
+                                                        htmlFor="useGitSsh"
                                                     >
-                                                        <span>Use Git SSH</span>
-                                                    </div>
-                                                </label>
-                                                </div> 
+                                                        <Field
+                                                            component="input"
+                                                            type="radio"
+                                                            name="useGit"
+                                                            className="bs-Radio-source"
+                                                            id="useGitSsh"
+                                                            value="useGitSsh"
+                                                            style={{
+                                                                width: 0,
+                                                            }}
+                                                        />
+                                                        <span className="bs-Radio-button"></span>
+                                                        <div
+                                                            className="Box-root"
+                                                            style={{
+                                                                paddingLeft:
+                                                                    '10px',
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                Use Git SSH
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                </div>
                                                 {formValues &&
-                                                    formValues.values?.useGit ===
+                                                    formValues.values
+                                                        ?.useGit ===
                                                         'useGitCredentials' && (
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label Fieldset-extra">
@@ -286,14 +287,19 @@ class ApplicationSecurityForm extends Component {
                                                                         ...(gitCredentials &&
                                                                         gitCredentials.length >
                                                                             0
-                                                                            ? gitCredentials.filter(obj => obj.gitUsername).map(
-                                                                                  gitCredential => ({
-                                                                                      value:
-                                                                                          gitCredential._id,
-                                                                                      label:
-                                                                                          gitCredential.gitUsername,
-                                                                                  })
-                                                                              )
+                                                                            ? gitCredentials
+                                                                                  .filter(
+                                                                                      obj =>
+                                                                                          obj.gitUsername
+                                                                                  )
+                                                                                  .map(
+                                                                                      gitCredential => ({
+                                                                                          value:
+                                                                                              gitCredential._id,
+                                                                                          label:
+                                                                                              gitCredential.gitUsername,
+                                                                                      })
+                                                                                  )
                                                                             : []),
                                                                     ]}
                                                                 />
@@ -324,7 +330,8 @@ class ApplicationSecurityForm extends Component {
                                                         </div>
                                                     )}
                                                 {formValues &&
-                                                    formValues.values?.useGit ===
+                                                    formValues.values
+                                                        ?.useGit ===
                                                         'useGitSsh' && (
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label Fieldset-extra">
@@ -354,14 +361,19 @@ class ApplicationSecurityForm extends Component {
                                                                         ...(gitCredentials &&
                                                                         gitCredentials.length >
                                                                             0
-                                                                            ? gitCredentials.filter(obj => obj.sshTitle).map(
-                                                                                  gitCredential => ({
-                                                                                      value:
-                                                                                          gitCredential._id,
-                                                                                      label:
-                                                                                          gitCredential.sshTitle,
-                                                                                  })
-                                                                              )
+                                                                            ? gitCredentials
+                                                                                  .filter(
+                                                                                      obj =>
+                                                                                          obj.sshTitle
+                                                                                  )
+                                                                                  .map(
+                                                                                      gitCredential => ({
+                                                                                          value:
+                                                                                              gitCredential._id,
+                                                                                          label:
+                                                                                              gitCredential.sshTitle,
+                                                                                      })
+                                                                                  )
                                                                             : []),
                                                                     ]}
                                                                 />
@@ -384,8 +396,7 @@ class ApplicationSecurityForm extends Component {
                                                                         id="addCredentialBtn"
                                                                     >
                                                                         Add a
-                                                                        git
-                                                                        ssh
+                                                                        git ssh
                                                                     </span>
                                                                 </p>
                                                             </div>
@@ -481,6 +492,7 @@ ApplicationSecurityForm.propTypes = {
     resourceCategoryList: PropTypes.array,
     toggleForm: PropTypes.func,
     showCancelBtn: PropTypes.bool,
+    formValues: PropTypes.obj,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -490,7 +502,6 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = state => {
-    console.log('The State: ', state);
     return {
         isRequesting: state.security.addApplication.requesting,
         addApplicationError: state.security.addApplication.error,
