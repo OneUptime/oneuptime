@@ -120,7 +120,7 @@ const GitSshList = ({
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
                                     onClick={handleSshCreation}
-                                    id="addCredentialBtn"
+                                    id="addSshBtn"
                                 >
                                     <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                         <div className="Box-root Margin-right--8">
@@ -172,9 +172,9 @@ const GitSshList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {gitSsh.map((gitCredential, index) => (
+                            {gitSsh.map((gitSsh, index) => (
                                 <tr
-                                    key={gitCredential._id}
+                                    key={gitSsh._id}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                 >
                                     <td
@@ -186,11 +186,9 @@ const GitSshList = ({
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
                                                         <span
-                                                            id={`sshTitle_${gitCredential.sshTitle}`}
+                                                            id={`sshTitle_${gitSsh.sshTitle}`}
                                                         >
-                                                            {
-                                                                gitCredential.sshTitle
-                                                            }
+                                                            {gitSsh.sshTitle}
                                                         </span>
                                                     </div>
                                                 </span>
@@ -218,7 +216,7 @@ const GitSshList = ({
                                                             type="button"
                                                             onClick={() =>
                                                                 handleSshUpdate(
-                                                                    gitCredential._id
+                                                                    gitSsh._id
                                                                 )
                                                             }
                                                         >
@@ -231,7 +229,7 @@ const GitSshList = ({
                                                             type="button"
                                                             onClick={() =>
                                                                 handleDelete(
-                                                                    gitCredential._id
+                                                                    gitSsh._id
                                                                 )
                                                             }
                                                         >
@@ -314,7 +312,7 @@ const GitSshList = ({
                                               count === 1 ? '' : 's'
                                           })`
                                         : `${count} Git Ssh${
-                                              count === 1 ? '' : 's'
+                                              count < 2 ? '' : 's'
                                           }`}
                                 </span>
                             </div>

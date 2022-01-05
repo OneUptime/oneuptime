@@ -1,4 +1,3 @@
-/*  eslint-disable  */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -57,10 +56,8 @@ class GitSshModal extends Component {
                 return this.handleCloseModal();
             case 'Enter':
                 return credentialId
-                    ? document
-                          .getElementById('updateCredentialModalBtn')
-                          .click()
-                    : document.getElementById('addCredentialModalBtn').click();
+                    ? document.getElementById('updateSshModalBtn').click()
+                    : document.getElementById('addSshModalBtn').click();
             default:
                 return false;
         }
@@ -74,12 +71,8 @@ class GitSshModal extends Component {
         });
     };
     submitForm = values => {
-        
-        console.log('SSH Values: ', values);
         const { addGitCredential, propArr, updateGitCredential } = this.props;
         const { projectId, credentialId } = propArr[0];
-
-        console.log('Credential Id: ', propArr[0])
 
         if (!values) return;
         credentialId
@@ -287,7 +280,7 @@ class GitSshModal extends Component {
                                                     </span>
                                                 </button>
                                                 <button
-                                                    id="updateCredentialModalBtn"
+                                                    id="updateSshModalBtn"
                                                     className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                     type="submit"
                                                     disabled={
@@ -370,7 +363,7 @@ class GitSshModal extends Component {
                                                     </span>
                                                 </button>
                                                 <button
-                                                    id="addCredentialModalBtn"
+                                                    id="addSshModalBtn"
                                                     className="bs-Button bs-Button bs-Button--blue btn__modal"
                                                     type="submit"
                                                     disabled={isRequesting}
@@ -436,7 +429,7 @@ const mapStateToProps = (state, ownProps) => {
         isRequesting: state.credential.addCredential.requesting,
         addCredentialError: state.credential.addCredential.error,
         initialValues: {
-            sshTitle : gitSsh.sshTitle,
+            sshTitle: gitSsh.sshTitle,
         },
         updateCredentialError: state.credential.updateCredential.error,
         updatingCredential: state.credential.updateCredential.requesting,

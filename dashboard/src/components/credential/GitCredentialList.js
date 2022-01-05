@@ -316,7 +316,7 @@ const GitCredentialList = ({
                                               count === 1 ? '' : 's'
                                           })`
                                         : `${count} Git Credential${
-                                              count === 1 ? '' : 's'
+                                              count < 2 ? '' : 's'
                                           }`}
                                 </span>
                             </div>

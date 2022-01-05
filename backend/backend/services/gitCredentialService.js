@@ -106,14 +106,10 @@ module.exports = {
                 }
                 const sshPrivateKeyFile = fs.readFileSync(sshPrivateKey);
 
-                // const iv = Crypto.randomBytes(16);
-                // const encryptedPassword = await encrypt(sshPrivateKeyFile, iv);
-
                 const response = await GitCredentialModel.create({
                     sshTitle,
                     sshPrivateKey: sshPrivateKeyFile,
                     projectId,
-                    // iv,
                 });
                 return response;
             }
