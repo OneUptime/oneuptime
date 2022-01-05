@@ -199,6 +199,7 @@ module.exports = {
                     });
                 }
                 const teamMembers = await _this.getTeamMembers(projectId);
+                // console.log(teamMembers);
                 let projectSeats = project.seats;
                 if (typeof projectSeats === 'string') {
                     projectSeats = parseInt(projectSeats);
@@ -217,6 +218,35 @@ module.exports = {
                     ErrorService.log('TeamService.inviteTeamMembers', error);
                     throw error;
                 } else {
+                    // remove admin if on list and show is false
+                    const adminUser = await UserService.findOneBy({
+                        query: { role: 'master-admin' },
+                        select: '_id',
+                    });
+
+                    if (emails.includes(adminUser.email)) {
+                        const isAdminInProject = adminUser.projects.filter(
+                            proj => proj._id.toString() === projectId.toString()
+                        );
+                        let isHiddenAdminUser = false;
+
+                        if (isAdminInProject) {
+                            isHiddenAdminUser = isAdminInProject[0].users.filter(
+                                user =>
+                                    user.show === false &&
+                                    user.role === 'Member'
+                            );
+                        }
+
+                        if (isHiddenAdminUser.length > 0) {
+                            await _this.removeTeamMember(
+                                projectId,
+                                addedBy._id,
+                                adminUser._id
+                            );
+                        }
+                    }
+
                     // Get no of users to be added
                     const extraUsersToAdd = emails.length;
                     try {
