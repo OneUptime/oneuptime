@@ -134,6 +134,10 @@ module.exports = {
                 data.iv = iv;
             }
 
+            if (data.sshPrivateKey) {
+                data.sshPrivateKey = fs.readFileSync(data.sshPrivateKey);
+            }
+
             let gitCredential = await GitCredentialModel.findOneAndUpdate(
                 query,
                 {
@@ -142,7 +146,7 @@ module.exports = {
                 { new: true }
             );
             const selectGitCredentials =
-                'gitUsername gitPassword iv projectId deleted';
+                'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted';
 
             const populateGitCredentials = [
                 { path: 'projectId', select: 'name slug' },

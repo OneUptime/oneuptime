@@ -15,7 +15,7 @@ import {
     updateGitCredential,
 } from '../../actions/credential';
 
-class GitCredentialModal extends Component {
+class GitSshModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -73,15 +73,15 @@ class GitCredentialModal extends Component {
             id: closeModal({ id: projectId }),
         });
     };
-
     submitForm = values => {
         
         console.log('SSH Values: ', values);
         const { addGitCredential, propArr, updateGitCredential } = this.props;
         const { projectId, credentialId } = propArr[0];
 
+        console.log('Credential Id: ', propArr[0])
+
         if (!values) return;
-        console.log('Credential Id: ', credentialId)
         credentialId
             ? updateGitCredential({ projectId, credentialId, data: values })
             : addGitCredential({ projectId, data: values });
@@ -402,9 +402,9 @@ class GitCredentialModal extends Component {
     }
 }
 
-GitCredentialModal.displayName = 'GitCredentialModal';
+GitSshModal.displayName = 'GitSshModal';
 
-GitCredentialModal.propTypes = {
+GitSshModal.propTypes = {
     isRequesting: PropTypes.bool,
     addCredentialError: PropTypes.oneOfType([
         PropTypes.string,
@@ -426,7 +426,7 @@ GitCredentialModal.propTypes = {
 const mapStateToProps = (state, ownProps) => {
     const { propArr } = ownProps;
     const { credentialId } = propArr[0];
-    const gitCredential = credentialId
+    const gitSsh = credentialId
         ? state.credential.gitCredentials.filter(
               gitCredential =>
                   String(gitCredential._id) === String(credentialId)
@@ -436,7 +436,7 @@ const mapStateToProps = (state, ownProps) => {
         isRequesting: state.credential.addCredential.requesting,
         addCredentialError: state.credential.addCredential.error,
         initialValues: {
-            gitUsername: gitCredential.gitUsername,
+            sshTitle : gitSsh.sshTitle,
         },
         updateCredentialError: state.credential.updateCredential.error,
         updatingCredential: state.credential.updateCredential.requesting,
@@ -449,10 +449,10 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const GitCredentialForm = reduxForm({
-    form: 'GitCredentialForm',
+const GitSshForm = reduxForm({
+    form: 'GitSshForm',
     enableReinitialize: true,
     destroyOnUnmount: true,
-})(GitCredentialModal);
+})(GitSshModal);
 
-export default connect(mapStateToProps, mapDispatchToProps)(GitCredentialForm);
+export default connect(mapStateToProps, mapDispatchToProps)(GitSshForm);

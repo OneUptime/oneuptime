@@ -19,16 +19,7 @@ router.post(
                 sshTitle,
                 sshPrivateKey,
             } = req.body;
-            // eslint-disable-next-line no-console
-            console.log('Body: ', req.body);
             const { projectId } = req.params;
-
-            // if (!gitUsername || !gitPassword || !sshTitle || !sshPrivateKey) {
-            //     return sendErrorResponse(req, res, {
-            //         code: 400,
-            //         message: 'Git Credential or Ssh is required',
-            //     });
-            // }
 
             if (gitUsername && gitPassword) {
                 const response = await GitCredentialService.create({
@@ -89,14 +80,28 @@ router.put(
     async (req, res) => {
         try {
             const { credentialId } = req.params;
-            const { gitUsername, gitPassword } = req.body;
+            const {
+                gitUsername,
+                gitPassword,
+                sshTitle,
+                sshPrivateKey,
+            } = req.body;
 
             const data = {};
+
             if (gitUsername) {
                 data.gitUsername = gitUsername;
             }
             if (gitPassword) {
                 data.gitPassword = gitPassword;
+            }
+
+            if (sshTitle) {
+                data.sshTitle = sshTitle;
+            }
+
+            if (sshPrivateKey) {
+                data.sshPrivateKey = sshPrivateKey;
             }
 
             const gitCredential = await GitCredentialService.updateOneBy(

@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import DeleteCredentialModal from './DeleteCredentialModal';
-import GitCredentialModal from './GitCredentialModal';
+import GitSshModal from './GitSshModal';
 import paginate from '../../utils/paginate';
 
 const GitSshList = ({
@@ -44,18 +44,18 @@ const GitSshList = ({
         });
     };
 
-    const handleCredentialCreation = () => {
+    const handleSshCreation = () => {
         openModal({
             id: projectId,
-            content: GitCredentialModal,
+            content: GitSshModal,
             propArr: [{ projectId }],
         });
     };
 
-    const handleCredentialUpdate = credentialId => {
+    const handleSshUpdate = credentialId => {
         openModal({
             id: projectId,
-            content: GitCredentialModal,
+            content: GitSshModal,
             propArr: [{ projectId, credentialId }],
         });
     };
@@ -67,7 +67,7 @@ const GitSshList = ({
                 case 'n':
                     if (modalId !== projectId) {
                         e.preventDefault(); // prevent entering the key on the focused input element
-                        return handleCredentialCreation();
+                        return handleSshCreation();
                     }
                     return false;
                 default:
@@ -119,7 +119,7 @@ const GitSshList = ({
                                 <button
                                     className="Button bs-ButtonLegacy ActionIconParent"
                                     type="button"
-                                    onClick={handleCredentialCreation}
+                                    onClick={handleSshCreation}
                                     id="addCredentialBtn"
                                 >
                                     <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -217,7 +217,7 @@ const GitSshList = ({
                                                             className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit Margin-left--8"
                                                             type="button"
                                                             onClick={() =>
-                                                                handleCredentialUpdate(
+                                                                handleSshUpdate(
                                                                     gitCredential._id
                                                                 )
                                                             }
