@@ -352,15 +352,19 @@ module.exports = {
                     .toISOString()
                     .split('T', 1);
 
-                AirtableService.logUser({
-                    name: data.name,
-                    email: data.email,
-                    phone: data.companyPhoneNumber,
-                    company: data.companyName,
-                    jobRole: data.companyRole,
-                    source: data.source,
-                    createdAt,
-                });
+                try {
+                    AirtableService.logUser({
+                        name: data.name,
+                        email: data.email,
+                        phone: data.companyPhoneNumber,
+                        company: data.companyName,
+                        jobRole: data.companyRole,
+                        source: data.source,
+                        createdAt,
+                    });
+                } catch (error) {
+                    ErrorService.log('userService.signup', error);
+                }
 
                 if (IS_TESTING) {
                     user.verificationToken = verificationToken;
