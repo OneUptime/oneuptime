@@ -527,7 +527,7 @@ router.delete(
                 }
             }
 
-            const record = await AirtableService.logProjectDeletionFeedback({
+            AirtableService.logProjectDeletionFeedback({
                 reason: feedback
                     ? feedback
                     : 'Feedback was not provided by the user',
@@ -535,7 +535,7 @@ router.delete(
                 name: user.name,
                 email: user.email,
             });
-            project.airtableId = record.id || null;
+            
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error);
