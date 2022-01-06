@@ -8,6 +8,7 @@ const ProjectService = require('../services/projectService');
 const dnsPromises = dns.promises;
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const errorService = require('./errorService');
 
 module.exports = {
     create: async function({ domain, projectId }) {
@@ -287,7 +288,12 @@ module.exports = {
                     StatusPageService.deleteDomain(
                         statusPageId,
                         eachDomain._id
-                    );
+                    ).catch(error => {
+                        errorService.log(
+                            'StatusPageService.deleteDomain',
+                            error
+                        );
+                    });
                 }
             }
         }

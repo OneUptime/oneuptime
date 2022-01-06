@@ -1789,7 +1789,12 @@ module.exports = {
                     incidentState: statusPageNoteData.incident_state,
                     statusNoteStatus: statusPageNoteData.statusNoteStatus,
                 }
-            );
+            ).catch(error => {
+                ErrorService.log(
+                    'ApplicationScannerService.sendStatusPageNoteNotificationToProjectWebhooks > WebHookService.sendIntegrationNotification',
+                    error
+                );
+            });
         }
     },
 

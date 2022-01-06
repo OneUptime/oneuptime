@@ -414,66 +414,61 @@ const MonitorCriteriaService = {
     },
 
     create: function(monitorType) {
-        try {
-            const criteria = this.getCriteria()[monitorType];
-            const criteriaObj = {};
-            if (criteria) {
-                if (criteria.up_1000 && criteria.up_1000.length) {
-                    const upCriteria = this.makeCriteria(criteria.up_1000);
-                    upCriteria.scheduleIds = [];
-                    upCriteria.createAlert = criteria.up_1000_createAlert
-                        ? true
-                        : false;
-                    upCriteria.autoAcknowledge = criteria.up_1000_autoAcknowledge
-                        ? true
-                        : false;
-                    upCriteria.autoResolve = criteria.up_1000_autoResolve
-                        ? true
-                        : false;
-                    criteriaObj.up = [upCriteria];
-                }
-                if (criteria.degraded_1000 && criteria.degraded_1000.length) {
-                    const degradedCriteria = this.makeCriteria(
-                        criteria.degraded_1000
-                    );
-                    degradedCriteria.scheduleIds = [];
-                    degradedCriteria.createAlert = criteria.degraded_1000_createAlert
-                        ? true
-                        : false;
-                    degradedCriteria.autoAcknowledge = criteria.degraded_1000_autoAcknowledge
-                        ? true
-                        : false;
-                    degradedCriteria.autoResolve = criteria.degraded_1000_autoResolve
-                        ? true
-                        : false;
-                    criteriaObj.degraded = [degradedCriteria];
-                }
-                if (criteria.down_1000 && criteria.down_1000.length) {
-                    const downCriteria = this.makeCriteria(criteria.down_1000);
-                    downCriteria.scheduleIds = [];
-                    downCriteria.createAlert = criteria.down_1000_createAlert
-                        ? true
-                        : false;
-                    downCriteria.autoAcknowledge = criteria.down_1000_autoAcknowledge
-                        ? true
-                        : false;
-                    downCriteria.autoResolve = criteria.down_1000_autoResolve
-                        ? true
-                        : false;
-
-                    const defaultCriterion = {
-                        ...downCriteria,
-                        default: true,
-                    };
-                    criteriaObj.down = [defaultCriterion];
-                }
+        const criteria = this.getCriteria()[monitorType];
+        const criteriaObj = {};
+        if (criteria) {
+            if (criteria.up_1000 && criteria.up_1000.length) {
+                const upCriteria = this.makeCriteria(criteria.up_1000);
+                upCriteria.scheduleIds = [];
+                upCriteria.createAlert = criteria.up_1000_createAlert
+                    ? true
+                    : false;
+                upCriteria.autoAcknowledge = criteria.up_1000_autoAcknowledge
+                    ? true
+                    : false;
+                upCriteria.autoResolve = criteria.up_1000_autoResolve
+                    ? true
+                    : false;
+                criteriaObj.up = [upCriteria];
             }
+            if (criteria.degraded_1000 && criteria.degraded_1000.length) {
+                const degradedCriteria = this.makeCriteria(
+                    criteria.degraded_1000
+                );
+                degradedCriteria.scheduleIds = [];
+                degradedCriteria.createAlert = criteria.degraded_1000_createAlert
+                    ? true
+                    : false;
+                degradedCriteria.autoAcknowledge = criteria.degraded_1000_autoAcknowledge
+                    ? true
+                    : false;
+                degradedCriteria.autoResolve = criteria.degraded_1000_autoResolve
+                    ? true
+                    : false;
+                criteriaObj.degraded = [degradedCriteria];
+            }
+            if (criteria.down_1000 && criteria.down_1000.length) {
+                const downCriteria = this.makeCriteria(criteria.down_1000);
+                downCriteria.scheduleIds = [];
+                downCriteria.createAlert = criteria.down_1000_createAlert
+                    ? true
+                    : false;
+                downCriteria.autoAcknowledge = criteria.down_1000_autoAcknowledge
+                    ? true
+                    : false;
+                downCriteria.autoResolve = criteria.down_1000_autoResolve
+                    ? true
+                    : false;
 
-            return criteriaObj;
-        } catch (error) {
-            ErrorService.log('MonitorCriteriaService.create', error);
-            throw error;
+                const defaultCriterion = {
+                    ...downCriteria,
+                    default: true,
+                };
+                criteriaObj.down = [defaultCriterion];
+            }
         }
+
+        return criteriaObj;
     },
 
     makeCriteria: function(val) {
@@ -738,7 +733,6 @@ const MonitorCriteriaService = {
     },
 };
 
-const ErrorService = require('../services/errorService');
 const { isEmpty } = require('lodash');
 
 module.exports = MonitorCriteriaService;

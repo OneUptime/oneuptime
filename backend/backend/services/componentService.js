@@ -325,7 +325,9 @@ module.exports = {
                 `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
                 component.deletedById._id,
                 'componentaddremove'
-            );
+            ).catch(error => {
+                errorService.log('NotificationService.create', error);
+            });
             // run in the background
             RealTimeService.sendComponentDelete(component);
 
@@ -501,3 +503,4 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const getSlug = require('../utils/getSlug');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const errorService = require('./errorService');

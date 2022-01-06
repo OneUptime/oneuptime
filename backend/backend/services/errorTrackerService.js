@@ -175,7 +175,9 @@ module.exports = {
                 `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                 errorTracker.deletedById._id,
                 'errorTrackeraddremove'
-            );
+            ).catch(error => {
+                errorService.log('NotificationService.create', error);
+            });
             RealTimeService.sendErrorTrackerDelete(errorTracker);
             return errorTracker;
         } else {
@@ -233,3 +235,4 @@ const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const errorService = require('./errorService');

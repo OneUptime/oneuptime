@@ -168,7 +168,9 @@ module.exports = {
                 `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
                 applicationLog.deletedById._id,
                 'applicationLogaddremove'
-            );
+            ).catch(error => {
+                errorService.log('NotificationService.create', error);
+            });
             // run in the background
             RealTimeService.sendApplicationLogDelete(applicationLog);
             return applicationLog;
@@ -240,3 +242,4 @@ const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
 const handlePopulate = require('../utils/populate');
 const handleSelect = require('../utils/select');
+const errorService = require('./errorService');
