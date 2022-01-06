@@ -40,7 +40,7 @@ module.exports = {
                 project: project.name,
                 page,
             });
-            
+
             feedback.userName = user.name;
             feedback.email = user.email;
             feedback.phone = user.companyPhoneNumber;
