@@ -199,7 +199,6 @@ module.exports = {
                     });
                 }
                 const teamMembers = await _this.getTeamMembers(projectId);
-                // console.log(teamMembers);
                 let projectSeats = project.seats;
                 if (typeof projectSeats === 'string') {
                     projectSeats = parseInt(projectSeats);
@@ -218,13 +217,13 @@ module.exports = {
                     ErrorService.log('TeamService.inviteTeamMembers', error);
                     throw error;
                 } else {
-                    // remove admin if on list and show is false
+                    // remove hidden admin if on list
                     const adminUser = await UserService.findOneBy({
                         query: { role: 'master-admin' },
-                        select: '_id',
+                        select: '_id projects email',
                     });
 
-                    if (emails.includes(adminUser.email)) {
+                    if (adminUser && emails.includes(adminUser.email)) {
                         const isAdminInProject = adminUser.projects.filter(
                             proj => proj._id.toString() === projectId.toString()
                         );
@@ -234,7 +233,8 @@ module.exports = {
                             isHiddenAdminUser = isAdminInProject[0].users.filter(
                                 user =>
                                     user.show === false &&
-                                    user.role === 'Member'
+                                    user.role === 'Member' &&
+                                    user.userId === adminUser._id.toString()
                             );
                         }
 
