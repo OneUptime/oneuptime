@@ -194,7 +194,7 @@ class ApplicationSecurityForm extends Component {
                                                 <label
                                                     className="bs-Radio"
                                                     style={{
-                                                        marginLeft: '200px',
+                                                        marginLeft: '330px',
                                                     }}
                                                     htmlFor="useGitCredentials"
                                                 >
@@ -225,7 +225,7 @@ class ApplicationSecurityForm extends Component {
                                                     <label
                                                         className="bs-Radio"
                                                         style={{
-                                                            marginLeft: '200px',
+                                                            marginLeft: '330px',
                                                         }}
                                                         htmlFor="useGitSsh"
                                                     >
@@ -249,7 +249,7 @@ class ApplicationSecurityForm extends Component {
                                                             }}
                                                         >
                                                             <span>
-                                                                Use Git SSH
+                                                                Use Git Ssh
                                                             </span>
                                                         </div>
                                                     </label>
@@ -334,7 +334,7 @@ class ApplicationSecurityForm extends Component {
                                                         'useGitSsh' && (
                                                         <div className="bs-Fieldset-row bs-u-justify--center">
                                                             <label className="bs-Fieldset-label Fieldset-extra">
-                                                                Git SSH
+                                                                Git Ssh
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
@@ -344,7 +344,7 @@ class ApplicationSecurityForm extends Component {
                                                                     }
                                                                     name="gitCredential"
                                                                     id="gitSsh"
-                                                                    placeholder="Git SSH"
+                                                                    placeholder="Git Ssh"
                                                                     required="required"
                                                                     style={{
                                                                         height:
@@ -355,7 +355,7 @@ class ApplicationSecurityForm extends Component {
                                                                             value:
                                                                                 '',
                                                                             label:
-                                                                                'Select a Git SSH',
+                                                                                'Select a Git Ssh',
                                                                         },
                                                                         ...(gitCredentials &&
                                                                         gitCredentials.length >

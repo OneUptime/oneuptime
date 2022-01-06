@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const Crypto = require('crypto');
 const GitCredentialModel = require('../models/gitCredential');
 const ErrorService = require('./errorService');
@@ -104,11 +105,10 @@ module.exports = {
                     ErrorService.log('gitCredentialService.create', error);
                     throw error;
                 }
-                const sshPrivateKeyFile = fs.readFileSync(sshPrivateKey);
 
                 const response = await GitCredentialModel.create({
                     sshTitle,
-                    sshPrivateKey: sshPrivateKeyFile,
+                    sshPrivateKey: sshPrivateKey,
                     projectId,
                 });
                 return response;

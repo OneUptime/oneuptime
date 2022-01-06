@@ -8,6 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { closeModal } from '../../actions/modal';
 import {
     addGitCredential,
@@ -138,81 +139,55 @@ class GitSshModal extends Component {
                                         >
                                             <div>
                                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                                    <fieldset className="bs-Fieldset">
-                                                        <div className="bs-Fieldset-rows">
-                                                            <div className="bs-Fieldset-row bs-u-justify--center">
-                                                                <label className="bs-Fieldset-label">
-                                                                    Public Key
-                                                                    Title
-                                                                </label>
-                                                                <div className="bs-Fieldset-fields">
-                                                                    <Field
-                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                        component={
-                                                                            RenderField
-                                                                        }
-                                                                        type="text"
-                                                                        name="sshTitle"
-                                                                        id="gitUsername"
-                                                                        placeholder="ssh public title"
-                                                                        disabled={
-                                                                            isRequesting
-                                                                        }
-                                                                        validate={
-                                                                            ValidateField.text
-                                                                        }
-                                                                        autoFocus={
-                                                                            true
-                                                                        }
-                                                                    />
-                                                                    <p className="bs-Fieldset-fields bs-Fieldset-explanation">
-                                                                        <span>
-                                                                            Ssh
-                                                                            Title
-                                                                            for
-                                                                            Git
-                                                                            Account
-                                                                        </span>
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="bs-Fieldset-row bs-u-justify--center">
-                                                                <label className="bs-Fieldset-label">
-                                                                    Private Key
-                                                                    Path
-                                                                </label>
-                                                                <div className="bs-Fieldset-fields">
-                                                                    <Field
-                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                        component={
-                                                                            RenderField
-                                                                        }
-                                                                        type="text"
-                                                                        name="sshPrivateKey"
-                                                                        id="gitPassword"
-                                                                        placeholder="/Users/adewole/.ssh/id_ed25519"
-                                                                        disabled={
-                                                                            isRequesting
-                                                                        }
-                                                                        validate={
-                                                                            !credentialId &&
-                                                                            ValidateField.required
-                                                                        }
-                                                                    />
-                                                                    <p className="bs-Fieldset-fields bs-Fieldset-explanation">
-                                                                        <span>
-                                                                            File
-                                                                            Path
-                                                                            for
-                                                                            Ssh
-                                                                            Private
-                                                                            Key
-                                                                        </span>
-                                                                    </p>
-                                                                </div>
-                                                            </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label">
+                                                            Public Key Title
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                component={
+                                                                    RenderField
+                                                                }
+                                                                name="sshTitle"
+                                                                id="gitUsername"
+                                                                placeholder="ssh public title"
+                                                                validate={[
+                                                                    ValidateField.required,
+                                                                ]}
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                                autoFocus={true}
+                                                            />
                                                         </div>
-                                                    </fieldset>
+                                                    </div>
+                                                    <div className="bs-Fieldset-row">
+                                                        <label className="bs-Fieldset-label script-label">
+                                                            Private Key
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <Field
+                                                                name="sshPrivateKey"
+                                                                id="sshPrivateKey"
+                                                                component={
+                                                                    RenderCodeEditor
+                                                                }
+                                                                mode="markdown"
+                                                                height="150px"
+                                                                width="100%"
+                                                                placeholder="Ssh Private Key"
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
+                                                                validate={
+                                                                    !credentialId &&
+                                                                    ValidateField.required
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
