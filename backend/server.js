@@ -118,14 +118,15 @@ app.use(function(req, res, next) {
         host: req.headers.host,
         userAgent: req.headers['sec-ch-ua'],
     };
+    req.logdata = logdata;
 
     req = getUser(req, res);
     req = getProjectId(req);
-
     logdata.userId = req.user.id;
     logdata.projectId = req.projectId;
-    req.logdata = logdata;
+    req.logdata = logdata; // final update
 
+    logdata.message = 'logger middleware';
     logger.info(logdata);
     next();
 });
