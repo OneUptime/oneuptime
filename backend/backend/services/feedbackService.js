@@ -32,21 +32,25 @@ module.exports = {
         ]);
         feedback.project = project;
 
-        const record = await AirtableService.logFeedback({
+        AirtableService.logFeedback({
             message,
             name: user.name,
             email: user.email,
             project: project.name,
             page,
         });
-        feedback.airtableId = record.id || null;
+
         feedback.userName = user.name;
         feedback.email = user.email;
         feedback.phone = user.companyPhoneNumber;
         feedback.templateName = 'User Feedback';
 
-        MailService.sendLeadEmailToFyipeTeam(feedback);
-        MailService.sendUserFeedbackResponse(user.email, user.name);
+        try {
+            MailService.sendLeadEmailToFyipeTeam(feedback);
+            MailService.sendUserFeedbackResponse(user.email, user.name);
+        } catch (error) {
+            ErrorService.log('feedbackservice.create', error);
+        }
         return feedback;
     },
 
@@ -61,3 +65,4 @@ const MailService = require('./mailService');
 const UserService = require('./userService');
 const ProjectService = require('./projectService');
 const AirtableService = require('./airtableService');
+const ErrorService = require('./errorService');

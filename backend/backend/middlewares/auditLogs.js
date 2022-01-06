@@ -14,7 +14,7 @@ const sendErrorResponse = require('./response').sendErrorResponse;
 const { getProjectId } = require('./api');
 const GlobalConfigService = require('../services/globalConfigService');
 
-// TODO: This should be stored in a shared cache like redis. 
+// TODO: This should be stored in a shared cache like redis.
 let shouldStoreLogs = null;
 
 module.exports = {

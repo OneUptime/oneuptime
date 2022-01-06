@@ -209,13 +209,11 @@ router.post('/create', getUser, async function(req, res) {
 router.get('/projects', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
-        console.log('** user id **', userId);
         // find user subprojects and parent projects
         const userProjects = await ProjectService.findBy({
             query: { 'users.userId': userId },
             select: 'parentProjectId _id',
         });
-        console.log('** user projects **', userProjects);
         let parentProjectIds = [];
         let projectIds = [];
         if (userProjects.length > 0) {
@@ -231,9 +229,6 @@ router.get('/projects', getUser, async function(req, res) {
                 .filter(project => project !== null);
             projectIds = projects.map(project => project._id);
         }
-
-        console.log('** parent project id **', parentProjectIds);
-        console.log('** project ids **', projectIds);
 
         // query data
         const query = {
@@ -264,7 +259,6 @@ router.get('/projects', getUser, async function(req, res) {
             }),
             ProjectService.countBy(query),
         ]);
-        console.log('** response **', response);
 
         return sendListResponse(req, res, response, count);
     } catch (error) {
@@ -527,7 +521,7 @@ router.delete(
                 }
             }
 
-            const record = await AirtableService.logProjectDeletionFeedback({
+            AirtableService.logProjectDeletionFeedback({
                 reason: feedback
                     ? feedback
                     : 'Feedback was not provided by the user',
@@ -535,7 +529,7 @@ router.delete(
                 name: user.name,
                 email: user.email,
             });
-            project.airtableId = record.id || null;
+
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error);
