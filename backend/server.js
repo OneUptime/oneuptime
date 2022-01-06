@@ -76,7 +76,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
-const Gl = require('greenlock');
+// const Gl = require('greenlock');
 
 // try {
 //     io.adapter(
@@ -394,6 +394,8 @@ const server = http.listen(app.get('port'), function() {
 
 mongoose.connection.on('connected', async () => {
     try {
+        const Gl = require('greenlock');
+
         const greenlock = Gl.create({
             manager: 'oneuptime-gl-manager',
             packageRoot: process.cwd(),
