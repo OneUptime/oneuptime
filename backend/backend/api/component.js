@@ -20,6 +20,7 @@ const ErrorTrackerService = require('../services/errorTrackerService');
 const IssueService = require('../services/issueService');
 const PerformanceTrackerService = require('../services/performanceTrackerService');
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
+const ErrorService = require('../services/errorService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -76,15 +77,21 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         });
 
         if (component) {
-            NotificationService.create(
-                component.projectId._id || component.projectId,
-                `A New Component was Created with name ${component.name} by ${user.name}`,
-                user._id,
-                'componentaddremove'
-            );
-
-            // run in the background
-            RealTimeService.sendComponentCreated(component);
+            try {
+                NotificationService.create(
+                    component.projectId._id || component.projectId,
+                    `A New Component was Created with name ${component.name} by ${user.name}`,
+                    user._id,
+                    'componentaddremove'
+                );
+                // run in the background
+                RealTimeService.sendComponentCreated(component);
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.sendComponentCreated',
+                    component
+                );
+            }
         }
         return sendItemResponse(req, res, component);
     } catch (error) {

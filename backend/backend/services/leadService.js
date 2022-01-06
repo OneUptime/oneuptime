@@ -31,18 +31,22 @@ module.exports = {
             }
 
             lead = await lead.save();
-            MailService.sendLeadEmailToFyipeTeam(lead);
-            if (data.type) {
-                if (data.type === 'demo') {
-                    MailService.sendRequestDemoEmail(data.email);
-                }
+            try {
+                MailService.sendLeadEmailToFyipeTeam(lead);
+                if (data.type) {
+                    if (data.type === 'demo') {
+                        MailService.sendRequestDemoEmail(data.email);
+                    }
 
-                if (data.type === 'whitepaper') {
-                    MailService.sendWhitepaperEmail(
-                        data.email,
-                        data.whitepaperName
-                    ); //whitepaper name should be stored in moreInfo.
+                    if (data.type === 'whitepaper') {
+                        MailService.sendWhitepaperEmail(
+                            data.email,
+                            data.whitepaperName
+                        ); //whitepaper name should be stored in moreInfo.
+                    }
                 }
+            } catch (error) {
+                ErrorService.log('leadService.create', error);
             }
             AirtableService.logLeads({
                 name: data.name,

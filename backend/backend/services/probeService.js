@@ -183,8 +183,12 @@ module.exports = {
             });
             if (probe) {
                 delete probe.deleted;
-                // run in the background
-                RealTimeService.updateProbe(probe, monitorId);
+                try {
+                    // run in the background
+                    RealTimeService.updateProbe(probe, monitorId);
+                } catch (error) {
+                    ErrorService.log('realtimeService.updateProbe', error);
+                }
             }
         } catch (error) {
             ErrorService.log('ProbeService.sendProbe', error);
@@ -834,12 +838,14 @@ module.exports = {
     },
 
     updateProbeStatus: async function(probeId) {
+        
         try {
             const probe = await ProbeModel.findOneAndUpdate(
                 { _id: probeId },
                 { $set: { lastAlive: Date.now() } },
                 { new: true }
             );
+            
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);

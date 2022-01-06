@@ -1,27 +1,8 @@
-const winston = require('winston');
-const Slack = require('winston-slack-webhook-transport');
-
-if (
-    process.env.PORT &&
-    process.env.SLACK_ERROR_LOG_WEBHOOK &&
-    process.env.SLACK_ERROR_LOG_CHANNEL
-) {
-    winston.add(new Slack({ webhookUrl: process.env.SLACK_ERROR_LOG_WEBHOOK }));
-}
+const logger = require('../config/logger');
 
 module.exports = {
-    log: (functionName, error) => {
-        error = error && error.message ? error.message : error;
-        winston.error(
-            JSON.stringify(
-                {
-                    error: String(error),
-                    functionName: String(functionName),
-                    stack: new Error().stack,
-                },
-                0,
-                2
-            )
-        );
+    log: (functionName, err) => {
+        const error = new Error(`${functionName} ${err}`);
+        logger.error(error);
     },
 };

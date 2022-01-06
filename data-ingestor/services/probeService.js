@@ -561,11 +561,11 @@ module.exports = {
                         criteriaId = String(incident.criterionCause._id);
                     allCriteria.forEach(criteria => {
                         if (
-                            String(criteria._id) === criteriaId ||
-                            criteria.name === incident.criterionCause.name
+                            String(criteria?._id) === criteriaId ||
+                            criteria?.name === incident?.criterionCause?.name
                         ) {
-                            autoAcknowledge = criteria.autoAcknowledge;
-                            autoResolve = criteria.autoResolve;
+                            autoAcknowledge = criteria?.autoAcknowledge;
+                            autoResolve = criteria?.autoResolve;
                         }
                     });
                 });
@@ -706,7 +706,13 @@ module.exports = {
             });
 
             // realtime update for probe
-            postApi(`${realtimeBaseUrl}/update-probe`, { data: probe }, true);
+            postApi(
+                `${realtimeBaseUrl}/update-probe`,
+                { data: probe },
+                true
+            ).catch(error => {
+                ErrorService.log('probeService.updateProbeStatus', error);
+            });
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);

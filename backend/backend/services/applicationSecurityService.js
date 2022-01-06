@@ -328,7 +328,13 @@ module.exports = {
                 scanning: false,
             });
 
-            RealTimeService.handleScanning({ security: applicationSecurity });
+            try {
+                RealTimeService.handleScanning({
+                    security: applicationSecurity,
+                });
+            } catch (error) {
+                ErrorService.log('realtimeService.handleScanning', error);
+            }
             return applicationSecurity;
         } catch (error) {
             ErrorService.log(

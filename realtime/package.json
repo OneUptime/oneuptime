@@ -4,7 +4,7 @@
     "description": "A project to handle all realtime processing for OneUptime",
     "main": "index.js",
     "scripts": {
-        "start": "node --max-old-space-size=4096 index.js",
+        "start": "node --max-old-space-size=14336 index.js",
         "dev": "cross-env NODE_ENV=development nodemon --inspect=0.0.0.0 index.js",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"

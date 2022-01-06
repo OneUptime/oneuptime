@@ -165,8 +165,12 @@ module.exports = {
                 populate: populateComponent,
             });
 
-            // run in the background
-            RealTimeService.componentEdit(component);
+            try {
+                // run in the background
+                RealTimeService.componentEdit(component);
+            } catch (error) {
+                ErrorService.log('realtimeService.componentEdit', error);
+            }
 
             return component;
         } catch (error) {
@@ -360,14 +364,18 @@ module.exports = {
                 for (const monitor of monitors) {
                     await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 }
-                NotificationService.create(
-                    component.projectId,
-                    `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
-                    component.deletedById._id,
-                    'componentaddremove'
-                );
-                // run in the background
-                RealTimeService.sendComponentDelete(component);
+                try {
+                    NotificationService.create(
+                        component.projectId,
+                        `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
+                        component.deletedById._id,
+                        'componentaddremove'
+                    );
+                    // run in the background
+                    RealTimeService.sendComponentDelete(component);
+                } catch (error) {
+                    ErrorService.log('componentService.deleteBy', error);
+                }
 
                 return component;
             } else {

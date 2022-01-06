@@ -46,8 +46,12 @@ module.exports = {
             feedback.phone = user.companyPhoneNumber;
             feedback.templateName = 'User Feedback';
 
-            MailService.sendLeadEmailToFyipeTeam(feedback);
-            MailService.sendUserFeedbackResponse(user.email, user.name);
+            try {
+                MailService.sendLeadEmailToFyipeTeam(feedback);
+                MailService.sendUserFeedbackResponse(user.email, user.name);
+            } catch (error) {
+                ErrorService.log('feedbackservice.create', error);
+            }
             return feedback;
         } catch (error) {
             ErrorService.log('feedbackService.create', error);

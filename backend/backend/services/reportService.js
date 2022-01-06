@@ -67,7 +67,7 @@ module.exports = {
                         total: [{ $count: 'count' }],
                     },
                 },
-            ]);
+            ]).option({ allowDiskUse: true });
 
             const arr = [];
             const wrapper = {};
@@ -168,7 +168,7 @@ module.exports = {
                         total: [{ $count: 'count' }],
                     },
                 },
-            ]);
+            ]).option({ allowDiskUse: true });
 
             const arr = [];
             const wrapper = {};
@@ -298,7 +298,7 @@ module.exports = {
                 },
                 { $group: group },
                 { $sort: sort },
-            ]);
+            ]).option({ allowDiskUse: true });
 
             const formarted = [];
 
@@ -412,7 +412,7 @@ module.exports = {
                 },
                 { $group: group },
                 { $sort: sort },
-            ]);
+            ]).option({ allowDiskUse: true });
             const formarted = [];
 
             for (const period of result) {

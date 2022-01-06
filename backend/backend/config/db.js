@@ -5,6 +5,7 @@
  */
 
 const mongoose = require('mongoose');
+const logger = require('./logger');
 const mongoUrl =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/fyipedb';
 
@@ -26,13 +27,11 @@ if (process.env.IS_MONGO_REPLICA_SET) {
 mongoose
     .connect(mongoUrl, options)
     .then(() => {
-        // eslint-disable-next-line
-        return console.log('Mongo connected');
+        return logger.info('Mongo connected');
     })
     .catch(err => {
         // mongoose connection error will be handled here
-        // eslint-disable-next-line
-        console.error('App starting error:', err.stack);
+        logger.error(err);
         process.exit(1);
     });
 
