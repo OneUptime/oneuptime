@@ -76,7 +76,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
-// const Gl = require('greenlock');
+const Gl = require('greenlock');
 const ErrorService = require('./backend/services/errorService');
 
 // try {
