@@ -36,6 +36,7 @@ module.exports = {
             }
 
             let usersId = [];
+            // eslint-disable-next-line array-callback-return
             projectMembers.map(user => {
                 if (user.show) {
                     usersId.push(user.userId.toString());
