@@ -33,14 +33,14 @@ module.exports = {
             ]);
             feedback.project = project;
 
-            const record = await AirtableService.logFeedback({
+            AirtableService.logFeedback({
                 message,
                 name: user.name,
                 email: user.email,
                 project: project.name,
                 page,
             });
-            feedback.airtableId = record.id || null;
+
             feedback.userName = user.name;
             feedback.email = user.email;
             feedback.phone = user.companyPhoneNumber;

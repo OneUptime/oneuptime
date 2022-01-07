@@ -120,9 +120,20 @@ router.post('/site/opts', async (req, res) => {
 // delete an site detail
 router.delete('/site', async (req, res) => {
     try {
-        const { subject } = req.query;
+        const { subject } = req.query; // still handle this for legacy code
+        const { domains } = req.body;
 
-        const site = await SiteManagerService.deleteBy({ subject });
+        let site = null;
+        if (subject && subject.trim()) {
+            site = await SiteManagerService.hardDelete({ subject });
+        } else if (domains && domains.length > 0) {
+            site = await SiteManagerService.hardDelete({
+                subject: { $in: domains },
+            });
+        } else {
+            site = await SiteManagerService.hardDelete({});
+        }
+
         return sendItemResponse(req, res, site);
     } catch (error) {
         return sendErrorResponse(req, res, error);

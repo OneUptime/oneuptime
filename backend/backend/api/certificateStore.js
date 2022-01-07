@@ -3,6 +3,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const CertificateStoreService = require('../services/certificateStoreService');
 const StatusPageService = require('../services/statusPageService');
+const SiteManagerService = require('../services/siteManagerService');
 
 const router = express.Router();
 
@@ -82,10 +83,22 @@ router.post('/certOrder', async (req, res) => {
     try {
         const domains = [];
         const greenlock = global.greenlock;
-        const { domain } = req.body;
+        // to refresh the managers set clearManager to true
+        const { domain, clearManagers } = req.body;
 
         if (greenlock) {
+            if (clearManagers) {
+                await SiteManagerService.hardDelete({});
+            }
+
             if (domain) {
+                // delete any previous manager for this domain
+                if (!clearManagers) {
+                    await SiteManagerService.hardDelete({
+                        subject: { $in: [domain] },
+                    });
+                }
+
                 await greenlock.add({
                     subject: domain,
                     altnames: [domain],
@@ -123,6 +136,11 @@ router.post('/certOrder', async (req, res) => {
             }
 
             if (greenlock) {
+                if (!clearManagers && domains && domains.length > 0) {
+                    await SiteManagerService.hardDelete({
+                        subject: { $in: domains },
+                    });
+                }
                 for (const domain of domains) {
                     // run in the background
                     greenlock.add({

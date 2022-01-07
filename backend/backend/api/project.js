@@ -259,7 +259,6 @@ router.get('/projects', getUser, async function(req, res) {
             }),
             ProjectService.countBy(query),
         ]);
-        // console.log('** response **', response);
 
         return sendListResponse(req, res, response, count);
     } catch (error) {
@@ -522,7 +521,7 @@ router.delete(
                 }
             }
 
-            const record = await AirtableService.logProjectDeletionFeedback({
+            AirtableService.logProjectDeletionFeedback({
                 reason: feedback
                     ? feedback
                     : 'Feedback was not provided by the user',
@@ -530,7 +529,7 @@ router.delete(
                 name: user.name,
                 email: user.email,
             });
-            project.airtableId = record.id || null;
+
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error);

@@ -410,26 +410,16 @@ module.exports = {
                     const createdAt = new Date(user.createdAt)
                         .toISOString()
                         .split('T', 1);
-                    let record;
-                    try {
-                        record = await AirtableService.logUser({
-                            name: data.name,
-                            email: data.email,
-                            phone: data.companyPhoneNumber,
-                            company: data.companyName,
-                            jobRole: data.companyRole,
-                            source: data.source,
-                            createdAt,
-                        });
-                    } catch (error) {
-                        ErrorService.log('userService.signup', error);
-                    }
 
-                    if (record && record.id) {
-                        user.airtableId = record.id;
-                    } else {
-                        user.airtableId = null;
-                    }
+                    AirtableService.logUser({
+                        name: data.name,
+                        email: data.email,
+                        phone: data.companyPhoneNumber,
+                        company: data.companyName,
+                        jobRole: data.companyRole,
+                        source: data.source,
+                        createdAt,
+                    });
 
                     if (IS_TESTING) {
                         user.verificationToken = verificationToken;
