@@ -8,6 +8,7 @@ const Mongoose = require('mongoose');
 const mongoose = require('../config/db');
 const JsonToCsv = require('./jsonToCsv');
 const ObjectID = mongoose.Types.ObjectId;
+const ErrorService = require('../services/errorService');
 
 function filterKeys(field) {
     field = field._doc ? field._doc : field;
@@ -100,17 +101,17 @@ module.exports = {
     },
 
     sendErrorResponse: function(req, res, error) {
+        let status, message;
         if (error.statusCode && error.message) {
             res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
-            return res
-                .status(error.statusCode)
-                .send({ message: error.message });
+            status = error.statusCode;
+            message = error.message;
         } else if (
             error.code &&
             error.message &&
             typeof error.code === 'number'
         ) {
-            let status = error.code;
+            status = error.code;
             if (
                 error.code &&
                 error.status &&
@@ -121,16 +122,25 @@ module.exports = {
                 status = error.status;
             }
             res.resBody = { message: error.message };
-            return res.status(status).send({ message: error.message });
+            message = error.message;
         } else if (error instanceof mongoose.Error.CastError) {
             res.resBody = { code: 400, message: 'Input data schema mismatch.' };
-            return res
-                .status(400)
-                .send({ code: 400, message: 'Input data schema mismatch.' });
+            status = 400;
+            message = 'Input data schema mismatch';
         } else {
             res.resBody = { message: 'Server Error.' };
-            return res.status(500).send({ message: 'Server Error.' });
+            status = 500;
+            message = 'Server Error.';
         }
+
+        if (!req.logdata) {
+            req.logdata = {};
+        }
+
+        req.logdata.errorCode = status;
+        ErrorService.log('sendErrorResponse', message, req.logdata);
+
+        return res.status(status).send({ message });
     },
 
     sendListResponse: async function(req, res, list, count) {

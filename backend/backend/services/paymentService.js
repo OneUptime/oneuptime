@@ -146,50 +146,38 @@ module.exports = {
         alertType
     ) {
         // let release;
-        try {
-            const status = {};
-            // const mutex = getMutex(
-            //     MUTEX_RESOURCES.PROJECT,
-            //     project._id.toString()
-            // );
-            // release = await mutex.acquire();
-            // check balance
-            const isBalanceEnough = await this.hasEnoughBalance(
-                project._id,
-                alertPhoneNumber,
+        const status = {};
+        // const mutex = getMutex(
+        //     MUTEX_RESOURCES.PROJECT,
+        //     project._id.toString()
+        // );
+        // release = await mutex.acquire();
+        // check balance
+        const isBalanceEnough = await this.hasEnoughBalance(
+            project._id,
+            alertPhoneNumber,
+            userId,
+            alertType
+        );
+
+        if (!isBalanceEnough) {
+            const lowBalanceRecharged = await this.fillProjectBalance(
                 userId,
-                alertType
+                project
             );
-
-            if (!isBalanceEnough) {
-                const lowBalanceRecharged = await this.fillProjectBalance(
-                    userId,
-                    project
-                );
-                if (lowBalanceRecharged) {
-                    status.success = true;
-                    status.message = 'Balance recharged successfully';
-                } else {
-                    status.success = false;
-                    status.message = 'Low Balance';
-                }
-            } else {
+            if (lowBalanceRecharged) {
                 status.success = true;
-                status.message = 'Balance is enough';
+                status.message = 'Balance recharged successfully';
+            } else {
+                status.success = false;
+                status.message = 'Low Balance';
             }
-
-            return status;
-        } catch (error) {
-            ErrorService.log(
-                'PaymentService.checkAndRechargeProjectBalance',
-                error
-            );
-            throw error;
-        } finally {
-            // if (release) {
-            //     release();
-            // }
+        } else {
+            status.success = true;
+            status.message = 'Balance is enough';
         }
+
+        return status;
     },
 
     //Description: Retrieve payment intent.
@@ -197,15 +185,10 @@ module.exports = {
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
     checkPaymentIntent: async function(paymentIntent) {
-        try {
-            const processedPaymentIntent = await stripe.paymentIntents.retrieve(
-                paymentIntent.id
-            );
-            return processedPaymentIntent;
-        } catch (error) {
-            ErrorService.log('paymentService.checkPaymentIntent', error);
-            throw error;
-        }
+        const processedPaymentIntent = await stripe.paymentIntents.retrieve(
+            paymentIntent.id
+        );
+        return processedPaymentIntent;
     },
 
     //Description: Create customer in stripe for  user.
@@ -214,27 +197,17 @@ module.exports = {
     //Param 2: user: User details
     //Returns: promise
     createCustomer: async function(email, companyName) {
-        try {
-            const customer = await stripe.customers.create({
-                email: email,
-                description: companyName,
-            });
-            return customer.id;
-        } catch (error) {
-            ErrorService.log('paymentService.createCustomer', error);
-            throw error;
-        }
+        const customer = await stripe.customers.create({
+            email: email,
+            description: companyName,
+        });
+        return customer.id;
     },
 
     // eslint-disable-next-line no-unused-vars
     addPayment: async function(customerId, stripeToken) {
-        try {
-            const card = await stripe.customers.createSource(customerId);
-            return card;
-        } catch (error) {
-            ErrorService.log('paymentService.addPayment', error);
-            throw error;
-        }
+        const card = await stripe.customers.createSource(customerId);
+        return card;
     },
 
     //Description: Subscribe plan to user.
@@ -243,39 +216,32 @@ module.exports = {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
     subscribePlan: async function(stripePlanId, stripeCustomerId, coupon) {
-        try {
-            const items = [];
-            items.push({
-                plan: stripePlanId,
-                quantity: 1,
-            });
+        const items = [];
+        items.push({
+            plan: stripePlanId,
+            quantity: 1,
+        });
 
-            let subscriptionObj = {};
+        let subscriptionObj = {};
 
-            if (coupon) {
-                subscriptionObj = {
-                    customer: stripeCustomerId,
-                    items: items,
-                    coupon: coupon,
-                    trial_period_days: 14,
-                };
-            } else {
-                subscriptionObj = {
-                    customer: stripeCustomerId,
-                    items: items,
-                    trial_period_days: 14,
-                };
-            }
-            const subscription = await stripe.subscriptions.create(
-                subscriptionObj
-            );
-            return {
-                stripeSubscriptionId: subscription.id,
+        if (coupon) {
+            subscriptionObj = {
+                customer: stripeCustomerId,
+                items: items,
+                coupon: coupon,
+                trial_period_days: 14,
             };
-        } catch (error) {
-            ErrorService.log('paymentService.subscribePlan', error);
-            throw error;
+        } else {
+            subscriptionObj = {
+                customer: stripeCustomerId,
+                items: items,
+                trial_period_days: 14,
+            };
         }
+        const subscription = await stripe.subscriptions.create(subscriptionObj);
+        return {
+            stripeSubscriptionId: subscription.id,
+        };
     },
 
     //Description: Call this fuction when you add and remove a team member from OneUptime. This would add and remove seats based on how many users are in the project.
@@ -284,212 +250,180 @@ module.exports = {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
     changeSeats: async function(subscriptionId, seats) {
-        try {
-            if (subscriptionId === null) return;
+        if (subscriptionId === null) return;
 
-            let subscription = await stripe.subscriptions.retrieve(
-                subscriptionId
-            );
+        let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-            let plan = null;
-            const items = [];
-            if (
-                !subscription ||
-                !subscription.items ||
-                !subscription.items.data ||
-                !subscription.items.data.length > 0
-            ) {
-                const error = new Error(
-                    'Your subscription cannot be retrieved.'
-                );
-                error.code = 400;
-                ErrorService.log('paymentService.changeSeats', error);
-                throw error;
-            } else {
-                let trial_end_date;
-                if (
-                    subscription.trial_end !== null &&
-                    subscription.trial_end * 1000 > Date.now() //ensure the trial end date is in the future
-                ) {
-                    trial_end_date = subscription.trial_end;
-                }
-
-                for (let i = 0; i < subscription.items.data.length; i++) {
-                    plan = await Plans.getPlanById(
-                        subscription.items.data[i].plan.id
-                    );
-
-                    if (plan) {
-                        const item = {
-                            plan: plan.planId,
-                            id: subscription.items.data[i].id,
-                            quantity: seats,
-                        };
-
-                        items.push(item);
-                    }
-                }
-
-                if (trial_end_date) {
-                    subscription = await stripe.subscriptions.update(
-                        subscriptionId,
-                        { items: items, trial_end: trial_end_date }
-                    );
-                } else {
-                    subscription = await stripe.subscriptions.update(
-                        subscriptionId,
-                        { items: items }
-                    );
-                }
-
-                return subscription.id;
-            }
-        } catch (error) {
-            ErrorService.log('paymentService.changeSeats', error);
+        let plan = null;
+        const items = [];
+        if (
+            !subscription ||
+            !subscription.items ||
+            !subscription.items.data ||
+            !subscription.items.data.length > 0
+        ) {
+            const error = new Error('Your subscription cannot be retrieved.');
+            error.code = 400;
             throw error;
+        } else {
+            let trial_end_date;
+            if (
+                subscription.trial_end !== null &&
+                subscription.trial_end * 1000 > Date.now() //ensure the trial end date is in the future
+            ) {
+                trial_end_date = subscription.trial_end;
+            }
+
+            for (let i = 0; i < subscription.items.data.length; i++) {
+                plan = await Plans.getPlanById(
+                    subscription.items.data[i].plan.id
+                );
+
+                if (plan) {
+                    const item = {
+                        plan: plan.planId,
+                        id: subscription.items.data[i].id,
+                        quantity: seats,
+                    };
+
+                    items.push(item);
+                }
+            }
+
+            if (trial_end_date) {
+                subscription = await stripe.subscriptions.update(
+                    subscriptionId,
+                    { items: items, trial_end: trial_end_date }
+                );
+            } else {
+                subscription = await stripe.subscriptions.update(
+                    subscriptionId,
+                    { items: items }
+                );
+            }
+
+            return subscription.id;
         }
     },
 
     createSubscription: async function(stripeCustomerId, amount) {
-        try {
-            const productId = Plans.getReserveNumberProductId();
-            const subscriptions = await stripe.subscriptions.create({
-                customer: stripeCustomerId,
-                items: [
-                    {
-                        price_data: {
-                            currency: 'usd',
-                            product: productId,
-                            unit_amount: amount * 100,
-                            recurring: {
-                                interval: 'month',
-                            },
+        const productId = Plans.getReserveNumberProductId();
+        const subscriptions = await stripe.subscriptions.create({
+            customer: stripeCustomerId,
+            items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product: productId,
+                        unit_amount: amount * 100,
+                        recurring: {
+                            interval: 'month',
                         },
                     },
-                ],
-            });
-            return subscriptions;
-        } catch (error) {
-            ErrorService.log('paymentService.createSubscription', error);
-            throw error;
-        }
+                },
+            ],
+        });
+        return subscriptions;
     },
 
     removeSubscription: async function(stripeSubscriptionId) {
-        try {
-            const confirmations = [];
-            confirmations[0] = await stripe.subscriptions.del(
-                stripeSubscriptionId
-            );
-            return confirmations;
-        } catch (error) {
-            ErrorService.log('paymentService.removeSubscription', error);
-            throw error;
-        }
+        const confirmations = [];
+        confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
+        return confirmations;
     },
 
     changePlan: async function(subscriptionId, planId, seats) {
-        try {
-            let subscriptionObj = {};
-            const subscription = await stripe.subscriptions.retrieve(
-                subscriptionId
-            );
-            const trial_end = subscription.trial_end;
+        let subscriptionObj = {};
+        const subscription = await stripe.subscriptions.retrieve(
+            subscriptionId
+        );
+        const trial_end = subscription.trial_end;
 
-            await stripe.subscriptions.del(subscriptionId);
+        await stripe.subscriptions.del(subscriptionId);
 
-            const items = [];
-            items.push({
-                plan: planId,
-                quantity: seats,
-            });
+        const items = [];
+        items.push({
+            plan: planId,
+            quantity: seats,
+        });
 
-            // ensure trial end date is in the future
-            if (trial_end !== null && trial_end * 1000 > Date.now()) {
-                subscriptionObj = {
-                    customer: subscription.customer,
-                    items: items,
-                    trial_end,
-                };
-            } else {
-                subscriptionObj = {
-                    customer: subscription.customer,
-                    items: items,
-                };
-            }
-            const subscriptions = await stripe.subscriptions.create(
-                subscriptionObj
-            );
-
-            return subscriptions.id;
-        } catch (error) {
-            ErrorService.log('paymentService.changePlan', error);
-            throw error;
+        // ensure trial end date is in the future
+        if (trial_end !== null && trial_end * 1000 > Date.now()) {
+            subscriptionObj = {
+                customer: subscription.customer,
+                items: items,
+                trial_end,
+            };
+        } else {
+            subscriptionObj = {
+                customer: subscription.customer,
+                items: items,
+            };
         }
+        const subscriptions = await stripe.subscriptions.create(
+            subscriptionObj
+        );
+
+        return subscriptions.id;
     },
 
     chargeAlert: async function(userId, projectId, chargeAmount) {
-        try {
-            let project = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'balance alertOptions _id',
-            });
-            const { balance } = project;
-            const { minimumBalance, rechargeToBalance } = project.alertOptions;
-            if (balance < minimumBalance) {
-                const paymentIntent = await StripeService.chargeCustomerForBalance(
-                    userId,
-                    rechargeToBalance,
-                    project.id
-                );
-                if (!paymentIntent.paid) {
-                    //create notification
-                    const message =
-                        'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
-                    const meta = {
-                        type: 'action',
-                        client_secret: paymentIntent.client_secret,
-                    };
-                    try {
-                        NotificationService.create(
-                            projectId,
-                            message,
-                            userId,
-                            null,
-                            meta
-                        );
-                    } catch (error) {
-                        ErrorService.log('paymentService.chargeAlert', error);
-                    }
+        let project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'balance alertOptions _id',
+        });
+        const { balance } = project;
+        const { minimumBalance, rechargeToBalance } = project.alertOptions;
+        if (balance < minimumBalance) {
+            const paymentIntent = await StripeService.chargeCustomerForBalance(
+                userId,
+                rechargeToBalance,
+                project.id
+            );
+            if (!paymentIntent.paid) {
+                //create notification
+                const message =
+                    'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
+                const meta = {
+                    type: 'action',
+                    client_secret: paymentIntent.client_secret,
+                };
+                try {
+                    NotificationService.create(
+                        projectId,
+                        message,
+                        userId,
+                        null,
+                        meta
+                    );
+                } catch (error) {
+                    ErrorService.log('paymentService.chargeAlert', error);
                 }
-
-                // confirm payment intent
-                // and update the project balance
-                // if further process is required the user will need to manually top up the account
-                await StripeService.confirmPayment(paymentIntent);
             }
-            project = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'balance',
-            });
-            const balanceAfterAlertSent = formatBalance(
-                project.balance - chargeAmount
-            );
 
-            const updatedProject = await ProjectModel.findByIdAndUpdate(
-                projectId,
-                {
-                    $set: {
-                        balance: balanceAfterAlertSent,
-                    },
-                },
-                { new: true }
-            );
-            return updatedProject;
-        } catch (error) {
-            ErrorService.log('paymentService.chargeAlert', error);
-            throw error;
+            // confirm payment intent
+            // and update the project balance
+            // if further process is required the user will need to manually top up the account
+            await StripeService.confirmPayment(paymentIntent);
         }
+        project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'balance',
+        });
+        const balanceAfterAlertSent = formatBalance(
+            project.balance - chargeAmount
+        );
+
+        const updatedProject = await ProjectModel.findByIdAndUpdate(
+            projectId,
+            {
+                $set: {
+                    balance: balanceAfterAlertSent,
+                },
+            },
+            { new: true }
+        );
+        return updatedProject;
     },
 
     //Description: Call this fuction to bill for extra users added to an account.
@@ -501,21 +435,16 @@ module.exports = {
         extraUserPlanId,
         extraUsersToAdd
     ) {
-        try {
-            const subscription = await stripe.subscriptions.create({
-                customer: stripeCustomerId,
-                items: [
-                    {
-                        plan: extraUserPlanId,
-                        quantity: extraUsersToAdd,
-                    },
-                ],
-            });
-            return subscription;
-        } catch (error) {
-            ErrorService.log('paymentService.chargeExtraUser', error);
-            throw error;
-        }
+        const subscription = await stripe.subscriptions.create({
+            customer: stripeCustomerId,
+            items: [
+                {
+                    plan: extraUserPlanId,
+                    quantity: extraUsersToAdd,
+                },
+            ],
+        });
+        return subscription;
     },
 };
 

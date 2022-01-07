@@ -19,16 +19,29 @@ const {
     updateApplicationSecurityToFailed,
 } = require('./applicationSecurityUpdate');
 
+const { Client } = require('ssh2');
 module.exports = {
     scan: async function(security) {
-        const decryptedSecurity = await this.decryptPassword(security);
-        await this.scanApplicationSecurity(decryptedSecurity);
+        if (
+            security.gitCredential.gitUsername &&
+            security.gitCredential.gitPassword
+        ) {
+            const decryptedSecurity = await this.decryptPassword(security);
+            await this.scanApplicationSecurity(decryptedSecurity);
+        }
+        if (
+            security.gitCredential.sshTitle &&
+            security.gitCredential.sshPrivateKey
+        ) {
+            await this.sshScanApplicationSecurity(security);
+        }
     },
     decryptPassword: async function(security) {
         try {
             const values = [];
-            for (let i = 0; i <= 15; i++)
+            for (let i = 0; i <= 15; i++) {
                 values.push(security.gitCredential.iv[i]);
+            }
             const iv = Buffer.from(values);
             security.gitCredential.gitPassword = await this.decrypt(
                 security.gitCredential.gitPassword,
@@ -37,7 +50,7 @@ module.exports = {
             return security;
         } catch (error) {
             ErrorService.log(
-                'applicatioinSecurityService.decryptPassword',
+                'applicationSecurityService.decryptPassword',
                 error
             );
             throw error;
@@ -55,6 +68,152 @@ module.exports = {
             }
         });
         return promise;
+    },
+    sshScanApplicationSecurity: async security => {
+        try {
+            let securityDir = 'application_security_dir';
+            securityDir = await createDir(securityDir);
+            const cloneDirectory = `${uuidv1()}security`; // always create unique paths
+            const repoPath = Path.resolve(securityDir, cloneDirectory);
+            const conn = new Client();
+
+            const url = security.gitRepositoryUrl.split(
+                'https://github.com/'
+            )[1];
+
+            conn.on('ready', () => {
+                // eslint-disable-next-line no-console
+                console.log('SSH Client :: ready');
+                return new Promise((resolve, reject) => {
+                    git(securityDir)
+                        .silent(true)
+                        .clone(`git@github.com:${url}.git`, cloneDirectory)
+                        .then(() => {
+                            const output = spawn('npm', ['install'], {
+                                cwd: repoPath,
+                            });
+                            output.on('error', error => {
+                                error.code = 500;
+                                throw error;
+                            });
+
+                            output.on('close', () => {
+                                let auditOutput = '';
+                                const audit = spawn(
+                                    'npm',
+                                    ['audit', '--json'],
+                                    {
+                                        cwd: repoPath,
+                                    }
+                                );
+
+                                audit.on('error', error => {
+                                    error.code = 500;
+                                    throw error;
+                                });
+
+                                audit.stdout.on('data', data => {
+                                    const strData = data.toString();
+                                    auditOutput += strData;
+                                });
+
+                                audit.on('close', async () => {
+                                    let advisories = [];
+                                    auditOutput = JSON.parse(auditOutput); // parse the stringified json
+                                    for (const key in auditOutput.vulnerabilities) {
+                                        advisories.push(
+                                            auditOutput.vulnerabilities[key]
+                                        );
+                                    }
+
+                                    const criticalArr = [],
+                                        highArr = [],
+                                        moderateArr = [],
+                                        lowArr = [];
+                                    advisories.map(advisory => {
+                                        if (advisory.severity === 'critical') {
+                                            criticalArr.push(advisory);
+                                        }
+                                        if (advisory.severity === 'high') {
+                                            highArr.push(advisory);
+                                        }
+                                        if (advisory.severity === 'moderate') {
+                                            moderateArr.push(advisory);
+                                        }
+                                        if (advisory.severity === 'low') {
+                                            lowArr.push(advisory);
+                                        }
+                                        return advisory;
+                                    });
+
+                                    // restructure advisories from the most critical case to the least critical(low)
+                                    advisories = [
+                                        ...criticalArr,
+                                        ...highArr,
+                                        ...moderateArr,
+                                        ...lowArr,
+                                    ];
+
+                                    const auditData = {
+                                        dependencies:
+                                            auditOutput.metadata.dependencies,
+                                        devDependencies:
+                                            auditOutput.metadata
+                                                .devDependencies,
+                                        optionalDependencies:
+                                            auditOutput.metadata
+                                                .optionalDependencies,
+                                        totalDependencies:
+                                            auditOutput.metadata
+                                                .totalDependencies,
+                                        vulnerabilities:
+                                            auditOutput.metadata
+                                                .vulnerabilities,
+                                        advisories,
+                                    };
+
+                                    const resolvedLog = await updateApplicationSecurityLogService(
+                                        {
+                                            securityId: security._id,
+                                            componentId:
+                                                security.componentId._id,
+                                            data: auditData,
+                                        }
+                                    );
+                                    await updateApplicationSecurityScanTime({
+                                        _id: security._id,
+                                    });
+                                    await deleteFolderRecursive(repoPath);
+                                    return resolve(resolvedLog);
+                                });
+                            });
+                        })
+                        .catch(async error => {
+                            await updateApplicationSecurityToFailed(security);
+                            error.message =
+                                'Authentication failed please check your git credentials or git repository url';
+                            ErrorService.log(
+                                'applicationSecurityUpdate.updateApplicationSecurityToFailed',
+                                error
+                            );
+
+                            await deleteFolderRecursive(repoPath);
+                            return reject(error);
+                        });
+                });
+            }).connect({
+                // This is where we use the ssh private Key to connect to github
+                host: 'github.com',
+                username: 'git',
+                privateKey: security.gitCredential.sshPrivateKey,
+            });
+        } catch (error) {
+            ErrorService.log(
+                'applicationScannerService.scanApplicationSecurity',
+                error
+            );
+            throw error;
+        }
     },
     scanApplicationSecurity: async security => {
         try {

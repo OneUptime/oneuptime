@@ -50,6 +50,10 @@ spec:
                         value: {{ template "oneuptime.redisHost" . }}
                       - name: ONEUPTIME_HOST
                         value: {{ .Values.oneuptime.hosts.host1.host }}
+                      - name: DEPLOYMENT_NAME
+                        value: {{ printf "%s-%s" .Release.Name "backend"  }}
+                      - name: CONTAINER_NAME
+                        value: {{ printf "%s-%s" .Release.Name "backend"  }}
                       - name: BACKEND_PROTOCOL
                         value: {{ .Values.backendProtocol }}
                       - name: REDIS_PORT

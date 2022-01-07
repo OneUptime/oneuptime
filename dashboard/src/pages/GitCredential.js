@@ -7,6 +7,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getGitCredentials } from '../actions/credential';
 import GitCredentialList from '../components/credential/GitCredentialList';
+import GitSshList from '../components/credential/GitSshList';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import TutorialBox from '../components/tutorial/TutorialBox';
@@ -80,6 +81,21 @@ class GitCredential extends Component {
                                 <span>
                                     <GitCredentialList
                                         gitCredentials={gitCredentials}
+                                        error={getError}
+                                        projectId={projectId}
+                                        isRequesting={isRequesting}
+                                    />
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            id="gitCredentialPage"
+                            className="db-BackboneViewContainer"
+                        >
+                            <div className="react-settings-view react-view">
+                                <span>
+                                    <GitSshList
+                                        gitSsh={gitCredentials}
                                         error={getError}
                                         projectId={projectId}
                                         isRequesting={isRequesting}
