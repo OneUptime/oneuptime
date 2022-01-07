@@ -146,6 +146,7 @@ app.use(async function(req, res, next) {
         url: completeUrl,
         host: req.headers.host,
         userAgent: req.headers['sec-ch-ua'],
+        requestId: req.id,
     };
 
     req = (await getUser(req)) || {};
