@@ -14,7 +14,7 @@ async function run() {
         parentProjectId: null,
     });
 
-    const adminUserId = adminUser[0]._id;
+    const adminUserId = adminUser[0]?._id;
 
     for (const project of projects) {
         let projectUsers = project.users;
