@@ -9,6 +9,7 @@ import { navKeyBind, cleanBind } from '../../utils/keybinding';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { history } from '../../store';
 import { toggleProjectSettingsMore } from '../../actions/page';
+import { User, PricingPlan } from '../../config';
 
 export class SidebarNavItem extends Component {
     constructor(props) {
@@ -401,7 +402,16 @@ export class SidebarNavItem extends Component {
         showMore,
         handleShowMore,
     }) {
+        const currentProject = JSON.parse(User.getProject());
+        const isScalePlan = currentProject?.stripePlanId
+            ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===
+              'Scale'
+            : false;
         return this.props.route.subRoutes.map((child, index) => {
+            if (child.title === 'Sso' && !isScalePlan) {
+                return null;
+            }
+
             const removedLinks = [
                 'Schedule',
                 'Incident',

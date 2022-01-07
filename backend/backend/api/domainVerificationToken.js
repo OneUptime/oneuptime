@@ -8,6 +8,7 @@ const DomainVerificationService = require('../services/domainVerificationService
 const { sendListResponse } = require('../middlewares/response');
 const StatusPageService = require('../services/statusPageService');
 const ProjectService = require('../services/projectService');
+const errorService = require('../services/errorService');
 
 const router = express.Router();
 
@@ -241,7 +242,9 @@ router.put(
                 domainId,
                 domain,
                 domainObj.domain
-            );
+            ).catch(error => {
+                errorService.log('StatusPageService.updateCustomDomain', error);
+            });
 
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId, projectId },

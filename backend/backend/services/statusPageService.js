@@ -6,102 +6,89 @@
 
 module.exports = {
     findBy: async function({ query, skip, limit, populate, select }) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 10;
+        if (!limit) limit = 10;
 
-            if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') skip = parseInt(skip);
 
-            if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') limit = parseInt(limit);
 
-            if (!query) query = {};
+        if (!query) query = {};
 
-            query.deleted = false;
-            let statusPagesQuery = StatusPageModel.find(query)
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip)
-                .lean();
+        query.deleted = false;
+        let statusPagesQuery = StatusPageModel.find(query)
+            .sort([['createdAt', -1]])
+            .limit(limit)
+            .skip(skip)
+            .lean();
 
-            statusPagesQuery = handleSelect(select, statusPagesQuery);
-            statusPagesQuery = handlePopulate(populate, statusPagesQuery);
+        statusPagesQuery = handleSelect(select, statusPagesQuery);
+        statusPagesQuery = handlePopulate(populate, statusPagesQuery);
 
-            const statusPages = await statusPagesQuery;
-            return statusPages;
-        } catch (error) {
-            ErrorService.log('statusPageService.findBy', error);
-            throw error;
-        }
+        const statusPages = await statusPagesQuery;
+        return statusPages;
     },
 
     create: async function(data) {
-        try {
-            let existingStatusPage = null;
+        let existingStatusPage = null;
 
-            if (data.name) {
-                existingStatusPage = await this.countBy({
-                    name: data.name,
-                    projectId: data.projectId,
-                });
-            }
-            if (existingStatusPage && existingStatusPage > 0) {
-                const error = new Error(
-                    'StatusPage with that name already exists.'
-                );
-                error.code = 400;
-                ErrorService.log('statusPageService.create', error);
-                throw error;
-            }
-            const statusPageModel = new StatusPageModel();
-            statusPageModel.projectId = data.projectId || null;
-            statusPageModel.domains = data.domains || [];
-            statusPageModel.links = data.links || null;
-            statusPageModel.name = data.name || null;
-            statusPageModel.isPrivate = data.isPrivate || null;
-            statusPageModel.description = data.description || null;
-            statusPageModel.copyright = data.copyright || null;
-            statusPageModel.faviconPath = data.faviconPath || null;
-            statusPageModel.logoPath = data.logoPath || null;
-            statusPageModel.bannerPath = data.bannerPath || null;
-            statusPageModel.colors =
-                data.colors || defaultStatusPageColors.default;
-            statusPageModel.deleted = data.deleted || false;
-            statusPageModel.isSubscriberEnabled =
-                data.isSubscriberEnabled || false;
-            statusPageModel.monitors = Array.isArray(data.monitors)
-                ? [...data.monitors]
-                : [];
-            statusPageModel.statusBubbleId = data.statusBubbleId || uuid.v4();
-
-            if (data && data.name) {
-                statusPageModel.slug = getSlug(data.name);
-            }
-
-            const statusPage = await statusPageModel.save();
-
-            const populateStatusPage = [
-                { path: 'projectId', select: 'parentProjectId' },
-                { path: 'monitorIds', select: 'name' },
-                { path: 'monitors.monitor', select: 'name' },
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-            ];
-            const selectStatusPage =
-                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
-
-            const newStatusPage = await this.findOneBy({
-                _id: statusPage._id,
-                populate: populateStatusPage,
-                select: selectStatusPage,
+        if (data.name) {
+            existingStatusPage = await this.countBy({
+                name: data.name,
+                projectId: data.projectId,
             });
-            return newStatusPage;
-        } catch (error) {
-            ErrorService.log('statusPageService.create', error);
+        }
+        if (existingStatusPage && existingStatusPage > 0) {
+            const error = new Error(
+                'StatusPage with that name already exists.'
+            );
+            error.code = 400;
             throw error;
         }
+        const statusPageModel = new StatusPageModel();
+        statusPageModel.projectId = data.projectId || null;
+        statusPageModel.domains = data.domains || [];
+        statusPageModel.links = data.links || null;
+        statusPageModel.name = data.name || null;
+        statusPageModel.isPrivate = data.isPrivate || null;
+        statusPageModel.description = data.description || null;
+        statusPageModel.copyright = data.copyright || null;
+        statusPageModel.faviconPath = data.faviconPath || null;
+        statusPageModel.logoPath = data.logoPath || null;
+        statusPageModel.bannerPath = data.bannerPath || null;
+        statusPageModel.colors = data.colors || defaultStatusPageColors.default;
+        statusPageModel.deleted = data.deleted || false;
+        statusPageModel.isSubscriberEnabled = data.isSubscriberEnabled || false;
+        statusPageModel.monitors = Array.isArray(data.monitors)
+            ? [...data.monitors]
+            : [];
+        statusPageModel.statusBubbleId = data.statusBubbleId || uuid.v4();
+
+        if (data && data.name) {
+            statusPageModel.slug = getSlug(data.name);
+        }
+
+        const statusPage = await statusPageModel.save();
+
+        const populateStatusPage = [
+            { path: 'projectId', select: 'parentProjectId' },
+            { path: 'monitorIds', select: 'name' },
+            { path: 'monitors.monitor', select: 'name' },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+        ];
+        const selectStatusPage =
+            'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
+
+        const newStatusPage = await this.findOneBy({
+            _id: statusPage._id,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
+        return newStatusPage;
     },
 
     createDomain: async function(
@@ -115,107 +102,94 @@ module.exports = {
     ) {
         let createdDomain = {};
 
-        try {
-            // check if domain already exist
-            // only one domain in the db is allowed
-            const existingBaseDomain = await DomainVerificationService.findOneBy(
-                {
-                    query: {
-                        domain: subDomain,
-                    },
-                    select: '_id',
-                }
+        // check if domain already exist
+        // only one domain in the db is allowed
+        const existingBaseDomain = await DomainVerificationService.findOneBy({
+            query: {
+                domain: subDomain,
+            },
+            select: '_id',
+        });
+
+        if (!existingBaseDomain) {
+            const creationData = {
+                domain: subDomain,
+                projectId,
+            };
+            // create the domain
+            createdDomain = await DomainVerificationService.create(
+                creationData
             );
+        }
 
-            if (!existingBaseDomain) {
-                const creationData = {
-                    domain: subDomain,
-                    projectId,
-                };
-                // create the domain
-                createdDomain = await DomainVerificationService.create(
-                    creationData
-                );
-            }
+        const populateStatusPage = [
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+        ];
 
-            const populateStatusPage = [
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-            ];
+        const statusPage = await this.findOneBy({
+            query: { _id: statusPageId },
+            populate: populateStatusPage,
+            select: 'domains',
+        });
 
-            const statusPage = await this.findOneBy({
-                query: { _id: statusPageId },
-                populate: populateStatusPage,
-                select: 'domains',
-            });
-
-            if (statusPage) {
-                // attach the domain id to statuspage collection and update it
-                const domain = statusPage.domains.find(domain =>
-                    domain.domain === subDomain ? true : false
-                );
-                if (domain) {
-                    const error = new Error('Domain already exists');
-                    error.code = 400;
-                    ErrorService.log('statusPageService.createDomain', error);
-                    throw error;
-                }
-                if (enableHttps && autoProvisioning) {
-                    // trigger addition of this particular domain
-                    // which should pass the acme challenge
-                    // acme challenge is to be processed from status page project
-                    const altnames = [subDomain];
-
-                    // before adding any domain
-                    // check if there's a certificate already created in the store
-                    // if there's none, add the domain to the flow
-                    const certificate = await CertificateStoreService.findOneBy(
-                        {
-                            query: { subject: subDomain },
-                            select: 'id',
-                        }
-                    );
-
-                    const greenlock = global.greenlock;
-                    if (!certificate && greenlock) {
-                        // handle this in the background
-                        greenlock.add({
-                            subject: altnames[0],
-                            altnames: altnames,
-                        });
-                    }
-                }
-
-                statusPage.domains = [
-                    ...statusPage.domains,
-                    {
-                        domain: subDomain,
-                        cert,
-                        privateKey,
-                        enableHttps,
-                        autoProvisioning,
-                        domainVerificationToken:
-                            createdDomain._id || existingBaseDomain._id,
-                    },
-                ];
-                return await this.updateOneBy(
-                    { _id: statusPage._id },
-                    {
-                        domains: statusPage.domains,
-                    }
-                );
-            } else {
-                const error = new Error(
-                    'Status page not found or does not exist'
-                );
+        if (statusPage) {
+            // attach the domain id to statuspage collection and update it
+            const domain = statusPage.domains.find(domain =>
+                domain.domain === subDomain ? true : false
+            );
+            if (domain) {
+                const error = new Error('Domain already exists');
                 error.code = 400;
-                ErrorService.log('statusPageService.createDomain', error);
                 throw error;
             }
-        } catch (error) {
-            ErrorService.log('statusPageService.createDomain', error);
+            if (enableHttps && autoProvisioning) {
+                // trigger addition of this particular domain
+                // which should pass the acme challenge
+                // acme challenge is to be processed from status page project
+                const altnames = [subDomain];
+
+                // before adding any domain
+                // check if there's a certificate already created in the store
+                // if there's none, add the domain to the flow
+                const certificate = await CertificateStoreService.findOneBy({
+                    query: { subject: subDomain },
+                    select: 'id',
+                });
+
+                const greenlock = global.greenlock;
+                if (!certificate && greenlock) {
+                    // handle this in the background
+                    greenlock.add({
+                        subject: altnames[0],
+                        altnames: altnames,
+                    });
+                }
+            }
+
+            statusPage.domains = [
+                ...statusPage.domains,
+                {
+                    domain: subDomain,
+                    cert,
+                    privateKey,
+                    enableHttps,
+                    autoProvisioning,
+                    domainVerificationToken:
+                        createdDomain._id || existingBaseDomain._id,
+                },
+            ];
+            return await this.updateOneBy(
+                { _id: statusPage._id },
+                {
+                    domains: statusPage.domains,
+                }
+            );
+        } else {
+            const error = new Error('Status page not found or does not exist');
+            error.code = 400;
             throw error;
         }
     },
@@ -224,47 +198,42 @@ module.exports = {
     // use regex to replace the value
     updateCustomDomain: async function(domainId, newDomain, oldDomain) {
         const _this = this;
-        try {
-            const populateStatusPage = [
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
+        const populateStatusPage = [
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+        ];
+
+        const statusPages = await _this.findBy({
+            query: {
+                domains: {
+                    $elemMatch: { domainVerificationToken: domainId },
                 },
-            ];
+            },
+            populate: populateStatusPage,
+            select: '_id domains',
+        });
 
-            const statusPages = await _this.findBy({
-                query: {
-                    domains: {
-                        $elemMatch: { domainVerificationToken: domainId },
-                    },
-                },
-                populate: populateStatusPage,
-                select: '_id domains',
-            });
-
-            for (const statusPage of statusPages) {
-                const statusPageId = statusPage._id;
-                const domains = [];
-                for (const eachDomain of statusPage.domains) {
-                    if (
-                        String(eachDomain.domainVerificationToken._id) ===
-                        String(domainId)
-                    ) {
-                        eachDomain.domain = eachDomain.domain.replace(
-                            oldDomain,
-                            newDomain
-                        );
-                    }
-                    domains.push(eachDomain);
+        for (const statusPage of statusPages) {
+            const statusPageId = statusPage._id;
+            const domains = [];
+            for (const eachDomain of statusPage.domains) {
+                if (
+                    String(eachDomain.domainVerificationToken._id) ===
+                    String(domainId)
+                ) {
+                    eachDomain.domain = eachDomain.domain.replace(
+                        oldDomain,
+                        newDomain
+                    );
                 }
-
-                if (domains && domains.length > 0) {
-                    await _this.updateOneBy({ _id: statusPageId }, { domains });
-                }
+                domains.push(eachDomain);
             }
-        } catch (error) {
-            ErrorService.log('statusPageService.updateCustomDomain', error);
-            throw error;
+
+            if (domains && domains.length > 0) {
+                await _this.updateOneBy({ _id: statusPageId }, { domains });
+            }
         }
     },
 
@@ -281,185 +250,163 @@ module.exports = {
         let createdDomain = {};
         const _this = this;
 
-        try {
-            const existingBaseDomain = await DomainVerificationService.findOneBy(
-                { query: { domain: newDomain }, select: '_id' }
+        const existingBaseDomain = await DomainVerificationService.findOneBy({
+            query: { domain: newDomain },
+            select: '_id',
+        });
+
+        if (!existingBaseDomain) {
+            const creationData = {
+                domain: newDomain,
+                projectId,
+            };
+            // create the domain
+            createdDomain = await DomainVerificationService.create(
+                creationData
             );
+        }
+        const populateStatusPage = [
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+        ];
 
-            if (!existingBaseDomain) {
-                const creationData = {
-                    domain: newDomain,
-                    projectId,
-                };
-                // create the domain
-                createdDomain = await DomainVerificationService.create(
-                    creationData
-                );
-            }
-            const populateStatusPage = [
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-            ];
+        const statusPage = await this.findOneBy({
+            query: { _id: statusPageId },
+            populate: populateStatusPage,
+            select: 'domains',
+        });
 
-            const statusPage = await this.findOneBy({
-                query: { _id: statusPageId },
-                populate: populateStatusPage,
-                select: 'domains',
-            });
-
-            if (!statusPage) {
-                const error = new Error(
-                    'Status page not found or does not exist'
-                );
-                error.code = 400;
-                throw error;
-            }
-
-            let doesDomainExist = false;
-            const domainList = [...statusPage.domains];
-            const updatedDomainList = [];
-
-            for (const eachDomain of domainList) {
-                if (String(eachDomain._id) === String(domainId)) {
-                    if (eachDomain.domain !== newDomain) {
-                        doesDomainExist = await _this.doesDomainExist(
-                            newDomain
-                        );
-                    }
-                    // if domain exist
-                    // break the loop
-                    if (doesDomainExist) break;
-
-                    eachDomain.domain = newDomain;
-                    eachDomain.cert = cert;
-                    eachDomain.privateKey = privateKey;
-                    eachDomain.enableHttps = enableHttps;
-                    eachDomain.autoProvisioning = autoProvisioning;
-                    if (autoProvisioning && enableHttps) {
-                        // trigger addition of this particular domain
-                        // which should pass the acme challenge
-                        // acme challenge is to be processed from status page project
-                        const altnames = [eachDomain.domain];
-
-                        // before adding any domain
-                        // check if there's a certificate already created in the store
-                        // if there's none, add the domain to the flow
-                        const certificate = await CertificateStoreService.findOneBy(
-                            {
-                                query: { subject: eachDomain.domain },
-                                select: 'id',
-                            }
-                        );
-
-                        const greenlock = global.greenlock;
-                        if (!certificate && greenlock) {
-                            // handle this in the background
-                            greenlock.add({
-                                subject: altnames[0],
-                                altnames: altnames,
-                            });
-                        }
-                    }
-                    eachDomain.domainVerificationToken =
-                        createdDomain._id || existingBaseDomain._id;
-                }
-
-                updatedDomainList.push(eachDomain);
-            }
-
-            if (doesDomainExist) {
-                const error = new Error(
-                    `This custom domain ${newDomain} already exist`
-                );
-                error.code = 400;
-                throw error;
-            }
-
-            statusPage.domains = updatedDomainList;
-
-            const result = await this.updateOneBy(
-                { _id: statusPage._id },
-                { domains: statusPage.domains }
-            );
-            return result;
-        } catch (error) {
-            ErrorService.log('statusPageService.updateDomain', error);
+        if (!statusPage) {
+            const error = new Error('Status page not found or does not exist');
+            error.code = 400;
             throw error;
         }
+
+        let doesDomainExist = false;
+        const domainList = [...statusPage.domains];
+        const updatedDomainList = [];
+
+        for (const eachDomain of domainList) {
+            if (String(eachDomain._id) === String(domainId)) {
+                if (eachDomain.domain !== newDomain) {
+                    doesDomainExist = await _this.doesDomainExist(newDomain);
+                }
+                // if domain exist
+                // break the loop
+                if (doesDomainExist) break;
+
+                eachDomain.domain = newDomain;
+                eachDomain.cert = cert;
+                eachDomain.privateKey = privateKey;
+                eachDomain.enableHttps = enableHttps;
+                eachDomain.autoProvisioning = autoProvisioning;
+                if (autoProvisioning && enableHttps) {
+                    // trigger addition of this particular domain
+                    // which should pass the acme challenge
+                    // acme challenge is to be processed from status page project
+                    const altnames = [eachDomain.domain];
+
+                    // before adding any domain
+                    // check if there's a certificate already created in the store
+                    // if there's none, add the domain to the flow
+                    const certificate = await CertificateStoreService.findOneBy(
+                        {
+                            query: { subject: eachDomain.domain },
+                            select: 'id',
+                        }
+                    );
+
+                    const greenlock = global.greenlock;
+                    if (!certificate && greenlock) {
+                        // handle this in the background
+                        greenlock.add({
+                            subject: altnames[0],
+                            altnames: altnames,
+                        });
+                    }
+                }
+                eachDomain.domainVerificationToken =
+                    createdDomain._id || existingBaseDomain._id;
+            }
+
+            updatedDomainList.push(eachDomain);
+        }
+
+        if (doesDomainExist) {
+            const error = new Error(
+                `This custom domain ${newDomain} already exist`
+            );
+            error.code = 400;
+            throw error;
+        }
+
+        statusPage.domains = updatedDomainList;
+
+        const result = await this.updateOneBy(
+            { _id: statusPage._id },
+            { domains: statusPage.domains }
+        );
+        return result;
     },
 
     deleteDomain: async function(statusPageId, domainId) {
-        try {
-            const populateStatusPage = [
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-            ];
-            const statusPage = await this.findOneBy({
-                query: { _id: statusPageId },
-                populate: populateStatusPage,
-                select: 'domains',
-            });
+        const populateStatusPage = [
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+        ];
+        const statusPage = await this.findOneBy({
+            query: { _id: statusPageId },
+            populate: populateStatusPage,
+            select: 'domains',
+        });
 
-            if (!statusPage) {
-                const error = new Error(
-                    'Status page not found or does not exist'
-                );
-                error.code = 400;
-                throw error;
-            }
-
-            let deletedDomain = null;
-            const remainingDomains = statusPage.domains.filter(domain => {
-                if (String(domain._id) === String(domainId)) {
-                    deletedDomain = domain;
-                }
-                return String(domain._id) !== String(domainId);
-            });
-
-            const greenlock = global.greenlock;
-            // delete any associated certificate (only for auto provisioned ssl)
-            // handle this in the background
-            if (
-                deletedDomain.enableHttps &&
-                deletedDomain.autoProvisioning &&
-                greenlock
-            ) {
-                greenlock
-                    .remove({ subject: deletedDomain.domain })
-                    .finally(() => {
-                        CertificateStoreService.deleteBy({
-                            subject: deletedDomain.domain,
-                        });
-                    });
-            }
-
-            statusPage.domains = remainingDomains;
-            return await this.updateOneBy(
-                { _id: statusPage._id },
-                { domains: statusPage.domains }
-            );
-        } catch (error) {
-            ErrorService.log('statusPageService.deleteDomain', error);
+        if (!statusPage) {
+            const error = new Error('Status page not found or does not exist');
+            error.code = 400;
             throw error;
         }
+
+        let deletedDomain = null;
+        const remainingDomains = statusPage.domains.filter(domain => {
+            if (String(domain._id) === String(domainId)) {
+                deletedDomain = domain;
+            }
+            return String(domain._id) !== String(domainId);
+        });
+
+        const greenlock = global.greenlock;
+        // delete any associated certificate (only for auto provisioned ssl)
+        // handle this in the background
+        if (
+            deletedDomain.enableHttps &&
+            deletedDomain.autoProvisioning &&
+            greenlock
+        ) {
+            greenlock.remove({ subject: deletedDomain.domain }).finally(() => {
+                CertificateStoreService.deleteBy({
+                    subject: deletedDomain.domain,
+                });
+            });
+        }
+
+        statusPage.domains = remainingDomains;
+        return await this.updateOneBy(
+            { _id: statusPage._id },
+            { domains: statusPage.domains }
+        );
     },
 
     countBy: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const count = await StatusPageModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('statusPageService.countBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const count = await StatusPageModel.countDocuments(query);
+        return count;
     },
 
     duplicateStatusPage: async function(
@@ -468,845 +415,768 @@ module.exports = {
         statusPageName,
         filterMonitors
     ) {
-        try {
-            const populate = [
-                {
-                    path: 'monitors.monitor',
-                    select: 'name',
-                    populate: { path: 'projectId', select: '_id' },
-                },
-            ];
+        const populate = [
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+                populate: { path: 'projectId', select: '_id' },
+            },
+        ];
 
-            const select =
-                '_id projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist deleted incidentHistoryDays scheduleHistoryDays announcementLogsHistory onlineText offlineText degradedText deletedAt deletedById theme multipleLanguages enableMultipleLanguage twitterHandle';
-            const statusPage = await this.findOneBy({
-                query: { slug: statusPageSlug },
-                select,
-                populate,
-            });
+        const select =
+            '_id projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist deleted incidentHistoryDays scheduleHistoryDays announcementLogsHistory onlineText offlineText degradedText deletedAt deletedById theme multipleLanguages enableMultipleLanguage twitterHandle';
+        const statusPage = await this.findOneBy({
+            query: { slug: statusPageSlug },
+            select,
+            populate,
+        });
 
-            const data = { ...statusPage };
-            data.projectId = statusPageProjectId;
-            data.name = statusPageName;
-            if (filterMonitors && data.monitors) {
-                data.monitors = data.monitors
-                    .filter(monitorObj => {
-                        // values.statuspageId is sub project id selected on the dropdown
-                        if (
-                            String(monitorObj.monitor.projectId._id) ===
-                            String(statusPageProjectId)
-                        ) {
-                            return true;
-                        }
-                        return false;
-                    })
-                    .map(monitorObj => {
-                        monitorObj.monitor = monitorObj.monitor._id;
-                        return monitorObj;
-                    });
-            }
-            if (!filterMonitors && data.monitors) {
-                // just filter and use only ids
-                data.monitors = data.monitors.map(monitorObj => {
-                    monitorObj.monitor =
-                        monitorObj.monitor._id || monitorObj.monitor;
+        const data = { ...statusPage };
+        data.projectId = statusPageProjectId;
+        data.name = statusPageName;
+        if (filterMonitors && data.monitors) {
+            data.monitors = data.monitors
+                .filter(monitorObj => {
+                    // values.statuspageId is sub project id selected on the dropdown
+                    if (
+                        String(monitorObj.monitor.projectId._id) ===
+                        String(statusPageProjectId)
+                    ) {
+                        return true;
+                    }
+                    return false;
+                })
+                .map(monitorObj => {
+                    monitorObj.monitor = monitorObj.monitor._id;
                     return monitorObj;
                 });
-            }
-
-            return this.create(data);
-        } catch (error) {
-            ErrorService.log('statusPageService.duplicateStatusPage', error);
-            throw error;
         }
+        if (!filterMonitors && data.monitors) {
+            // just filter and use only ids
+            data.monitors = data.monitors.map(monitorObj => {
+                monitorObj.monitor =
+                    monitorObj.monitor._id || monitorObj.monitor;
+                return monitorObj;
+            });
+        }
+
+        return this.create(data);
     },
 
     deleteBy: async function(query, userId) {
-        try {
-            if (!query) {
-                query = {};
-            }
+        if (!query) {
+            query = {};
+        }
 
-            query.deleted = false;
-            const statusPage = await StatusPageModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
+        query.deleted = false;
+        const statusPage = await StatusPageModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
                 },
-                {
-                    new: true,
-                }
+            },
+            {
+                new: true,
+            }
+        );
+
+        if (statusPage) {
+            const populateSubscriber = [
+                { path: 'projectId', select: 'name' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'statusPageId', select: 'name' },
+            ];
+            const subscribers = await SubscriberService.findBy({
+                query: { statusPageId: statusPage._id },
+                select: '_id',
+                populate: populateSubscriber,
+            });
+            await Promise.all(
+                subscribers.map(async subscriber => {
+                    await SubscriberService.deleteBy(
+                        { _id: subscriber._id },
+                        userId
+                    );
+                })
             );
 
-            if (statusPage) {
-                const populateSubscriber = [
-                    { path: 'projectId', select: 'name' },
-                    { path: 'monitorId', select: 'name' },
-                    { path: 'statusPageId', select: 'name' },
-                ];
-                const subscribers = await SubscriberService.findBy({
-                    query: { statusPageId: statusPage._id },
-                    select: '_id',
-                    populate: populateSubscriber,
-                });
-                await Promise.all(
-                    subscribers.map(async subscriber => {
-                        await SubscriberService.deleteBy(
-                            { _id: subscriber._id },
-                            userId
-                        );
-                    })
-                );
-
-                const greenlock = global.greenlock;
-                // delete all certificate pipeline for the custom domains
-                // handle this for autoprovisioned custom domains
-                const customDomains = [...statusPage.domains];
-                for (const eachDomain of customDomains) {
-                    if (
-                        eachDomain.enableHttps &&
-                        eachDomain.autoProvisioning &&
-                        greenlock
-                    ) {
-                        greenlock
-                            .remove({ subject: eachDomain.domain })
-                            .finally(() => {
-                                CertificateStoreService.deleteBy({
-                                    subject: eachDomain.domain,
-                                });
+            const greenlock = global.greenlock;
+            // delete all certificate pipeline for the custom domains
+            // handle this for autoprovisioned custom domains
+            const customDomains = [...statusPage.domains];
+            for (const eachDomain of customDomains) {
+                if (
+                    eachDomain.enableHttps &&
+                    eachDomain.autoProvisioning &&
+                    greenlock
+                ) {
+                    greenlock
+                        .remove({ subject: eachDomain.domain })
+                        .finally(() => {
+                            CertificateStoreService.deleteBy({
+                                subject: eachDomain.domain,
                             });
-                    }
+                        });
                 }
             }
-            return statusPage;
-        } catch (error) {
-            ErrorService.log('statusPageService.deleteBy', error);
-            throw error;
         }
+        return statusPage;
     },
 
     removeMonitor: async function(monitorId) {
-        try {
-            const populateStatusPage = [
-                {
-                    path: 'monitors.monitor',
-                    select: '_id name',
-                },
-            ];
+        const populateStatusPage = [
+            {
+                path: 'monitors.monitor',
+                select: '_id name',
+            },
+        ];
 
-            const selectStatusPage = 'monitors _id';
+        const selectStatusPage = 'monitors _id';
 
-            const statusPages = await this.findBy({
-                query: { 'monitors.monitor': monitorId },
-                select: selectStatusPage,
-                populate: populateStatusPage,
-            });
-            for (const statusPage of statusPages) {
-                const monitors = statusPage.monitors.filter(
-                    monitorData =>
-                        String(
-                            monitorData.monitor._id || monitorData.monitor
-                        ) !== String(monitorId)
-                );
+        const statusPages = await this.findBy({
+            query: { 'monitors.monitor': monitorId },
+            select: selectStatusPage,
+            populate: populateStatusPage,
+        });
+        for (const statusPage of statusPages) {
+            const monitors = statusPage.monitors.filter(
+                monitorData =>
+                    String(monitorData.monitor._id || monitorData.monitor) !==
+                    String(monitorId)
+            );
 
-                if (monitors.length !== statusPage.monitors.length) {
-                    await this.updateOneBy(
-                        { _id: statusPage._id },
-                        { monitors }
-                    );
-                }
+            if (monitors.length !== statusPage.monitors.length) {
+                await this.updateOneBy({ _id: statusPage._id }, { monitors });
             }
-        } catch (error) {
-            ErrorService.log('statusPageService.removeMonitor', error);
-            throw error;
         }
     },
 
     findOneBy: async function({ query, select, populate }) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            let statusPageQuery = StatusPageModel.findOne(query)
-                .lean()
-                .sort([['createdAt', -1]]);
-
-            statusPageQuery = handleSelect(select, statusPageQuery);
-            statusPageQuery = handlePopulate(populate, statusPageQuery);
-
-            const statusPage = await statusPageQuery;
-            return statusPage;
-        } catch (error) {
-            ErrorService.log('statusPageService.findOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        query.deleted = false;
+        let statusPageQuery = StatusPageModel.findOne(query)
+            .lean()
+            .sort([['createdAt', -1]]);
+
+        statusPageQuery = handleSelect(select, statusPageQuery);
+        statusPageQuery = handlePopulate(populate, statusPageQuery);
+
+        const statusPage = await statusPageQuery;
+        return statusPage;
     },
 
     updateOneBy: async function(query, data) {
-        try {
-            const existingStatusPage = await this.findBy({
-                query: {
-                    name: data.name,
-                    projectId: data.projectId,
-                    _id: { $not: { $eq: data._id } },
-                },
-                select: 'slug',
-            });
-            if (existingStatusPage && existingStatusPage.length > 0) {
-                const error = new Error(
-                    'StatusPage with that name already exists.'
-                );
-                error.code = 400;
-                ErrorService.log('statusPageService.updateOneBy', error);
-                throw error;
-            }
-
-            if (data && data.name) {
-                existingStatusPage.slug = getSlug(data.name);
-            }
-
-            if (!query) {
-                query = {};
-            }
-            if (!query.deleted) query.deleted = false;
-
-            // run this in the background
-            try {
-                if (data && data.groupedMonitors) {
-                    for (const [key, value] of Object.entries(
-                        data.groupedMonitors
-                    )) {
-                        const monitorIds = value.map(
-                            monitorObj => monitorObj.monitor
-                        );
-                        MonitorService.updateBy(
-                            { _id: { $in: monitorIds } },
-                            { statusPageCategory: key }
-                        );
-                    }
-                }
-            } catch (error) {
-                ErrorService.log('statusPageService.updateOneBy', error);
-            }
-
-            let updatedStatusPage = await StatusPageModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
+        const existingStatusPage = await this.findBy({
+            query: {
+                name: data.name,
+                projectId: data.projectId,
+                _id: { $not: { $eq: data._id } },
+            },
+            select: 'slug',
+        });
+        if (existingStatusPage && existingStatusPage.length > 0) {
+            const error = new Error(
+                'StatusPage with that name already exists.'
             );
-
-            const populateStatusPage = [
-                { path: 'projectId', select: 'parentProjectId' },
-                { path: 'monitorIds', select: 'name' },
-                { path: 'monitors.monitor', select: 'name' },
-                { path: 'monitors.statusPageCategory', select: 'name' },
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-            ];
-
-            const selectStatusPage =
-                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
-
-            if (updatedStatusPage) {
-                updatedStatusPage = await this.findOneBy({
-                    query: { _id: updatedStatusPage._id },
-                    populate: populateStatusPage,
-                    select: selectStatusPage,
-                });
-            }
-            return updatedStatusPage;
-        } catch (error) {
-            ErrorService.log('statusPageService.updateOneBy', error);
+            error.code = 400;
             throw error;
         }
+
+        if (data && data.name) {
+            existingStatusPage.slug = getSlug(data.name);
+        }
+
+        if (!query) {
+            query = {};
+        }
+        if (!query.deleted) query.deleted = false;
+
+        // run this in the background
+        try {
+            if (data && data.groupedMonitors) {
+                for (const [key, value] of Object.entries(
+                    data.groupedMonitors
+                )) {
+                    const monitorIds = value.map(
+                        monitorObj => monitorObj.monitor
+                    );
+                    MonitorService.updateBy(
+                        { _id: { $in: monitorIds } },
+                        { statusPageCategory: key }
+                    );
+                }
+            }
+        } catch (error) {
+            ErrorService.log(
+                'statusPageService.updateOneBy > MonitorService.updateBy',
+                error
+            );
+        }
+
+        let updatedStatusPage = await StatusPageModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+
+        const populateStatusPage = [
+            { path: 'projectId', select: 'parentProjectId' },
+            { path: 'monitorIds', select: 'name' },
+            { path: 'monitors.monitor', select: 'name' },
+            { path: 'monitors.statusPageCategory', select: 'name' },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+        ];
+
+        const selectStatusPage =
+            'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+        if (updatedStatusPage) {
+            updatedStatusPage = await this.findOneBy({
+                query: { _id: updatedStatusPage._id },
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
+        }
+        return updatedStatusPage;
     },
 
     updateBy: async function(query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
+        if (!query) {
+            query = {};
+        }
 
-            if (!query.deleted) query.deleted = false;
-            let updatedData = await StatusPageModel.updateMany(query, {
-                $set: data,
-            });
+        if (!query.deleted) query.deleted = false;
+        let updatedData = await StatusPageModel.updateMany(query, {
+            $set: data,
+        });
 
-            const populateStatusPage = [
-                {
-                    path: 'projectId',
-                    select: 'name parentProjectId',
-                    populate: { path: 'parentProjectId', select: '_id' },
-                },
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+        updatedData = await this.findBy({
+            query,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
+        return updatedData;
+    },
+
+    getNotes: async function(query, skip, limit) {
+        const _this = this;
+
+        if (!skip) skip = 0;
+
+        if (!limit || isNaN(limit)) limit = 5;
+
+        if (typeof skip === 'string') skip = parseInt(skip);
+
+        if (typeof limit === 'string') limit = parseInt(limit);
+
+        if (!query) query = {};
+
+        const statuspages = await _this.findBy({
+            query,
+            skip: 0,
+            limit,
+            select: 'hideResolvedIncident monitors',
+            populate: [
                 {
                     path: 'monitors.monitor',
                     select: 'name',
                 },
-            ];
-
-            const selectStatusPage =
-                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
-
-            updatedData = await this.findBy({
-                query,
-                populate: populateStatusPage,
-                select: selectStatusPage,
-            });
-            return updatedData;
-        } catch (error) {
-            ErrorService.log('statusPageService.updateMany', error);
-            throw error;
+            ],
+        });
+        const checkHideResolved = statuspages[0].hideResolvedIncident;
+        let option = {};
+        if (checkHideResolved) {
+            option = {
+                resolved: false,
+            };
         }
-    },
 
-    getNotes: async function(query, skip, limit) {
-        try {
-            const _this = this;
+        const withMonitors = statuspages.filter(
+            statusPage => statusPage.monitors.length
+        );
+        const statuspage = withMonitors[0];
+        const monitorIds = statuspage
+            ? statuspage.monitors.map(m => m.monitor._id)
+            : [];
+        if (monitorIds && monitorIds.length) {
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber createdAt';
 
-            if (!skip) skip = 0;
-
-            if (!limit || isNaN(limit)) limit = 5;
-
-            if (typeof skip === 'string') skip = parseInt(skip);
-
-            if (typeof limit === 'string') limit = parseInt(limit);
-
-            if (!query) query = {};
-
-            const statuspages = await _this.findBy({
-                query,
-                skip: 0,
-                limit,
-                select: 'hideResolvedIncident monitors',
-                populate: [
-                    {
-                        path: 'monitors.monitor',
-                        select: 'name',
-                    },
-                ],
-            });
-            const checkHideResolved = statuspages[0].hideResolvedIncident;
-            let option = {};
-            if (checkHideResolved) {
-                option = {
-                    resolved: false,
-                };
-            }
-
-            const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitors.length
-            );
-            const statuspage = withMonitors[0];
-            const monitorIds = statuspage
-                ? statuspage.monitors.map(m => m.monitor._id)
-                : [];
-            if (monitorIds && monitorIds.length) {
-                const populate = [
-                    {
-                        path: 'monitors.monitorId',
-                        select: 'name slug componentId projectId type',
-                        populate: { path: 'componentId', select: 'name slug' },
-                    },
-                    { path: 'createdById', select: 'name' },
-                    { path: 'projectId', select: 'name slug' },
-                    { path: 'resolvedBy', select: 'name' },
-                    { path: 'acknowledgedBy', select: 'name' },
-                    { path: 'incidentPriority', select: 'name color' },
-                    {
-                        path: 'acknowledgedByIncomingHttpRequest',
-                        select: 'name',
-                    },
-                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-                    { path: 'createdByIncomingHttpRequest', select: 'name' },
-                    { path: 'probes.probeId', select: 'name _id' },
-                ];
-                const select =
-                    'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber createdAt';
-
-                const [notes, count] = await Promise.all([
-                    IncidentService.findBy({
-                        query: {
-                            'monitors.monitorId': { $in: monitorIds },
-                            hideIncident: false,
-                            ...option,
-                        },
-                        limit,
-                        skip,
-                        populate,
-                        select,
-                    }),
-                    IncidentService.countBy({
+            const [notes, count] = await Promise.all([
+                IncidentService.findBy({
+                    query: {
                         'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
                         ...option,
-                    }),
-                ]);
-
-                return { notes, count };
-            } else {
-                const error = new Error('No monitors on this status page');
-                error.code = 400;
-                ErrorService.log('statusPage.getNotes', error);
-                throw error;
-            }
-        } catch (error) {
-            ErrorService.log('statusPageService.getNotes', error);
-            throw error;
-        }
-    },
-
-    getIncident: async function(query) {
-        try {
-            const populate = [
-                {
-                    path: 'monitors.monitorId',
-                    select: 'name slug componentId projectId type',
-                    populate: { path: 'componentId', select: 'name slug' },
-                },
-                { path: 'createdById', select: 'name' },
-                { path: 'projectId', select: 'name slug' },
-                { path: 'resolvedBy', select: 'name' },
-                { path: 'acknowledgedBy', select: 'name' },
-                { path: 'incidentPriority', select: 'name color' },
-                {
-                    path: 'acknowledgedByIncomingHttpRequest',
-                    select: 'name',
-                },
-                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-                { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
-            ];
-            const select =
-                'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
-
-            const incident = await IncidentService.findOneBy({
-                query,
-                select,
-                populate,
-            });
-
-            return incident;
-        } catch (error) {
-            ErrorService.log('statusPageService.getIncident', error);
-            throw error;
-        }
-    },
-
-    getIncidentNotes: async function(query, skip, limit) {
-        try {
-            if (!skip) skip = 0;
-
-            if (!limit) limit = 5;
-
-            if (typeof skip === 'string') skip = Number(skip);
-
-            if (typeof limit === 'string') limit = Number(limit);
-
-            if (!query) query = {};
-            query.deleted = false;
-
-            const populateIncidentMessage = [
-                {
-                    path: 'incidentId',
-                    select: 'idNumber name slug',
-                },
-                { path: 'createdById', select: 'name' },
-            ];
-
-            const selectIncidentMessage =
-                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
-
-            const [message, count] = await Promise.all([
-                IncidentMessageService.findBy({
-                    query,
-                    skip,
-                    limit,
-                    populate: populateIncidentMessage,
-                    select: selectIncidentMessage,
-                }),
-                IncidentMessageService.countBy(query),
-            ]);
-
-            return { message, count };
-        } catch (error) {
-            ErrorService.log('statusPageService.getIncidentNotes', error);
-            throw error;
-        }
-    },
-
-    getNotesByDate: async function(query, skip, limit) {
-        try {
-            const populate = [
-                {
-                    path: 'monitors.monitorId',
-                    select: 'name slug componentId projectId type',
-                    populate: { path: 'componentId', select: 'name slug' },
-                },
-                { path: 'createdById', select: 'name' },
-                { path: 'projectId', select: 'name slug' },
-                { path: 'resolvedBy', select: 'name' },
-                { path: 'acknowledgedBy', select: 'name' },
-                { path: 'incidentPriority', select: 'name color' },
-                {
-                    path: 'acknowledgedByIncomingHttpRequest',
-                    select: 'name',
-                },
-                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-                { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
-            ];
-            const select =
-                'createdAt slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
-
-            const [incidents, count] = await Promise.all([
-                IncidentService.findBy({
-                    query,
+                    },
                     limit,
                     skip,
                     populate,
                     select,
                 }),
-                IncidentService.countBy(query),
+                IncidentService.countBy({
+                    'monitors.monitorId': { $in: monitorIds },
+                    hideIncident: false,
+                    ...option,
+                }),
             ]);
 
-            const investigationNotes = incidents.map(incident => {
-                // return all the incident object
-                return incident;
-            });
-            return { investigationNotes, count };
-        } catch (error) {
-            ErrorService.log('statusPageService.getNotesByDate', error);
+            return { notes, count };
+        } else {
+            const error = new Error('No monitors on this status page');
+            error.code = 400;
             throw error;
         }
     },
 
-    getEvents: async function(query, skip, limit) {
-        try {
-            const _this = this;
+    getIncident: async function(query) {
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            if (!skip) skip = 0;
+        const incident = await IncidentService.findOneBy({
+            query,
+            select,
+            populate,
+        });
 
-            if (!limit) limit = 5;
+        return incident;
+    },
 
-            if (typeof skip === 'string') skip = parseInt(skip);
+    getIncidentNotes: async function(query, skip, limit) {
+        if (!skip) skip = 0;
 
-            if (typeof limit === 'string') limit = parseInt(limit);
+        if (!limit) limit = 5;
 
-            if (!query) query = {};
-            query.deleted = false;
+        if (typeof skip === 'string') skip = Number(skip);
 
-            const statuspages = await _this.findBy({
+        if (typeof limit === 'string') limit = Number(limit);
+
+        if (!query) query = {};
+        query.deleted = false;
+
+        const populateIncidentMessage = [
+            {
+                path: 'incidentId',
+                select: 'idNumber name slug',
+            },
+            { path: 'createdById', select: 'name' },
+        ];
+
+        const selectIncidentMessage =
+            '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+        const [message, count] = await Promise.all([
+            IncidentMessageService.findBy({
                 query,
-                skip: 0,
+                skip,
                 limit,
-                select: 'monitors',
-                populate: [
-                    {
-                        path: 'monitors.monitor',
-                        select: 'name',
+                populate: populateIncidentMessage,
+                select: selectIncidentMessage,
+            }),
+            IncidentMessageService.countBy(query),
+        ]);
+
+        return { message, count };
+    },
+
+    getNotesByDate: async function(query, skip, limit) {
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'createdAt slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+        const [incidents, count] = await Promise.all([
+            IncidentService.findBy({
+                query,
+                limit,
+                skip,
+                populate,
+                select,
+            }),
+            IncidentService.countBy(query),
+        ]);
+
+        const investigationNotes = incidents.map(incident => {
+            // return all the incident object
+            return incident;
+        });
+        return { investigationNotes, count };
+    },
+
+    getEvents: async function(query, skip, limit) {
+        const _this = this;
+
+        if (!skip) skip = 0;
+
+        if (!limit) limit = 5;
+
+        if (typeof skip === 'string') skip = parseInt(skip);
+
+        if (typeof limit === 'string') limit = parseInt(limit);
+
+        if (!query) query = {};
+        query.deleted = false;
+
+        const statuspages = await _this.findBy({
+            query,
+            skip: 0,
+            limit,
+            select: 'monitors',
+            populate: [
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ],
+        });
+
+        const withMonitors = statuspages.filter(
+            statusPage => statusPage.monitors.length
+        );
+        const statuspage = withMonitors[0];
+        const monitorIds = statuspage
+            ? statuspage.monitors.map(m => m.monitor)
+            : [];
+        if (monitorIds && monitorIds.length) {
+            const currentDate = moment();
+            const eventIds = [];
+
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
                     },
-                ],
-            });
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitors.length
-            );
-            const statuspage = withMonitors[0];
-            const monitorIds = statuspage
-                ? statuspage.monitors.map(m => m.monitor)
-                : [];
-            if (monitorIds && monitorIds.length) {
-                const currentDate = moment();
-                const eventIds = [];
-
-                const populate = [
-                    { path: 'resolvedBy', select: 'name' },
-                    { path: 'projectId', select: 'name slug' },
-                    { path: 'createdById', select: 'name' },
-                    {
-                        path: 'monitors.monitorId',
-                        select: 'name',
-                        populate: {
-                            path: 'componentId',
-                            select: 'name slug',
-                        },
-                    },
-                ];
-                const select =
-                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
-
-                let events = await Promise.all(
-                    monitorIds.map(async monitorId => {
-                        const scheduledEvents = await ScheduledEventsService.findBy(
-                            {
-                                query: {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                    startDate: { $lte: currentDate },
-                                    endDate: {
-                                        $gte: currentDate,
-                                    },
-                                    resolved: false,
+            let events = await Promise.all(
+                monitorIds.map(async monitorId => {
+                    const scheduledEvents = await ScheduledEventsService.findBy(
+                        {
+                            query: {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $lte: currentDate },
+                                endDate: {
+                                    $gte: currentDate,
                                 },
-                                select,
-                                populate,
-                            }
-                        );
-                        scheduledEvents.map(event => {
-                            const id = String(event._id);
-                            if (!eventIds.includes(id)) {
-                                eventIds.push(id);
-                            }
-                            return event;
-                        });
-
-                        return scheduledEvents;
-                    })
-                );
-
-                events = flattenArray(events);
-                // do not repeat the same event two times
-                events = eventIds.map(id => {
-                    return events.find(
-                        event => String(event._id) === String(id)
+                                resolved: false,
+                            },
+                            select,
+                            populate,
+                        }
                     );
-                });
-                const count = events.length;
+                    scheduledEvents.map(event => {
+                        const id = String(event._id);
+                        if (!eventIds.includes(id)) {
+                            eventIds.push(id);
+                        }
+                        return event;
+                    });
 
-                return { events, count };
-            } else {
-                const error = new Error('No monitors on this status page');
-                error.code = 400;
-                ErrorService.log('statusPageService.getEvents', error);
-                throw error;
-            }
-        } catch (error) {
-            ErrorService.log('statusPageService.getEvents', error);
+                    return scheduledEvents;
+                })
+            );
+
+            events = flattenArray(events);
+            // do not repeat the same event two times
+            events = eventIds.map(id => {
+                return events.find(event => String(event._id) === String(id));
+            });
+            const count = events.length;
+
+            return { events, count };
+        } else {
+            const error = new Error('No monitors on this status page');
+            error.code = 400;
             throw error;
         }
     },
 
     getFutureEvents: async function(query, skip, limit) {
-        try {
-            const _this = this;
+        const _this = this;
 
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 5;
+        if (!limit) limit = 5;
 
-            if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') skip = parseInt(skip);
 
-            if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') limit = parseInt(limit);
 
-            if (!query) query = {};
-            query.deleted = false;
+        if (!query) query = {};
+        query.deleted = false;
 
-            const statuspages = await _this.findBy({
-                query,
-                skip: 0,
-                limit,
-                select: 'monitors',
-                populate: [
-                    {
-                        path: 'monitors.monitor',
-                        select: 'name',
+        const statuspages = await _this.findBy({
+            query,
+            skip: 0,
+            limit,
+            select: 'monitors',
+            populate: [
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ],
+        });
+
+        const withMonitors = statuspages.filter(
+            statusPage => statusPage.monitors.length
+        );
+        const statuspage = withMonitors[0];
+        let monitorIds = statuspage
+            ? statuspage.monitors.map(m => m.monitor)
+            : [];
+        monitorIds = monitorIds.map(monitor => monitor._id || monitor);
+        if (monitorIds && monitorIds.length) {
+            const currentDate = moment();
+            const eventIds = [];
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
                     },
-                ],
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            let events = await Promise.all(
+                monitorIds.map(async monitorId => {
+                    const scheduledEvents = await ScheduledEventsService.findBy(
+                        {
+                            query: {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $gt: currentDate },
+                            },
+                            select,
+                            populate,
+                        }
+                    );
+                    scheduledEvents.map(event => {
+                        const id = String(event._id);
+                        if (!eventIds.includes(id)) {
+                            eventIds.push(id);
+                        }
+                        return event;
+                    });
+
+                    return scheduledEvents;
+                })
+            );
+
+            events = flattenArray(events);
+            // do not repeat the same event two times
+            events = eventIds.map(id => {
+                return events.find(event => String(event._id) === String(id));
             });
 
-            const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitors.length
-            );
-            const statuspage = withMonitors[0];
-            let monitorIds = statuspage
-                ? statuspage.monitors.map(m => m.monitor)
-                : [];
-            monitorIds = monitorIds.map(monitor => monitor._id || monitor);
-            if (monitorIds && monitorIds.length) {
-                const currentDate = moment();
-                const eventIds = [];
-                const populate = [
-                    { path: 'resolvedBy', select: 'name' },
-                    { path: 'projectId', select: 'name slug' },
-                    { path: 'createdById', select: 'name' },
-                    {
-                        path: 'monitors.monitorId',
-                        select: 'name',
-                        populate: {
-                            path: 'componentId',
-                            select: 'name slug',
-                        },
-                    },
-                ];
-                const select =
-                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+            // // sort in ascending start date
+            events = events.sort((a, b) => b.startDate - a.startDate);
 
-                let events = await Promise.all(
-                    monitorIds.map(async monitorId => {
-                        const scheduledEvents = await ScheduledEventsService.findBy(
-                            {
-                                query: {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                    startDate: { $gt: currentDate },
-                                },
-                                select,
-                                populate,
-                            }
-                        );
-                        scheduledEvents.map(event => {
-                            const id = String(event._id);
-                            if (!eventIds.includes(id)) {
-                                eventIds.push(id);
-                            }
-                            return event;
-                        });
-
-                        return scheduledEvents;
-                    })
-                );
-
-                events = flattenArray(events);
-                // do not repeat the same event two times
-                events = eventIds.map(id => {
-                    return events.find(
-                        event => String(event._id) === String(id)
-                    );
-                });
-
-                // // sort in ascending start date
-                events = events.sort((a, b) => b.startDate - a.startDate);
-
-                const count = events.length;
-                return { events, count };
-            } else {
-                const error = new Error('No monitors on this status page');
-                error.code = 400;
-                ErrorService.log('statusPageService.getFutureEvents', error);
-                throw error;
-            }
-        } catch (error) {
-            ErrorService.log('statusPageService.getFutureEvents', error);
+            const count = events.length;
+            return { events, count };
+        } else {
+            const error = new Error('No monitors on this status page');
+            error.code = 400;
             throw error;
         }
     },
 
     getPastEvents: async function(query, skip, limit) {
-        try {
-            const _this = this;
+        const _this = this;
 
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 5;
+        if (!limit) limit = 5;
 
-            if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') skip = parseInt(skip);
 
-            if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') limit = parseInt(limit);
 
-            if (!query) query = {};
-            query.deleted = false;
+        if (!query) query = {};
+        query.deleted = false;
 
-            const statuspages = await _this.findBy({
-                query,
-                skip: 0,
-                limit,
-                select: 'monitors',
-                populate: [
-                    {
-                        path: 'monitors.monitor',
-                        select: '_id name',
+        const statuspages = await _this.findBy({
+            query,
+            skip: 0,
+            limit,
+            select: 'monitors',
+            populate: [
+                {
+                    path: 'monitors.monitor',
+                    select: '_id name',
+                },
+            ],
+        });
+
+        const withMonitors = statuspages.filter(
+            statusPage => statusPage.monitors.length
+        );
+        const statuspage = withMonitors[0];
+        const monitorIds = statuspage
+            ? statuspage.monitors.map(m => m.monitor)
+            : [];
+        if (monitorIds && monitorIds.length) {
+            const currentDate = moment();
+            const eventIds = [];
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
                     },
-                ],
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            let events = await Promise.all(
+                monitorIds.map(async monitorId => {
+                    const scheduledEvents = await ScheduledEventsService.findBy(
+                        {
+                            query: {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                endDate: { $lt: currentDate },
+                            },
+                            populate,
+                            select,
+                        }
+                    );
+                    scheduledEvents.map(event => {
+                        const id = String(event._id);
+                        if (!eventIds.includes(id)) {
+                            eventIds.push(id);
+                        }
+                        return event;
+                    });
+
+                    return scheduledEvents;
+                })
+            );
+
+            events = flattenArray(events);
+            // do not repeat the same event two times
+            events = eventIds.map(id => {
+                return events.find(event => String(event._id) === String(id));
             });
 
-            const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitors.length
-            );
-            const statuspage = withMonitors[0];
-            const monitorIds = statuspage
-                ? statuspage.monitors.map(m => m.monitor)
-                : [];
-            if (monitorIds && monitorIds.length) {
-                const currentDate = moment();
-                const eventIds = [];
-                const populate = [
-                    { path: 'resolvedBy', select: 'name' },
-                    { path: 'projectId', select: 'name slug' },
-                    { path: 'createdById', select: 'name' },
-                    {
-                        path: 'monitors.monitorId',
-                        select: 'name',
-                        populate: {
-                            path: 'componentId',
-                            select: 'name slug',
-                        },
-                    },
-                ];
-                const select =
-                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+            // sort in ascending start date
+            events = events.sort((a, b) => a.startDate - b.startDate);
 
-                let events = await Promise.all(
-                    monitorIds.map(async monitorId => {
-                        const scheduledEvents = await ScheduledEventsService.findBy(
-                            {
-                                query: {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                    endDate: { $lt: currentDate },
-                                },
-                                populate,
-                                select,
-                            }
-                        );
-                        scheduledEvents.map(event => {
-                            const id = String(event._id);
-                            if (!eventIds.includes(id)) {
-                                eventIds.push(id);
-                            }
-                            return event;
-                        });
-
-                        return scheduledEvents;
-                    })
-                );
-
-                events = flattenArray(events);
-                // do not repeat the same event two times
-                events = eventIds.map(id => {
-                    return events.find(
-                        event => String(event._id) === String(id)
-                    );
-                });
-
-                // sort in ascending start date
-                events = events.sort((a, b) => a.startDate - b.startDate);
-
-                const count = events.length;
-                return { events: limitEvents(events, limit, skip), count };
-            } else {
-                const error = new Error('No monitors on this status page');
-                error.code = 400;
-                ErrorService.log('statusPageService.getPastEvents', error);
-                throw error;
-            }
-        } catch (error) {
-            ErrorService.log('statusPageService.getPastEvents', error);
+            const count = events.length;
+            return { events: limitEvents(events, limit, skip), count };
+        } else {
+            const error = new Error('No monitors on this status page');
+            error.code = 400;
             throw error;
         }
     },
@@ -1328,295 +1198,256 @@ module.exports = {
         const select =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        try {
-            const scheduledEvent = await ScheduledEventsService.findOneBy({
-                query,
-                select,
-                populate,
-            });
-            return scheduledEvent;
-        } catch (error) {
-            ErrorService.log('statusPageService.getEvent', error);
-            throw error;
-        }
+        const scheduledEvent = await ScheduledEventsService.findOneBy({
+            query,
+            select,
+            populate,
+        });
+        return scheduledEvent;
     },
 
     getEventNotes: async function(query, skip, limit) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 5;
+        if (!limit) limit = 5;
 
-            if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') skip = Number(skip);
 
-            if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') limit = Number(limit);
 
-            if (!query) query = {};
-            query.deleted = false;
+        if (!query) query = {};
+        query.deleted = false;
 
-            const populate = [
-                { path: 'createdById', select: 'name' },
-                {
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'scheduledEventId',
+                select: 'name monitors alertSubscriber projectId',
+                populate: {
+                    path: 'projectId',
+                    select: 'name replyAddress',
                 },
-            ];
-            const select =
-                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
+            },
+        ];
+        const select =
+            'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-            const [eventNote, count] = await Promise.all([
-                ScheduledEventNoteService.findBy({
-                    query,
-                    limit,
-                    skip,
-                    populate,
-                    select,
-                }),
-                ScheduledEventNoteService.countBy(query),
-            ]);
+        const [eventNote, count] = await Promise.all([
+            ScheduledEventNoteService.findBy({
+                query,
+                limit,
+                skip,
+                populate,
+                select,
+            }),
+            ScheduledEventNoteService.countBy(query),
+        ]);
 
-            return { notes: eventNote, count };
-        } catch (error) {
-            ErrorService.log('statusPageService.getEventNotes', error);
-            throw error;
-        }
+        return { notes: eventNote, count };
     },
 
     getEventsByDate: async function(query, skip, limit) {
-        try {
-            const populate = [
-                { path: 'resolvedBy', select: 'name' },
-                { path: 'projectId', select: 'name slug' },
-                { path: 'createdById', select: 'name' },
-                {
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name slug',
-                    },
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: {
+                    path: 'componentId',
+                    select: 'name slug',
                 },
-            ];
-            const select =
-                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const [scheduledEvents, count] = await Promise.all([
-                ScheduledEventsService.findBy({
-                    query,
-                    limit,
-                    skip,
-                    populate,
-                    select,
-                }),
-                ScheduledEventsService.countBy(query),
-            ]);
+        const [scheduledEvents, count] = await Promise.all([
+            ScheduledEventsService.findBy({
+                query,
+                limit,
+                skip,
+                populate,
+                select,
+            }),
+            ScheduledEventsService.countBy(query),
+        ]);
 
-            return { scheduledEvents, count };
-        } catch (error) {
-            ErrorService.log('statusPageService.getEventsByDate', error);
-            throw error;
-        }
+        return { scheduledEvents, count };
     },
 
     getStatusPage: async function({ query, userId, populate, select }) {
-        try {
-            const thisObj = this;
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-
-            let statusPagesQuery = StatusPageModel.find(query)
-                .sort([['createdAt', -1]])
-                .lean();
-
-            statusPagesQuery = handleSelect(select, statusPagesQuery);
-            statusPagesQuery = handlePopulate(populate, statusPagesQuery);
-
-            const statusPages = await statusPagesQuery;
-
-            let statusPage = null;
-
-            if (
-                query &&
-                query.domains &&
-                query.domains.$elemMatch &&
-                query.domains.$elemMatch.domain
-            ) {
-                const domain = query.domains.$elemMatch.domain;
-
-                const verifiedStatusPages = statusPages.filter(
-                    page =>
-                        page &&
-                        page.domains.length > 0 &&
-                        page.domains.filter(
-                            domainItem =>
-                                domainItem &&
-                                domainItem.domain === domain &&
-                                domainItem.domainVerificationToken &&
-                                domainItem.domainVerificationToken.verified ===
-                                    true
-                        ).length > 0
-                );
-                if (verifiedStatusPages.length > 0) {
-                    statusPage = verifiedStatusPages[0];
-                }
-            } else {
-                if (statusPages.length > 0) {
-                    statusPage = statusPages[0];
-                }
-            }
-
-            if (statusPage && (statusPage._id || statusPage.id)) {
-                const permitted = await thisObj.isPermitted(userId, statusPage);
-                if (!permitted) {
-                    const error = new Error(
-                        'You are unauthorized to access the page please login to continue.'
-                    );
-                    error.code = 401;
-                    ErrorService.log('statusPageService.getStatusPage', error);
-                    throw error;
-                }
-
-                const monitorIds = statusPage.monitors.map(monitorObj =>
-                    String(monitorObj.monitor._id || monitorObj.monitor)
-                );
-                const projectId =
-                    statusPage.projectId._id || statusPage.projectId;
-                const subProjects = await ProjectService.findBy({
-                    query: {
-                        $or: [
-                            { parentProjectId: projectId },
-                            { _id: projectId },
-                        ],
-                    },
-                    select: '_id',
-                });
-                const subProjectIds = subProjects
-                    ? subProjects.map(project => project._id)
-                    : null;
-                const monitors = await MonitorService.getMonitorsBySubprojects(
-                    subProjectIds,
-                    0,
-                    0
-                );
-                const filteredMonitorData = monitors.map(subProject => {
-                    return subProject.monitors.filter(monitor =>
-                        monitorIds.includes(monitor._id.toString())
-                    );
-                });
-                statusPage.monitorsData = _.flatten(filteredMonitorData);
-            } else {
-                if (statusPages.length > 0) {
-                    const error = new Error('Domain not verified');
-                    error.code = 400;
-                    ErrorService.log('statusPageService.getStatusPage', error);
-                    throw error;
-                } else {
-                    const error = new Error('Page Not Found');
-                    error.code = 400;
-                    ErrorService.log('statusPageService.getStatusPage', error);
-                    throw error;
-                }
-            }
-            return statusPage;
-        } catch (error) {
-            ErrorService.log('statusPageService.getStatusPage', error);
-            throw error;
+        const thisObj = this;
+        if (!query) {
+            query = {};
         }
-    },
 
-    getIncidents: async function(query) {
-        try {
-            const _this = this;
+        query.deleted = false;
 
-            if (!query) query = {};
+        let statusPagesQuery = StatusPageModel.find(query)
+            .sort([['createdAt', -1]])
+            .lean();
 
-            const statuspages = await _this.findBy({
-                query,
-                select: 'monitors',
-                populate: [
-                    {
-                        path: 'monitors.monitor',
-                        select: 'name',
-                    },
-                ],
-            });
+        statusPagesQuery = handleSelect(select, statusPagesQuery);
+        statusPagesQuery = handlePopulate(populate, statusPagesQuery);
 
-            const withMonitors = statuspages.filter(
-                statusPage => statusPage.monitors.length
+        const statusPages = await statusPagesQuery;
+
+        let statusPage = null;
+
+        if (
+            query &&
+            query.domains &&
+            query.domains.$elemMatch &&
+            query.domains.$elemMatch.domain
+        ) {
+            const domain = query.domains.$elemMatch.domain;
+
+            const verifiedStatusPages = statusPages.filter(
+                page =>
+                    page &&
+                    page.domains.length > 0 &&
+                    page.domains.filter(
+                        domainItem =>
+                            domainItem &&
+                            domainItem.domain === domain &&
+                            domainItem.domainVerificationToken &&
+                            domainItem.domainVerificationToken.verified === true
+                    ).length > 0
             );
-            const statuspage = withMonitors[0];
-            const monitorIds =
-                statuspage && statuspage.monitors.map(m => m.monitor._id);
-            if (monitorIds && monitorIds.length) {
-                const populate = [
-                    {
-                        path: 'monitors.monitorId',
-                        select: 'name slug componentId projectId type',
-                        populate: { path: 'componentId', select: 'name slug' },
-                    },
-                    { path: 'createdById', select: 'name' },
-                    { path: 'projectId', select: 'name slug' },
-                    { path: 'resolvedBy', select: 'name' },
-                    { path: 'acknowledgedBy', select: 'name' },
-                    { path: 'incidentPriority', select: 'name color' },
-                    {
-                        path: 'acknowledgedByIncomingHttpRequest',
-                        select: 'name',
-                    },
-                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-                    { path: 'createdByIncomingHttpRequest', select: 'name' },
-                    { path: 'probes.probeId', select: 'name _id' },
-                ];
-                const select =
-                    'slug createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            if (verifiedStatusPages.length > 0) {
+                statusPage = verifiedStatusPages[0];
+            }
+        } else {
+            if (statusPages.length > 0) {
+                statusPage = statusPages[0];
+            }
+        }
 
-                const [incidents, count] = await Promise.all([
-                    IncidentService.findBy({
-                        query: { 'monitors.monitorId': { $in: monitorIds } },
-                        select,
-                        populate,
-                    }),
-                    IncidentService.countBy({
-                        'monitors.monitorId': { $in: monitorIds },
-                    }),
-                ]);
-                return { incidents, count };
+        if (statusPage && (statusPage._id || statusPage.id)) {
+            const permitted = await thisObj.isPermitted(userId, statusPage);
+            if (!permitted) {
+                const error = new Error(
+                    'You are unauthorized to access the page please login to continue.'
+                );
+                error.code = 401;
+                throw error;
+            }
+
+            const monitorIds = statusPage.monitors.map(monitorObj =>
+                String(monitorObj.monitor._id || monitorObj.monitor)
+            );
+            const projectId = statusPage.projectId._id || statusPage.projectId;
+            const subProjects = await ProjectService.findBy({
+                query: {
+                    $or: [{ parentProjectId: projectId }, { _id: projectId }],
+                },
+                select: '_id',
+            });
+            const subProjectIds = subProjects
+                ? subProjects.map(project => project._id)
+                : null;
+            const monitors = await MonitorService.getMonitorsBySubprojects(
+                subProjectIds,
+                0,
+                0
+            );
+            const filteredMonitorData = monitors.map(subProject => {
+                return subProject.monitors.filter(monitor =>
+                    monitorIds.includes(monitor._id.toString())
+                );
+            });
+            statusPage.monitorsData = _.flatten(filteredMonitorData);
+        } else {
+            if (statusPages.length > 0) {
+                const error = new Error('Domain not verified');
+                error.code = 400;
+                throw error;
             } else {
-                const error = new Error('No monitors on this status page');
+                const error = new Error('Page Not Found');
                 error.code = 400;
                 throw error;
             }
-        } catch (error) {
-            ErrorService.log('StatusPageService.getIncidents', error);
+        }
+        return statusPage;
+    },
+
+    getIncidents: async function(query) {
+        const _this = this;
+
+        if (!query) query = {};
+
+        const statuspages = await _this.findBy({
+            query,
+            select: 'monitors',
+            populate: [
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ],
+        });
+
+        const withMonitors = statuspages.filter(
+            statusPage => statusPage.monitors.length
+        );
+        const statuspage = withMonitors[0];
+        const monitorIds =
+            statuspage && statuspage.monitors.map(m => m.monitor._id);
+        if (monitorIds && monitorIds.length) {
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'slug createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const [incidents, count] = await Promise.all([
+                IncidentService.findBy({
+                    query: { 'monitors.monitorId': { $in: monitorIds } },
+                    select,
+                    populate,
+                }),
+                IncidentService.countBy({
+                    'monitors.monitorId': { $in: monitorIds },
+                }),
+            ]);
+            return { incidents, count };
+        } else {
+            const error = new Error('No monitors on this status page');
+            error.code = 400;
             throw error;
         }
     },
     isPermitted: async function(userId, statusPage) {
-        try {
-            const fn = async resolve => {
-                if (statusPage.isPrivate) {
-                    if (userId) {
-                        const project = await ProjectService.findOneBy({
-                            query: { _id: statusPage.projectId._id },
-                            select: '_id users',
-                        });
-                        if (project && project._id) {
-                            if (
-                                project.users.some(
-                                    user => user.userId === userId
-                                )
-                            ) {
-                                resolve(true);
-                            } else {
-                                resolve(false);
-                            }
+        const fn = async resolve => {
+            if (statusPage.isPrivate) {
+                if (userId) {
+                    const project = await ProjectService.findOneBy({
+                        query: { _id: statusPage.projectId._id },
+                        select: '_id users',
+                    });
+                    if (project && project._id) {
+                        if (
+                            project.users.some(user => user.userId === userId)
+                        ) {
+                            resolve(true);
                         } else {
                             resolve(false);
                         }
@@ -1624,613 +1455,506 @@ module.exports = {
                         resolve(false);
                     }
                 } else {
-                    resolve(true);
+                    resolve(false);
                 }
-            };
-            return fn;
-        } catch (error) {
-            ErrorService.log('statusPageService.isPermitted', error);
-            throw error;
-        }
+            } else {
+                resolve(true);
+            }
+        };
+        return fn;
     },
 
     getSubProjectStatusPages: async function(subProjectIds) {
         const _this = this;
 
-        try {
-            const populateStatusPage = [
-                {
-                    path: 'projectId',
-                    select: 'name parentProjectId',
-                    populate: { path: 'parentProjectId', select: '_id' },
-                },
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-                {
-                    path: 'monitors.monitor',
-                    select: 'name',
-                },
-            ];
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
 
-            const selectStatusPage =
-                'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
+        const selectStatusPage =
+            'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
-            const subProjectStatusPages = await Promise.all(
-                subProjectIds.map(async id => {
-                    const statusPages = await _this.findBy({
-                        query: { projectId: id },
-                        skip: 0,
-                        limit: 10,
-                        select: selectStatusPage,
-                        populate: populateStatusPage,
-                    });
-                    const count = await _this.countBy({ projectId: id });
-                    return { statusPages, count, _id: id, skip: 0, limit: 10 };
-                })
-            );
-            return subProjectStatusPages;
-        } catch (error) {
-            ErrorService.log(
-                'statusPageService.getSubProjectStatusPages',
-                error
-            );
-            throw error;
-        }
+        const subProjectStatusPages = await Promise.all(
+            subProjectIds.map(async id => {
+                const statusPages = await _this.findBy({
+                    query: { projectId: id },
+                    skip: 0,
+                    limit: 10,
+                    select: selectStatusPage,
+                    populate: populateStatusPage,
+                });
+                const count = await _this.countBy({ projectId: id });
+                return { statusPages, count, _id: id, skip: 0, limit: 10 };
+            })
+        );
+        return subProjectStatusPages;
     },
 
     hardDeleteBy: async function(query) {
-        try {
-            await StatusPageModel.deleteMany(query);
-            return 'Status Page(s) Removed Successfully!';
-        } catch (error) {
-            ErrorService.log('statusPageService.hardDeleteBy', error);
-            throw error;
-        }
+        await StatusPageModel.deleteMany(query);
+        return 'Status Page(s) Removed Successfully!';
     },
 
     restoreBy: async function(query) {
         const _this = this;
-        try {
-            query.deleted = true;
+        query.deleted = true;
 
-            const populateStatusPage = [
-                {
-                    path: 'projectId',
-                    select: 'name parentProjectId',
-                    populate: { path: 'parentProjectId', select: '_id' },
-                },
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-                {
-                    path: 'monitors.monitor',
-                    select: 'name',
-                },
-            ];
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
 
-            const selectStatusPage =
-                'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+        const selectStatusPage =
+            'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-            const statusPage = await _this.findBy({
-                query,
-                populate: populateStatusPage,
-                select: selectStatusPage,
-            });
-            if (statusPage && statusPage.length > 1) {
-                const statusPages = await Promise.all(
-                    statusPage.map(async statusPage => {
-                        const statusPageId = statusPage._id;
-                        statusPage = await _this.updateOneBy(
-                            { _id: statusPageId, deleted: true },
-                            {
-                                deleted: false,
-                                deletedAt: null,
-                                deleteBy: null,
-                            }
-                        );
-                        await SubscriberService.restoreBy({
-                            statusPageId,
-                            deleted: true,
-                        });
-                        return statusPage;
-                    })
-                );
-                return statusPages;
-            }
-        } catch (error) {
-            ErrorService.log('statusPageService.restoreBy', error);
-            throw error;
+        const statusPage = await _this.findBy({
+            query,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
+        if (statusPage && statusPage.length > 1) {
+            const statusPages = await Promise.all(
+                statusPage.map(async statusPage => {
+                    const statusPageId = statusPage._id;
+                    statusPage = await _this.updateOneBy(
+                        { _id: statusPageId, deleted: true },
+                        {
+                            deleted: false,
+                            deletedAt: null,
+                            deleteBy: null,
+                        }
+                    );
+                    await SubscriberService.restoreBy({
+                        statusPageId,
+                        deleted: true,
+                    });
+                    return statusPage;
+                })
+            );
+            return statusPages;
         }
     },
     // get status pages for this incident
     getStatusPagesForIncident: async (incidentId, skip, limit) => {
-        try {
-            // first get the monitor, then scan status page collection containing the monitor
-            let { monitors } = await IncidentModel.findById(incidentId).select(
-                'monitors.monitorId'
-            );
+        // first get the monitor, then scan status page collection containing the monitor
+        let { monitors } = await IncidentModel.findById(incidentId).select(
+            'monitors.monitorId'
+        );
 
-            let statusPages = [];
-            let count = 0;
-            if (monitors) {
-                monitors = monitors.map(
-                    monitor => monitor.monitorId._id || monitor.monitorId
-                );
-                count = await StatusPageModel.find({
-                    'monitors.monitor': { $in: monitors },
-                }).countDocuments({ 'monitors.monitor': { $in: monitors } });
-                if (count) {
-                    statusPages = await StatusPageModel.find({
-                        'monitors.monitor': { $in: monitors },
-                    })
-                        .lean()
-                        .populate('projectId')
-                        .populate('monitors.monitor')
-                        .skip(skip)
-                        .limit(limit)
-                        .exec();
-                }
-            }
-            return { statusPages: statusPages || [], count };
-        } catch (error) {
-            ErrorService.log(
-                'statusPageService.getStatusPagesForIncident',
-                error
+        let statusPages = [];
+        let count = 0;
+        if (monitors) {
+            monitors = monitors.map(
+                monitor => monitor.monitorId._id || monitor.monitorId
             );
-            throw error;
+            count = await StatusPageModel.find({
+                'monitors.monitor': { $in: monitors },
+            }).countDocuments({ 'monitors.monitor': { $in: monitors } });
+            if (count) {
+                statusPages = await StatusPageModel.find({
+                    'monitors.monitor': { $in: monitors },
+                })
+                    .lean()
+                    .populate('projectId')
+                    .populate('monitors.monitor')
+                    .skip(skip)
+                    .limit(limit)
+                    .exec();
+            }
         }
+        return { statusPages: statusPages || [], count };
     },
 
     getStatusBubble: async (statusPages, probes) => {
-        try {
-            if (statusPages && statusPages[0]) {
-                statusPages = statusPages[0];
-            }
-            const endDate = moment(Date.now());
-            const startDate = moment(Date.now()).subtract(90, 'days');
-            const monitorsIds =
-                statusPages && statusPages.monitors
-                    ? statusPages.monitors.map(m =>
-                          m.monitor && m.monitor._id ? m.monitor._id : null
-                      )
-                    : [];
-            const statuses = await Promise.all(
-                monitorsIds.map(async m => {
-                    return await MonitorService.getMonitorStatuses(
-                        m,
-                        startDate,
-                        endDate
-                    );
-                })
-            );
-            const bubble = await getServiceStatus(statuses, probes);
-            let statusMessage = '';
-            if (bubble === 'all') {
-                statusMessage = 'All services are online';
-            } else if (bubble === 'some') {
-                statusMessage = 'Some services are offline';
-            } else if (bubble === 'none') {
-                statusMessage = 'All services are offline';
-            } else if (bubble === 'some-degraded') {
-                statusMessage = 'Some services are degraded';
-            }
-            return { bubble, statusMessage };
-        } catch (error) {
-            ErrorService.log('statusPageService.getStatusBubble', error);
-            throw error;
+        if (statusPages && statusPages[0]) {
+            statusPages = statusPages[0];
         }
+        const endDate = moment(Date.now());
+        const startDate = moment(Date.now()).subtract(90, 'days');
+        const monitorsIds =
+            statusPages && statusPages.monitors
+                ? statusPages.monitors.map(m =>
+                      m.monitor && m.monitor._id ? m.monitor._id : null
+                  )
+                : [];
+        const statuses = await Promise.all(
+            monitorsIds.map(async m => {
+                return await MonitorService.getMonitorStatuses(
+                    m,
+                    startDate,
+                    endDate
+                );
+            })
+        );
+        const bubble = await getServiceStatus(statuses, probes);
+        let statusMessage = '';
+        if (bubble === 'all') {
+            statusMessage = 'All services are online';
+        } else if (bubble === 'some') {
+            statusMessage = 'Some services are offline';
+        } else if (bubble === 'none') {
+            statusMessage = 'All services are offline';
+        } else if (bubble === 'some-degraded') {
+            statusMessage = 'Some services are degraded';
+        }
+        return { bubble, statusMessage };
     },
 
     doesDomainExist: async function(domain) {
         const _this = this;
-        try {
-            const statusPage = await _this.countBy({
-                domains: { $elemMatch: { domain } },
-            });
+        const statusPage = await _this.countBy({
+            domains: { $elemMatch: { domain } },
+        });
 
-            if (!statusPage || statusPage === 0) return false;
+        if (!statusPage || statusPage === 0) return false;
 
-            return true;
-        } catch (error) {
-            ErrorService.log('statusPageService.doesDomainExist', error);
-            throw error;
-        }
+        return true;
     },
 
     createExternalStatusPage: async function(data) {
-        try {
-            const externalStatusPage = new ExternalStatusPageModel();
-            externalStatusPage.url = data.url || null;
-            externalStatusPage.name = data.name || null;
-            externalStatusPage.description = data.description || null;
-            externalStatusPage.projectId = data.projectId || null;
-            externalStatusPage.statusPageId = data.statusPageId || null;
-            externalStatusPage.createdById = data.createdById || null;
-            const newExternalStatusPage = await externalStatusPage.save();
+        const externalStatusPage = new ExternalStatusPageModel();
+        externalStatusPage.url = data.url || null;
+        externalStatusPage.name = data.name || null;
+        externalStatusPage.description = data.description || null;
+        externalStatusPage.projectId = data.projectId || null;
+        externalStatusPage.statusPageId = data.statusPageId || null;
+        externalStatusPage.createdById = data.createdById || null;
+        const newExternalStatusPage = await externalStatusPage.save();
 
-            return newExternalStatusPage;
-        } catch (error) {
-            ErrorService.log('statusPageService.externalStatusPage', error);
-            throw error;
-        }
+        return newExternalStatusPage;
     },
     getExternalStatusPage: async function(query, skip, limit) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 0;
+        if (!limit) limit = 0;
 
-            if (typeof skip === 'string') {
-                skip = Number(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = Number(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            const externalStatusPages = await ExternalStatusPageModel.find(
-                query
-            );
-            return externalStatusPages;
-        } catch (error) {
-            ErrorService.log('statusPageService.getExternalStatusPage', error);
-            throw error;
+        if (typeof skip === 'string') {
+            skip = Number(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
+
+        if (!query) {
+            query = {};
+        }
+
+        query.deleted = false;
+        const externalStatusPages = await ExternalStatusPageModel.find(query);
+        return externalStatusPages;
     },
     updateExternalStatusPage: async function(projectId, _id, data) {
         const query = { projectId, _id };
 
-        try {
-            const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
-            );
-            return externalStatusPages;
-        } catch (error) {
-            ErrorService.log('statusPageService.getExternalStatusPage', error);
-            throw error;
-        }
+        const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+        return externalStatusPages;
     },
     deleteExternalStatusPage: async function(projectId, _id, userId) {
         const query = { projectId, _id };
 
-        try {
-            const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
+        const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
                 },
-                {
-                    new: true,
-                }
-            );
-            return externalStatusPages;
-        } catch (error) {
-            ErrorService.log('statusPageService.getExternalStatusPage', error);
-            throw error;
-        }
+            },
+            {
+                new: true,
+            }
+        );
+        return externalStatusPages;
     },
 
     createAnnouncement: async function(data) {
-        try {
-            // reassign data.monitors with a restructured monitor data
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
-            }));
-            // slugify announcement name
-            if (data && data.name) {
-                data.slug = getSlug(data.name);
-            }
-
-            const announcement = new AnnouncementModel();
-            announcement.name = data.name || null;
-            announcement.projectId = data.projectId || null;
-            announcement.statusPageId = data.statusPageId || null;
-            announcement.description = data.description || null;
-            announcement.monitors = data.monitors || null;
-            announcement.createdById = data.createdById || null;
-            announcement.slug = data.slug || null;
-            const newAnnouncement = await announcement.save();
-
-            return newAnnouncement;
-        } catch (error) {
-            ErrorService.log('statusPageService.createAnnouncement', error);
-            throw error;
+        // reassign data.monitors with a restructured monitor data
+        data.monitors = data.monitors.map(monitor => ({
+            monitorId: monitor,
+        }));
+        // slugify announcement name
+        if (data && data.name) {
+            data.slug = getSlug(data.name);
         }
+
+        const announcement = new AnnouncementModel();
+        announcement.name = data.name || null;
+        announcement.projectId = data.projectId || null;
+        announcement.statusPageId = data.statusPageId || null;
+        announcement.description = data.description || null;
+        announcement.monitors = data.monitors || null;
+        announcement.createdById = data.createdById || null;
+        announcement.slug = data.slug || null;
+        const newAnnouncement = await announcement.save();
+
+        return newAnnouncement;
     },
 
     getAnnouncements: async function(query, skip, limit) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 0;
+        if (!limit) limit = 0;
 
-            if (typeof skip === 'string') {
-                skip = Number(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = Number(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            const allAnnouncements = await AnnouncementModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip)
-                .populate('createdById', 'name')
-                .populate('monitors.monitorId', 'name');
-            return allAnnouncements;
-        } catch (error) {
-            ErrorService.log('statusPageService.getAnnouncements', error);
-            throw error;
+        if (typeof skip === 'string') {
+            skip = Number(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
+
+        if (!query) {
+            query = {};
+        }
+
+        query.deleted = false;
+        const allAnnouncements = await AnnouncementModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]])
+            .limit(limit)
+            .skip(skip)
+            .populate('createdById', 'name')
+            .populate('monitors.monitorId', 'name');
+        return allAnnouncements;
     },
 
     countAnnouncements: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const count = await AnnouncementModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('statusPageService.countAnnouncements', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const count = await AnnouncementModel.countDocuments(query);
+        return count;
     },
 
     getSingleAnnouncement: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const response = await AnnouncementModel.findOne(query);
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.getSingleAnnouncement', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const response = await AnnouncementModel.findOne(query);
+        return response;
     },
 
     updateAnnouncement: async function(query, data) {
-        try {
-            const _this = this;
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            if (!data.hideAnnouncement) {
-                await _this.updateManyAnnouncement({
-                    statusPageId: query.statusPageId,
-                });
-            }
-            const response = await AnnouncementModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
-            );
-
-            if (!data.hideAnnouncement && data.announcementToggle) {
-                AlertService.sendAnnouncementNotificationToSubscribers(
-                    response
-                ).catch(error => {
-                    ErrorService.log(
-                        'AlertService.sendAnnouncementNotificationToSubscribers',
-                        error
-                    );
-                });
-            }
-
-            const log = {
-                active: false,
-                endDate: new Date(),
-                updatedById: data.createdById,
-            };
-            await _this.updateAnnouncementLog({ active: true }, log);
-
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.getSingleAnnouncement', error);
-            throw error;
+        const _this = this;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        if (!data.hideAnnouncement) {
+            await _this.updateManyAnnouncement({
+                statusPageId: query.statusPageId,
+            });
+        }
+        const response = await AnnouncementModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+
+        if (!data.hideAnnouncement && data.announcementToggle) {
+            AlertService.sendAnnouncementNotificationToSubscribers(
+                response
+            ).catch(error => {
+                ErrorService.log(
+                    'StatusPageService.updateAnnouncement > AlertService.sendAnnouncementNotificationToSubscribers',
+                    error
+                );
+            });
+        }
+
+        const log = {
+            active: false,
+            endDate: new Date(),
+            updatedById: data.createdById,
+        };
+        await _this.updateAnnouncementLog({ active: true }, log);
+
+        return response;
     },
 
     updateManyAnnouncement: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const response = await AnnouncementModel.updateMany(
-                query,
-                {
-                    $set: { hideAnnouncement: true },
-                },
-                {
-                    new: true,
-                }
-            );
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.updateManyAnnouncement', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const response = await AnnouncementModel.updateMany(
+            query,
+            {
+                $set: { hideAnnouncement: true },
+            },
+            {
+                new: true,
+            }
+        );
+        return response;
     },
 
     deleteAnnouncement: async function(query, userId) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const response = await AnnouncementModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
-                },
-                {
-                    new: true,
-                }
-            );
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.deleteAnnouncement', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const response = await AnnouncementModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
+                },
+            },
+            {
+                new: true,
+            }
+        );
+        return response;
     },
 
     createAnnouncementLog: async function(data) {
-        try {
-            const announcementLog = new AnnouncementLogModel();
-            announcementLog.announcementId = data.announcementId || null;
-            announcementLog.createdById = data.createdById || null;
-            announcementLog.statusPageId = data.statusPageId || null;
-            announcementLog.startDate = data.startDate || null;
-            announcementLog.endDate = data.endDate || null;
-            announcementLog.active = data.active || null;
-            const newAnnouncementLog = await announcementLog.save();
-            return newAnnouncementLog;
-        } catch (error) {
-            ErrorService.log('statusPageService.createAnnouncementLog', error);
-            throw error;
-        }
+        const announcementLog = new AnnouncementLogModel();
+        announcementLog.announcementId = data.announcementId || null;
+        announcementLog.createdById = data.createdById || null;
+        announcementLog.statusPageId = data.statusPageId || null;
+        announcementLog.startDate = data.startDate || null;
+        announcementLog.endDate = data.endDate || null;
+        announcementLog.active = data.active || null;
+        const newAnnouncementLog = await announcementLog.save();
+        return newAnnouncementLog;
     },
 
     updateAnnouncementLog: async function(query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const response = await AnnouncementLogModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
-            );
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.createAnnouncementLog', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const response = await AnnouncementLogModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+        return response;
     },
 
     getAnnouncementLogs: async function(query, skip, limit) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 0;
+        if (!limit) limit = 0;
 
-            if (typeof skip === 'string') {
-                skip = Number(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = Number(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            const announcementLogs = await AnnouncementLogModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip)
-                .populate({
-                    path: 'announcementId',
-                    select: 'name description',
-                    populate: { path: 'monitors.monitorId', select: 'name' },
-                });
-            return announcementLogs;
-        } catch (error) {
-            ErrorService.log('statusPageService.getAnnouncementLogs', error);
-            throw error;
+        if (typeof skip === 'string') {
+            skip = Number(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
+
+        if (!query) {
+            query = {};
+        }
+
+        query.deleted = false;
+        const announcementLogs = await AnnouncementLogModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]])
+            .limit(limit)
+            .skip(skip)
+            .populate({
+                path: 'announcementId',
+                select: 'name description',
+                populate: { path: 'monitors.monitorId', select: 'name' },
+            });
+        return announcementLogs;
     },
 
     deleteAnnouncementLog: async function(query, userId) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const response = await AnnouncementLogModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
-                },
-                {
-                    new: true,
-                }
-            );
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.deleteAnnouncementLog', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const response = await AnnouncementLogModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
+                },
+            },
+            {
+                new: true,
+            }
+        );
+        return response;
     },
 
     countAnnouncementLogs: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-            const count = await AnnouncementLogModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('statusPageService.countAnnouncementLogs', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+        const count = await AnnouncementLogModel.countDocuments(query);
+        return count;
     },
 
     fetchTweets: async handle => {
-        try {
-            const userData = await axios.get(
-                `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
+        const userData = await axios.get(
+            `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
+            {
+                headers: {
+                    Authorization: `Bearer ${bearer}`,
+                },
+            }
+        );
+
+        const userId = userData?.data?.data?.id || false;
+        let response = '';
+
+        if (userId) {
+            const tweetData = await axios.get(
+                `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
                 {
                     headers: {
                         Authorization: `Bearer ${bearer}`,
@@ -2238,27 +1962,10 @@ module.exports = {
                 }
             );
 
-            const userId = userData?.data?.data?.id || false;
-            let response = '';
-
-            if (userId) {
-                const tweetData = await axios.get(
-                    `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${bearer}`,
-                        },
-                    }
-                );
-
-                response = tweetData.data.data;
-            }
-
-            return response;
-        } catch (error) {
-            ErrorService.log('statusPageService.fetchTweets', error);
-            throw error;
+            response = tweetData.data.data;
         }
+
+        return response;
     },
 };
 

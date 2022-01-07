@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
                 },
                 select: 'status lastOperation',
             });
-            
+
             if (!status) {
                 status = await ApiStatusService.create(data);
             }

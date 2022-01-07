@@ -12,68 +12,58 @@ module.exports = {
     //Param 3: userId: User Id.
     //Returns: promise
     create: async function(data) {
+        let lead = new LeadsModel();
+        lead.type = data.type;
+        lead.name = data.name;
+        lead.email = data.email;
+        lead.phone = data.phone;
+        lead.website = data.website;
+        lead.companySize = data.companySize;
+        lead.country = data.country;
+        lead.message = data.message;
+        lead.whitepaperName = data.whitepaperName;
+        lead.source = data.source;
+
+        lead.templateName = 'Request Demo';
+        if (data.whitepaperName) {
+            lead.templateName = 'Whitepaper Request';
+        }
+
+        lead = await lead.save();
         try {
-            let lead = new LeadsModel();
-            lead.type = data.type;
-            lead.name = data.name;
-            lead.email = data.email;
-            lead.phone = data.phone;
-            lead.website = data.website;
-            lead.companySize = data.companySize;
-            lead.country = data.country;
-            lead.message = data.message;
-            lead.whitepaperName = data.whitepaperName;
-            lead.source = data.source;
-
-            lead.templateName = 'Request Demo';
-            if (data.whitepaperName) {
-                lead.templateName = 'Whitepaper Request';
-            }
-
-            lead = await lead.save();
-            try {
-                MailService.sendLeadEmailToFyipeTeam(lead);
-                if (data.type) {
-                    if (data.type === 'demo') {
-                        MailService.sendRequestDemoEmail(data.email);
-                    }
-
-                    if (data.type === 'whitepaper') {
-                        MailService.sendWhitepaperEmail(
-                            data.email,
-                            data.whitepaperName
-                        ); //whitepaper name should be stored in moreInfo.
-                    }
+            MailService.sendLeadEmailToFyipeTeam(lead);
+            if (data.type) {
+                if (data.type === 'demo') {
+                    MailService.sendRequestDemoEmail(data.email);
                 }
-            } catch (error) {
-                ErrorService.log('leadService.create', error);
+
+                if (data.type === 'whitepaper') {
+                    MailService.sendWhitepaperEmail(
+                        data.email,
+                        data.whitepaperName
+                    ); //whitepaper name should be stored in moreInfo.
+                }
             }
-            AirtableService.logLeads({
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
-                country: data.country,
-                message: data.message,
-                website: data.website,
-                source: data.source,
-                volume: data.companySize,
-                type: data.type,
-            });
-            return lead;
         } catch (error) {
             ErrorService.log('leadService.create', error);
-            throw error;
         }
+        AirtableService.logLeads({
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            country: data.country,
+            message: data.message,
+            website: data.website,
+            source: data.source,
+            volume: data.companySize,
+            type: data.type,
+        });
+        return lead;
     },
 
     hardDeleteBy: async function(query) {
-        try {
-            await LeadsModel.deleteMany(query);
-            return 'Lead(s) Removed Successfully!';
-        } catch (error) {
-            ErrorService.log('leadService.hardDeleteBy', error);
-            throw error;
-        }
+        await LeadsModel.deleteMany(query);
+        return 'Lead(s) Removed Successfully!';
     },
 };
 

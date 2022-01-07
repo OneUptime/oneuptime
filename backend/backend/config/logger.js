@@ -12,16 +12,18 @@ const errorToLog = log => {
         level: 'error',
     };
     formatted[LEVEL] = 'error';
-    // if (log.message) {
-    //     formatted.message = `${log.message}: \n${log.stack}`;
-    // } else {
-    //     formatted.message = log.stack;
-    // }
-    formatted.message = log.stack;
+    if (log.message) {
+        formatted.message = `${log.message}: \n${log.stack}`;
+    } else {
+        formatted.message = log.stack;
+    }
+    // formatted.message = log.stack;
     return formatted;
 };
 
-const errorFormatter = logEntry => {
+// TODO:
+// add a handler for normal info logs
+const logFormatter = logEntry => {
     if (logEntry instanceof Error) {
         // an error object was passed in
         return errorToLog(logEntry);
@@ -40,6 +42,7 @@ const errorFormatter = logEntry => {
             logEntry.message = JSON.stringify(logEntry.message);
         }
     }
+
     return logEntry;
 };
 
@@ -67,6 +70,8 @@ const logstashTransport = new logstash.LogstashTransport({
 const envTag = logEntry => {
     const tag = {
         env: process.env.NODE_ENV || 'development',
+        containerName: process.env.CONTAINER_NAME,
+        deploymentName: process.env.DEPLOYMENT_NAME,
     };
     const taggedLog = Object.assign(tag, logEntry);
     logEntry[MESSAGE] = JSON.stringify(taggedLog);
@@ -82,7 +87,7 @@ transports.push(logstashTransport);
 const logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     format: winston.format.combine(
-        winston.format(errorFormatter)(),
+        winston.format(logFormatter)(),
         winston.format(envTag)()
     ),
     transports,
