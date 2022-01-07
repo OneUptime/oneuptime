@@ -56,6 +56,7 @@ const {
     PerformanceTrackerView,
     PerformanceTracker,
     AutomationScript,
+    SsoPage,
 } = pages;
 
 export const groups = [
@@ -529,6 +530,16 @@ export const groups = [
                         component: Billing,
                         index: 1,
                         shortcut: 's+b',
+                    },
+                    {
+                        title: 'Sso',
+                        path: '/dashboard/project/:slug/settings/sso',
+                        icon: 'integration',
+                        visible: true,
+                        subRoutes: [],
+                        component: SsoPage,
+                        index: 5,
+                        shortcut: 's+o',
                     },
                     {
                         title: 'Integrations',

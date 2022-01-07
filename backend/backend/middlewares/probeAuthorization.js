@@ -22,7 +22,6 @@ global.probes = {};
 
 module.exports = {
     isAuthorizedProbe: async function(req, res, next) {
-
         try {
             let probeKey, probeName, clusterKey, probeVersion;
 

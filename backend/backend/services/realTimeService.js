@@ -21,7 +21,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendCreatedIncident', error);
-            throw error;
         }
     },
 
@@ -59,7 +58,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendIncidentTimeline', error);
-            throw error;
         }
     },
 
@@ -86,7 +84,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendSlaCountDown', error);
-            throw error;
         }
     },
 
@@ -111,7 +108,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.deleteIncident', error);
-            throw error;
         }
     },
 
@@ -142,7 +138,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.addIncidentNote', error);
-            throw error;
         }
     },
 
@@ -173,7 +168,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateIncidentNote', error);
-            throw error;
         }
     },
 
@@ -202,7 +196,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateIncidentTimeline', error);
-            throw error;
         }
     },
 
@@ -228,7 +221,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateIncident', error);
-            throw error;
         }
     },
 
@@ -259,7 +251,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.deleteIncidentNote', error);
-            throw error;
         }
     },
 
@@ -281,7 +272,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.addScheduledEvent', error);
-            throw error;
         }
     },
 
@@ -303,7 +293,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.deleteScheduledEvent', error);
-            throw error;
         }
     },
 
@@ -325,7 +314,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateScheduledEvent', error);
-            throw error;
         }
     },
 
@@ -347,7 +335,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.resolveScheduledEvent', error);
-            throw error;
         }
     },
 
@@ -370,7 +357,6 @@ module.exports = {
                 'realTimeService.addScheduledEventInternalNote',
                 error
             );
-            throw error;
         }
     },
 
@@ -404,7 +390,6 @@ module.exports = {
                 'realTimeService.addScheduledEventInvestigationNote',
                 error
             );
-            throw error;
         }
     },
 
@@ -427,7 +412,6 @@ module.exports = {
                 'realTimeService.deleteScheduledEventInternalNote',
                 error
             );
-            throw error;
         }
     },
 
@@ -461,7 +445,6 @@ module.exports = {
                 'realTimeService.deleteScheduledEventInvestigationNote',
                 error
             );
-            throw error;
         }
     },
 
@@ -484,7 +467,6 @@ module.exports = {
                 'realTimeService.updateScheduledEventInternalNote',
                 error
             );
-            throw error;
         }
     },
 
@@ -518,7 +500,6 @@ module.exports = {
                 'realTimeService.updateScheduledEventInvestigationNote',
                 error
             );
-            throw error;
         }
     },
 
@@ -544,7 +525,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendComponentCreated', error);
-            throw error;
         }
     },
 
@@ -570,7 +550,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorCreated', error);
-            throw error;
         }
     },
 
@@ -596,7 +575,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.deleteMonitor', error);
-            throw error;
         }
     },
 
@@ -622,7 +600,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendComponentDelete', error);
-            throw error;
         }
     },
 
@@ -648,7 +625,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendMonitorDelete', error);
-            throw error;
         }
     },
 
@@ -674,7 +650,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.incidentResolved', error);
-            throw error;
         }
     },
 
@@ -700,7 +675,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.incidentAcknowledged', error);
-            throw error;
         }
     },
 
@@ -724,7 +698,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.statusPageEdit', error);
-            throw error;
         }
     },
 
@@ -750,7 +723,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.componentEdit', error);
-            throw error;
         }
     },
 
@@ -776,7 +748,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.monitorEdit', error);
-            throw error;
         }
     },
 
@@ -805,7 +776,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorLog', error);
-            throw error;
         }
     },
 
@@ -833,7 +803,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateLighthouseLog', error);
-            throw error;
         }
     },
 
@@ -861,7 +830,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateAllLighthouseLog', error);
-            throw error;
         }
     },
 
@@ -889,7 +857,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateMonitorStatus', error);
-            throw error;
         }
     },
 
@@ -921,7 +888,6 @@ module.exports = {
             postApi(`${realtimeBaseUrl}/update-probe`, { data, projectId });
         } catch (error) {
             ErrorService.log('realTimeService.updateProbe', error);
-            throw error;
         }
     },
 
@@ -947,7 +913,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendNotification', error);
-            throw error;
         }
     },
 
@@ -974,7 +939,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.updateTeamMemberRole', error);
-            throw error;
         }
     },
 
@@ -1001,7 +965,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.createTeamMember', error);
-            throw error;
         }
     },
 
@@ -1028,7 +991,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.deleteTeamMember', error);
-            throw error;
         }
     },
 
@@ -1049,7 +1011,6 @@ module.exports = {
                 'realTimeService.sendApplicationLogCreated',
                 error
             );
-            throw error;
         }
     },
     sendApplicationLogDelete: async applicationLog => {
@@ -1067,7 +1028,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendApplicationLogDelete', error);
-            throw error;
         }
     },
     sendLogCreated: async contentLog => {
@@ -1084,7 +1044,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendLogCreated', error);
-            throw error;
         }
     },
     applicationLogKeyReset: async applicationLog => {
@@ -1102,7 +1061,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.applicationLogKeyReset', error);
-            throw error;
         }
     },
     sendContainerSecurityCreated: async containerSecurity => {
@@ -1123,7 +1081,6 @@ module.exports = {
                 'realTimeService.sendContainerSecurityCreated',
                 error
             );
-            throw error;
         }
     },
     sendApplicationSecurityCreated: async applicationSecurity => {
@@ -1144,7 +1101,6 @@ module.exports = {
                 'realTimeService.sendApplicationSecurityCreated',
                 error
             );
-            throw error;
         }
     },
     sendErrorTrackerCreated: async errorTracker => {
@@ -1161,7 +1117,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendErrorTrackerCreated', error);
-            throw error;
         }
     },
     sendErrorTrackerDelete: async errorTracker => {
@@ -1179,7 +1134,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendErrorTrackerDelete', error);
-            throw error;
         }
     },
     errorTrackerKeyReset: async errorTracker => {
@@ -1197,7 +1151,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.errorTrackerKeyReset', error);
-            throw error;
         }
     },
     sendErrorEventCreated: async data => {
@@ -1215,7 +1168,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendErrorEventCreated', error);
-            throw error;
         }
     },
     sendIssueStatusChange: async (issue, type) => {
@@ -1233,7 +1185,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendIssueStatusChange', error);
-            throw error;
         }
     },
     sendErrorTrackerIssueDelete: async issue => {
@@ -1254,7 +1205,6 @@ module.exports = {
                 'realTimeService.sendErrorTrackerIssueDelete',
                 error
             );
-            throw error;
         }
     },
     sendTimeMetrics: async (appId, data) => {
@@ -1266,7 +1216,6 @@ module.exports = {
             postApi(`${realtimeBaseUrl}/send-time-metrics`, { appId, data });
         } catch (error) {
             ErrorService.log('realTimeService.sendTimeMetrics', error);
-            throw error;
         }
     },
     sendThroughputMetrics: async (appId, data) => {
@@ -1281,7 +1230,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendThroughputMetrics', error);
-            throw error;
         }
     },
     sendErrorMetrics: async (appId, data) => {
@@ -1293,7 +1241,6 @@ module.exports = {
             postApi(`${realtimeBaseUrl}/send-error-metrics`, { appId, data });
         } catch (error) {
             ErrorService.log('realTimeService.sendErrorMetrics', error);
-            throw error;
         }
     },
     handleScanning: ({ security }) => {
@@ -1307,7 +1254,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.handleScanning', error);
-            throw error;
         }
     },
     handleLog: ({ securityId, securityLog }) => {
@@ -1322,7 +1268,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.handleLog', error);
-            throw error;
         }
     },
 
@@ -1347,7 +1292,6 @@ module.exports = {
             });
         } catch (error) {
             ErrorService.log('realTimeService.statusPageEdit', error);
-            throw error;
         }
     },
 };

@@ -6,7 +6,6 @@
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
 const SmsSmtpService = require('./smsSmtpService');
-const ErrorService = require('./errorService');
 const Handlebars = require('handlebars');
 const defaultSmsTemplates = require('../config/smsTemplate');
 const GlobalConfigService = require('./globalConfigService');
@@ -18,22 +17,17 @@ const { IS_TESTING } = require('../config/server');
 
 const _this = {
     findByOne: async function({ query, select, populate }) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-
-            const twilioSettings = await SmsSmtpService.findOneBy({
-                query,
-                select,
-                populate,
-            });
-            return twilioSettings;
-        } catch (error) {
-            ErrorService.log('SubscriberService.findByOne', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+
+        const twilioSettings = await SmsSmtpService.findOneBy({
+            query,
+            select,
+            populate,
+        });
+        return twilioSettings;
     },
 
     getClient: (accountSid, authToken) => {
@@ -46,22 +40,17 @@ const _this = {
     },
 
     getSettings: async () => {
-        try {
-            const document = await GlobalConfigService.findOneBy({
-                query: { name: 'twilio' },
-                select: 'value name',
-            });
-            if (document && document.value) {
-                return document.value;
-            }
-
-            const error = new Error('Twilio settings not found.');
-            error.code = 400;
-            throw error;
-        } catch (error) {
-            ErrorService.log('twilioService.getSettings', error);
-            throw error;
+        const document = await GlobalConfigService.findOneBy({
+            query: { name: 'twilio' },
+            select: 'value name',
+        });
+        if (document && document.value) {
+            return document.value;
         }
+
+        const error = new Error('Twilio settings not found.');
+        error.code = 400;
+        throw error;
     },
 
     sendIncidentCreatedMessage: async function(
@@ -174,10 +163,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendIncidentCreatedMessage',
-                error
-            );
             await SmsCountService.create(
                 userId,
                 number,
@@ -304,10 +289,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendIncidentCreatedMessageToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -434,10 +415,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendInvestigationNoteToSubscribers',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -565,10 +542,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendIncidentAcknowledgedMessageToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -696,10 +669,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendIncidentResolvedMessageToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -744,7 +713,6 @@ const _this = {
                 err = new Error(error.message);
                 err.code = 400;
             }
-            ErrorService.log('twillioService.test', err);
             throw err;
         }
     },
@@ -855,10 +823,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendScheduledMaintenanceCreatedToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -976,10 +940,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendScheduledMaintenanceCreatedToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -1094,10 +1054,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendScheduledMaintenanceResolvedToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -1211,10 +1167,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendScheduledMaintenanceCancelledToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -1330,10 +1282,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log(
-                'twillioService.sendAnnouncementNotificationToSubscriber',
-                error
-            );
             await SmsCountService.create(
                 null,
                 number,
@@ -1452,7 +1400,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log('twillioService.sendIncidentCreatedCall', error);
             await CallLogsService.create(
                 '+15005550006',
                 number,
@@ -1506,24 +1453,19 @@ const _this = {
     },
 
     getTemplate: async function(smsTemplate, smsTemplateType) {
-        try {
-            const defaultTemplate = defaultSmsTemplates.filter(
-                template => template.smsType === smsTemplateType
-            )[0];
-            let smsContent = defaultTemplate.body;
-            if (
-                smsTemplate != null &&
-                smsTemplate != undefined &&
-                smsTemplate.body
-            ) {
-                smsContent = smsTemplate.body;
-            }
-            const template = await Handlebars.compile(smsContent);
-            return { template };
-        } catch (error) {
-            ErrorService.log('twilioService.getTemplate', error);
-            throw error;
+        const defaultTemplate = defaultSmsTemplates.filter(
+            template => template.smsType === smsTemplateType
+        )[0];
+        let smsContent = defaultTemplate.body;
+        if (
+            smsTemplate != null &&
+            smsTemplate != undefined &&
+            smsTemplate.body
+        ) {
+            smsContent = smsTemplate.body;
         }
+        const template = await Handlebars.compile(smsContent);
+        return { template };
     },
     sendVerificationSMS: async function(
         to,
@@ -1631,7 +1573,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log('twillioService.sendVerificationSMS', error);
             await SmsCountService.create(
                 userId,
                 to,
@@ -1657,168 +1598,146 @@ const _this = {
             price: '',
             priceUnit: '',
         };
-        try {
-            const customTwilioSettings = await _this.findByOne({
-                query: { projectId, enabled: true },
-                select: 'accountSid authToken',
-            });
-            if (customTwilioSettings) {
-                accountSid = customTwilioSettings.accountSid;
-                authToken = customTwilioSettings.authToken;
-            } else {
-                const creds = await _this.getSettings();
-                accountSid = creds['account-sid'];
-                authToken = creds['authentication-token'];
-            }
-            const twilioClient = _this.getClient(accountSid, authToken);
-            const priceList = await twilioClient.pricing.v1.phoneNumbers
-                .countries(countryCode)
-                .fetch();
-            const localPrice = {};
-            const mobilePrice = {};
-            const tollFreePrice = {};
-            priceList &&
-                priceList.phoneNumberPrices &&
-                priceList.phoneNumberPrices.map(p => {
-                    if (p.number_type && p.number_type === 'local') {
-                        localPrice.basePrice = p.base_price;
-                        localPrice.currentPrice = p.current_price;
-                    } else if (p.number_type && p.number_type === 'toll free') {
-                        mobilePrice.basePrice = p.base_price;
-                        mobilePrice.currentPrice = p.current_price;
-                    } else if (p.number_type && p.number_type === 'mobile') {
-                        tollFreePrice.basePrice = p.base_price;
-                        tollFreePrice.currentPrice = p.current_price;
-                    }
-                    return p;
-                });
-
-            data.priceUnit = priceList.priceUnit;
-
-            if (numberType === 'Local') {
-                numbers = await twilioClient
-                    .availablePhoneNumbers(countryCode)
-                    .local.list({ limit: 1 });
-                data.price = await _this.calculatePrice(
-                    localPrice.currentPrice,
-                    localPrice.basePrice
-                );
-            } else if (numberType === 'Mobile') {
-                numbers = await twilioClient
-                    .availablePhoneNumbers(countryCode)
-                    .mobile.list({ limit: 1 });
-                data.price = await _this.calculatePrice(
-                    mobilePrice.currentPrice,
-                    mobilePrice.basePrice
-                );
-            } else if (numberType === 'TollFree') {
-                numbers = await twilioClient
-                    .availablePhoneNumbers(countryCode)
-                    .tollFree.list({ limit: 1 });
-                data.price = await _this.calculatePrice(
-                    tollFreePrice.currentPrice,
-                    tollFreePrice.basePrice
-                );
-            }
-
-            if (numbers && numbers[0] && numbers[0].phoneNumber) {
-                numbers = numbers[0];
-            }
-            data.phoneNumber = numbers.phoneNumber;
-            data.locality = numbers.locality;
-            data.region = numbers.region;
-            data.capabilities = numbers.capabilities;
-            return data;
-        } catch (error) {
-            ErrorService.log('twillioService.fetchNumbers', error);
-            throw error;
+        const customTwilioSettings = await _this.findByOne({
+            query: { projectId, enabled: true },
+            select: 'accountSid authToken',
+        });
+        if (customTwilioSettings) {
+            accountSid = customTwilioSettings.accountSid;
+            authToken = customTwilioSettings.authToken;
+        } else {
+            const creds = await _this.getSettings();
+            accountSid = creds['account-sid'];
+            authToken = creds['authentication-token'];
         }
+        const twilioClient = _this.getClient(accountSid, authToken);
+        const priceList = await twilioClient.pricing.v1.phoneNumbers
+            .countries(countryCode)
+            .fetch();
+        const localPrice = {};
+        const mobilePrice = {};
+        const tollFreePrice = {};
+        priceList &&
+            priceList.phoneNumberPrices &&
+            priceList.phoneNumberPrices.map(p => {
+                if (p.number_type && p.number_type === 'local') {
+                    localPrice.basePrice = p.base_price;
+                    localPrice.currentPrice = p.current_price;
+                } else if (p.number_type && p.number_type === 'toll free') {
+                    mobilePrice.basePrice = p.base_price;
+                    mobilePrice.currentPrice = p.current_price;
+                } else if (p.number_type && p.number_type === 'mobile') {
+                    tollFreePrice.basePrice = p.base_price;
+                    tollFreePrice.currentPrice = p.current_price;
+                }
+                return p;
+            });
+
+        data.priceUnit = priceList.priceUnit;
+
+        if (numberType === 'Local') {
+            numbers = await twilioClient
+                .availablePhoneNumbers(countryCode)
+                .local.list({ limit: 1 });
+            data.price = await _this.calculatePrice(
+                localPrice.currentPrice,
+                localPrice.basePrice
+            );
+        } else if (numberType === 'Mobile') {
+            numbers = await twilioClient
+                .availablePhoneNumbers(countryCode)
+                .mobile.list({ limit: 1 });
+            data.price = await _this.calculatePrice(
+                mobilePrice.currentPrice,
+                mobilePrice.basePrice
+            );
+        } else if (numberType === 'TollFree') {
+            numbers = await twilioClient
+                .availablePhoneNumbers(countryCode)
+                .tollFree.list({ limit: 1 });
+            data.price = await _this.calculatePrice(
+                tollFreePrice.currentPrice,
+                tollFreePrice.basePrice
+            );
+        }
+
+        if (numbers && numbers[0] && numbers[0].phoneNumber) {
+            numbers = numbers[0];
+        }
+        data.phoneNumber = numbers.phoneNumber;
+        data.locality = numbers.locality;
+        data.region = numbers.region;
+        data.capabilities = numbers.capabilities;
+        return data;
     },
 
     buyPhoneNumber: async (projectId, phoneNumber) => {
         let accountSid = null;
         let authToken = null;
-        try {
-            const customTwilioSettings = await _this.findByOne({
-                query: { projectId, enabled: true },
-                select: 'accountSid authToken',
-            });
-            if (customTwilioSettings) {
-                accountSid = customTwilioSettings.accountSid;
-                authToken = customTwilioSettings.authToken;
-            } else {
-                const creds = await _this.getSettings();
-                accountSid = creds['account-sid'];
-                authToken = creds['authentication-token'];
-            }
-            const twilioClient = _this.getClient(accountSid, authToken);
-
-            const numbers = await twilioClient.incomingPhoneNumbers.create({
-                phoneNumber: phoneNumber,
-                voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
-                voiceMethod: 'POST',
-                statusCallback: `${global.apiHost}/callRouting/statusCallback`,
-                statusCallbackMethod: 'POST',
-            });
-            return numbers;
-        } catch (error) {
-            ErrorService.log('twillioService.buyPhoneNumber', error);
-            throw error;
+        const customTwilioSettings = await _this.findByOne({
+            query: { projectId, enabled: true },
+            select: 'accountSid authToken',
+        });
+        if (customTwilioSettings) {
+            accountSid = customTwilioSettings.accountSid;
+            authToken = customTwilioSettings.authToken;
+        } else {
+            const creds = await _this.getSettings();
+            accountSid = creds['account-sid'];
+            authToken = creds['authentication-token'];
         }
+        const twilioClient = _this.getClient(accountSid, authToken);
+
+        const numbers = await twilioClient.incomingPhoneNumbers.create({
+            phoneNumber: phoneNumber,
+            voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
+            voiceMethod: 'POST',
+            statusCallback: `${global.apiHost}/callRouting/statusCallback`,
+            statusCallbackMethod: 'POST',
+        });
+        return numbers;
     },
 
     releasePhoneNumber: async (projectId, sid) => {
         let accountSid = null;
         let authToken = null;
-        try {
-            const customTwilioSettings = await _this.findByOne({
-                query: { projectId, enabled: true },
-                select: 'accountSid authToken',
-            });
-            if (customTwilioSettings) {
-                accountSid = customTwilioSettings.accountSid;
-                authToken = customTwilioSettings.authToken;
-            } else {
-                const creds = await _this.getSettings();
-                accountSid = creds['account-sid'];
-                authToken = creds['authentication-token'];
-            }
-            const twilioClient = _this.getClient(accountSid, authToken);
-
-            const numbers = await twilioClient
-                .incomingPhoneNumbers(sid)
-                .remove();
-            return numbers;
-        } catch (error) {
-            ErrorService.log('twillioService.releasePhoneNumber', error);
-            throw error;
+        const customTwilioSettings = await _this.findByOne({
+            query: { projectId, enabled: true },
+            select: 'accountSid authToken',
+        });
+        if (customTwilioSettings) {
+            accountSid = customTwilioSettings.accountSid;
+            authToken = customTwilioSettings.authToken;
+        } else {
+            const creds = await _this.getSettings();
+            accountSid = creds['account-sid'];
+            authToken = creds['authentication-token'];
         }
+        const twilioClient = _this.getClient(accountSid, authToken);
+
+        const numbers = await twilioClient.incomingPhoneNumbers(sid).remove();
+        return numbers;
     },
 
     getCallDetails: async (projectId, CallSid) => {
         let accountSid = null;
         let authToken = null;
-        try {
-            const customTwilioSettings = await _this.findByOne({
-                query: { projectId, enabled: true },
-                select: 'accountSid authToken',
-            });
-            if (customTwilioSettings) {
-                accountSid = customTwilioSettings.accountSid;
-                authToken = customTwilioSettings.authToken;
-            } else {
-                const creds = await _this.getSettings();
-                accountSid = creds['account-sid'];
-                authToken = creds['authentication-token'];
-            }
-            const twilioClient = _this.getClient(accountSid, authToken);
-
-            const details = await twilioClient.calls(CallSid).fetch();
-            return details;
-        } catch (error) {
-            ErrorService.log('twillioService.getCallDetails', error);
-            throw error;
+        const customTwilioSettings = await _this.findByOne({
+            query: { projectId, enabled: true },
+            select: 'accountSid authToken',
+        });
+        if (customTwilioSettings) {
+            accountSid = customTwilioSettings.accountSid;
+            authToken = customTwilioSettings.authToken;
+        } else {
+            const creds = await _this.getSettings();
+            accountSid = creds['account-sid'];
+            authToken = creds['authentication-token'];
         }
+        const twilioClient = _this.getClient(accountSid, authToken);
+
+        const details = await twilioClient.calls(CallSid).fetch();
+        return details;
     },
 
     calculatePrice: async (currentPrice, basePrice) => {
@@ -1834,15 +1753,10 @@ const _this = {
     },
 
     hasCustomSettings: async function(projectId) {
-        try {
-            return await _this.findByOne({
-                query: { projectId, enabled: true },
-                select: '_id',
-            });
-        } catch (error) {
-            ErrorService.log('twilioService.hasCustomSettings', error);
-            throw error;
-        }
+        return await _this.findByOne({
+            query: { projectId, enabled: true },
+            select: '_id',
+        });
     },
 };
 
