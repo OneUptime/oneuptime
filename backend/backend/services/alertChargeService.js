@@ -9,93 +9,72 @@ module.exports = {
         sentTo,
         subscriberId
     ) {
-        try {
-            const alertCharge = new AlertChargeModel();
-            alertCharge.projectId = projectId;
-            alertCharge.chargeAmount = chargeAmount;
-            alertCharge.closingAccountBalance = balanceAfterAlertSent;
-            alertCharge.alertId = alertId || null;
-            alertCharge.monitorId = monitorId;
-            alertCharge.incidentId = incidentId;
-            alertCharge.sentTo = sentTo;
-            alertCharge.subscriberAlertId = subscriberId || null;
-            alertCharge.save();
-            return alertCharge;
-        } catch (error) {
-            ErrorService.log('alertChargeService.create', error);
-            throw error;
-        }
+        const alertCharge = new AlertChargeModel();
+        alertCharge.projectId = projectId;
+        alertCharge.chargeAmount = chargeAmount;
+        alertCharge.closingAccountBalance = balanceAfterAlertSent;
+        alertCharge.alertId = alertId || null;
+        alertCharge.monitorId = monitorId;
+        alertCharge.incidentId = incidentId;
+        alertCharge.sentTo = sentTo;
+        alertCharge.subscriberAlertId = subscriberId || null;
+        alertCharge.save();
+        return alertCharge;
     },
     findBy: async function({ query, skip, limit, sort, populate, select }) {
-        try {
-            if (!sort) sort = -1;
+        if (!sort) sort = -1;
 
-            if (typeof skip === 'string') {
-                skip = parseInt(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = parseInt(limit);
-            }
-
-            if (typeof sort === 'string') {
-                sort = parseInt(sort);
-            }
-
-            if (!query) {
-                query = {};
-            }
-
-            let alertQuery;
-            if (skip >= 0 && limit > 0) {
-                alertQuery = AlertChargeModel.find(query)
-                    .lean()
-                    .sort([['createdAt', sort]])
-                    .limit(limit)
-                    .skip(skip);
-            } else {
-                alertQuery = AlertChargeModel.find(query)
-                    .lean()
-                    .sort([['createdAt', sort]]);
-            }
-
-            alertQuery = handleSelect(select, alertQuery);
-            alertQuery = handlePopulate(populate, alertQuery);
-            const alertCharges = await alertQuery;
-
-            return alertCharges;
-        } catch (error) {
-            ErrorService.log('alertChargeService.findBy', error);
-            throw error;
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+
+        if (typeof sort === 'string') {
+            sort = parseInt(sort);
+        }
+
+        if (!query) {
+            query = {};
+        }
+
+        let alertQuery;
+        if (skip >= 0 && limit > 0) {
+            alertQuery = AlertChargeModel.find(query)
+                .lean()
+                .sort([['createdAt', sort]])
+                .limit(limit)
+                .skip(skip);
+        } else {
+            alertQuery = AlertChargeModel.find(query)
+                .lean()
+                .sort([['createdAt', sort]]);
+        }
+
+        alertQuery = handleSelect(select, alertQuery);
+        alertQuery = handlePopulate(populate, alertQuery);
+        const alertCharges = await alertQuery;
+
+        return alertCharges;
     },
     countBy: async query => {
-        try {
-            if (!query) {
-                query = {};
-            }
-            const count = await AlertChargeModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('alertChargeService.countBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        const count = await AlertChargeModel.countDocuments(query);
+        return count;
     },
     /**
      * deletes documents in alert charges based on the query condition
      * @param {Object} query
      */
     hardDeleteBy: async query => {
-        try {
-            await AlertChargeModel.deleteMany(query);
-        } catch (error) {
-            ErrorService.log('alertChargeService.delete', error);
-            throw error;
-        }
+        await AlertChargeModel.deleteMany(query);
     },
 };
 
 const AlertChargeModel = require('../models/alertCharge');
-const ErrorService = require('./errorService');
 const handlePopulate = require('../utils/populate');
 const handleSelect = require('../utils/select');
