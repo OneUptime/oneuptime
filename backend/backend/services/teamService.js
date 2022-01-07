@@ -230,7 +230,7 @@ module.exports = {
                         let isHiddenAdminUser = false;
 
                         if (isAdminInProject) {
-                            isHiddenAdminUser = isAdminInProject[0].users.filter(
+                            isHiddenAdminUser = isAdminInProject[0]?.users.filter(
                                 user =>
                                     user.show === false &&
                                     user.role === 'Member' &&
@@ -238,7 +238,7 @@ module.exports = {
                             );
                         }
 
-                        if (isHiddenAdminUser.length > 0) {
+                        if (isHiddenAdminUser && isHiddenAdminUser.length > 0) {
                             await _this.removeTeamMember(
                                 projectId,
                                 addedBy._id,
