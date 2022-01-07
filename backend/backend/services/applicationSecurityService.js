@@ -236,7 +236,8 @@ module.exports = {
             { path: 'resourceCategory', select: 'name' },
             {
                 path: 'gitCredential',
-                select: 'gitUsername gitPassword iv projectId deleted',
+                select:
+                    'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted',
             },
         ];
 
