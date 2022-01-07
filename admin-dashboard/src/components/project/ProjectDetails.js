@@ -15,7 +15,7 @@ export class ProjectDetails extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <div style={{ width: '100%' }}>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--White"
                                             type="submit"
                                             style={{ float: 'right' }}
                                             onClick={() =>
