@@ -41,12 +41,12 @@ const _this = {
         });
     },
 
-    getApi: url => {
+    getApi: (url, limit = 10) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
-                url: `${config.dataIngestorUrl}/${url}`,
+                url: `${config.fetchResourcesUrl}/${url}?limit=${limit}`,
                 headers,
             })
                 .then(function(response) {
