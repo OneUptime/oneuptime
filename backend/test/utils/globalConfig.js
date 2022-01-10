@@ -6,10 +6,10 @@ module.exports = {
             name: 'smtp',
             value: {
                 'email-enabled': true,
-                email: 'willowxf@gmail.com',
-                password: 'david5498',
+                email: 'ibukun.o.dairo@gmail.com',
+                password: 'ZEC1kY9xFN6aVf3j',
                 'from-name': 'Ibukun',
-                from: 'willowxf@gmail.com',
+                from: 'ibukun.o.dairo@gmail.com',
                 'smtp-server': 'smtp.gmail.com',
                 'smtp-port': '465',
                 'smtp-secure': true,
