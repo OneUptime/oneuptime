@@ -66,7 +66,7 @@ test_enterprise_backend:
         - sudo apt-get install -y nodejs
         - cd backend
         - npm ci
-        - npm run IS_TESTING=true enterprise-test
+        - npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh test_enterprise_backend backend
