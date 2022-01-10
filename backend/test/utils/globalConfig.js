@@ -10,7 +10,7 @@ module.exports = {
                 password: 'ZEC1kY9xFN6aVf3j',
                 'from-name': 'Ibukun',
                 from: 'ibukun.o.dairo@gmail.com',
-                'smtp-server': 'smtp.gmail.com',
+                'smtp-server': 'smtp-relay.sendinblue.com',
                 'smtp-port': '465',
                 'smtp-secure': true,
                 customSmtp: true,
