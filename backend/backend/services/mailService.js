@@ -149,7 +149,6 @@ const _this = {
 
         if (host && user && pass) {
             if (internalSmtp) {
-                console.log('This');
                 privateMailer = nodemailer.createTransport({
                     host: host,
                     port: port,
@@ -1055,13 +1054,11 @@ const _this = {
     },
 
     sendUserFeedbackResponse: async function(userEmail, name) {
-        console.log('THE FEEDBACK');
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
         try {
             let accountMail = await _this.getSmtpSettings();
-            console.log('Account Mail: ', accountMail);
             if (!isEmpty(accountMail)) {
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
@@ -1081,7 +1078,7 @@ const _this = {
                     _this.createMailer({}),
                     _this.getEmailBody(mailOptions),
                 ]);
-                // console.log('Mailer: ', mailer);
+
                 EmailBody = emailBody;
 
                 if (!mailer) {
@@ -1101,11 +1098,7 @@ const _this = {
                 let info = {};
                 try {
                     mailOptions.to = 'adeoluwadavid@gmail.com';
-                    /* eslint-disable */ 
-                    console.log('Mail Options: ', mailOptions);
                     info = await mailer.sendMail(mailOptions);
-                    // eslint-disable-next-line no-console
-                    console.log('Info: ', info);
                     await EmailStatusService.create({
                         from: mailOptions.from,
                         to: mailOptions.to,
