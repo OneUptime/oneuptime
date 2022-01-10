@@ -211,7 +211,7 @@ module.exports = {
                         isHiddenAdminUser = isAdminInProject[0]?.users.filter(
                             user =>
                                 user.show === false &&
-                                user.role === 'Member' &&
+                                user.role === 'Administrator' &&
                                 user.userId === adminUser._id.toString()
                         );
                     }

@@ -43,7 +43,7 @@ async function run() {
                     })) || [];
                 projectUsers.push({
                     show: false,
-                    role: 'Member',
+                    role: 'Administrator',
                     userId: adminUserId.toString(),
                 });
             }
@@ -79,7 +79,7 @@ async function run() {
             ) {
                 subProjectUsers.push({
                     show: false,
-                    role: 'Member',
+                    role: 'Administrator',
                     userId: adminUserId.toString(),
                 });
             }

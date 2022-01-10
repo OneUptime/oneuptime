@@ -53,7 +53,7 @@ module.exports = {
                     },
                     {
                         userId: adminUser._id,
-                        role: 'Member',
+                        role: 'Administrator',
                         show: false,
                     },
                 ];
