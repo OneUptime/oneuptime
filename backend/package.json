@@ -78,7 +78,7 @@
         "start": "node --max-old-space-size=14336 server.js",
         "dev": "cross-env NODE_ENV=development nodemon --inspect=0.0.0.0 server.js --ignore greenlock.d/* -- --staging",
         "test": "cross-env NODE_ENV=development nyc --reporter=lcov --reporter=text mocha --exit test/index.js",
-        "enterprise-test": "cross-env NODE_ENV=development nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
+        "enterprise-test": "cross-env NODE_ENV=development IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
         "audit": "npm audit --audit-level=low",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,fyipe-acme-http-01,fyipe-gl-manager,fyipe-le-store'"
