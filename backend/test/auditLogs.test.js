@@ -194,7 +194,7 @@ describe('Audit Logs API', function() {
 
         const res = await request
             .get('/audit-logs/')
-            .query({ skip: noOfAuditLogsNow - 2 })
+            .query({ skip: noOfAuditLogsNow - 3 })
             .set('Authorization', authorization)
             .send();
 
