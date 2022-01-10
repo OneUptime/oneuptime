@@ -1078,7 +1078,6 @@ const _this = {
                     _this.createMailer({}),
                     _this.getEmailBody(mailOptions),
                 ]);
-
                 EmailBody = emailBody;
 
                 if (!mailer) {
@@ -1098,6 +1097,7 @@ const _this = {
                 let info = {};
                 try {
                     info = await mailer.sendMail(mailOptions);
+
                     await EmailStatusService.create({
                         from: mailOptions.from,
                         to: mailOptions.to,
