@@ -1,5 +1,6 @@
 module.exports = {
     async getProbeMonitors(probeId, limit, date) {
+        limit = Number(limit);
         const query = {
             deleted: false,
             disabled: false,
@@ -98,7 +99,7 @@ module.exports = {
                         });
                     }
 
-                    await monitorCollection.update(
+                    await monitorCollection.updateOne(
                         { _id: monitor._id },
                         { $set: { regions } }
                     );
