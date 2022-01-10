@@ -97,6 +97,7 @@ module.exports = {
                 monitor.customFields = data.customFields;
                 monitor.createdById = data.createdById;
                 monitor.scripts = data.scripts || [];
+                monitor.regions = [];
                 if (data.type === 'url' || data.type === 'api') {
                     monitor.data = {};
                     monitor.data.url = data.data.url;
