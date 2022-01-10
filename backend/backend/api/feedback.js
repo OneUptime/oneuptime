@@ -23,7 +23,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
                     'Cannot submit a feedback with an empty message or page',
             });
         }
-        console.log('Calling this API');
         const feedback = await FeedbackService.create(
             req.params.projectId,
             req.body.feedback,

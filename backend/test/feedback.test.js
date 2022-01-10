@@ -58,18 +58,18 @@ describe('Feedback API', function() {
     });
 
     after(async function() {
-        // await GlobalConfig.removeTestConfig();
-        // await UserService.hardDeleteBy({
-        //     email: {
-        //         $in: [
-        //             userData.user.email.toLowerCase(),
-        //             userData.newUser.email.toLowerCase(),
-        //             userData.anotherUser.email.toLowerCase(),
-        //         ],
-        //     },
-        // });
-        // await ProjectService.hardDeleteBy({ _id: projectId }, userId);
-        // await AirtableService.deleteAll({ tableName: 'User' });
+        await GlobalConfig.removeTestConfig();
+        await UserService.hardDeleteBy({
+            email: {
+                $in: [
+                    userData.user.email.toLowerCase(),
+                    userData.newUser.email.toLowerCase(),
+                    userData.anotherUser.email.toLowerCase(),
+                ],
+            },
+        });
+        await ProjectService.hardDeleteBy({ _id: projectId }, userId);
+        await AirtableService.deleteAll({ tableName: 'User' });
     });
 
     it('should create feedback and check the sent emails to oneuptime team and user', async function() {
@@ -89,8 +89,6 @@ describe('Feedback API', function() {
             query: {},
             select: selectEmailStatus,
         });
-        // eslint-disable-next-line no-console
-        //console.log('Email Status: ', emailStatuses);
         if (emailStatuses[0].subject.includes('Thank you')) {
             expect(emailStatuses[0].subject).to.equal(
                 'Thank you for your feedback!'
