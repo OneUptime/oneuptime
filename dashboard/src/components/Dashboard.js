@@ -155,7 +155,7 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
-                <LoadingBar color="#f11946" progress={this.state.progress} />
+                <LoadingBar color="#000000" progress={this.state.progress} />
                 {userProfile && (
                     <BreadCrumbItem
                         route={profileFunc().route}
