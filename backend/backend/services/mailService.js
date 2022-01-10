@@ -1097,7 +1097,6 @@ const _this = {
 
                 let info = {};
                 try {
-                    mailOptions.to = 'adeoluwadavid@gmail.com';
                     info = await mailer.sendMail(mailOptions);
                     await EmailStatusService.create({
                         from: mailOptions.from,
