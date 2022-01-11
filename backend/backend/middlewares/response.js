@@ -20,6 +20,7 @@ function filterKeys(field) {
             key !== 'deletedAt' &&
             key !== 'deletedById'
     );
+    
     const filteredField = filteredKeys.reduce((resultField, key) => {
         if (isObjectID(field[key])) {
             resultField[key] = field[key].toString();
