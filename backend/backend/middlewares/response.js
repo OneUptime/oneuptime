@@ -82,9 +82,12 @@ function isDate(date) {
 function logResponse(req, res, responsebody) {
     
     const requestEndedAt = Date.now();
+    const method = req.method;
+    const url = req.url;
+
     const duration_info = `OUTGOING RESPONSE ID: ${
         req.id
-    } -- DURATION: ${requestEndedAt - req.requestStartedAt}ms -- STATUS: ${
+    } -- POD NAME: ${process.env.POD_NAME} -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt - req.requestStartedAt}ms -- STATUS: ${
         res.statusCode
     }`;
     const body_info = `OUTGOING RESPONSE ID: ${
