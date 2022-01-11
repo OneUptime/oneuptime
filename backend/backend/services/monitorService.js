@@ -3,7 +3,7 @@ module.exports = {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    create: async function(data) {
+    create: async function (data) {
         const _this = this;
         let subProject = null;
 
@@ -81,8 +81,8 @@ module.exports = {
                 plan.category === 'Startup'
                     ? 5
                     : plan.category === 'Growth'
-                    ? 10
-                    : 0;
+                        ? 10
+                        : 0;
             if (
                 count < userCount * monitorCount ||
                 !IS_SAAS_SERVICE ||
@@ -196,7 +196,7 @@ module.exports = {
         }
     },
 
-    markMonitorsAsShouldNotMonitor: async function(monitorIds) {
+    markMonitorsAsShouldNotMonitor: async function (monitorIds) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -207,7 +207,7 @@ module.exports = {
         );
     },
 
-    markMonitorsAsShouldMonitor: async function(monitorIds) {
+    markMonitorsAsShouldMonitor: async function (monitorIds) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -218,7 +218,7 @@ module.exports = {
         );
     },
 
-    unsetColumnsOfManyMonitors: async function(monitorIds, columns) {
+    unsetColumnsOfManyMonitors: async function (monitorIds, columns) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -229,7 +229,7 @@ module.exports = {
         );
     },
 
-    updateManyIncidentCommunicationSla: async function(
+    updateManyIncidentCommunicationSla: async function (
         monitorIds,
         incidentCommunicationSlaId
     ) {
@@ -245,7 +245,7 @@ module.exports = {
         );
     },
 
-    updateManyMonitorSla: async function(monitorIds, monitorSlaId) {
+    updateManyMonitorSla: async function (monitorIds, monitorSlaId) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -256,7 +256,7 @@ module.exports = {
         );
     },
 
-    updateCriterion: async function(_id, lastMatchedCriterion) {
+    updateCriterion: async function (_id, lastMatchedCriterion) {
         await MonitorModel.updateOne(
             { _id },
             { $set: { lastMatchedCriterion } },
@@ -266,7 +266,7 @@ module.exports = {
         );
     },
 
-    updateLighthouseScanStatus: async function(
+    updateLighthouseScanStatus: async function (
         _id,
         lighthouseScanStatus,
         lighthouseScannedBy
@@ -312,7 +312,7 @@ module.exports = {
         return monitor;
     },
 
-    disableMonitor: async function(_id, isDisabledOrEnable) {
+    disableMonitor: async function (_id, isDisabledOrEnable) {
         await MonitorModel.updateOne(
             { _id },
             {
@@ -323,7 +323,7 @@ module.exports = {
         );
     },
 
-    updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
+    updateScriptStatus: async function (_id, scriptRunStatus, scriptRunBy) {
         await MonitorModel.updateOne(
             { _id },
             {
@@ -338,7 +338,7 @@ module.exports = {
         );
     },
 
-    updateOneBy: async function(query, data, unsetData) {
+    updateOneBy: async function (query, data, unsetData) {
         const _this = this;
 
         if (!query) {
@@ -428,7 +428,7 @@ module.exports = {
         return monitor;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -453,7 +453,7 @@ module.exports = {
 
     // To be used to know the current status of a monitor
     // online, offline or degraded
-    updateAllMonitorStatus: async function(query, data) {
+    updateAllMonitorStatus: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -527,7 +527,7 @@ module.exports = {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         if (!query) {
             query = {};
         }
@@ -998,7 +998,7 @@ module.exports = {
         }
     },
 
-    async getScriptMonitors() {
+    async getScriptMonitors({ limit, skip }) {
         const moment = require('moment');
         const monitors = await MonitorModel.find({
             $and: [
@@ -1027,7 +1027,8 @@ module.exports = {
                     ],
                 },
             ],
-        });
+        }).limit(limit)
+            .skip(skip);
 
         // update state of selected script monitors to inProgress
         if (monitors && monitors.length) {
@@ -1315,7 +1316,7 @@ module.exports = {
         return probeStatuses;
     },
 
-    addSeat: async function(query) {
+    addSeat: async function (query) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -1338,7 +1339,7 @@ module.exports = {
         return 'A new seat added. Now you can add a monitor';
     },
 
-    addSiteUrl: async function(query, data) {
+    addSiteUrl: async function (query, data) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
 
         if (
@@ -1358,7 +1359,7 @@ module.exports = {
         return monitor;
     },
 
-    removeSiteUrl: async function(query, data) {
+    removeSiteUrl: async function (query, data) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
         const siteUrlIndex =
             monitor.siteUrls && monitor.siteUrls.length > 0
@@ -1381,7 +1382,7 @@ module.exports = {
         return monitor;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         await MonitorModel.deleteMany(query);
         return 'Monitor(s) removed successfully!';
     },
@@ -1445,14 +1446,14 @@ module.exports = {
                 status = incidents.some(inc =>
                     inc.resolvedAt
                         ? moment(inc.resolvedAt)
-                              .utc()
-                              .startOf('day')
-                              .diff(
-                                  moment(temp.date)
-                                      .utc()
-                                      .startOf('day'),
-                                  'days'
-                              ) > 0
+                            .utc()
+                            .startOf('day')
+                            .diff(
+                                moment(temp.date)
+                                    .utc()
+                                    .startOf('day'),
+                                'days'
+                            ) > 0
                         : true
                 )
                     ? 'offline'
@@ -1470,23 +1471,23 @@ module.exports = {
                         );
                     const resolveddiff = inc.resolvedAt
                         ? moment(temp.date)
-                              .utc()
-                              .startOf('day')
-                              .diff(
-                                  moment(inc.resolvedAt)
-                                      .utc()
-                                      .startOf('day'),
-                                  'days'
-                              )
+                            .utc()
+                            .startOf('day')
+                            .diff(
+                                moment(inc.resolvedAt)
+                                    .utc()
+                                    .startOf('day'),
+                                'days'
+                            )
                         : moment(temp.date)
-                              .utc()
-                              .startOf('day')
-                              .diff(
-                                  moment()
-                                      .utc()
-                                      .startOf('day'),
-                                  'days'
-                              );
+                            .utc()
+                            .startOf('day')
+                            .diff(
+                                moment()
+                                    .utc()
+                                    .startOf('day'),
+                                'days'
+                            );
                     if (creatediff > 0 && resolveddiff < 0) {
                         return 1440;
                     } else if (creatediff === 0 && resolveddiff !== 0) {
@@ -1521,7 +1522,7 @@ module.exports = {
         return times;
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         const select = '_id';
@@ -1557,7 +1558,7 @@ module.exports = {
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
-    updateMonitorSlaStat: async function(query) {
+    updateMonitorSlaStat: async function (query) {
         const _this = this;
         const currentDate = moment().format();
         let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
@@ -1646,7 +1647,7 @@ module.exports = {
         }
     },
 
-    calculateTime: function(statuses, start, range) {
+    calculateTime: function (statuses, start, range) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1713,8 +1714,8 @@ module.exports = {
                 moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
-                    ? 1
-                    : -1
+                        ? 1
+                        : -1
             );
             //Third step
             for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
@@ -1850,7 +1851,7 @@ module.exports = {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(projectId, monitorId, userId) {
+    closeBreachedMonitorSla: async function (projectId, monitorId, userId) {
         const monitor = await MonitorModel.findOneAndUpdate(
             {
                 _id: monitorId,
@@ -1867,7 +1868,7 @@ module.exports = {
         return monitor;
     },
 
-    changeMonitorComponent: async function(projectId, monitorId, componentId) {
+    changeMonitorComponent: async function (projectId, monitorId, componentId) {
         const [monitor, component] = await Promise.all([
             this.findOneBy({
                 query: { _id: monitorId },
@@ -1897,7 +1898,7 @@ module.exports = {
         return updatedMonitor;
     },
 
-    calcTime: function(statuses, start, range) {
+    calcTime: function (statuses, start, range) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1992,8 +1993,8 @@ module.exports = {
                 moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
-                    ? 1
-                    : -1
+                        ? 1
+                        : -1
             );
             //Third step
             for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
