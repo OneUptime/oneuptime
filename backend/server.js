@@ -127,10 +127,14 @@ app.use(async function(req, res, next) {
     req.logdata = logdata;
 
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${process.env.POD_NAME} -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
+        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
+            process.env.POD_NAME
+        } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
     );
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'}`
+        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
+            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        }`
     );
 
     next();

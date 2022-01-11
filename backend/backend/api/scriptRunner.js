@@ -11,9 +11,11 @@ const router = express.Router();
 // get all script monitors for script-runner
 router.get('/monitors', isAuthorizedService, async (req, res) => {
     try {
-        
-        //get top 10 monitors. 
-        const allScriptMonitors = await MonitorService.getScriptMonitors({limit: 10, skip: 0});
+        //get top 10 monitors.
+        const allScriptMonitors = await MonitorService.getScriptMonitors({
+            limit: 10,
+            skip: 0,
+        });
 
         return sendListResponse(
             req,
