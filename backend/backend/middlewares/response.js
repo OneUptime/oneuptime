@@ -90,6 +90,7 @@ function logResponse(req, res, responsebody) {
     } -- POD NAME: ${process.env.POD_NAME} -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt - req.requestStartedAt}ms -- STATUS: ${
         res.statusCode
     }`;
+
     const body_info = `OUTGOING RESPONSE ID: ${
         req.id
     } -- RESPONSE BODY: ${responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'}`;
@@ -105,6 +106,10 @@ function logResponse(req, res, responsebody) {
 
 module.exports = {
     sendEmptyResponse(req, res) {
+        
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+
         res.status(200).send();
         return logResponse(req, res);
     },
@@ -120,6 +125,9 @@ module.exports = {
 
         /** set the proper content type */
         res.set('Content-Type', file.contentType);
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+
         res.status(200);
         /** return response */
         readstream.pipe(res);
@@ -166,6 +174,9 @@ module.exports = {
 
         req.logdata.errorCode = status;
         ErrorService.log('sendErrorResponse', message, req.logdata);
+
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
 
         res.status(status).send({ message });
         return logResponse(req, res, { message });
@@ -256,7 +267,8 @@ module.exports = {
         }
 
         res.resBody = response; // To be used in 'auditLog' middleware to log reponse data;
-
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
         res.status(200).send(response);
 
         return logResponse(req, res, response);
@@ -319,6 +331,9 @@ module.exports = {
         }
 
         res.resBody = item; // To be used in 'auditLog' middleware to log reponse data;
+
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
 
         res.status(200).send(item);
 
