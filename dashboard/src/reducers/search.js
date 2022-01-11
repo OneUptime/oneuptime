@@ -3,6 +3,8 @@ import {
     POPULATE_SEARCH_REQUEST,
     POPULATE_SEARCH_FAILURE,
     RESET_SEARCH_FIELDS,
+    SHOW_SEARCH_BAR,
+    CLOSE_SEARCH_BAR,
 } from '../constants/search';
 
 const initialState = {
@@ -10,10 +12,21 @@ const initialState = {
     success: false,
     error: null,
     search: [],
+    searchFieldVisible: false,
+    searchFieldPosition: 0,
 };
 
 export default function search(state = initialState, action) {
     switch (action.type) {
+        case SHOW_SEARCH_BAR:
+            return Object.assign({}, state, {
+                searchFieldVisible: true,
+                searchFieldPosition: action.payload,
+            });
+        case CLOSE_SEARCH_BAR:
+            return Object.assign({}, state, {
+                searchFieldVisible: false,
+            });
         case POPULATE_SEARCH_SUCCESS:
             return Object.assign({}, state, {
                 search: action.payload,

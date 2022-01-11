@@ -11254,6 +11254,21 @@ table {
     margin:0;
     background-color: #f7f7f7!important;
 }
+.search-input2 {
+    margin:0;
+    background-color: #f7f7f7!important;
+}
+.floating-search-input{
+    position: absolute;
+    z-index: 100000;
+    top: 70px;
+    left: 30%;
+    width: 50vw;
+    height: 50px;
+    border-radius: 20px;
+    box-shadow: 0px 0px 20px 0px rgba(0,0,0,0.2);
+    opacity: 0.93;
+}
 .bs-padding-l-30 {
     padding-left: 30px;
 }
@@ -11995,6 +12010,9 @@ table {
     .search-input{
         width: 270px!important;
     }
+    .floating-search-input{
+        left: 10%;
+    }
 }
 @media only screen and (min-width: 1063px) and (max-width: 1390px) {
     .oneCardClass, .twoCardClass {
@@ -12009,6 +12027,10 @@ table {
     .search-input{
         width: 270px!important;
     }
+    .floating-search-input{
+        left: 30%;
+    }
+ 
 }
 @media only screen and (min-width: 1390px) and (max-width: 1400px) {
     .search-input{

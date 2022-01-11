@@ -20,6 +20,7 @@ const RenderSearchField = ({
     handleBlur,
     iconLeft,
     iconRight,
+    iconLeftStyle,
     frame,
     onFrameClick,
     handleIconClick,
@@ -31,6 +32,7 @@ const RenderSearchField = ({
                 src="/dashboard/assets/icons/search-solid.svg"
                 id="search-input-img"
                 alt="search-icon"
+                style={iconLeftStyle || {}}
             />
         </ShouldRender>
         <input
@@ -104,6 +106,7 @@ RenderSearchField.propTypes = {
     onFrameClick: PropTypes.func,
     handleIconClick: PropTypes.func,
     display: PropTypes.string,
+    iconLeftStyle: PropTypes.object,
 };
 
 RenderSearchField.defaultProps = {
