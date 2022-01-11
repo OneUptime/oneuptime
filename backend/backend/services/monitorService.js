@@ -998,7 +998,7 @@ module.exports = {
         }
     },
 
-    async getScriptMonitors() {
+    async getScriptMonitors({ limit, skip }) {
         const moment = require('moment');
         const monitors = await MonitorModel.find({
             $and: [
@@ -1027,7 +1027,9 @@ module.exports = {
                     ],
                 },
             ],
-        });
+        })
+            .limit(limit)
+            .skip(skip);
 
         // update state of selected script monitors to inProgress
         if (monitors && monitors.length) {
