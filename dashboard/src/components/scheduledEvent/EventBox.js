@@ -130,7 +130,14 @@ class EventBox extends Component {
                                     <span
                                         style={{ textTransform: 'capitalize' }}
                                     >
-                                        Scheduled Maintenance Event for{' '}
+                                        Scheduled Maintenance Event{' '}
+                                        <span
+                                            style={{
+                                                textTransform: 'lowercase',
+                                            }}
+                                        >
+                                            for
+                                        </span>{' '}
                                         {currentProject?._id !== projectId
                                             ? projectName
                                             : currentProject.name}

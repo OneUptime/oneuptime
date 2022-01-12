@@ -82,7 +82,14 @@ const AutomatedTabularList = props => {
                                                 textTransform: 'capitalize',
                                             }}
                                         >
-                                            Automation Script for{' '}
+                                            Automation Script{' '}
+                                            <span
+                                                style={{
+                                                    textTransform: 'lowercase',
+                                                }}
+                                            >
+                                                for
+                                            </span>{' '}
                                             {props.showProjectName
                                                 ? props.subProjectName
                                                 : props.currentProject.name}
