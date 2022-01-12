@@ -9,10 +9,9 @@ import {
 import { postApi } from '../api';
 import errors from '../errors';
 
-export const showSearchBar = function(position) {
+export const showSearchBar = function() {
     return {
         type: SHOW_SEARCH_BAR,
-        payload: position,
     };
 };
 export const closeSearchBar = function() {

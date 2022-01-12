@@ -13,7 +13,6 @@ const initialState = {
     error: null,
     search: [],
     searchFieldVisible: false,
-    searchFieldPosition: 0,
 };
 
 export default function search(state = initialState, action) {
@@ -21,7 +20,6 @@ export default function search(state = initialState, action) {
         case SHOW_SEARCH_BAR:
             return Object.assign({}, state, {
                 searchFieldVisible: true,
-                searchFieldPosition: action.payload,
             });
         case CLOSE_SEARCH_BAR:
             return Object.assign({}, state, {
