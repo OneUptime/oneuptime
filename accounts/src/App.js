@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-import { Router, Route, Redirect, Switch } from 'react-router-dom';
+import { Router, Route, Navigate, Routes } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
@@ -88,7 +88,7 @@ const App = ({
         <div style={{ height: '100%' }}>
             <Router history={history}>
                 <Suspense fallback={LoadingState}>
-                    <Switch>
+                    <Routes>
                         {allRoutes
                             .filter(route => route.visible)
                             .map((route, index) => {
@@ -102,8 +102,8 @@ const App = ({
                                 );
                             })}
 
-                        <Redirect to="/accounts/login" />
-                    </Switch>
+                        <Navigate to="/accounts/login" />
+                    </Routes>
                 </Suspense>
             </Router>
             <BackboneModals />
