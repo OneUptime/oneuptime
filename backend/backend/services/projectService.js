@@ -750,7 +750,7 @@ module.exports = {
         };
         const populate = [{ path: 'parentProjectId', select: 'name' }];
         const select =
-            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes createdAt';
 
         const [allProjects, count] = await Promise.all([
             _this.findBy({
