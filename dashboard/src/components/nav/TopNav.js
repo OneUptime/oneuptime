@@ -5,7 +5,11 @@ import { connect } from 'react-redux';
 import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu, updateProfileSetting } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
-import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
+import {
+    openFeedbackModal,
+    closeFeedbackModal,
+    resetCreateFeedback,
+} from '../../actions/feedback';
 import { userSettings } from '../../actions/profile';
 import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
@@ -115,6 +119,7 @@ class TopContent extends Component {
     };
 
     hideFeedbackModal = () => {
+        this.props.resetCreateFeedback();
         this.props.closeFeedbackModal();
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > FEEDBACK MODAL CLOSED', {});
@@ -548,57 +553,31 @@ class TopContent extends Component {
                                     topNavCardClass
                                 )}
 
-                            <div className="Box-root Margin-right--16">
+                            <div className="Box-root Flex-flex">
                                 <div
-                                    id="feedback-div"
-                                    className="db-FeedbackInput-container Card-root Card-shadow--small"
-                                    onClick={this.showFeedbackModal}
+                                    style={{
+                                        outline: 'none',
+                                        marginRight: '15px',
+                                        marginLeft: '15px',
+                                    }}
                                 >
-                                    <div className="db-FeedbackInput-box Box-root Box-background--offset Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4">
-                                        <div className="Box-root Flex-flex Margin-right--8">
-                                            <span className="db-FeedbackInput-defaultIcon" />
-                                        </div>
-
-                                        <div
+                                    <button
+                                        className={'db-Notifications-button'}
+                                        style={{ paddingTop: 7 }}
+                                        onClick={this.showFeedbackModal}
+                                    >
+                                        <img
+                                            src="/dashboard/assets/icons/question.svg"
+                                            id="search-input-img"
                                             style={{
-                                                overflow: 'hidden',
-                                                textOveerflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
+                                                width: '20px',
+                                                height: '20px',
+                                                position: 'relative',
+                                                color: '#fff',
                                             }}
-                                        >
-                                            <span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                {}
-                                                {this.props.feedback.feedback
-                                                    .success ||
-                                                this.props.feedback.feedback
-                                                    .requesting ? (
-                                                    <span>
-                                                        Thank you for your
-                                                        feedback.
-                                                    </span>
-                                                ) : null}
-                                                {!this.props.feedback.feedback
-                                                    .success &&
-                                                !this.props.feedback.feedback
-                                                    .requesting &&
-                                                !this.props.feedback.feedback
-                                                    .error ? (
-                                                    <span>
-                                                        Anything we can do to
-                                                        help?
-                                                    </span>
-                                                ) : null}
-                                                {this.props.feedback.feedback
-                                                    .error ? (
-                                                    <span>
-                                                        Sorry, Please try again.
-                                                    </span>
-                                                ) : null}
-                                            </span>
-                                        </div>
-                                        <span />
-                                    </div>
-                                    <span />
+                                            alt="search-icon"
+                                        />
+                                    </button>
                                 </div>
                             </div>
 
@@ -709,7 +688,6 @@ const mapStateToProps = (state, props) => {
 
     return {
         profilePic,
-        feedback: state.feedback,
         project: state.project,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
@@ -748,6 +726,7 @@ const mapDispatchToProps = dispatch =>
             fetchMonitors,
             showSearchBar,
             closeSearchBar,
+            resetCreateFeedback,
         },
         dispatch
     );
@@ -763,7 +742,6 @@ TopContent.propTypes = {
     showSearchBar: PropTypes.func.isRequired,
     closeSearchBar: PropTypes.func.isRequired,
     searchFieldVisible: PropTypes.bool,
-    feedback: PropTypes.object.isRequired,
     profilePic: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -793,6 +771,7 @@ TopContent.propTypes = {
     setActiveSubProject: PropTypes.func,
     activeSubProject: PropTypes.string,
     fetchMonitors: PropTypes.func,
+    resetCreateFeedback: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

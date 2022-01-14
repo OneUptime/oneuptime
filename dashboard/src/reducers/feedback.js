@@ -4,6 +4,7 @@ import {
     CREATE_FEEDBACK_FAILED,
     CREATE_FEEDBACK_REQUEST,
     CREATE_FEEDBACK_SUCCESS,
+    CREATE_FEEDBACK_RESET,
 } from '../constants/feedback';
 
 const initialState = {
@@ -49,6 +50,15 @@ export default (state = initialState, action) => {
             return Object.assign({}, state, {
                 feedback: {
                     requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case CREATE_FEEDBACK_RESET:
+            return Object.assign({}, state, {
+                feedback: {
+                    requesting: false,
                     error: null,
                     success: false,
                 },
