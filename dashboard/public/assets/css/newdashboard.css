@@ -10226,7 +10226,6 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     right: 0;
     padding-left: 8px;
     padding-right: 8px;
-    position: absolute;
     top: 0;
     z-index: 1;
     padding-left: calc((50vw - 1390px / 2 + 278px));
@@ -11262,7 +11261,7 @@ table {
     position: absolute;
     z-index: 100000;
     top: 70px;
-    left: 30%;
+    left: 25vw;
     width: 50vw;
     height: 50px;
     border-radius: 20px;
@@ -12010,27 +12009,17 @@ table {
     .search-input{
         width: 270px!important;
     }
-    .floating-search-input{
-        left: 10%;
-    }
 }
 @media only screen and (min-width: 1063px) and (max-width: 1390px) {
     .oneCardClass, .twoCardClass {
             display:none;
         }
-    .db-Topnav-wrap{
-        width: 90%!important;
-    }
     .db-FeedbackInput-container {
         width: auto;
     }
     .search-input{
         width: 270px!important;
     }
-    .floating-search-input{
-        left: 30%;
-    }
- 
 }
 @media only screen and (min-width: 1390px) and (max-width: 1400px) {
     .search-input{
