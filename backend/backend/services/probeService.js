@@ -838,14 +838,12 @@ module.exports = {
     },
 
     updateProbeStatus: async function(probeId) {
-        
         try {
             const probe = await ProbeModel.findOneAndUpdate(
                 { _id: probeId },
                 { $set: { lastAlive: Date.now() } },
                 { new: true }
             );
-            
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);
@@ -6453,7 +6451,7 @@ const formatBytes = (a, b, c, d, e) => {
 const ProbeModel = require('../models/probe');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
-const uuidv1 = require('uuid/v1');
+const { v1: uuidv1 } = require('uuid');
 const MonitorService = require('./monitorService');
 const MonitorStatusService = require('./monitorStatusService');
 const MonitorLogService = require('./monitorLogService');
