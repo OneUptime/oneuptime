@@ -49,10 +49,17 @@ const TeamMemberProjectBox = props => {
                                 id={`project_${props.subProjectName}`}
                                 style={{ textTransform: 'capitalize' }}
                             >
+                                Team Members{' '}
+                                <span
+                                    style={{
+                                        textTransform: 'lowercase',
+                                    }}
+                                >
+                                    for
+                                </span>{' '}
                                 {props.showProjectName
                                     ? props.subProjectName
-                                    : 'Project'}{' '}
-                                Team Members
+                                    : props.subProjectName}
                             </span>
                         </span>
                         <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -325,6 +332,7 @@ TeamMemberProjectBox.propTypes = {
     allTeamLength: PropTypes.number,
     modalList: PropTypes.array,
     showProjectName: PropTypes.bool,
+    // currentProject: PropTypes.object.isRequired,
 };
 
 export default TeamMemberProjectBox;
