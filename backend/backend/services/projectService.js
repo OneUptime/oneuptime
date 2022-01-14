@@ -1067,7 +1067,7 @@ module.exports = {
 };
 
 const ProjectModel = require('../models/project');
-const uuidv1 = require('uuid/v1');
+const { v1: uuidv1 } = require('uuid');
 const MonitorService = require('../services/monitorService');
 const PaymentService = require('./paymentService');
 const ErrorService = require('./errorService');
