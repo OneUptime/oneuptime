@@ -180,6 +180,16 @@ const monitorSchema = new Schema({
     scanning: { type: Boolean, default: false },
     probeScanning: [String],
     monitorStatus: String,
+    regions: [
+        {
+            probeId: {
+                type: Schema.Types.ObjectId,
+                indexed: true,
+                ref: 'Probe',
+            },
+            lastPingTime: { type: Date, indexed: true },
+        },
+    ],
 });
 
 monitorSchema.virtual('project', {

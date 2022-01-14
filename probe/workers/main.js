@@ -11,6 +11,7 @@ const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
+const limit = process.env.RESOURCES_LIMIT;
 // const ApiService = require('../utils/apiService');
 
 /**
@@ -28,7 +29,7 @@ const KubernetesMonitors = require('./kubernetesMonitors');
 module.exports = {
     runJob: async function(monitorStore) {
         try {
-            let monitors = await getApi('probe/monitors');
+            let monitors = await getApi('probe/monitors', limit);
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
             // add monitor to store
