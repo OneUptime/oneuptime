@@ -5,20 +5,45 @@ import ShouldRender from '../basic/ShouldRender';
 import { IS_SAAS_SERVICE } from '../../config';
 import booleanParser from '../../utils/booleanParser';
 import { history } from '../../store';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+// import 'assets/warning.css';
 
 class AlertDisabledWarning extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            showWarning: true,
+        };
+    }
     render() {
         const { alertEnable, currentProject, page } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/settings/billing`;
 
         return (
-            <ShouldRender if={!alertEnable && booleanParser(IS_SAAS_SERVICE)}>
+            <ShouldRender
+                if={
+                    !alertEnable &&
+                    booleanParser(IS_SAAS_SERVICE) &&
+                    this.state.showWarning
+                }
+            >
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root">
                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
-                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12 warning">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                    <FontAwesomeIcon
+                                        icon={faTimes}
+                                        className="cancel"
+                                        onClick={() =>
+                                            this.setState({
+                                                showWarning: false,
+                                            })
+                                        }
+                                    />
+
                                     <ShouldRender
                                         if={
                                             page === 'Home' ||
@@ -29,9 +54,9 @@ class AlertDisabledWarning extends Component {
                                             SMS and Call Alerts are disabled for
                                             this project. Your team will not be
                                             alerted by SMS or Call when downtime
-                                            happens. Please go to{' '}
+                                            happens. Please go to
                                             <span
-                                                className="pointer Border-bottom--white Text-fontWeight--medium"
+                                                className="pointer Border-bottom--white Text-fontWeight--medium project"
                                                 onClick={() =>
                                                     history.push(redirectTo)
                                                 }
@@ -39,7 +64,7 @@ class AlertDisabledWarning extends Component {
                                                 Project Settings
                                                 <span className="right-arrow" />
                                                 Billings
-                                            </span>{' '}
+                                            </span>
                                             and enable it.
                                         </span>
                                     </ShouldRender>
