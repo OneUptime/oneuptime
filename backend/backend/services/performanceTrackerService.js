@@ -73,82 +73,66 @@ module.exports = {
     },
     //Description: Gets all application logs by component.
     findBy: async function({ query, limit, skip, select, populate }) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 0;
+        if (!limit) limit = 0;
 
-            if (typeof skip === 'string') {
-                skip = parseInt(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = parseInt(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-            if (!query.deleted) query.deleted = false;
-
-            let performanceTrackerQuery = PerformanceTrackerModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .skip(skip)
-                .limit(limit);
-            performanceTrackerQuery = handleSelect(
-                select,
-                performanceTrackerQuery
-            );
-            performanceTrackerQuery = handlePopulate(
-                populate,
-                performanceTrackerQuery
-            );
-
-            const performanceTracker = await performanceTrackerQuery;
-            return performanceTracker;
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.findBy', error);
-            throw error;
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+
+        if (!query) {
+            query = {};
+        }
+        if (!query.deleted) query.deleted = false;
+
+        let performanceTrackerQuery = PerformanceTrackerModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]])
+            .skip(skip)
+            .limit(limit);
+        performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
+        performanceTrackerQuery = handlePopulate(
+            populate,
+            performanceTrackerQuery
+        );
+
+        const performanceTracker = await performanceTrackerQuery;
+        return performanceTracker;
     },
 
     findOneBy: async function({ query, select, populate }) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            if (!query.deleted) query.deleted = false;
-
-            // .populate({
-            //     path: 'componentId',
-            //     select: 'name slug',
-            //     populate: {
-            //         path: 'projectId',
-            //         select: 'name slug',
-            //     },
-            // })
-            // .populate('createdById', 'name email');
-
-            let performanceTrackerQuery = PerformanceTrackerModel.findOne(
-                query
-            ).lean();
-
-            performanceTrackerQuery = handleSelect(
-                select,
-                performanceTrackerQuery
-            );
-            performanceTrackerQuery = handlePopulate(
-                populate,
-                performanceTrackerQuery
-            );
-
-            const performanceTracker = await performanceTrackerQuery;
-            return performanceTracker;
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.findOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        if (!query.deleted) query.deleted = false;
+
+        // .populate({
+        //     path: 'componentId',
+        //     select: 'name slug',
+        //     populate: {
+        //         path: 'projectId',
+        //         select: 'name slug',
+        //     },
+        // })
+        // .populate('createdById', 'name email');
+
+        let performanceTrackerQuery = PerformanceTrackerModel.findOne(
+            query
+        ).lean();
+
+        performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
+        performanceTrackerQuery = handlePopulate(
+            populate,
+            performanceTrackerQuery
+        );
+
+        const performanceTracker = await performanceTrackerQuery;
+        return performanceTracker;
     },
 
     getPerformanceTrackerByComponentId: async function(
@@ -158,183 +142,146 @@ module.exports = {
     ) {
         const _this = this;
 
-        try {
-            // Check if component exists
-            const componentCount = await ComponentService.countBy({
-                _id: componentId,
-            });
-            // send an error if the component doesnt exist
-            if (!componentCount || componentCount === 0) {
-                const error = new Error('Component does not exist.');
-                error.code = 400;
-                ErrorService.log(
-                    'performanceTrackerService.getPerformanceTrackerByComponentId',
-                    error
-                );
-                throw error;
-            }
-
-            if (typeof limit === 'string') limit = parseInt(limit);
-            if (typeof skip === 'string') skip = parseInt(skip);
-
-            const select =
-                'componentId name slug key showQuickStart createdById';
-            const populate = [
-                { path: 'createdById', select: 'name email' },
-                {
-                    path: 'componentId',
-                    select: 'name slug',
-                    populate: { path: 'projectId', select: 'name slug' },
-                },
-            ];
-            const performanceTracker = await _this.findBy({
-                query: { componentId },
-                limit,
-                skip,
-                select,
-                populate,
-            });
-            return performanceTracker;
-        } catch (error) {
-            ErrorService.log(
-                'performanceTrackerService.getPerformanceTrackerByComponentId',
-                error
-            );
+        // Check if component exists
+        const componentCount = await ComponentService.countBy({
+            _id: componentId,
+        });
+        // send an error if the component doesnt exist
+        if (!componentCount || componentCount === 0) {
+            const error = new Error('Component does not exist.');
+            error.code = 400;
             throw error;
         }
+
+        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof skip === 'string') skip = parseInt(skip);
+
+        const select = 'componentId name slug key showQuickStart createdById';
+        const populate = [
+            { path: 'createdById', select: 'name email' },
+            {
+                path: 'componentId',
+                select: 'name slug',
+                populate: { path: 'projectId', select: 'name slug' },
+            },
+        ];
+        const performanceTracker = await _this.findBy({
+            query: { componentId },
+            limit,
+            skip,
+            select,
+            populate,
+        });
+        return performanceTracker;
     },
     deleteBy: async function(query, userId) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
+        if (!query) {
+            query = {};
+        }
+        query.deleted = false;
 
-            const performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedAt: Date.now(),
-                        deletedById: userId,
-                    },
+        const performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedAt: Date.now(),
+                    deletedById: userId,
                 },
-                { new: true }
-            )
-                .populate('deletedById', 'name')
-                .populate({
-                    path: 'componentId',
+            },
+            { new: true }
+        )
+            .populate('deletedById', 'name')
+            .populate({
+                path: 'componentId',
+                select: 'name slug',
+                populate: {
+                    path: 'projectId',
                     select: 'name slug',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                });
-            if (performanceTracker) {
-                try {
-                    NotificationService.create(
-                        performanceTracker.componentId.projectId._id ||
-                            performanceTracker.componentId.projectId,
-                        `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
-                        performanceTracker.deletedById._id,
-                        'performanceTrackeraddremove'
-                    );
-                } catch (error) {
-                    ErrorService.log(
-                        'performanceTrackerService.deleteBy',
-                        error
-                    );
-                }
-                // await RealTimeService.sendPerformanceTrackerDelete(
-                //     performanceTracker
-                // );
-                return performanceTracker;
-            } else {
-                return null;
+                },
+            });
+        if (performanceTracker) {
+            try {
+                NotificationService.create(
+                    performanceTracker.componentId.projectId._id ||
+                        performanceTracker.componentId.projectId,
+                    `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
+                    performanceTracker.deletedById._id,
+                    'performanceTrackeraddremove'
+                );
+            } catch (error) {
+                ErrorService.log('performanceTrackerService.deleteBy', error);
             }
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.deleteBy', error);
-            throw error;
+            // await RealTimeService.sendPerformanceTrackerDelete(
+            //     performanceTracker
+            // );
+            return performanceTracker;
+        } else {
+            return null;
         }
     },
     updateOneBy: async function(query, data, unsetData = null) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            if (!query.deleted) query.deleted = false;
+        if (!query) {
+            query = {};
+        }
+        if (!query.deleted) query.deleted = false;
 
-            if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${nanoid('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+        if (data && data.name) {
+            let name = data.name;
+            name = slugify(name);
+            name = `${name}-${nanoid('1234567890', 8)}`;
+            data.slug = name.toLowerCase();
+        }
+        let performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
+            query,
+            { $set: data },
+            {
+                new: true,
             }
-            let performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
+        );
+
+        if (unsetData) {
+            performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                 query,
-                { $set: data },
+                { $unset: unsetData },
                 {
                     new: true,
                 }
             );
-
-            if (unsetData) {
-                performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
-                    query,
-                    { $unset: unsetData },
-                    {
-                        new: true,
-                    }
-                );
-            }
-
-            const select =
-                'componentId name slug key showQuickStart createdById';
-            const populate = [
-                { path: 'createdById', select: 'name email' },
-                {
-                    path: 'componentId',
-                    select: 'name slug',
-                    populate: { path: 'projectId', select: 'name slug' },
-                },
-            ];
-            performanceTracker = await this.findOneBy({
-                query,
-                select,
-                populate,
-            });
-
-            // await RealTimeService.performanceTrackerKeyReset(
-            //     performanceTracker
-            // );
-
-            return performanceTracker;
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.updateOneBy', error);
-            throw error;
         }
+
+        const select = 'componentId name slug key showQuickStart createdById';
+        const populate = [
+            { path: 'createdById', select: 'name email' },
+            {
+                path: 'componentId',
+                select: 'name slug',
+                populate: { path: 'projectId', select: 'name slug' },
+            },
+        ];
+        performanceTracker = await this.findOneBy({
+            query,
+            select,
+            populate,
+        });
+
+        // await RealTimeService.performanceTrackerKeyReset(
+        //     performanceTracker
+        // );
+
+        return performanceTracker;
     },
     hardDeleteBy: async function(query) {
-        try {
-            await PerformanceTrackerModel.deleteMany(query);
-            return 'Performance Tracker removed successfully!';
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.hardDeleteBy', error);
-            throw error;
-        }
+        await PerformanceTrackerModel.deleteMany(query);
+        return 'Performance Tracker removed successfully!';
     },
     countBy: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            if (!query.deleted) query.deleted = false;
-
-            const count = await PerformanceTrackerModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.countBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        if (!query.deleted) query.deleted = false;
+
+        const count = await PerformanceTrackerModel.countDocuments(query);
+        return count;
     },
 };

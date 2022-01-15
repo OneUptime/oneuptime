@@ -76,8 +76,10 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
-// const Gl = require('greenlock');
+const Gl = require('greenlock');
 const ErrorService = require('./backend/services/errorService');
+const { getUser } = require('./backend/middlewares/user');
+const { getProjectId } = require('./backend/middlewares/api');
 
 // try {
 //     io.adapter(
@@ -103,6 +105,40 @@ app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
+
+app.use(async function(req, res, next) {
+    const method = req.method;
+    const url = req.url;
+    const requestStartedAt = Date.now();
+    req.requestStartedAt = requestStartedAt;
+
+    // log all data to logger
+    const logdata = {
+        requestId: req.id,
+        requestStartedAt: requestStartedAt,
+    };
+
+    req = (await getUser(req)) || req;
+    req = (await getProjectId(req)) || req;
+
+    logdata.userId = req.user?.id;
+    logdata.projectId = req.projectId;
+
+    req.logdata = logdata;
+
+    logger.info(
+        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
+            process.env.POD_NAME
+        } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
+    );
+    logger.info(
+        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
+            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        }`
+    );
+
+    next();
+});
 
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
@@ -394,32 +430,34 @@ const server = http.listen(app.get('port'), function() {
 
 mongoose.connection.on('connected', async () => {
     try {
-        // const greenlock = Gl.create({
-        //     manager: 'oneuptime-gl-manager',
-        //     packageRoot: process.cwd(),
-        //     maintainerEmail: 'certs@fyipe.com',
-        //     staging: false,
-        //     notify: function(event, details) {
-        //         if ('error' === event) {
-        //             // `details` is an error object in this case
-        //             // eslint-disable-next-line no-console
-        //             console.error('Greenlock Notify: ', details);
-        //         }
-        //     },
-        //     challenges: {
-        //         'http-01': {
-        //             module: 'oneuptime-acme-http-01',
-        //         },
-        //     },
-        //     store: {
-        //         module: 'oneuptime-le-store',
-        //     },
-        // });
-        // await greenlock.manager.defaults({
-        //     agreeToTerms: true,
-        //     subscriberEmail: 'certs@fyipe.com',
-        // });
-        // global.greenlock = greenlock;
+        if (!process.env.IS_TESTING) {
+            const greenlock = Gl.create({
+                manager: 'oneuptime-gl-manager',
+                packageRoot: process.cwd(),
+                maintainerEmail: 'certs@fyipe.com',
+                staging: false,
+                notify: function(event, details) {
+                    if ('error' === event) {
+                        // `details` is an error object in this case
+                        // eslint-disable-next-line no-console
+                        console.error('Greenlock Notify: ', details);
+                    }
+                },
+                challenges: {
+                    'http-01': {
+                        module: 'oneuptime-acme-http-01',
+                    },
+                },
+                store: {
+                    module: 'oneuptime-le-store',
+                },
+            });
+            await greenlock.manager.defaults({
+                agreeToTerms: true,
+                subscriberEmail: 'certs@fyipe.com',
+            });
+            global.greenlock = greenlock;
+        }
     } catch (error) {
         // eslint-disable-next-line no-console
         ErrorService.log('GREENLOCK INIT ERROR: ', error);

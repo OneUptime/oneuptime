@@ -434,23 +434,35 @@ class Search extends Component {
         return (
             <>
                 <Field
-                    className="db-BusinessSettings-input TextInput bs-TextInput search-input bs-padding-l-30"
+                    className="db-BusinessSettings-input TextInput bs-TextInput search-input2 bs-padding-l-30"
+                    style={{
+                        height: '100%',
+                        width: '100%',
+                        marginLeft: 'auto',
+                        marginRight: 'auto',
+                        paddingLeft: '40px',
+                        backgroundColor: 'rgba(0, 21, 41, 0.97)',
+                        borderRadius: 'inherit',
+                        fontSize: '20px',
+                    }}
                     component={RenderSearchField}
                     type="text"
                     name="search"
                     id="search"
+                    iconLeftStyle={{
+                        width: '25px',
+                        bottom: 11,
+                    }}
                     placeholder="Search"
                     autofilled={'off'}
                     parentStyle={{
                         boxShadow:
                             '0 2px 5px 0 rgb(50 50 93 / 10%), 0 1px 1px 0 rgb(0 0 0 / 7%)',
+                        height: '100%',
+                        borderRadius: 'inherit',
                     }}
                     onChange={(e, newValue) => this.handleSearch(newValue)}
                     iconLeft={true}
-                    style={{
-                        boxShadow: 'none',
-                        width: '290px',
-                    }}
                 />
                 <div
                     className="search-list-li"
@@ -468,6 +480,7 @@ class Search extends Component {
                             boxShadow: '0 2px 15px rgb(84 96 103 / 25%)',
                             borderRadius: '4px',
                         }}
+                        onClick={this.props.closeSearchBar}
                     >
                         {searchValues &&
                             searchValues.search &&
@@ -614,6 +627,7 @@ Search.propTypes = {
     fetchMonitorSlas: PropTypes.func,
     addPerformanceTracker: PropTypes.func,
     subProject: PropTypes.object,
+    closeSearchBar: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch => {

@@ -1,40 +1,29 @@
 module.exports = {
     get: async function(query) {
-        try {
-            const alerts = await incidentSMSActionModel
-                .find(query)
-                .lean()
-                .sort([['createdAt', -1]]);
-            return alerts;
-        } catch (error) {
-            ErrorService.log('incidentSMSActionService.get', error);
-            throw error;
-        }
+        const alerts = await incidentSMSActionModel
+            .find(query)
+            .lean()
+            .sort([['createdAt', -1]]);
+        return alerts;
     },
 
     updateOneBy: async (query, data) => {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted) query.deleted = false;
-            const incidentafter = await incidentSMSActionModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
-            );
-            return incidentafter;
-        } catch (error) {
-            ErrorService.log('incidentSMSActionService.updateOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted) query.deleted = false;
+        const incidentafter = await incidentSMSActionModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+        return incidentafter;
     },
 };
 
 const incidentSMSActionModel = require('../models/incidentSMSAction');
-const ErrorService = require('./errorService');

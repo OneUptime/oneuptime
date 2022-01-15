@@ -8,6 +8,8 @@ const Mongoose = require('mongoose');
 const mongoose = require('../config/db');
 const JsonToCsv = require('./jsonToCsv');
 const ObjectID = mongoose.Types.ObjectId;
+const ErrorService = require('../services/errorService');
+const logger = require('../config/logger');
 
 function filterKeys(field) {
     field = field._doc ? field._doc : field;
@@ -19,6 +21,7 @@ function filterKeys(field) {
             key !== 'deletedAt' &&
             key !== 'deletedById'
     );
+
     const filteredField = filteredKeys.reduce((resultField, key) => {
         if (isObjectID(field[key])) {
             resultField[key] = field[key].toString();
@@ -76,11 +79,36 @@ function isDate(date) {
     }
 }
 
+function logResponse(req, res, responsebody) {
+    const requestEndedAt = Date.now();
+    const method = req.method;
+    const url = req.url;
+
+    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${
+        process.env.POD_NAME
+    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt -
+        req.requestStartedAt}ms -- STATUS: ${res.statusCode}`;
+
+    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${
+        responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+    }`;
+
+    if (res.statusCode > 299) {
+        logger.error(duration_info);
+        logger.error(body_info);
+    } else {
+        logger.info(duration_info);
+        logger.info(body_info);
+    }
+}
+
 module.exports = {
     sendEmptyResponse(req, res) {
-        //purge request.
-        //req = null;
-        return res.status(200).send();
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+
+        res.status(200).send();
+        return logResponse(req, res);
     },
 
     sendFileResponse(req, res, file) {
@@ -94,23 +122,28 @@ module.exports = {
 
         /** set the proper content type */
         res.set('Content-Type', file.contentType);
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+
         res.status(200);
         /** return response */
         readstream.pipe(res);
+
+        return logResponse(req, res, 'FILE');
     },
 
     sendErrorResponse: function(req, res, error) {
+        let status, message;
         if (error.statusCode && error.message) {
             res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
-            return res
-                .status(error.statusCode)
-                .send({ message: error.message });
+            status = error.statusCode;
+            message = error.message;
         } else if (
             error.code &&
             error.message &&
             typeof error.code === 'number'
         ) {
-            let status = error.code;
+            status = error.code;
             if (
                 error.code &&
                 error.status &&
@@ -121,16 +154,29 @@ module.exports = {
                 status = error.status;
             }
             res.resBody = { message: error.message };
-            return res.status(status).send({ message: error.message });
+            message = error.message;
         } else if (error instanceof mongoose.Error.CastError) {
             res.resBody = { code: 400, message: 'Input data schema mismatch.' };
-            return res
-                .status(400)
-                .send({ code: 400, message: 'Input data schema mismatch.' });
+            status = 400;
+            message = 'Input data schema mismatch';
         } else {
             res.resBody = { message: 'Server Error.' };
-            return res.status(500).send({ message: 'Server Error.' });
+            status = 500;
+            message = 'Server Error.';
         }
+
+        if (!req.logdata) {
+            req.logdata = {};
+        }
+
+        req.logdata.errorCode = status;
+        ErrorService.log('sendErrorResponse', message, req.logdata);
+
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+
+        res.status(status).send({ message });
+        return logResponse(req, res, { message });
     },
 
     sendListResponse: async function(req, res, list, count) {
@@ -218,8 +264,11 @@ module.exports = {
         }
 
         res.resBody = response; // To be used in 'auditLog' middleware to log reponse data;
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+        res.status(200).send(response);
 
-        return res.status(200).send(response);
+        return logResponse(req, res, response);
     },
 
     async sendItemResponse(req, res, item) {
@@ -280,6 +329,11 @@ module.exports = {
 
         res.resBody = item; // To be used in 'auditLog' middleware to log reponse data;
 
-        return res.status(200).send(item);
+        res.set('Request-Id', req.id);
+        res.set('Pod-Id', process.env.POD_NAME);
+
+        res.status(200).send(item);
+
+        return logResponse(req, res, item);
     },
 };

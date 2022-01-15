@@ -24,15 +24,19 @@ import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
 import { closeModal } from '../actions/modal';
 import SubProjectAlert from './basic/SubProjectAlert';
+import LoadingBar from 'react-top-loading-bar';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
     constructor(props) {
         super(props);
+        this.state = { progress: 10 };
     }
 
     componentDidMount() {
         const { project, getProjects } = this.props;
+
+        this.setState({ progress: 100 });
 
         if (
             project.projects &&
@@ -151,6 +155,7 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
+                <LoadingBar color="#000000" progress={this.state.progress} />
                 {userProfile && (
                     <BreadCrumbItem
                         route={profileFunc().route}

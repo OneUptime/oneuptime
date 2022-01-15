@@ -10226,7 +10226,6 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     right: 0;
     padding-left: 8px;
     padding-right: 8px;
-    position: absolute;
     top: 0;
     z-index: 1;
     padding-left: calc((50vw - 1390px / 2 + 278px));
@@ -11254,6 +11253,21 @@ table {
     margin:0;
     background-color: #f7f7f7!important;
 }
+.search-input2 {
+    margin:0;
+    background-color: #f7f7f7!important;
+}
+.floating-search-input{
+    position: absolute;
+    z-index: 100000;
+    top: 70px;
+    left: 25vw;
+    width: 50vw;
+    height: 50px;
+    border-radius: 20px;
+    box-shadow: 0px 0px 20px 0px rgba(0,0,0,0.2);
+    opacity: 0.93;
+}
 .bs-padding-l-30 {
     padding-left: 30px;
 }
@@ -12000,9 +12014,6 @@ table {
     .oneCardClass, .twoCardClass {
             display:none;
         }
-    .db-Topnav-wrap{
-        width: 90%!important;
-    }
     .db-FeedbackInput-container {
         width: auto;
     }
