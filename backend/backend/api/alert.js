@@ -69,7 +69,7 @@ router.get('/:projectId/alert', getUser, isAuthorized, async function(
             { path: 'projectId', select: 'name' },
         ];
 
-        const selectAlert =
+        const selectColumns =
             '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
         const [alerts, count] = await Promise.all([
@@ -78,7 +78,7 @@ router.get('/:projectId/alert', getUser, isAuthorized, async function(
                 skip: req.query.skip || 0,
                 limit: req.query.limit || 10,
                 populate: populateAlert,
-                select: selectAlert,
+                select: selectColumns,
             }),
             alertService.countBy({ projectId }),
         ]);
@@ -114,7 +114,7 @@ router.get(
                     { path: 'projectId', select: 'name' },
                 ];
 
-                const selectAlert =
+                const selectColumns =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
                 const [allAlerts, allCount] = await Promise.all([
@@ -123,7 +123,7 @@ router.get(
                         skip,
                         limit,
                         populate: populateAlert,
-                        select: selectAlert,
+                        select: selectColumns,
                     }),
                     alertService.countBy({
                         incidentId: incidentId,

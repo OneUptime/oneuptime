@@ -5,7 +5,11 @@ import { connect } from 'react-redux';
 import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu, updateProfileSetting } from '../../actions/profile';
 import { openNotificationMenu } from '../../actions/notification';
-import { openFeedbackModal, closeFeedbackModal } from '../../actions/feedback';
+import {
+    openFeedbackModal,
+    closeFeedbackModal,
+    resetCreateFeedback,
+} from '../../actions/feedback';
 import { userSettings } from '../../actions/profile';
 import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
@@ -29,7 +33,15 @@ import SubProjectDropDown from '../basic/SubProjectDropDown';
 import { fetchMonitors } from '../../actions/monitor';
 import { history } from '../../store';
 import { socket } from '../basic/Socket';
+import { showSearchBar, closeSearchBar } from '../../actions/search';
+import ClickOutside from 'react-click-outside';
+
 class TopContent extends Component {
+    state = { width: 0 };
+    updateDimensions = () => {
+        this.setState({ width: window.innerWidth });
+    };
+
     handleChange = value => {
         this.props.setActiveSubProject(value, true);
 
@@ -70,9 +82,12 @@ class TopContent extends Component {
             };
             this.props.updateProfileSetting(userData);
         }
+        this.updateDimensions();
+        window.addEventListener('resize', this.updateDimensions);
     }
     componentWillUnmount() {
         window.removeEventListener('keydown', this.ArrowDown);
+        window.removeEventListener('resize', this.updateDimensions);
     }
 
     componentDidUpdate(prevProps) {
@@ -104,6 +119,7 @@ class TopContent extends Component {
     };
 
     hideFeedbackModal = () => {
+        this.props.resetCreateFeedback();
         this.props.closeFeedbackModal();
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > FEEDBACK MODAL CLOSED', {});
@@ -418,7 +434,7 @@ class TopContent extends Component {
         if (topNavCardCount === 4) topNavCardClass = 'oneCardClass';
         if (topNavCardCount === 5) topNavCardClass = 'twoCardClass';
         if (topNavCardCount === 6) topNavCardClass = 'threeCardClass';
-        const { project } = this.props;
+        const { project, searchFieldVisible, closeSearchBar } = this.props;
         const renderSearch =
             project.projects.success && project.projects.projects.length !== 0;
 
@@ -473,13 +489,12 @@ class TopContent extends Component {
                 </div>
                 <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                        <ShouldRender if={isNotViewer && renderSearch}>
-                            <div
-                                className="db-Search-wrapper"
-                                style={{ marginRight: 15 }}
-                            >
-                                <Search />
-                            </div>
+                        <ShouldRender if={isNotViewer && searchFieldVisible}>
+                            <ClickOutside onClickOutside={closeSearchBar}>
+                                <div className="db-Search-wrapper search-input2 floating-search-input">
+                                    <Search closeSearchBar={closeSearchBar} />
+                                </div>
+                            </ClickOutside>
                         </ShouldRender>
                         <div
                             className="Box-root"
@@ -538,59 +553,69 @@ class TopContent extends Component {
                                     topNavCardClass
                                 )}
 
-                            <div className="Box-root Margin-right--16">
+                            <div className="Box-root Flex-flex">
                                 <div
-                                    id="feedback-div"
-                                    className="db-FeedbackInput-container Card-root Card-shadow--small"
-                                    onClick={this.showFeedbackModal}
+                                    style={{
+                                        outline: 'none',
+                                        marginRight: '15px',
+                                        marginLeft: '15px',
+                                    }}
                                 >
-                                    <div className="db-FeedbackInput-box Box-root Box-background--offset Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4">
-                                        <div className="Box-root Flex-flex Margin-right--8">
-                                            <span className="db-FeedbackInput-defaultIcon" />
-                                        </div>
-
-                                        <div
+                                    <button
+                                        className={'db-Notifications-button'}
+                                        style={{ paddingTop: 7 }}
+                                        onClick={this.showFeedbackModal}
+                                    >
+                                        <img
+                                            src="/dashboard/assets/icons/question.svg"
+                                            id="search-input-img"
                                             style={{
-                                                overflow: 'hidden',
-                                                textOveerflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
+                                                width: '20px',
+                                                height: '20px',
+                                                position: 'relative',
+                                                color: '#fff',
                                             }}
-                                        >
-                                            <span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                {}
-                                                {this.props.feedback.feedback
-                                                    .success ||
-                                                this.props.feedback.feedback
-                                                    .requesting ? (
-                                                    <span>
-                                                        Thank you for your
-                                                        feedback.
-                                                    </span>
-                                                ) : null}
-                                                {!this.props.feedback.feedback
-                                                    .success &&
-                                                !this.props.feedback.feedback
-                                                    .requesting &&
-                                                !this.props.feedback.feedback
-                                                    .error ? (
-                                                    <span>
-                                                        Anything we can do to
-                                                        help?
-                                                    </span>
-                                                ) : null}
-                                                {this.props.feedback.feedback
-                                                    .error ? (
-                                                    <span>
-                                                        Sorry, Please try again.
-                                                    </span>
-                                                ) : null}
-                                            </span>
-                                        </div>
-                                        <span />
-                                    </div>
-                                    <span />
+                                            alt="search-icon"
+                                        />
+                                    </button>
                                 </div>
                             </div>
+
+                            <ShouldRender
+                                if={
+                                    isNotViewer &&
+                                    renderSearch &&
+                                    this.state.width > 760
+                                }
+                            >
+                                <div className="Box-root Flex-flex">
+                                    <div
+                                        style={{
+                                            outline: 'none',
+                                            marginRight: '15px',
+                                        }}
+                                    >
+                                        <button
+                                            className={
+                                                'db-Notifications-button'
+                                            }
+                                            style={{ paddingTop: 7 }}
+                                            onClick={this.props.showSearchBar}
+                                        >
+                                            <img
+                                                src="/dashboard/assets/icons/search-solid.svg"
+                                                id="search-input-img"
+                                                style={{
+                                                    width: '20px',
+                                                    height: '20px',
+                                                    position: 'relative',
+                                                }}
+                                                alt="search-icon"
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+                            </ShouldRender>
 
                             <ShouldRender if={isNotViewer}>
                                 <div className="Box-root Flex-flex">
@@ -660,9 +685,9 @@ const mapStateToProps = (state, props) => {
         state.project.currentProject && state.project.currentProject._id;
     const currentProjectSlug =
         state.project.currentProject && state.project.currentProject.slug;
+
     return {
         profilePic,
-        feedback: state.feedback,
         project: state.project,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
@@ -678,6 +703,7 @@ const mapStateToProps = (state, props) => {
         subProjects: state.subProject?.subProjects?.subProjects,
         fetchingSubProjects: state.subProject?.subProjects?.requesting,
         activeSubProject: state.subProject?.activeSubProject,
+        searchFieldVisible: state.search.searchFieldVisible || false,
     };
 };
 
@@ -698,6 +724,9 @@ const mapDispatchToProps = dispatch =>
             updateProfileSetting,
             setActiveSubProject,
             fetchMonitors,
+            showSearchBar,
+            closeSearchBar,
+            resetCreateFeedback,
         },
         dispatch
     );
@@ -710,7 +739,9 @@ TopContent.propTypes = {
     closeFeedbackModal: PropTypes.func.isRequired,
     showProfileMenu: PropTypes.func.isRequired,
     openNotificationMenu: PropTypes.func.isRequired,
-    feedback: PropTypes.object.isRequired,
+    showSearchBar: PropTypes.func.isRequired,
+    closeSearchBar: PropTypes.func.isRequired,
+    searchFieldVisible: PropTypes.bool,
     profilePic: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
@@ -740,6 +771,7 @@ TopContent.propTypes = {
     setActiveSubProject: PropTypes.func,
     activeSubProject: PropTypes.string,
     fetchMonitors: PropTypes.func,
+    resetCreateFeedback: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

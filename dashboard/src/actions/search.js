@@ -3,10 +3,22 @@ import {
     POPULATE_SEARCH_REQUEST,
     POPULATE_SEARCH_FAILURE,
     POPULATE_SEARCH_SUCCESS,
+    SHOW_SEARCH_BAR,
+    CLOSE_SEARCH_BAR,
 } from '../constants/search';
 import { postApi } from '../api';
 import errors from '../errors';
 
+export const showSearchBar = function() {
+    return {
+        type: SHOW_SEARCH_BAR,
+    };
+};
+export const closeSearchBar = function() {
+    return {
+        type: CLOSE_SEARCH_BAR,
+    };
+};
 export const resetSearch = () => async dispatch =>
     dispatch({
         type: RESET_SEARCH_FIELDS,

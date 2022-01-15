@@ -12,405 +12,315 @@ module.exports = {
         subscriberModel.contactWebhook = data.contactWebhook || null;
         subscriberModel.notificationType = data.notificationType || null;
         subscriberModel.webhookMethod = data.webhookMethod || 'post';
-        try {
-            const subscriber = await subscriberModel.save();
-            const populate = [
-                { path: 'projectId', select: 'name _id' },
-                { path: 'monitorId', select: 'name _id' },
-                { path: 'statusPageId', select: 'name _id' },
-            ];
-            const select =
-                '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
-            return await _this.findByOne({
-                query: { _id: subscriber._id },
-                select,
-                populate,
-            });
-        } catch (error) {
-            ErrorService.log('subscriberService.create', error);
-            throw error;
-        }
+        const subscriber = await subscriberModel.save();
+        const populate = [
+            { path: 'projectId', select: 'name _id' },
+            { path: 'monitorId', select: 'name _id' },
+            { path: 'statusPageId', select: 'name _id' },
+        ];
+        const select =
+            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+        return await _this.findByOne({
+            query: { _id: subscriber._id },
+            select,
+            populate,
+        });
     },
 
     updateOneBy: async function(query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted) query.deleted = false;
-            const updatedSubscriber = await SubscriberModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
-            );
-            return updatedSubscriber;
-        } catch (error) {
-            ErrorService.log('subscriberService.updateOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted) query.deleted = false;
+        const updatedSubscriber = await SubscriberModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+        return updatedSubscriber;
     },
 
     updateBy: async function(query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted) query.deleted = false;
-            let updatedData = await SubscriberModel.updateMany(query, {
-                $set: data,
-            });
-
-            const populate = [
-                { path: 'projectId', select: 'name _id' },
-                { path: 'monitorId', select: 'name _id' },
-                { path: 'statusPageId', select: 'name _id' },
-            ];
-            const select =
-                '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
-            updatedData = await this.findBy({ query, select, populate });
-            return updatedData;
-        } catch (error) {
-            ErrorService.log('subscriberService.updateMany', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted) query.deleted = false;
+        let updatedData = await SubscriberModel.updateMany(query, {
+            $set: data,
+        });
+
+        const populate = [
+            { path: 'projectId', select: 'name _id' },
+            { path: 'monitorId', select: 'name _id' },
+            { path: 'statusPageId', select: 'name _id' },
+        ];
+        const select =
+            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+        updatedData = await this.findBy({ query, select, populate });
+        return updatedData;
     },
 
     deleteBy: async function(query, userId) {
-        try {
-            const subscriber = await SubscriberModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
+        const subscriber = await SubscriberModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
                 },
-                {
-                    new: true,
-                }
-            );
-            return subscriber;
-        } catch (error) {
-            ErrorService.log('subscriberService.deleteBy', error);
-            throw error;
-        }
+            },
+            {
+                new: true,
+            }
+        );
+        return subscriber;
     },
 
     findBy: async function({ query, skip, limit, select, populate }) {
-        try {
-            if (!skip) skip = 0;
-            if (!limit) limit = 10;
-            if (typeof skip === 'string') {
-                skip = parseInt(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = parseInt(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-
-            let subscriberQuery = SubscriberModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip);
-
-            subscriberQuery = handleSelect(select, subscriberQuery);
-            subscriberQuery = handlePopulate(populate, subscriberQuery);
-
-            const subscribers = await subscriberQuery;
-            const subscribersArr = [];
-            for (const result of subscribers) {
-                const temp = {};
-                temp._id = result._id;
-                temp.projectId = result.projectId._id;
-                temp.projectName = result.projectId.name;
-                temp.monitorId = result.monitorId ? result.monitorId._id : null;
-                temp.monitorName = result.monitorId
-                    ? result.monitorId.name
-                    : null;
-                temp.statusPageId = result.statusPageId
-                    ? result.statusPageId._id
-                    : null;
-                temp.statusPageName = result.statusPageId
-                    ? result.statusPageId.name
-                    : null;
-                temp.createdAt = result.createdAt;
-                temp.alertVia = result.alertVia;
-                temp.contactEmail = result.contactEmail;
-                temp.contactPhone = result.contactPhone;
-                temp.countryCode = result.countryCode;
-                temp.contactWebhook = result.contactWebhook;
-                temp.webhookMethod = result.webhookMethod;
-                subscribersArr.push(temp);
-            }
-            return subscribersArr;
-        } catch (error) {
-            ErrorService.log('subscriberService.find', error);
-            throw error;
+        if (!skip) skip = 0;
+        if (!limit) limit = 10;
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+
+        if (!query) {
+            query = {};
+        }
+
+        query.deleted = false;
+
+        let subscriberQuery = SubscriberModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]])
+            .limit(limit)
+            .skip(skip);
+
+        subscriberQuery = handleSelect(select, subscriberQuery);
+        subscriberQuery = handlePopulate(populate, subscriberQuery);
+
+        const subscribers = await subscriberQuery;
+        const subscribersArr = [];
+        for (const result of subscribers) {
+            const temp = {};
+            temp._id = result._id;
+            temp.projectId = result.projectId._id;
+            temp.projectName = result.projectId.name;
+            temp.monitorId = result.monitorId ? result.monitorId._id : null;
+            temp.monitorName = result.monitorId ? result.monitorId.name : null;
+            temp.statusPageId = result.statusPageId
+                ? result.statusPageId._id
+                : null;
+            temp.statusPageName = result.statusPageId
+                ? result.statusPageId.name
+                : null;
+            temp.createdAt = result.createdAt;
+            temp.alertVia = result.alertVia;
+            temp.contactEmail = result.contactEmail;
+            temp.contactPhone = result.contactPhone;
+            temp.countryCode = result.countryCode;
+            temp.contactWebhook = result.contactWebhook;
+            temp.webhookMethod = result.webhookMethod;
+            subscribersArr.push(temp);
+        }
+        return subscribersArr;
     },
 
     subscribersForAlert: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            const subscribers = await SubscriberModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId')
-                .populate('monitorId')
-                .populate('statusPageId');
-
-            const subscribersArr = [];
-            for (const result of subscribers) {
-                const temp = {};
-                temp._id = result._id;
-                temp.projectId = result.projectId._id;
-                temp.projectName = result.projectId.name;
-                temp.monitorId = result.monitorId ? result.monitorId._id : null;
-                temp.monitorName = result.monitorId
-                    ? result.monitorId.name
-                    : null;
-                temp.statusPageId = result.statusPageId
-                    ? result.statusPageId._id
-                    : null;
-                temp.statusPageName = result.statusPageId
-                    ? result.statusPageId.name
-                    : null;
-                temp.createdAt = result.createdAt;
-                temp.alertVia = result.alertVia;
-                temp.contactEmail = result.contactEmail;
-                temp.contactPhone = result.contactPhone;
-                temp.countryCode = result.countryCode;
-                temp.contactWebhook = result.contactWebhook;
-                temp.webhookMethod = result.webhookMethod;
-                temp.notificationType = result.notificationType;
-                subscribersArr.push(temp);
-            }
-            return subscribersArr;
-        } catch (error) {
-            ErrorService.log('subscriberService.subscribersForAlert', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        query.deleted = false;
+        const subscribers = await SubscriberModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]])
+            .populate('projectId')
+            .populate('monitorId')
+            .populate('statusPageId');
+
+        const subscribersArr = [];
+        for (const result of subscribers) {
+            const temp = {};
+            temp._id = result._id;
+            temp.projectId = result.projectId._id;
+            temp.projectName = result.projectId.name;
+            temp.monitorId = result.monitorId ? result.monitorId._id : null;
+            temp.monitorName = result.monitorId ? result.monitorId.name : null;
+            temp.statusPageId = result.statusPageId
+                ? result.statusPageId._id
+                : null;
+            temp.statusPageName = result.statusPageId
+                ? result.statusPageId.name
+                : null;
+            temp.createdAt = result.createdAt;
+            temp.alertVia = result.alertVia;
+            temp.contactEmail = result.contactEmail;
+            temp.contactPhone = result.contactPhone;
+            temp.countryCode = result.countryCode;
+            temp.contactWebhook = result.contactWebhook;
+            temp.webhookMethod = result.webhookMethod;
+            temp.notificationType = result.notificationType;
+            subscribersArr.push(temp);
+        }
+        return subscribersArr;
     },
 
     subscribe: async function(data, monitors) {
-        try {
-            const _this = this;
-            const populateStatusPage = [
-                { path: 'monitors.monitor', select: '_id' },
-            ];
-            if (!monitors || (monitors && monitors.length < 1)) {
-                const statusPage = await StatusPageService.findOneBy({
-                    query: { _id: data.statusPageId },
-                    select: 'monitors',
-                    populate: populateStatusPage,
-                });
-                monitors = statusPage.monitors.map(
-                    monitorData => monitorData.monitor
-                );
-            }
+        const _this = this;
+        const populateStatusPage = [
+            { path: 'monitors.monitor', select: '_id' },
+        ];
+        if (!monitors || (monitors && monitors.length < 1)) {
+            const statusPage = await StatusPageService.findOneBy({
+                query: { _id: data.statusPageId },
+                select: 'monitors',
+                populate: populateStatusPage,
+            });
+            monitors = statusPage.monitors.map(
+                monitorData => monitorData.monitor
+            );
+        }
 
-            const success = monitors.map(async monitor => {
-                const newSubscriber = Object.assign({}, data, {
-                    monitorId: monitor._id ?? monitor,
-                });
-                const hasSubscribed = await _this.subscriberCheck(
-                    newSubscriber
+        const success = monitors.map(async monitor => {
+            const newSubscriber = Object.assign({}, data, {
+                monitorId: monitor._id ?? monitor,
+            });
+            const hasSubscribed = await _this.subscriberCheck(newSubscriber);
+            if (hasSubscribed) {
+                const error = new Error(
+                    'You are already subscribed to this monitor.'
                 );
-                if (hasSubscribed) {
-                    const error = new Error(
-                        'You are already subscribed to this monitor.'
-                    );
-                    error.code = 400;
-                    ErrorService.log('SubscriberService.subscribe', error);
-                    throw error;
-                } else {
-                    if (newSubscriber.alertVia === 'email') {
-                        const subscriberExist = await _this.findByOne({
-                            query: {
+                error.code = 400;
+                ErrorService.log('SubscriberService.subscribe', error);
+                throw error;
+            } else {
+                if (newSubscriber.alertVia === 'email') {
+                    const subscriberExist = await _this.findByOne({
+                        query: {
+                            monitorId: newSubscriber.monitorId,
+                            contactEmail: newSubscriber.contactEmail,
+                            subscribed: false,
+                        },
+                        select: '_id',
+                    });
+                    if (subscriberExist) {
+                        return await _this.updateOneBy(
+                            {
                                 monitorId: newSubscriber.monitorId,
                                 contactEmail: newSubscriber.contactEmail,
-                                subscribed: false,
                             },
-                            select: '_id',
-                        });
-                        if (subscriberExist) {
-                            return await _this.updateOneBy(
-                                {
-                                    monitorId: newSubscriber.monitorId,
-                                    contactEmail: newSubscriber.contactEmail,
-                                },
-                                { subscribed: true }
-                            );
-                        } else {
-                            return await _this.create(newSubscriber);
-                        }
+                            { subscribed: true }
+                        );
                     } else {
                         return await _this.create(newSubscriber);
                     }
+                } else {
+                    return await _this.create(newSubscriber);
                 }
-            });
-            const subscriber = await Promise.all(success);
-            return subscriber;
-        } catch (error) {
-            ErrorService.log('SubscriberService.subscribe', error);
-            throw error;
-        }
+            }
+        });
+        const subscriber = await Promise.all(success);
+        return subscriber;
     },
 
     subscribeFromCSVFile: async function(subscribers) {
-        try {
-            const _this = this;
-            const { data, projectId, monitorId } = subscribers;
-            const success = data.map(async subscriber => {
-                const newSubscriber = Object.assign({}, subscriber, {
-                    monitorId,
-                    projectId,
-                });
-                const hasSubscribed = await _this.subscriberCheck(
-                    newSubscriber
-                );
-                if (!hasSubscribed) {
-                    return await _this.create(newSubscriber);
-                }
-                return [];
+        const _this = this;
+        const { data, projectId, monitorId } = subscribers;
+        const success = data.map(async subscriber => {
+            const newSubscriber = Object.assign({}, subscriber, {
+                monitorId,
+                projectId,
             });
-            return await Promise.all(success);
-        } catch (error) {
-            ErrorService.log('SubscriberService.subscribeFromCSVFile', error);
-            throw error;
-        }
+            const hasSubscribed = await _this.subscriberCheck(newSubscriber);
+            if (!hasSubscribed) {
+                return await _this.create(newSubscriber);
+            }
+            return [];
+        });
+        return await Promise.all(success);
     },
 
     subscriberCheck: async function(subscriber) {
         const _this = this;
-        try {
-            const existingSubscriber = await _this.findByOne({
-                query: {
-                    monitorId: subscriber.monitorId,
-                    subscribed: true,
-                    ...(subscriber.statusPageId && {
-                        statusPageId: subscriber.statusPageId,
-                    }),
-                    ...(subscriber.alertVia === 'sms' && {
-                        contactPhone: subscriber.contactPhone,
-                        countryCode: subscriber.countryCode,
-                    }),
-                    ...(subscriber.alertVia === 'email' && {
-                        contactEmail: subscriber.contactEmail,
-                    }),
-                    ...(subscriber.alertVia === 'webhook' && {
-                        contactWebhook: subscriber.contactWebhook,
-                        contactEmail: subscriber.contactEmail,
-                    }),
-                },
-                select: '_id',
-            });
-            return existingSubscriber !== null;
-        } catch (error) {
-            ErrorService.log('subscriberService.subscriberCheck', error);
-            throw error;
-        }
+        const existingSubscriber = await _this.findByOne({
+            query: {
+                monitorId: subscriber.monitorId,
+                subscribed: true,
+                ...(subscriber.statusPageId && {
+                    statusPageId: subscriber.statusPageId,
+                }),
+                ...(subscriber.alertVia === 'sms' && {
+                    contactPhone: subscriber.contactPhone,
+                    countryCode: subscriber.countryCode,
+                }),
+                ...(subscriber.alertVia === 'email' && {
+                    contactEmail: subscriber.contactEmail,
+                }),
+                ...(subscriber.alertVia === 'webhook' && {
+                    contactWebhook: subscriber.contactWebhook,
+                    contactEmail: subscriber.contactEmail,
+                }),
+            },
+            select: '_id',
+        });
+        return existingSubscriber !== null;
     },
 
     findByOne: async function({ query, select, populate }) {
-        try {
-            if (!query) {
-                query = {};
-            }
-            query.deleted = false;
-
-            let subscriberQuery = SubscriberModel.findOne(query)
-                .lean()
-                .sort([['createdAt', -1]]);
-
-            subscriberQuery = handleSelect(select, subscriberQuery);
-            subscriberQuery = handlePopulate(populate, subscriberQuery);
-
-            const subscriber = await subscriberQuery;
-            return subscriber;
-        } catch (error) {
-            ErrorService.log('SubscriberService.findByOne', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+        query.deleted = false;
+
+        let subscriberQuery = SubscriberModel.findOne(query)
+            .lean()
+            .sort([['createdAt', -1]]);
+
+        subscriberQuery = handleSelect(select, subscriberQuery);
+        subscriberQuery = handlePopulate(populate, subscriberQuery);
+
+        const subscriber = await subscriberQuery;
+        return subscriber;
     },
 
     countBy: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            const count = await SubscriberModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('SubscriberService.countBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        query.deleted = false;
+        const count = await SubscriberModel.countDocuments(query);
+        return count;
     },
 
     removeBy: async function(query) {
-        try {
-            await SubscriberModel.deleteMany(query);
-            return 'Subscriber(s) removed successfully';
-        } catch (error) {
-            ErrorService.log('SubscriberService.removeBy', error);
-            throw error;
-        }
+        await SubscriberModel.deleteMany(query);
+        return 'Subscriber(s) removed successfully';
     },
 
     hardDeleteBy: async function(query) {
-        try {
-            await SubscriberModel.deleteMany(query);
-            return 'Subscriber(s) removed successfully';
-        } catch (error) {
-            ErrorService.log('SubscriberService.hardDeleteBy', error);
-            throw error;
-        }
+        await SubscriberModel.deleteMany(query);
+        return 'Subscriber(s) removed successfully';
     },
 
     restoreBy: async function(query) {
         const _this = this;
-        try {
-            query.deleted = true;
-            let subscriber = await _this.findBy({ query, select: '_id' });
-            if (subscriber && subscriber.length > 1) {
-                const subscribers = await Promise.all(
-                    subscriber.map(async subscriber => {
-                        const subscriberId = subscriber._id;
-                        subscriber = await _this.updateOneBy(
-                            { _id: subscriberId, deleted: true },
-                            {
-                                deleted: false,
-                                deletedAt: null,
-                                deleteBy: null,
-                            }
-                        );
-                        return subscriber;
-                    })
-                );
-                return subscribers;
-            } else {
-                subscriber = subscriber[0];
-                if (subscriber) {
+        query.deleted = true;
+        let subscriber = await _this.findBy({ query, select: '_id' });
+        if (subscriber && subscriber.length > 1) {
+            const subscribers = await Promise.all(
+                subscriber.map(async subscriber => {
                     const subscriberId = subscriber._id;
                     subscriber = await _this.updateOneBy(
                         { _id: subscriberId, deleted: true },
@@ -420,11 +330,24 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                }
-                return subscriber;
+                    return subscriber;
+                })
+            );
+            return subscribers;
+        } else {
+            subscriber = subscriber[0];
+            if (subscriber) {
+                const subscriberId = subscriber._id;
+                subscriber = await _this.updateOneBy(
+                    { _id: subscriberId, deleted: true },
+                    {
+                        deleted: false,
+                        deletedAt: null,
+                        deleteBy: null,
+                    }
+                );
             }
-        } catch (error) {
-            ErrorService.log('subscriberService.restoreBy', error);
+            return subscriber;
         }
     },
 };

@@ -1,195 +1,148 @@
 module.exports = {
     create: async function(data) {
-        try {
-            const subscriberAlertModel = new SubscriberAlertModel();
-            subscriberAlertModel.projectId = data.projectId || null;
-            subscriberAlertModel.subscriberId = data.subscriberId || null;
-            subscriberAlertModel.incidentId = data.incidentId || null;
-            subscriberAlertModel.alertVia = data.alertVia || null;
-            subscriberAlertModel.alertStatus = data.alertStatus || null;
-            subscriberAlertModel.eventType = data.eventType || null;
-            subscriberAlertModel.totalSubscribers = data.totalSubscribers || 0;
-            subscriberAlertModel.identification = data.id || 0;
-            if (data.error) {
-                subscriberAlertModel.error = data.error;
-                subscriberAlertModel.errorMessage = data.errorMessage;
-            }
-            const subscriberAlert = await subscriberAlertModel.save();
-            return subscriberAlert;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.create', error);
-            throw error;
+        const subscriberAlertModel = new SubscriberAlertModel();
+        subscriberAlertModel.projectId = data.projectId || null;
+        subscriberAlertModel.subscriberId = data.subscriberId || null;
+        subscriberAlertModel.incidentId = data.incidentId || null;
+        subscriberAlertModel.alertVia = data.alertVia || null;
+        subscriberAlertModel.alertStatus = data.alertStatus || null;
+        subscriberAlertModel.eventType = data.eventType || null;
+        subscriberAlertModel.totalSubscribers = data.totalSubscribers || 0;
+        subscriberAlertModel.identification = data.id || 0;
+        if (data.error) {
+            subscriberAlertModel.error = data.error;
+            subscriberAlertModel.errorMessage = data.errorMessage;
         }
+        const subscriberAlert = await subscriberAlertModel.save();
+        return subscriberAlert;
     },
 
     updateOneBy: async function(query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted) query.deleted = false;
-            //find and update
-            const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                {
-                    new: true,
-                }
-            );
-            return subscriberAlert;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.updateOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted) query.deleted = false;
+        //find and update
+        const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
+            query,
+            {
+                $set: data,
+            },
+            {
+                new: true,
+            }
+        );
+        return subscriberAlert;
     },
 
     updateBy: async function(query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted) query.deleted = false;
-            let updatedData = await SubscriberAlertModel.updateMany(query, {
-                $set: data,
-            });
-            const populate = [
-                { path: 'incidentId', select: 'name' },
-                { path: 'projectId', select: 'name' },
-                {
-                    path: 'subscriberId',
-                    select:
-                        'name contactEmail contactPhone contactWebhook countryCode',
-                },
-            ];
-            const select =
-                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-            updatedData = await this.findBy({ query, select, populate });
-            return updatedData;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.updateMany', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted) query.deleted = false;
+        let updatedData = await SubscriberAlertModel.updateMany(query, {
+            $set: data,
+        });
+        const populate = [
+            { path: 'incidentId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'subscriberId',
+                select:
+                    'name contactEmail contactPhone contactWebhook countryCode',
+            },
+        ];
+        const select =
+            'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+        updatedData = await this.findBy({ query, select, populate });
+        return updatedData;
     },
 
     deleteBy: async function(query, userId) {
-        try {
-            const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedById: userId,
-                        deletedAt: Date.now(),
-                    },
+        const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
                 },
-                {
-                    new: true,
-                }
-            );
-            return subscriberAlert;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.deleteBy', error);
-            throw error;
-        }
+            },
+            {
+                new: true,
+            }
+        );
+        return subscriberAlert;
     },
 
     findBy: async function({ query, skip, limit, select, populate }) {
-        try {
-            if (!skip) skip = 0;
+        if (!skip) skip = 0;
 
-            if (!limit) limit = 10;
+        if (!limit) limit = 10;
 
-            if (typeof skip === 'string') {
-                skip = parseInt(skip);
-            }
-
-            if (typeof limit === 'string') {
-                limit = parseInt(limit);
-            }
-
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-
-            let subscriberAlertQuery = SubscriberAlertModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip);
-
-            subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
-            subscriberAlertQuery = handlePopulate(
-                populate,
-                subscriberAlertQuery
-            );
-
-            const subscriberAlerts = await subscriberAlertQuery;
-            return subscriberAlerts;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.findBy', error);
-            throw error;
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
         }
+
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+
+        if (!query) {
+            query = {};
+        }
+
+        query.deleted = false;
+
+        let subscriberAlertQuery = SubscriberAlertModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]])
+            .limit(limit)
+            .skip(skip);
+
+        subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
+        subscriberAlertQuery = handlePopulate(populate, subscriberAlertQuery);
+
+        const subscriberAlerts = await subscriberAlertQuery;
+        return subscriberAlerts;
     },
 
     findByOne: async function({ query, select, populate }) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-
-            let subscriberAlertQuery = SubscriberAlertModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]]);
-
-            subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
-            subscriberAlertQuery = handlePopulate(
-                populate,
-                subscriberAlertQuery
-            );
-
-            const subscriberAlert = await subscriberAlertQuery;
-            return subscriberAlert;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.findByOne', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        query.deleted = false;
+
+        let subscriberAlertQuery = SubscriberAlertModel.find(query)
+            .lean()
+            .sort([['createdAt', -1]]);
+
+        subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
+        subscriberAlertQuery = handlePopulate(populate, subscriberAlertQuery);
+
+        const subscriberAlert = await subscriberAlertQuery;
+        return subscriberAlert;
     },
 
     countBy: async function(query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            query.deleted = false;
-            const count = await SubscriberAlertModel.countDocuments(query);
-            return count;
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.countBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        query.deleted = false;
+        const count = await SubscriberAlertModel.countDocuments(query);
+        return count;
     },
 
     hardDeleteBy: async function(query) {
-        try {
-            await SubscriberAlertModel.deleteMany(query);
-            return 'Subscriber Alert(s) removed successfully';
-        } catch (error) {
-            ErrorService.log('SubscriberAlertService.hardDeleteBy', error);
-            throw error;
-        }
+        await SubscriberAlertModel.deleteMany(query);
+        return 'Subscriber Alert(s) removed successfully';
     },
 };
 
 const SubscriberAlertModel = require('../models/subscriberAlert');
-const ErrorService = require('./errorService');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');

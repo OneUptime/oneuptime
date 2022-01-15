@@ -166,19 +166,10 @@ class AddMoreDomainModal extends React.Component {
                     <div className="bs-Modal" style={{ width: 630 }}>
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
-                                <div
-                                    className="bs-Modal-header-copy"
-                                    style={{
-                                        marginBottom: '10px',
-                                        marginTop: '10px',
-                                    }}
-                                >
+                                <div className="bs-Modal-header-copy">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>Add Custom Domain</span>
                                     </span>
-                                    <br />
-                                    <br />
-                                    <span></span>
                                 </div>
                             </div>
                             <form

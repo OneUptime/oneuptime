@@ -36,8 +36,7 @@ class DeleteCredentialModal extends Component {
             getSecurities,
             getSecuritiesError,
         } = this.props;
-
-        const { credentialType } = propArr[0];
+        const { credentialType, ssh } = propArr[0];
         const securityType =
             (credentialType === 'git' && 'application') ||
             (credentialType === 'docker' && 'container');
@@ -106,8 +105,8 @@ class DeleteCredentialModal extends Component {
                                         ) : (
                                             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                                 Are you sure you want to remove
-                                                this {credentialType} credential
-                                                ?
+                                                this {credentialType}{' '}
+                                                {ssh ? 'ssh' : 'credential'}?
                                             </span>
                                         )}
                                     </div>

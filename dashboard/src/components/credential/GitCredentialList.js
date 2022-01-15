@@ -91,7 +91,7 @@ const GitCredentialList = ({
     };
 
     const { next_page, pre_page, data, count } = paginate(
-        gitCredentials,
+        gitCredentials.filter(obj => obj.gitUsername),
         page,
         10
     );
@@ -207,7 +207,9 @@ const GitCredentialList = ({
                                         <div>
                                             <div
                                                 className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                style={{ paddingRight: '29px' }}
+                                                style={{
+                                                    paddingRight: '29px',
+                                                }}
                                             >
                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root">
@@ -314,7 +316,7 @@ const GitCredentialList = ({
                                               count === 1 ? '' : 's'
                                           })`
                                         : `${count} Git Credential${
-                                              count === 1 ? '' : 's'
+                                              count < 2 ? '' : 's'
                                           }`}
                                 </span>
                             </div>
