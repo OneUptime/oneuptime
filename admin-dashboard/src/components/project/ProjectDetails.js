@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { DASHBOARD_URL } from '../../config';
 
 export class ProjectDetails extends Component {
     render() {
@@ -14,11 +15,14 @@ export class ProjectDetails extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <div style={{ width: '100%' }}>
                                         <button
-                                            className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                            className="bs-Button bs-DeprecatedButton bs-Button--White"
                                             type="submit"
                                             style={{ float: 'right' }}
+                                            onClick={() =>
+                                                (window.location = `${DASHBOARD_URL}/project/${this.props.project.slug}`)
+                                            }
                                         >
-                                            <span>View Project</span>
+                                            <span>Goto Project</span>
                                         </button>
                                     </div>
                                     <span>Project Details</span>
@@ -64,7 +68,8 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null &&
+                                                        this.props.project.name
                                                             ? this.props.project
                                                                   .name
                                                             : 'LOADING...'}
@@ -100,7 +105,8 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null &&
+                                                        this.props.project._id
                                                             ? this.props.project
                                                                   ._id
                                                             : 'LOADING...'}
@@ -136,7 +142,9 @@ export class ProjectDetails extends Component {
                                                         }}
                                                     >
                                                         {this.props.project !==
-                                                        null
+                                                            null &&
+                                                        this.props.project
+                                                            .apiKey
                                                             ? this.props.project
                                                                   .apiKey
                                                             : 'LOADING...'}
@@ -158,22 +166,25 @@ export class ProjectDetails extends Component {
                                                         flex: 'none',
                                                     }}
                                                 >
-                                                    {
-                                                        <div
-                                                            className={`Badge Badge--color--${
-                                                                this.props
-                                                                    .project
-                                                                    .deleted
-                                                                    ? 'red'
-                                                                    : this.props
-                                                                          .project
-                                                                          .isBlocked
-                                                                    ? 'yellow'
-                                                                    : 'green'
-                                                            } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
-                                                        >
-                                                            <span
-                                                                className={`Badge-text Text-color--${
+                                                    Status
+                                                </label>
+                                                <div
+                                                    className="bs-Fieldset-fields"
+                                                    style={{
+                                                        maxWidth: '270px',
+                                                    }}
+                                                >
+                                                    <label
+                                                        className="bs-Fieldset-label"
+                                                        style={{
+                                                            width: '10rem',
+                                                            textAlign: 'left',
+                                                            flex: 'none',
+                                                        }}
+                                                    >
+                                                        {
+                                                            <div
+                                                                className={`Badge Badge--color--${
                                                                     this.props
                                                                         .project
                                                                         .deleted
@@ -184,30 +195,46 @@ export class ProjectDetails extends Component {
                                                                               .isBlocked
                                                                         ? 'yellow'
                                                                         : 'green'
-                                                                } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
-                                                                <span>
-                                                                    {this.props
-                                                                        .project
-                                                                        .deleted
-                                                                        ? 'Deleted'
-                                                                        : this
-                                                                              .props
-                                                                              .project
-                                                                              .isBlocked
-                                                                        ? 'Blocked'
-                                                                        : 'Active'}
+                                                                <span
+                                                                    className={`Badge-text Text-color--${
+                                                                        this
+                                                                            .props
+                                                                            .project
+                                                                            .deleted
+                                                                            ? 'red'
+                                                                            : this
+                                                                                  .props
+                                                                                  .project
+                                                                                  .isBlocked
+                                                                            ? 'yellow'
+                                                                            : 'green'
+                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                >
+                                                                    <span>
+                                                                        {this
+                                                                            .props
+                                                                            .project !==
+                                                                        null
+                                                                            ? this
+                                                                                  .props
+                                                                                  .project
+                                                                                  .deleted
+                                                                                ? 'Deleted'
+                                                                                : this
+                                                                                      .props
+                                                                                      .project
+                                                                                      .isBlocked
+                                                                                ? 'Blocked'
+                                                                                : 'Active'
+                                                                            : 'LOADING...'}
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                        </div>
-                                                    }
-                                                </label>
-                                                <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        maxWidth: '270px',
-                                                    }}
-                                                ></div>
+                                                            </div>
+                                                        }
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </fieldset>

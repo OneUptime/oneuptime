@@ -28,6 +28,10 @@ module.exports = {
     create: async function(data) {
         const _this = this;
         const projectModel = new ProjectModel();
+        const adminUser = await UserService.findOneBy({
+            query: { role: 'master-admin' },
+            select: '_id',
+        });
         if (data.parentProjectId) {
             const parentProject = await _this.findOneBy({
                 query: { _id: data.parentProjectId },
@@ -38,12 +42,29 @@ module.exports = {
                 show: false,
             }));
         } else {
-            projectModel.users = [
-                {
-                    userId: data.userId,
-                    role: 'Owner',
-                },
-            ];
+            if (
+                adminUser?._id &&
+                data.userId.toString() !== adminUser._id.toString()
+            ) {
+                projectModel.users = [
+                    {
+                        userId: data.userId,
+                        role: 'Owner',
+                    },
+                    {
+                        userId: adminUser._id,
+                        role: 'Administrator',
+                        show: false,
+                    },
+                ];
+            } else {
+                projectModel.users = [
+                    {
+                        userId: data.userId,
+                        role: 'Owner',
+                    },
+                ];
+            }
         }
         projectModel.name = data.name || null;
         if (data && data.name) {

@@ -136,7 +136,9 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
-                                                    {this.props.user !== null
+                                                    {this.props.user !==
+                                                        undefined &&
+                                                    this.props.user.name
                                                         ? this.props.user.name
                                                         : 'LOADING...'}
                                                 </span>
@@ -166,7 +168,8 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
-                                                    {this.props.user !== null
+                                                    {this.props.user !== null &&
+                                                    this.props.user.email
                                                         ? this.props.user.email
                                                         : 'LOADING...'}
                                                 </span>
@@ -218,7 +221,8 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
-                                                    {this.props.user !== null
+                                                    {this.props.user !== null &&
+                                                    this.props.user.companyName
                                                         ? this.props.user
                                                               .companyName
                                                         : 'LOADING...'}
@@ -248,7 +252,9 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
-                                                    {this.props.user !== null
+                                                    {this.props.user !== null &&
+                                                    this.props.user
+                                                        .companyPhoneNumber
                                                         ? this.props.user
                                                               .companyPhoneNumber
                                                         : 'LOADING...'}

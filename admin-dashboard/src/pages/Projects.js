@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ProjectList from '../components/project/ProjectList';
 import { fetchProjects, searchProjects } from '../actions/project';
-
+import * as _ from 'lodash';
 class Projects extends React.Component {
     constructor(props) {
         super(props);
@@ -107,10 +107,11 @@ class Projects extends React.Component {
                                                                     <input
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         placeholder="Search Projects"
-                                                                        onChange={
+                                                                        onChange={_.debounce(
                                                                             this
-                                                                                .onChange
-                                                                        }
+                                                                                .onChange,
+                                                                            500
+                                                                        )}
                                                                     />
                                                                 </div>
                                                             </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import * as _ from 'lodash';
 
 import AuditLogsList from '../components/auditLogs/AuditLogsList';
 import {
@@ -116,10 +117,11 @@ class AuditLogs extends React.Component {
                                                                         id="searchAuditLog"
                                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                         placeholder="Search Logs"
-                                                                        onChange={
+                                                                        onChange={_.debounce(
                                                                             this
-                                                                                .onChange
-                                                                        }
+                                                                                .onChange,
+                                                                            500
+                                                                        )}
                                                                     />
                                                                 </div>
                                                             </div>

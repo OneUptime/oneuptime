@@ -195,6 +195,36 @@ module.exports = {
                 error.code = 400;
                 throw error;
             } else {
+                // remove hidden admin if on list
+                const adminUser = await UserService.findOneBy({
+                    query: { role: 'master-admin' },
+                    select: '_id projects email',
+                });
+
+                if (adminUser && emails.includes(adminUser.email)) {
+                    const isAdminInProject = adminUser.projects.filter(
+                        proj => proj._id.toString() === projectId.toString()
+                    );
+                    let isHiddenAdminUser = false;
+
+                    if (isAdminInProject) {
+                        isHiddenAdminUser = isAdminInProject[0]?.users.filter(
+                            user =>
+                                user.show === false &&
+                                user.role === 'Administrator' &&
+                                user.userId === adminUser._id.toString()
+                        );
+                    }
+
+                    if (isHiddenAdminUser && isHiddenAdminUser.length > 0) {
+                        await _this.removeTeamMember(
+                            projectId,
+                            addedBy._id,
+                            adminUser._id
+                        );
+                    }
+                }
+
                 // Get no of users to be added
                 const extraUsersToAdd = emails.length;
                 const invite = await _this.inviteTeamMembersMethod(

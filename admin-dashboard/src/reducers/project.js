@@ -199,6 +199,11 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    searchProjects: {
+        requesting: false,
+        error: null,
+        success: false,
+    },
 };
 
 export default function project(state = INITIAL_STATE, action) {
