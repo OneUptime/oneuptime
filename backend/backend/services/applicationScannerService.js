@@ -82,6 +82,7 @@ module.exports = {
  */
 
 const ApplicationScannerModel = require('../models/applicationScanner');
-const uuidv1 = require('uuid/v1');
+const ErrorService = require('./errorService');
+const { v1: uuidv1 } = require('uuid');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
