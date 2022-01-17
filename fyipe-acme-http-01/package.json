@@ -27,9 +27,9 @@
     "license": "MIT",
     "devDependencies": {
         "acme-challenge-test": "^3.3.2",
-        "dotenv": "^8.0.0"
+        "dotenv": "^14.1.0"
     },
     "dependencies": {
-        "axios": "^0.21.1"
+        "axios": "^0.24.0"
     }
 }
