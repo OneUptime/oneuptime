@@ -15,29 +15,29 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
     },
     "dependencies": {
-        "@sentry/node": "^6.12.0",
-        "@sentry/tracing": "^6.12.0",
-        "axios": "^0.21.1",
-        "body-parser": "^1.19.0",
-        "cli-table": "^0.3.1",
+        "@sentry/node": "^6.16.1",
+        "@sentry/tracing": "^6.16.1",
+        "axios": "^0.24.0",
+        "body-parser": "^1.19.1",
+        "cli-table": "^0.3.11",
         "compression": "^1.7.4",
-        "ejs": "^2.6.2",
-        "express": "^4.17.1",
-        "minify": "^5.1.1",
+        "ejs": "^3.1.6",
+        "express": "^4.17.2",
+        "minify": "^7.2.2",
         "try-to-catch": "^3.0.0",
-        "xmlbuilder2": "^2.4.1"
+        "xmlbuilder2": "^3.0.2"
     },
     "resolutions": {},
     "devDependencies": {
-        "chrome-launcher": "^0.13.1",
-        "commander": "^4.0.1",
-        "depcheck": "^0.9.2",
-        "jest": "^26.2.2",
-        "lighthouse": "^8.3.0",
-        "nodemon": "^2.0.4",
-        "npm-force-resolutions": "0.0.3",
-        "ora": "^4.0.3",
-        "puppeteer": "^5.5.0",
-        "start-server-and-test": "^1.9.1"
+        "chrome-launcher": "^0.15.0",
+        "commander": "^8.3.0",
+        "depcheck": "^1.4.3",
+        "jest": "^27.4.7",
+        "lighthouse": "^9.2.0",
+        "nodemon": "^2.0.15",
+        "npm-force-resolutions": "0.0.10",
+        "ora": "^6.0.1",
+        "puppeteer": "^13.0.1",
+        "start-server-and-test": "^1.14.0"
     }
 }
