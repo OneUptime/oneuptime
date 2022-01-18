@@ -13,23 +13,23 @@
     "author": "David Adewole",
     "license": "MIT",
     "dependencies": {
-        "@sentry/node": "^6.12.0",
-        "axios": "^0.21.1",
-        "chrome-launcher": "^0.14.0",
+        "@sentry/node": "^6.16.1",
+        "axios": "^0.25.0",
+        "chrome-launcher": "^0.15.0",
         "cors": "^2.8.5",
         "custom-env": "^2.0.1",
-        "express": "^4.17.1",
+        "express": "^4.17.2",
         "get-ssl-certificate": "^2.3.3",
-        "lighthouse": "^8.0.0",
+        "lighthouse": "^9.2.0",
         "moment": "^2.29.1",
         "node-cron": "^3.0.0",
-        "node-fetch": "^2.6.1",
+        "node-fetch": "^3.1.1",
         "ping": "^0.4.1",
-        "winston": "^3.3.3",
+        "winston": "^3.4.0",
         "winston-slack-transport": "^2.0.0"
     },
     "devDependencies": {
-        "depcheck": "^1.4.2",
-        "nodemon": "^2.0.7"
+        "depcheck": "^1.4.3",
+        "nodemon": "^2.0.15"
     }
 }
