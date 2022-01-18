@@ -1,5 +1,5 @@
 const slugify = require('slugify');
-const generate = require('nanoid/generate');
+const generate = require('nanoid');
 
 module.exports = function getSlug(name) {
     name = String(name);
