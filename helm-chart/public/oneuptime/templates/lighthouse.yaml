@@ -39,7 +39,10 @@ spec:
                     - name: IS_SAAS_SERVICE
                       value: 'true'
                     - name: CLUSTER_KEY
-                      value: {{ .Values.clusterKey }}
+                      valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
                     - name: NODE_NAME
                       valueFrom:
                         fieldRef:

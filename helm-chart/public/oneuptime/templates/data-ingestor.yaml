@@ -40,7 +40,10 @@ spec:
                       - name: REALTIME_URL
                         value: {{ template "oneuptime.realtimeUrl" $ }}
                       - name: CLUSTER_KEY
-                        value: {{ .Values.clusterKey }}
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
                       - name: NODE_ENV
                         value: {{ .Values.nodeEnv }}
                       - name: SENTRY_DSN

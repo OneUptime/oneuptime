@@ -43,7 +43,10 @@ spec:
                     - name: CONTAINER_SCANNER_KEY
                       value: {{ .Values.containerScanner.key }}
                     - name: CLUSTER_KEY
-                      value: {{ .Values.clusterKey }}
+                      valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
                     - name: NODE_NAME
                       valueFrom:
                         fieldRef:

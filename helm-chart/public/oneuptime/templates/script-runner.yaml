@@ -59,7 +59,10 @@ spec:
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: CLUSTER_KEY
-                        value: {{ .Values.clusterKey }}
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
                   ports:
                       - containerPort: {{ .Values.host.scriptRunnerPort }}
                         hostPort: {{ .Values.host.scriptRunnerPort }}

@@ -101,11 +101,6 @@ image:
 
 replicaCount: 1
 
-
-# manually add a key here
-# the key usually go out of sync unexpectedly
-clusterKey: fadew5465746ggdtbgw
-
 ##################################################################################
 ## IMPORTANT: 
 ## Values for Subcharts
@@ -171,6 +166,7 @@ haraka:
 
 host: 
   backendPort: 3002
+  fetchResourcesPort: 3400
   dataIngestorPort: 3200
   realtimePort: 3300
   homePort: 1444
@@ -190,6 +186,7 @@ host:
   backendServicePort: 80
   dataIngestorServicePort: 80
   realtimeServicePort: 80
+  fetchResourcesServicePort: 80
   homeServicePort: 80
   apiDocsServicePort: 80
   statusPageHttpServicePort: 80
