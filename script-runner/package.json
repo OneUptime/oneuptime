@@ -12,19 +12,19 @@
     "author": "Augustine",
     "license": "ISC",
     "dependencies": {
-        "@sentry/node": "^6.12.0",
-        "axios": "^0.21.1",
-        "body-parser": "^1.19.0",
+        "@sentry/node": "^6.16.1",
+        "axios": "^0.25.0",
+        "body-parser": "^1.19.1",
         "cors": "^2.8.5",
         "custom-env": "^2.0.1",
-        "express": "^4.17.1",
+        "express": "^4.17.2",
         "node-cron": "^3.0.0",
         "request": "^2.88.2",
-        "vm2": "^3.9.3",
-        "winston": "^2.4.0",
+        "vm2": "^3.9.5",
+        "winston": "^3.4.0",
         "winston-slack-transport": "^2.0.0"
     },
     "devDependencies": {
-        "nodemon": "^2.0.7"
+        "nodemon": "^2.0.15"
     }
 }
