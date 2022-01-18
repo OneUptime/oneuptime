@@ -2,7 +2,7 @@
 # OneUptime Init Script
 #
 
-FROM node:latest
+FROM node:17-alpine
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
