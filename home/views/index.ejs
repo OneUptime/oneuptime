@@ -7,7 +7,7 @@
     <title>OneUptime | One Complete SRE and DevOps platform. </title>
     <meta name="description"
         content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-    <% include ./head %>
+        <%- include('head') -%>
         <link rel="stylesheet" href="/css/crm.css">
 
         <script src="/js/crm.js" type="text/javascript" async></script>
@@ -26,9 +26,9 @@
 
 <body>
     <% if(redirectedFromOldBranding) { %>
-        <% include ./redirect-banner %>
+        <%- include('redirect-banner') -%>
     <% } %>
-    <% include ./nav %>
+    <%- include('nav') -%>
 
         <div class="globalContent">
             <main>
@@ -116,13 +116,14 @@
                         </div>
                     </section>
                 </header>
-
-                <% include ./customer-section %>
-
-                    <% include ./feature-table %>
+                <%- include('customer-section') -%>
+                
+                <%- include('feature-table') -%>
+                   
 
                         <div class="sectionBorderTop">
-                            <% include ./comparision-chart %>
+                            <%- include('customer-section') -%>
+                            
                         </div>
 
                         <section class="feature-table-container sectionBorderTop" style="margin-bottom:0px">
@@ -177,7 +178,7 @@
                                     <p></p>
                                 </div>
 
-                                <% include ./cta-buttons %>
+                                <%- include('cta-buttons') -%>
                             </section>
 
                         </section>
@@ -231,7 +232,7 @@
                                             about status page here.</span> </a></p>
                                 <p></p>
                             </div>
-                            <% include ./cta-buttons %>
+                            <%- include('cta-buttons') -%>
                         </section>
 
                         <section class="feature-table-container sectionBorderTop" style="margin-bottom:0px">
@@ -286,7 +287,7 @@
                                             more about on-call management here.</span> </a></p>
                                 <p></p>
                             </div>
-                            <% include ./cta-buttons %>
+                            <%- include('cta-buttons') -%>
                         </section>
 
                         <%- include("testimonials", { title: "Software teams around the world love OneUptime!" ,
@@ -303,16 +304,16 @@
                             quote: "We can see exactly what the state of the software and our service is. Less confusion and we're much more efficient."
                             , by: "Trevos Crosse, PNI Digital" } ] }) %>
 
-                            <% include ./integration %>
+                            <%- include('integration') -%>
             </main>
 
         </div>
 
         <div id="cookies-notification">
-            <% include ./cookie-consent %>
+            <%- include('cookie-consent') -%>
         </div>
         <div class="sectionBorderTop" style="padding-top:50px">
-            <% include ./footer %>
+            <%- include('footer') -%>
         </div>
         <script>
             $(document).ready(function () {

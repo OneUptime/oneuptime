@@ -72,5 +72,4 @@ module.exports = {
  */
 
 const ContainerScannerModel = require('../models/containerScanner');
-const ErrorService = require('./errorService');
 const { v1: uuidv1 } = require('uuid');

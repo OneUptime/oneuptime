@@ -7,7 +7,7 @@
   <% } %>
   <meta name="description"
     content="Here's a more detailed comparision between <%= productConfig.productName %> and OneUptime.">
-  <% include ./head %>
+  <%- include('head') -%>
   <script src="/js/amplitude.js"></script>
   <script type="module" async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
@@ -171,7 +171,7 @@
 
 <body>
 
-  <% include ./nav %>
+  <%- include('nav') -%>
 
 
   <div class="globalContent">
@@ -231,7 +231,7 @@
 
     </article>
     <% if (!onlyShowCompareTable) { %>
-    <% include ./feature-table %>
+    <%- include('feature-table') -%>
     <article>
         <div class='container-lg' style="padding:0px; padding-bottom:75px">
     
@@ -251,7 +251,7 @@
         </div>
     </article>
     <div class="sectionBorderTop">
-      <% include ./comparision-chart %>
+      <%- include('comparision-chart') -%>
     </div>
     <% } %>
     <% if (productConfig && productConfig.productName) { %>
@@ -371,7 +371,7 @@
 
   </div>
 
-  <%include ./footer%>
+  <%- include('footer') -%>
   <script src="/js/switch.js"></script>
   <script>
     var el = document.querySelector('.checkbox-switch');

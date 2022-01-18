@@ -35,7 +35,6 @@ const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
 const Main = require('./workers/main');
-const cron = require('node-cron');
 const config = require('./utils/config');
 
 Sentry.init({
@@ -116,8 +115,11 @@ app.get(['/probe/version', '/version'], function(req, res) {
 app.use(Sentry.Handlers.errorHandler());
 global.Sentry = Sentry;
 
-setTimeout(() => {
-    Main.runJob(monitorStore);
+setTimeout(async () => {
+    // keep monitoring in an infinate loop.
+    while (true) {
+        await Main.runJob(monitorStore);
+    }
 }, cronMinuteStartTime * 1000);
 
 http.listen(app.get('port'), function() {

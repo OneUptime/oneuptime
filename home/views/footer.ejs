@@ -6,11 +6,11 @@
     <!-- End Google Tag Manager (noscript) -->
 
     <% if (footerCards) { %>
-    <% include ./footer-cards %>
+    <%- include('footer-cards') -%>
     <% } %>
 
     <% if (cta) { %>
-    <% include ./cta %>
+    <%- include('cta') -%>
     <% } %>
 
     <article class='globalFooterNav' style="margin-bottom: 0px; padding-bottom:0px;">

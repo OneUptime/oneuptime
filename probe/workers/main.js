@@ -26,24 +26,24 @@ const asyncSleep = require('await-sleep');
  *  - if criteria is request body , then curl otherwise ICMP ping which is a LOT faster.
  */
 
-module.exports = {
+const _this = {
     runJob: async function(monitorStore) {
-        
         monitorStore = {};
 
         try {
-
             console.log(`Getting a list of ${limit} monitors`);
 
             let monitors = await getApi('probe/monitors', limit);
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
-            console.log(`Number of Monitors fetched - ${monitors.length} monitors`);
+            console.log(
+                `Number of Monitors fetched - ${monitors.length} monitors`
+            );
 
-            if(monitors.length === 0){
-                // there are no monitors to monitor. Sleep for 30 seconds and then wake up. 
-                console.log("No monitors to monitor. Sleeping for 30 seconds.");
-                await asyncSleep(30 * 1000); 
+            if (monitors.length === 0) {
+                // there are no monitors to monitor. Sleep for 30 seconds and then wake up.
+                console.log('No monitors to monitor. Sleeping for 30 seconds.');
+                await asyncSleep(30 * 1000);
             }
 
             // add monitor to store
@@ -53,7 +53,6 @@ module.exports = {
                 }
             });
 
-            
             // loop over the monitor
             for (const [key, monitor] of Object.entries(monitorStore)) {
                 try {
@@ -82,16 +81,11 @@ module.exports = {
                     global.Sentry.captureException(e);
                 }
             }
-
-            // this is a recursive function.
-            runJob(monitorStore);
-            
         } catch (error) {
             ErrorService.log('getApi', error);
             global.Sentry.captureException(error);
-            
-            // This is a recursive function. 
-            runJob(monitorStore);
         }
     },
 };
+
+module.exports = _this;

@@ -14,7 +14,7 @@ spec:
     selector:
         matchLabels:
             app: {{ printf "%s-%s" $.Release.Name $key  }}
-    replicas: 1 # THIS SHOULD STRICTLY BE 1
+    replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:

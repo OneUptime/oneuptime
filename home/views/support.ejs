@@ -7,7 +7,7 @@
 
   <meta name="description"
     content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-  <% include ./head %>
+  <%- include('head') -%>
   <link rel="stylesheet" href="/css/contact.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">
   <script src="/js/amplitude.js"></script>
@@ -21,7 +21,7 @@
 
 <body>
 
-  <% include ./nav %>
+  <%- include('nav') -%>
 
   <div class="globalContent">
     <main>
@@ -100,7 +100,7 @@
 
   </div>
 
-  <%include ./footer %>
+  <%- include('footer') -%>
 
 </body>
 

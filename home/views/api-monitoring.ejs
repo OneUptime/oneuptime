@@ -6,7 +6,7 @@
 
     <meta name="description"
         content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-    <% include ./head %>
+    <%- include('head') -%>
     <link rel="stylesheet" href="/css/shared-site.css">
     <link rel="stylesheet" href="/css/home.css">
     <link rel="stylesheet" href="/css/products.css">
@@ -46,7 +46,7 @@
 
 <body>
 
-    <% include ./nav %>
+    <%- include('nav') -%>
 
     <div class="globalContent">
         <div id="main-content">
@@ -131,7 +131,7 @@
                 </div>
             </div>
 
-            <% include ./cta-buttons %>
+            <%- include('cta-buttons') -%>
 
 
             <section class="main basics" style="padding:0px">
@@ -170,9 +170,9 @@
 
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
-                <% include ./customer-section %>
+                <%- include('customer-section') -%>
                 
                 <%- include('feature-table', {
                     title:"We don't just do API Monitoring, <br/><span class='highlight'> We do <i>everything</i> in terms of SRE and DevOps. </span>",
@@ -180,7 +180,7 @@
                 }) %>
 
                 <div class="sectionBorderTop">
-                    <% include ./comparision-chart %>
+                    <%- include('comparision-chart') -%>
                 </div>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
@@ -210,7 +210,7 @@
                     </ul>
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Set any criteria for API monitoring.</h2>
@@ -241,7 +241,7 @@
                     </ul>
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Start with API monitoring. Expand into monitoring everything.</h2>
@@ -269,7 +269,7 @@
                     </ul>
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                 <%- include("testimonials", {
                     title: "Software teams around the world love OneUptime!",
@@ -319,16 +319,16 @@
                     </ul>
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                 
-                <% include ./integration %> 
+                <%- include('integration') -%> 
             </section>
 
         </div>
     </div>
 
-    <% include ./footer %>
+    <%- include('footer') -%>
 
 </body>
 

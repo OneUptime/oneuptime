@@ -6,7 +6,7 @@
 
     <meta name="description"
         content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-    <% include ./head %>
+    <%- include('head') -%>
     <link rel="stylesheet" href="/css/shared-site.css">
     <link rel="stylesheet" href="/css/home.css">
     <link rel="stylesheet" href="/css/products.css">
@@ -21,7 +21,7 @@
 
 <body>
 
-    <% include ./nav %>
+    <%- include('nav') -%>
 
     <div class="globalContent">
         <div id="main-content">
@@ -48,7 +48,7 @@
                     alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%" />
             </div>
 
-            <% include ./cta-buttons %>
+            <%- include('cta-buttons') -%>
 
             <section class="main basics" style="padding:0px">
                 <div class="content">
@@ -90,11 +90,11 @@
                     </ul>
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
-                <% include ./customer-section %>
+                <%- include('customer-section') -%>
                 <div class="sectionBorderTop">
-                    <% include ./comparision-chart %>
+                    <%- include('comparision-chart') -%>
                 </div>
 
 
@@ -153,14 +153,14 @@
                     </div>
                 </div>
 
-                <% include ./integration %>
+                <%- include('integration') -%>
 
             </section>
 
         </div>
     </div>
 
-    <% include ./footer %>
+    <%- include('footer') -%>
 
 </body>
 

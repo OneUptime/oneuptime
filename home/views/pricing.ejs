@@ -5,7 +5,7 @@
   <title>OneUptime | Pricing</title>
   <meta name="description"
     content="Simple, transparent pricing. Compare different pricing plans. Choose the one which suits your buisness best.">
-  <% include ./head %>
+  <%- include('head') -%>
   <script src="/js/amplitude.js"></script>
   <script type="module" async>
     var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
@@ -167,7 +167,7 @@
 
 <body>
 
-  <% include ./nav %>
+  <%- include('nav') -%>
 
 
   <div class="globalContent">
@@ -470,7 +470,7 @@
     </header>
 
 
-    <% include ./comparision-chart %>
+    <%- include('comparision-chart') -%>
 
     </article>
 
@@ -1326,7 +1326,7 @@
 
   </div>
 
-  <%include ./footer%>
+  <%- include('footer') -%>
   <script src="/js/switch.js"></script>
   <script>
     var el = document.querySelector('.checkbox-switch');

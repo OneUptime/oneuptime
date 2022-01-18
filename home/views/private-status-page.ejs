@@ -9,7 +9,7 @@
         content="OneUptime lets you build UNLIMITED public and private status pages for your online business. Have UNLIMITED subscribers for just $22/mo">
     <meta name="keywords" content="build status page, hosted status page, status page, create status page, build private status page, build public status page, private status page, public status page ">
         
-    <% include ./head %>
+    <%- include('head') -%>
     <link rel="stylesheet" href="/css/shared-site.css">
     <link rel="stylesheet" href="/css/home.css">
     <link rel="stylesheet" href="/css/products.css">
@@ -49,7 +49,7 @@
 
 <body>
 
-    <% include ./nav %>
+    <%- include('nav') -%>
 
     <div class="globalContent">
         
@@ -137,7 +137,7 @@
                 </div>
             </div>
 
-            <% include ./cta-buttons %>
+            <%- include('cta-buttons') -%>
 
             <section class="main basics">
                 <div class="content">
@@ -179,9 +179,9 @@
                     </ul>
 
                 </div>
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
-                <% include ./customer-section %>
+                <%- include('customer-section') -%>
 
                 
                 <%- include('feature-table', {
@@ -190,7 +190,7 @@
                 }) %>
 
                 <div class="sectionBorderTop">
-                    <% include ./comparision-chart %>
+                    <%- include('comparision-chart') -%>
                 </div>
                
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
@@ -213,7 +213,7 @@
                         </li>
                     </ul>
                 </div>
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Branding and Customization</h2>
@@ -251,7 +251,7 @@
                         </li>
                     </ul>
                 </div>
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                 <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
                     <h2 class="header">Build Unlimited Status Pages</h2>
@@ -274,7 +274,7 @@
                     </div>
                 </div>
 
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
 
                <div class="split">
                     <div class="content margin-0-in-mobile">
@@ -369,7 +369,7 @@
                         </li>
                     </ul>
                 </div>
-                <% include ./cta-buttons %>
+                <%- include('cta-buttons') -%>
                 
                 <%- include("testimonials", {
                     title: "Software teams around the world love OneUptime!",
@@ -398,12 +398,12 @@
                     ]
                 }) %>
                
-                <% include ./integration %> 
+                <%- include('integration') -%> 
             </section>
         </div>
     </div>
 
-    <% include ./footer %>
+    <%- include('footer') -%>
 
 </body>
 
