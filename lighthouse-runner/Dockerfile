@@ -16,8 +16,7 @@ ENV PRODUCTION=true
 ENV CHROME_PATH=/usr/bin/chromium
 
 # Install Chrome.
-RUN apt-get update
-RUN apt-get install -y chromium
+RUN apk add curl chromium
 
 RUN mkdir /usr/src
 RUN mkdir /usr/src/app
