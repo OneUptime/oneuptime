@@ -15,6 +15,10 @@ SHELL ["/bin/bash", "-c"]
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
+# Because of this error during build
+# Error message "error:0308010C:digital envelope routines::unsupported"
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
