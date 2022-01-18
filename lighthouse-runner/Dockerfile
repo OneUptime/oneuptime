@@ -5,6 +5,9 @@
 # Pull base image nodejs image.
 FROM node:17-alpine
 
+# Install bash. 
+RUN apk update && apk add bash && apk add curl
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
@@ -16,7 +19,8 @@ ENV CHROME_PATH=/usr/bin/chromium
 RUN apt-get update
 RUN apt-get install -y chromium
 
-RUN mkdir -p /usr/src/app
+RUN mkdir /usr/src
+RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
