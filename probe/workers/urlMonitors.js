@@ -1,6 +1,6 @@
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch-commonjs');
 const sslCert = require('get-ssl-certificate');
 const https = require('https');
 const http = require('http');
