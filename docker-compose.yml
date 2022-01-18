@@ -135,6 +135,17 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
+    fetch-resources:
+        ports:
+            - '3400:3400'
+        build: ./fetch-resources
+        env_file:
+            - ./fetch-resources/.env
+        environment:
+            - CLUSTER_KEY=test
+            - PORT=3400
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - REALTIME_URL=http://realtime:3300
     probe1:
         ports:
             - '3024:3024'
@@ -149,6 +160,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
+            - FETCH_RESOURCES_URL=http://fetch-resources:3400
         depends_on:
             - backend
             - data-ingestor

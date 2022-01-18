@@ -103,6 +103,20 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules
 
+    fetch-resources:
+        ports:
+            - '3400:3400'
+        build:
+            context: ./fetch-resources
+            dockerfile: ./Dockerfile.dev
+        env_file:
+            - ./fetch-resources/.env
+        environment:
+            - CLUSTER_KEY=test
+            - PORT=3400
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - REALTIME_URL=http://realtime:3300
+
     # There can only be one probe in developer docker compose.
     probe:
         ports:
@@ -121,6 +135,7 @@ services:
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
+            - FETCH_RESOURCES_URL=http://fetch-resources:3400
         volumes:
             - ./probe:/usr/src/app
             # Use node modules of the container and not host system.

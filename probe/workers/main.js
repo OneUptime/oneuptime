@@ -12,7 +12,7 @@ const ErrorService = require('../utils/errorService');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
 const limit = process.env.RESOURCES_LIMIT;
-// const ApiService = require('../utils/apiService');
+const asyncSleep = require('await-sleep');
 
 /**
  *
@@ -28,9 +28,23 @@ const limit = process.env.RESOURCES_LIMIT;
 
 module.exports = {
     runJob: async function(monitorStore) {
+        
+        monitorStore = {};
+
         try {
+
+            console.log(`Getting a list of ${limit} monitors`);
+
             let monitors = await getApi('probe/monitors', limit);
             monitors = JSON.parse(monitors.data); // parse the stringified data
+
+            console.log(`Number of Monitors fetched - ${monitors.length} monitors`);
+
+            if(monitors.length === 0){
+                // there are no monitors to monitor. Sleep for 30 seconds and then wake up. 
+                console.log("No monitors to monitor. Sleeping for 30 seconds.");
+                await asyncSleep(30 * 1000); 
+            }
 
             // add monitor to store
             monitors.forEach(monitor => {
@@ -39,13 +53,11 @@ module.exports = {
                 }
             });
 
-            // update all monitors to have scanning set to true
-            // const monitorIds = monitors.map(monitor => monitor._id);
-            // await ApiService.addProbeScan(monitorIds);
-
+            
             // loop over the monitor
             for (const [key, monitor] of Object.entries(monitorStore)) {
                 try {
+                    console.log(`Currently monitoring: Monitor ID ${key}`);
                     if (monitor.type === 'api') {
                         await ApiMonitors.ping({ monitor });
                     } else if (monitor.type === 'url') {
@@ -71,11 +83,15 @@ module.exports = {
                 }
             }
 
-            // update all monitor scan status to false
-            // await ApiService.removeProbeScan(monitorIds);
+            // this is a recursive function.
+            runJob(monitorStore);
+            
         } catch (error) {
             ErrorService.log('getApi', error);
             global.Sentry.captureException(error);
+            
+            // This is a recursive function. 
+            runJob(monitorStore);
         }
     },
 };

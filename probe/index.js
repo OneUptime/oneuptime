@@ -116,12 +116,9 @@ app.get(['/probe/version', '/version'], function(req, res) {
 app.use(Sentry.Handlers.errorHandler());
 global.Sentry = Sentry;
 
-// This cron runs every second minute.
-cron.schedule('*/2 * * * *', () => {
-    setTimeout(() => {
-        Main.runJob(monitorStore);
-    }, cronMinuteStartTime * 1000);
-});
+setTimeout(() => {
+    Main.runJob(monitorStore);
+}, cronMinuteStartTime * 1000);
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
