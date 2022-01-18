@@ -2,7 +2,7 @@ const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fs = require('fs');
 const { NodeSSH } = require('node-ssh');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch-commonjs');
 const { COMMAND, serverUrl } = require('../utils/config');
 
 module.exports = {
