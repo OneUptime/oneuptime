@@ -1,6 +1,14 @@
 module.exports = {
-    async getProbeMonitors(probeId, limit, date) {
-        limit = Number(limit);
+    async getProbeMonitors(probeId, limit = 10) {
+        
+        //get monitors that have not been pinged for the last minute. 
+        const date = new Date(new Date().getTime() - 60 * 1000);
+        
+        if(typeof limit === "string"){
+            limit = Number(limit);
+        }
+
+        
         const query = {
             deleted: false,
             disabled: false,
@@ -81,7 +89,7 @@ module.exports = {
                 ])
                 .toArray();
 
-            if (monitors && monitors.length) {
+            if (monitors && monitors.length > 0) {
                 for (const monitor of monitors) {
                     const newdate = new Date(moment().format());
                     let updated = false;

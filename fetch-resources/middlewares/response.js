@@ -3,7 +3,6 @@
  * Copyright HackerBay, Inc.
  *
  */
-const JsonToCsv = require('./jsonToCsv');
 
 module.exports = {
     sendErrorResponse: function(req, res, error) {
@@ -63,52 +62,6 @@ module.exports = {
 
         if (req.query.limit) {
             response.limit = parseInt(req.query.limit);
-        }
-
-        //purge request.
-        //req = null;
-        if (req.query['output-type'] === 'csv') {
-            if (!Array.isArray(response.data)) {
-                const properties = Object.keys(response.data);
-                const newObj = {};
-                properties.forEach(prop => {
-                    if (
-                        typeof response.data[[prop]] === 'object' &&
-                        response.data[[prop]] !== null
-                    ) {
-                        if (response.data[[prop]].name)
-                            response.data[[prop]] = response.data[[prop]].name;
-                        else if (response.data[[prop]].title)
-                            response.data[[prop]] = response.data[[prop]].title;
-                        else if (response.data[[prop]]._id)
-                            response.data[[prop]] = response.data[[prop]]._id;
-                    }
-                    newObj[[prop]] = response.data[[prop]];
-                });
-                response.data = JSON.parse(JSON.stringify(newObj));
-                response.data = [response.data];
-            } else {
-                response.data = response.data.map(i => {
-                    i = i._doc ? i._doc : i;
-                    const properties = Object.keys(i);
-                    const newObj = {};
-                    properties.forEach(prop => {
-                        if (
-                            typeof i[[prop]] === 'object' &&
-                            i[[prop]] !== null
-                        ) {
-                            if (i[[prop]].name) i[[prop]] = i[[prop]].name;
-                            else if (i[[prop]].title)
-                                i[[prop]] = i[[prop]].title;
-                            else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
-                        }
-                        newObj[[prop]] = i[[prop]];
-                    });
-                    return JSON.parse(JSON.stringify(newObj));
-                });
-            }
-
-            response.data = await JsonToCsv.ToCsv(response.data);
         }
 
         res.resBody = response; // To be used in 'auditLog' middleware to log reponse data;

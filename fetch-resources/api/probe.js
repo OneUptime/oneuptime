@@ -17,8 +17,7 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
         const { limit = 10 } = req.query;
         const monitors = await MonitorService.getProbeMonitors(
             req.probe.id,
-            limit,
-            new Date(new Date().getTime() - 60 * 1000)
+            limit
         );
 
         return sendListResponse(

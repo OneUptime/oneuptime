@@ -15,6 +15,10 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
+# Because of this error during build
+# Error message "error:0308010C:digital envelope routines::unsupported"
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 # Install nodemon 
 RUN npm install nodemon -g
 
