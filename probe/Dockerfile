@@ -18,6 +18,7 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
 # Install common-server
+RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ../common-server/package*.json /usr/src/common-server/
