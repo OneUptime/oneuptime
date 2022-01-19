@@ -21,11 +21,11 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./home/package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY ./home /usr/src/app
 
 # Expose ports.
 #   - 1444: OneUptime Home

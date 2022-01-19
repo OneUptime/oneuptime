@@ -22,14 +22,21 @@ ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
+# Install common-ui
+RUN mkdir /usr/src/common-ui
+WORKDIR /usr/src/common-ui
+COPY ../common-ui/package*.json /usr/src/common-ui/
+RUN npm ci --only=production
+COPY ../common-ui /usr/src/common-ui
+
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./admin-dashboard/package*.json /usr/src/app/
 RUN npm ci --only=production --legacy-peer-deps
 
 # Copy app source
-COPY . /usr/src/app
+COPY ./admin-dashboard /usr/src/app
 
 # Bundle app source
 RUN npm run build

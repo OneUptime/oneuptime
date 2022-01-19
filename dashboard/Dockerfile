@@ -11,6 +11,13 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install common-ui
+RUN mkdir /usr/src/common-ui
+WORKDIR /usr/src/common-ui
+COPY ../common-ui/package*.json /usr/src/common-ui/
+RUN npm ci --only=production
+COPY ../common-ui /usr/src/common-ui
+
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 
 #SET ENV Variables
@@ -27,11 +34,11 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./dashboard/package*.json /usr/src/app/
 RUN npm ci --only=production --legacy-peer-deps
 
 # Copy app source
-COPY . /usr/src/app
+COPY ./dashboard /usr/src/app
 
 # Install purgecss to make CSS files smaller. 
 RUN npm install purgecss -g

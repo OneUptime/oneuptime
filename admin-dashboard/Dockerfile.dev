@@ -11,6 +11,13 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install common-ui
+RUN mkdir /usr/src/common-ui
+WORKDIR /usr/src/common-ui
+COPY ../common-ui/package*.json /usr/src/common-ui/
+RUN npm ci --only=production
+COPY ../common-ui /usr/src/common-ui
+
 #SET ENV Variables
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -25,9 +32,8 @@ RUN npm install nodemon -g
 WORKDIR /usr/src/app
 
 # Copy package.json files
-COPY ./package.json /usr/src/app/package.json
-COPY ./package-lock.json /usr/src/app/package-lock.json
-
+COPY ./admin-dashboard/package.json /usr/src/app/package.json
+COPY ./admin-dashboard/package-lock.json /usr/src/app/package-lock.json
 
 # Install app dependencies
 RUN npm ci --legacy-peer-deps
@@ -39,7 +45,6 @@ RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
 # Expose ports.
 #   - 3100:  OneUptime-admin-dashboard
 EXPOSE 3100
-
 
 #Run the app
 CMD [ "npm", "run", "dev" ]

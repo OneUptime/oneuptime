@@ -19,7 +19,7 @@ COPY package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY ./api-docs /usr/src/app
 
 # Expose ports.
 #   - 1445: OneUptime Docs

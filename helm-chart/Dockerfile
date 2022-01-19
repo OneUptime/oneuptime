@@ -13,11 +13,11 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./helm-chart/package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY ./helm-chart /usr/src/app
 
 # Expose ports.
 #   - 3423: OneUptime Helm Chart Server

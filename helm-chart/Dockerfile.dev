@@ -17,8 +17,8 @@ SHELL ["/bin/bash", "-c"]
 WORKDIR /usr/src/app
 
 # Copy package.json files
-COPY ./package.json /usr/src/app/package.json
-COPY ./package-lock.json /usr/src/app/package-lock.json
+COPY ./helm-chart/package.json /usr/src/app/package.json
+COPY ./helm-chart/package-lock.json /usr/src/app/package-lock.json
 
 
 # Install app dependencies
