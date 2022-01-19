@@ -11,6 +11,14 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install common-server
+
+RUN mkdir /usr/src/common-server
+WORKDIR /usr/src/common-server
+COPY ../common-server/package*.json /usr/src/common-server/
+RUN npm ci --only=production
+COPY ../common-server /usr/src/common-server
+
 #SET ENV Variables
 ENV PRODUCTION=true
 
@@ -29,11 +37,11 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./realtime/package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY ./realtime /usr/src/app
 
 # Expose ports.
 EXPOSE 3300

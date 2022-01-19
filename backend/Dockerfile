@@ -11,6 +11,14 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install common-server
+
+RUN mkdir /usr/src/common-server
+WORKDIR /usr/src/common-server
+COPY ../common-server/package*.json /usr/src/common-server/
+RUN npm ci --only=production
+COPY ../common-server /usr/src/common-server
+
 #SET ENV Variables
 ENV PRODUCTION=true
 
@@ -23,11 +31,11 @@ WORKDIR /usr/src/app
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./backend/package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY ./backend /usr/src/app
 
 # Expose ports.
 #   - 3002: OneUptime-backend

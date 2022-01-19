@@ -156,10 +156,10 @@ include:
   - '/ci/spec/data-ingestor/deploy.yaml'
   - '/ci/spec/data-ingestor/rollback.yaml'
 
-  # fetch-resources
-  - '/ci/spec/fetch-resources/audit.yaml'
-  - '/ci/spec/fetch-resources/deploy.yaml'
-  - '/ci/spec/fetch-resources/rollback.yaml'
+  # probe-api
+  - '/ci/spec/probe-api/audit.yaml'
+  - '/ci/spec/probe-api/deploy.yaml'
+  - '/ci/spec/probe-api/rollback.yaml'
 
   # # GO-SDK
   # - '/ci/spec/go-sdk/audit.yaml'

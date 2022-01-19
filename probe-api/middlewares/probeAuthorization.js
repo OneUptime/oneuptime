@@ -4,7 +4,7 @@
  *
  */
 const ProbeService = require('../services/probeService');
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+const sendErrorResponse = require('./response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
 const { clusterKey: CLUSTER_KEY } = require('../utils/config');
 

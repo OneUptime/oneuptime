@@ -30,7 +30,7 @@ process.on('uncaughtException', err => {
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    release: `fetch-resources@${process.env.npm_package_version}`,
+    release: `probe-api@${process.env.npm_package_version}`,
     environment: process.env.NODE_ENV,
     integrations: [
         // enable HTTP calls tracing
@@ -130,13 +130,13 @@ app.use(function(req, res, next) {
     return next();
 });
 
-app.get(['/fetch-resources/status', '/status'], function(req, res) {
+app.get(['/probe-api/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'oneuptime-fetch-resources',
+            serviceType: 'oneuptime-probe-api',
         })
     );
 });
@@ -149,7 +149,7 @@ app.set('port', process.env.PORT || 3400);
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
-    console.log('fetch-resources server started on port ' + app.get('port'));
+    console.log('probe-api server started on port ' + app.get('port'));
 });
 
 module.exports = app;

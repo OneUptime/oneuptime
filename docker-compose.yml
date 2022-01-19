@@ -44,7 +44,9 @@ services:
     accounts:
         ports:
             - '3003:3003'
-        build: ./accounts
+        build:
+            context: .
+            dockerfile: ./accounts/Dockerfile
         env_file:
             - ./accounts/.env
         environment:
@@ -54,7 +56,9 @@ services:
     dashboard:
         ports:
             - '3000:3000'
-        build: ./dashboard
+        build:
+            context: .
+            dockerfile: ./dashboard/Dockerfile
         env_file:
             - ./dashboard/.env
         environment:
@@ -69,11 +73,15 @@ services:
             - ./home/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        build: ./home
+        build:
+            context: .
+            dockerfile: ./home/Dockerfile
     status-page:
         ports:
             - '3006:3006'
-        build: ./status-page
+        build:
+            context: .
+            dockerfile: ./status-page/Dockerfile
         env_file:
             - ./status-page/.env
         environment:
@@ -85,7 +93,9 @@ services:
     admin-dashboard:
         ports:
             - '3100:3100'
-        build: ./admin-dashboard
+        build:
+            context: .
+            dockerfile: ./admin-dashboard/Dockerfile
         env_file:
             - ./admin-dashboard/.env
         environment:
@@ -100,7 +110,9 @@ services:
             - ./http-test-server/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        build: ./http-test-server
+        build:
+            context: .
+            dockerfile: ./http-test-server/Dockerfile
     licensing:
         ports:
             - '3004:3004'
@@ -108,11 +120,15 @@ services:
             - ./licensing/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        build: ./licensing
+        build:
+            context: .
+            dockerfile: ./licensing/Dockerfile
     data-ingestor:
         ports:
             - '3200:3200'
-        build: ./data-ingestor
+        build:
+            context: .
+            dockerfile: ./data-ingestor/Dockerfile
         env_file:
             - ./data-ingestor/.env
         environment:
@@ -129,18 +145,22 @@ services:
     realtime:
         ports:
             - '3300:3300'
-        build: ./realtime
+        build:
+            context: .
+            dockerfile: ./realtime/Dockerfile
         env_file:
             - ./realtime/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
-    fetch-resources:
+    probe-api:
         ports:
             - '3400:3400'
-        build: ./fetch-resources
+        build:
+            context: .
+            dockerfile: ./probe-api/Dockerfile
         env_file:
-            - ./fetch-resources/.env
+            - ./probe-api/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
@@ -149,7 +169,9 @@ services:
     probe1:
         ports:
             - '3024:3024'
-        build: ./probe
+        build:
+            context: .
+            dockerfile: ./probe/Dockerfile
         env_file:
             - ./probe/.env
         environment:
@@ -160,14 +182,16 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - FETCH_RESOURCES_URL=http://fetch-resources:3400
+            - FETCH_RESOURCES_URL=http://probe-api:3400
         depends_on:
             - backend
             - data-ingestor
     probe2:
         ports:
             - '3025:3025'
-        build: ./probe
+        build:
+            context: .
+            dockerfile: ./probe/Dockerfile
         env_file:
             - ./probe/.env
         environment:
@@ -184,13 +208,17 @@ services:
     api-docs:
         ports:
             - '1445:1445'
-        build: ./api-docs
+        build:
+            context: .
+            dockerfile: ./api-docs/Dockerfile
         env_file:
             - ./api-docs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
     init-script:
-        build: ./init-script
+        build:
+            context: .
+            dockerfile: ./init-script/Dockerfile
         ports:
             - '1447:1447'
         env_file:
@@ -223,7 +251,9 @@ services:
     script-runner:
         ports:
             - '3009:3009'
-        build: ./script-runner
+        build:
+            context: .
+            dockerfile: ./script-runner/Dockerfile
         env_file:
             - ./script-runner/.env
         environment:
@@ -233,7 +263,9 @@ services:
     application-scanner:
         ports:
             - '3005:3005'
-        build: ./application-scanner
+        build:
+            context: .
+            dockerfile: ./application-scanner/Dockerfile
         env_file:
             - ./application-scanner/.env
         environment:
@@ -246,7 +278,9 @@ services:
     container-scanner:
         ports:
             - '3055:3055'
-        build: ./container-scanner
+        build:
+            context: .
+            dockerfile: ./container-scanner/Dockerfile
         env_file:
             - ./container-scanner/.env
         environment:
@@ -259,7 +293,9 @@ services:
     lighthouse-runner:
         ports:
             - '3015:3015'
-        build: ./lighthouse-runner
+        build:
+            context: .
+            dockerfile: ./lighthouse-runner/Dockerfile
         env_file:
             - ./lighthouse-runner/.env
         environment:

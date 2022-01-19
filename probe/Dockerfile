@@ -17,6 +17,15 @@ ENV PRODUCTION=true
 RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
+# Install common-server
+RUN mkdir /usr/src/common-server
+WORKDIR /usr/src/common-server
+COPY ../common-server/package*.json /usr/src/common-server/
+RUN npm ci --only=production
+COPY ../common-server /usr/src/common-server
+
+
+# Install app
 WORKDIR /usr/src/app
 
 # Install trivy for container scanning
@@ -38,7 +47,7 @@ COPY package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY /probe /usr/src/app
 
 # Expose ports.
 #   - 3008: probe

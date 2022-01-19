@@ -11,6 +11,14 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+
+# Install common-server
+RUN mkdir /usr/src/common-server
+WORKDIR /usr/src/common-server
+COPY ../common-server/package*.json /usr/src/common-server/
+RUN npm ci --only=production
+COPY ../common-server /usr/src/common-server
+
 WORKDIR /usr/src/app
 
 # Install trivy for container scanning
@@ -31,8 +39,8 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 RUN cd /usr/src/app
 
 # Copy package.json files
-COPY ./package.json /usr/src/app/package.json
-COPY ./package-lock.json /usr/src/app/package-lock.json
+COPY ./probe/package.json /usr/src/app/package.json
+COPY ./probe/package-lock.json /usr/src/app/package-lock.json
 
 
 RUN npm ci

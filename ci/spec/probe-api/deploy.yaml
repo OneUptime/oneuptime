@@ -1,4 +1,4 @@
-production_fetch-resources:
+production_probe-api:
     stage: Deploy
     retry: 2
     allow_failure: true
@@ -12,9 +12,9 @@ production_fetch-resources:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/fetch-resources:3.0.$CI_PIPELINE_IID --push ./fetch-resources
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/fetch-resources:latest --push ./fetch-resources
-        - sudo kubectl set image deployment/fi-fetch-resources fi-fetch-resources=oneuptime/fetch-resources:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:3.0.$CI_PIPELINE_IID --push ./probe-api
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:latest --push ./probe-api
+        - sudo kubectl set image deployment/fi-probe-api fi-probe-api=oneuptime/probe-api:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -28,7 +28,7 @@ production_fetch-resources:
         name: production
 
 # DEPLOYMENT STAGE
-staging_fetch-resources:
+staging_probe-api:
     stage: Deploy
     retry: 2
     allow_failure: true
@@ -40,12 +40,12 @@ staging_fetch-resources:
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
-        # Build and deploy fetch-resources.
+        # Build and deploy probe-api.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/fetch-resources:3.0.$CI_PIPELINE_IID --push ./fetch-resources
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/fetch-resources:master --push ./fetch-resources
-        - sudo kubectl set image deployment/fi-fetch-resources fi-fetch-resources=oneuptime/fetch-resources:3.0.$CI_PIPELINE_IID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:3.0.$CI_PIPELINE_IID --push ./probe-api
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:master --push ./probe-api
+        - sudo kubectl set image deployment/fi-probe-api fi-probe-api=oneuptime/probe-api:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

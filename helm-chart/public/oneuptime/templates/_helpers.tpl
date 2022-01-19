@@ -28,7 +28,7 @@ Expand the name of the chart.
 {{- end -}}
 
 {{- define "oneuptime.fetchResourcesUrl" -}}
-{{ printf "http://%s-fetch-resources.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
+{{ printf "http://%s-probe-api.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
 {{- end -}}
 
 {{- define "oneuptime.scriptRunnerUrl" -}}

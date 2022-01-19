@@ -42,9 +42,9 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
               servicePort: 80
-          - path: /fetch-resources
+          - path: /probe-api
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "fetch-resources"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
               servicePort: 80
           - path: /dashboard
             backend:

@@ -47,8 +47,8 @@ services:
         ports:
             - '3003:3003'
         build:
-            context: ./accounts
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./accounts/Dockerfile.dev
         env_file:
             - ./accounts/.env
         environment:
@@ -64,8 +64,8 @@ services:
             - '3200:3200'
             - '9239:9229' # Debugging port.
         build:
-            context: ./data-ingestor
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./data-ingestor/Dockerfile.dev
         env_file:
             - ./data-ingestor/.env
         environment:
@@ -90,8 +90,8 @@ services:
             - '3300:3300'
             - '9240:9229' # Debugging port.
         build:
-            context: ./realtime
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./realtime/Dockerfile.dev
         env_file:
             - ./realtime/.env
         environment:
@@ -103,14 +103,14 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules
 
-    fetch-resources:
+    probe-api:
         ports:
             - '3400:3400'
         build:
-            context: ./fetch-resources
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./probe-api/Dockerfile.dev
         env_file:
-            - ./fetch-resources/.env
+            - ./probe-api/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
@@ -123,8 +123,8 @@ services:
             - '3008:3008'
             - '9238:9229' # Debugging port.
         build:
-            context: ./probe
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./probe/Dockerfile.dev
         env_file:
             - ./probe/.env
         environment:
@@ -135,7 +135,7 @@ services:
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
-            - FETCH_RESOURCES_URL=http://fetch-resources:3400
+            - FETCH_RESOURCES_URL=http://probe-api:3400
         volumes:
             - ./probe:/usr/src/app
             # Use node modules of the container and not host system.
@@ -147,8 +147,8 @@ services:
         ports:
             - '1445:1445'
         build:
-            context: ./api-docs
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./api-docs/Dockerfile.dev
         env_file:
             - ./api-docs/.env
         environment:
@@ -161,8 +161,8 @@ services:
 
     init-script:
         build:
-            context: ./init-script
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./init-script/Dockerfile.dev
         ports:
             - '1447:1447'
             - '9237:9229' # Debugging port.
@@ -188,8 +188,8 @@ services:
             - '3009:3009'
             - '9236:9229' # Debugging port.
         build:
-            context: ./script-runner
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./script-runner/Dockerfile.dev
         env_file:
             - ./script-runner/.env
         environment:
@@ -207,8 +207,8 @@ services:
             - '3002:3002' # Service Port.
             - '9232:9229' # Debugging port.
         build:
-            context: ./backend
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./backend/Dockerfile.dev
         env_file:
             - ./backend/.env
         environment:
@@ -235,8 +235,8 @@ services:
         ports:
             - '3000:3000'
         build:
-            context: ./dashboard
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./dashboard/Dockerfile.dev
         env_file:
             - ./dashboard/.env
         environment:
@@ -256,8 +256,8 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
-            context: ./home
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./home/Dockerfile.dev
         volumes:
             - ./home:/usr/src/app
             # Use node modules of the container and not host system.
@@ -268,8 +268,8 @@ services:
         ports:
             - '3006:3006'
         build:
-            context: ./status-page
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./status-page/Dockerfile.dev
         env_file:
             - ./status-page/.env
         environment:
@@ -284,8 +284,8 @@ services:
         ports:
             - '3100:3100'
         build:
-            context: ./admin-dashboard
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./admin-dashboard/Dockerfile.dev
         env_file:
             - ./admin-dashboard/.env
         environment:
@@ -305,8 +305,8 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
-            context: ./http-test-server
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./http-test-server/Dockerfile.dev
         volumes:
             - ./http-test-server:/usr/src/app
             # Use node modules of the container and not host system.
@@ -334,8 +334,8 @@ services:
             - '3005:3005'
             - '9240:9229' # Debugging port.
         build:
-            context: ./application-scanner
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./application-scanner/Dockerfile.dev
         env_file:
             - ./application-scanner/.env
         environment:
@@ -355,8 +355,8 @@ services:
             - '3055:3055'
             - '9242:9229' # Debugging port.
         build:
-            context: ./container-scanner
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./container-scanner/Dockerfile.dev
         env_file:
             - ./container-scanner/.env
         environment:
@@ -376,8 +376,8 @@ services:
             - '3015:3015'
             - '9241:9229' # Debugging port.
         build:
-            context: ./lighthouse-runner
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./lighthouse-runner/Dockerfile.dev
         env_file:
             - ./lighthouse-runner/.env
         environment:

@@ -11,6 +11,14 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+# Install common-server
+
+RUN mkdir /usr/src/common-server
+WORKDIR /usr/src/common-server
+COPY ../common-server/package*.json /usr/src/common-server/
+RUN npm ci --only=production
+COPY ../common-server /usr/src/common-server
+
 #SET ENV Variables
 
 WORKDIR /usr/src/app
@@ -24,8 +32,8 @@ RUN cd /usr/src/app
 RUN mkdir -p greenlock.d || echo "Directory already exists"
 
 # Copy package.json files
-COPY ./package.json /usr/src/app/package.json
-COPY ./package-lock.json /usr/src/app/package-lock.json
+COPY ./backend/package.json /usr/src/app/package.json
+COPY ./backend/package-lock.json /usr/src/app/package-lock.json
 
 
 RUN npm ci

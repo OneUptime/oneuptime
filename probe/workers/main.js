@@ -3,6 +3,7 @@
  * Copyright HackerBay, Inc.
  *
  */
+const logger = require('../../common-server/utils/logger');
 const getApi = require('../utils/api').getApi;
 const ApiMonitors = require('./apiMonitors');
 const UrlMonitors = require('./urlMonitors');
@@ -31,18 +32,18 @@ const _this = {
         monitorStore = {};
 
         try {
-            console.log(`Getting a list of ${limit} monitors`);
+            logger.info(`Getting a list of ${limit} monitors`);
 
             let monitors = await getApi('probe/monitors', limit);
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
-            console.log(
+            logger.info(
                 `Number of Monitors fetched - ${monitors.length} monitors`
             );
 
             if (monitors.length === 0) {
                 // there are no monitors to monitor. Sleep for 30 seconds and then wake up.
-                console.log('No monitors to monitor. Sleeping for 30 seconds.');
+                logger.info('No monitors to monitor. Sleeping for 30 seconds.');
                 await asyncSleep(30 * 1000);
             }
 
@@ -56,7 +57,7 @@ const _this = {
             // loop over the monitor
             for (const [key, monitor] of Object.entries(monitorStore)) {
                 try {
-                    console.log(`Currently monitoring: Monitor ID ${key}`);
+                    logger.info(`Currently monitoring: Monitor ID ${key}`);
                     if (monitor.type === 'api') {
                         await ApiMonitors.ping({ monitor });
                     } else if (monitor.type === 'url') {
