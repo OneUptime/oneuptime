@@ -41,6 +41,7 @@ export class FeedbackModal extends Component {
 
     render() {
         const { handleSubmit } = this.props;
+        const { success, error } = this.props.feedback.feedback;
 
         return this.props.feedback.feedbackModalVisble ? (
             <div
@@ -63,25 +64,42 @@ export class FeedbackModal extends Component {
                                 <form onSubmit={handleSubmit(this.submitForm)}>
                                     <span>
                                         <div className="db-FeedbackForm-step db-FeedbackForm-step--form">
-                                            <Field
-                                                component={RenderTextArea}
-                                                className="db-FeedbackForm-textarea"
-                                                placeholder={
-                                                    this.props.feedback.feedback
-                                                        .success
-                                                        ? 'Thank you for your feedback!'
-                                                        : this.props.feedback
-                                                              .feedback.error
-                                                        ? 'Sorry, Please try again.'
-                                                        : 'Anything we can do to help?'
-                                                }
-                                                defaultValue={''}
-                                                name="feedback"
-                                                style={{ height: '100px' }}
-                                            />
+                                            {!error && !success && (
+                                                <Field
+                                                    component={RenderTextArea}
+                                                    className="db-FeedbackForm-textarea"
+                                                    placeholder={
+                                                        'Anything we can do to help?'
+                                                    }
+                                                    defaultValue={''}
+                                                    name="feedback"
+                                                    style={{
+                                                        height: '100px',
+                                                    }}
+                                                />
+                                            )}
+                                            {error && !success && (
+                                                <span className="db-FeedbackForm-error">
+                                                    Sorry we were unable to send
+                                                    your feedback to the support
+                                                    team. This could be because
+                                                    of bad network connection.
+                                                    Can you please write to us
+                                                    at{' '}
+                                                    <b>
+                                                        support@oneuptime.com{' '}
+                                                    </b>{' '}
+                                                    instead?
+                                                </span>
+                                            )}
+
+                                            {!error && success && (
+                                                <span className="db-FeedbackForm-success">
+                                                    Thank you for your feedback!
+                                                </span>
+                                            )}
                                             <span />
-                                            {this.props.feedback.feedback
-                                                .error ? (
+                                            {error ? (
                                                 <span className="bs-active-in"></span>
                                             ) : null}
                                             <div className="db-FeedbackForm-actions">
@@ -94,14 +112,12 @@ export class FeedbackModal extends Component {
                                                     }}
                                                 >
                                                     <span>
-                                                        {this.props.feedback
-                                                            .feedback.success
+                                                        {success || error
                                                             ? 'Close'
                                                             : 'Cancel'}
                                                     </span>
                                                 </button>
-                                                {this.props.feedback.feedback
-                                                    .success === false && (
+                                                {!error && !success && (
                                                     <button
                                                         className="bs-Button bs-DeprecatedButton db-FeedbackForm-submit bs-Button--blue"
                                                         id="feedback-button"
