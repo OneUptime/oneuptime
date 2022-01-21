@@ -25,9 +25,9 @@ RUN mkdir /usr/src/app
 # Install common-ui
 RUN mkdir /usr/src/common-ui
 WORKDIR /usr/src/common-ui
-COPY ../common-ui/package*.json /usr/src/common-ui/
+COPY ./common-ui/package*.json /usr/src/common-ui/
 RUN npm ci --only=production
-COPY ../common-ui /usr/src/common-ui
+COPY ./common-ui /usr/src/common-ui
 
 WORKDIR /usr/src/app
 
