@@ -14,9 +14,6 @@ SHELL ["/bin/bash", "-c"]
 #SET ENV Variables
 ENV PRODUCTION=true
 
-RUN mkdir /usr/src
-RUN mkdir /usr/src/app
-
 # Install common-server
 RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
@@ -26,7 +23,9 @@ RUN npm ci --only=production
 COPY ./common-server /usr/src/common-server
 
 
+
 # Install app
+RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install trivy for container scanning
