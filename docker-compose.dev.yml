@@ -322,8 +322,8 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
-            context: ./licensing
-            dockerfile: ./Dockerfile.dev
+            context: .
+            dockerfile: ./licensing/Dockerfile.dev
         volumes:
             - ./licensing:/usr/src/app
             # Use node modules of the container and not host system.
