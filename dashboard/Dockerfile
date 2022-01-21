@@ -12,6 +12,7 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 
 # Install common-ui
+RUN mkdir /usr/src
 RUN mkdir /usr/src/common-ui
 WORKDIR /usr/src/common-ui
 COPY ./common-ui/package*.json /usr/src/common-ui/
@@ -28,7 +29,6 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # Error message "error:0308010C:digital envelope routines::unsupported"
 ENV NODE_OPTIONS=--openssl-legacy-provider
 
-RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
