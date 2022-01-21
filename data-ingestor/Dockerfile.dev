@@ -34,8 +34,6 @@ RUN chmod +x ./kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl
 
-
-
 # Install app dependencies
 RUN cd /usr/src/app
 
