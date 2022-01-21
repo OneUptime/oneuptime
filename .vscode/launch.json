@@ -18,6 +18,30 @@
         },
         {
             "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/realtime",
+            "name": "Realtime: Debug with Docker",
+            "port": 9250,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/probe-api",
+            "name": "Probe API: Debug with Docker",
+            "port": 9251,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/licensing",
             "name": "Licensing: Debug with Docker",
             "port": 9233,

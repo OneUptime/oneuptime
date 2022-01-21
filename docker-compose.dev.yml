@@ -88,7 +88,7 @@ services:
     realtime:
         ports:
             - '3300:3300'
-            - '9240:9229' # Debugging port.
+            - '9250:9229' # Debugging port.
         build:
             context: .
             dockerfile: ./realtime/Dockerfile.dev
@@ -106,6 +106,7 @@ services:
     probe-api:
         ports:
             - '3400:3400'
+            - '9251:9229' # Debugging port.
         build:
             context: .
             dockerfile: ./probe-api/Dockerfile.dev
