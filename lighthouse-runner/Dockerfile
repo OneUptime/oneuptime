@@ -12,7 +12,7 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 
 # Install common-server
-
+RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
@@ -26,7 +26,6 @@ ENV CHROME_PATH=/usr/bin/chromium
 # Install Chrome.
 RUN apk add curl chromium
 
-RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
