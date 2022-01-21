@@ -21,9 +21,9 @@ RUN mkdir /usr/src/app
 RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
-COPY ../common-server/package*.json /usr/src/common-server/
+COPY ./common-server/package*.json /usr/src/common-server/
 RUN npm ci --only=production
-COPY ../common-server /usr/src/common-server
+COPY ./common-server /usr/src/common-server
 
 
 # Install app
