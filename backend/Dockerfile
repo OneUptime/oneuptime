@@ -22,7 +22,6 @@ COPY ./common-server /usr/src/common-server
 #SET ENV Variables
 ENV PRODUCTION=true
 
-RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
