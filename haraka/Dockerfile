@@ -1,4 +1,4 @@
-FROM node:17-alpine3.12
+FROM node:16-alpine3.12
 
 ARG PORT=25
 
@@ -29,6 +29,7 @@ RUN apk upgrade --update && \
     rm -rf /var/cache/apk/* /tmp/* ~/.pearrc
 
 RUN apk add bash
+RUN apk add curl
 
 # install software
 COPY haraka.sh /
