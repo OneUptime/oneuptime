@@ -31,7 +31,7 @@ COPY package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY . /usr/src/app
+COPY ./container-scanner /usr/src/app
 
 # Expose ports.
 #   - 3055: Container Scanner
