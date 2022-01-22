@@ -62,6 +62,7 @@ const consoleTransport = new winston.transports.Console({
     ),
     handleExceptions: true,
 });
+
 const logstashTransport = new logstash.LogstashTransport({
     host: process.env.LOGSTASH_HOST,
     port: process.env.LOGSTASH_PORT,
