@@ -1,9 +1,14 @@
-name: Common
-push:
-    branches: [ master ]
-    branches-ignore: [ hotfix-master, hotfix-release]
+name: Common Jobs
+
+on: 
+  push:
+    branches:    
+      - '*'        # matches every branch
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      
 jobs:
-  lint:
+  int:
     runs-on: ubuntu-latest
     steps:
       - run: apt-get update
