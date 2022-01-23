@@ -1,11 +1,11 @@
-name: Lint
+name: Common Jobs
 push:
     branches:    
       - '*'        # matches every branch
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
 jobs:
-  Explore-GitHub-Actions:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - run: apt-get update
