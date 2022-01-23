@@ -6,14 +6,14 @@ on:
       - 'hotfix-*'   # excludes hotfix branches
 
 jobs:
-  int:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - run: apt-get update
-      - run: apt-get install -y curl gcc
-      - run: apt-get install -y build-essential
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y curl gcc
+      - run: sudo apt-get install -y build-essential
       - run: curl -sL https://deb.nodesource.com/setup_12.x | -E bash -
-      - run: apt-get install -y nodejs
+      - run: sudo apt-get install -y nodejs
       - run: npm ci
       - run: npm run lint
       - run: chmod +x ./ci/scripts/cleanup.sh
