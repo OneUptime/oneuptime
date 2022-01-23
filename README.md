@@ -28,4 +28,4 @@ All under one platform.
 -   [Deployment](/docs/deployment.md)
 
 # Contribute
-For contribution guidelines, see [CONTRIBUTING](/contributing.md).
+For contribution guidelines, see [CONTRIBUTING](/CONTRIBUTING.md).
