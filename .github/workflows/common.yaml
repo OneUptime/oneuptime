@@ -2,11 +2,9 @@ name: Common Jobs
 
 on: 
   push:
-    branches:    
-      - '*'        # matches every branch
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
-      
+
 jobs:
   int:
     runs-on: ubuntu-latest
