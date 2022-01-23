@@ -1,7 +1,7 @@
 name: Lint
 push:
     branches:    
-      - '**'        # matches every branch
+      - '*'        # matches every branch
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
 jobs:
