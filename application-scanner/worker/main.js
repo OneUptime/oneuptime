@@ -1,4 +1,3 @@
-
 const getApi = require('../utils/api').getApi;
 const ErrorService = require('../utils/errorService');
 const ApplicationSecurity = require('./applicationSecurity');

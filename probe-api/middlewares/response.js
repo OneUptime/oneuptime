@@ -1,5 +1,3 @@
-
-
 module.exports = {
     sendErrorResponse: function(req, res, error) {
         //log error to the console.

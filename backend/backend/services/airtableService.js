@@ -1,4 +1,3 @@
-
 module.exports = {
     //Description: Create new user entry on airtable.
     //Params:

@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const request = require('request');
 const IntegrationService = require('../services/integrationService');

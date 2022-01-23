@@ -1,4 +1,3 @@
-
 module.exports = {
     confirm: async ({ license, email, limit }) => {
         try {

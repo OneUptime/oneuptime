@@ -1,5 +1,3 @@
-
-
 module.exports = {
     //Description: Call this fuction to retrieve list of invoices for a customer.
     //Params:

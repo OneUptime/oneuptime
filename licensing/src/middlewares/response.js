@@ -1,4 +1,3 @@
-
 const JsonToCsv = require('./jsonToCsv');
 
 module.exports = {

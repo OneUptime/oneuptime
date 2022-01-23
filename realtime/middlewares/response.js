@@ -1,4 +1,3 @@
-
 module.exports = {
     sendEmptyResponse(req, res) {
         //purge request.

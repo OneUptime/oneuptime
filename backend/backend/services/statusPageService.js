@@ -1,5 +1,3 @@
-
-
 module.exports = {
     findBy: async function({ query, skip, limit, populate, select }) {
         if (!skip) skip = 0;

@@ -1,5 +1,3 @@
-
-
 module.exports = {
     //Description: Create new project for user.
     //Params:

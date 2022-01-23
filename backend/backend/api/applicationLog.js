@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const ApplicationLogService = require('../services/applicationLogService');
 const UserService = require('../services/userService');

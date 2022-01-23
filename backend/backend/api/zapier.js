@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const ZapierService = require('../services/zapierService');
 const MonitorService = require('../services/monitorService');

@@ -1,5 +1,3 @@
-
-
 const apiMiddleware = require('./api');
 const SendErrorResponse = require('../middlewares/response').sendErrorResponse;
 

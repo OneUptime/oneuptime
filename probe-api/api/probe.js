@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const MonitorService = require('../services/monitorService');
 const router = express.Router();

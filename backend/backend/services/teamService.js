@@ -1,5 +1,3 @@
-
-
 module.exports = {
     //Description: Get all team members of Project or Subproject.
     //Params:

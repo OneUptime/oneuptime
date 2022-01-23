@@ -1,5 +1,3 @@
-
-
 module.exports = {
     Call: 'call',
     Email: 'email',

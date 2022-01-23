@@ -1,5 +1,3 @@
-
-
 module.exports = {
     CLIENT_ID: process.env['CLIENT_ID'] || '3133949145.437395941636',
     API_ROUTE: process.env['API_ROUTE'] || 'https://fyipe.com/api',

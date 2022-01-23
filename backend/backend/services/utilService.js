@@ -1,5 +1,3 @@
-
-
 module.exports = {
     // Description: Checks if user email is vaild Params:
     // Param 1:  email.

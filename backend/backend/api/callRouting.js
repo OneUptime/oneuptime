@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const { fetchPhoneNumbers } = require('../services/twilioService');
 const CallRoutingService = require('../services/callRoutingService');

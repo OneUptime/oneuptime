@@ -1,5 +1,3 @@
-
-
 module.exports = {
     findBy: async function({ query, select, populate }) {
         if (!query) {

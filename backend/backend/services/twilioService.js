@@ -1,4 +1,3 @@
-
 const incidentSMSActionModel = require('../models/incidentSMSAction');
 const twilio = require('twilio');
 const SmsSmtpService = require('./smsSmtpService');

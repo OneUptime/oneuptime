@@ -1,5 +1,3 @@
-
-
 module.exports = {
     getPlans() {
         //if in testing.

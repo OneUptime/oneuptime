@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const SubscriberAlertService = require('../services/subscriberAlertService');
 const path = require('path');

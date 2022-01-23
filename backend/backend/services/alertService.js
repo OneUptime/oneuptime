@@ -1,5 +1,3 @@
-
-
 module.exports = {
     /**
      * gets the schedules to use for alerts

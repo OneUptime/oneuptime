@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const ScheduleService = require('../services/scheduleService');
 const router = express.Router();

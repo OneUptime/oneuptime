@@ -1,5 +1,3 @@
-
-
 //Note: This should go into a DB later.
 
 module.exports = [

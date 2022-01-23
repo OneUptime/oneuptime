@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const IncidentService = require('../services/incidentService');
 const UserService = require('../services/userService');

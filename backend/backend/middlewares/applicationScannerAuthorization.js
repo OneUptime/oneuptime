@@ -1,4 +1,3 @@
-
 const ApplicationScannerService = require('../services/applicationScannerService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');

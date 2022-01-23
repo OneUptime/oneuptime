@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;

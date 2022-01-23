@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const ReportService = require('../services/reportService');
 const { isAuthorized } = require('../middlewares/authorization');
