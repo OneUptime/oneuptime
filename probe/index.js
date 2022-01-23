@@ -117,7 +117,7 @@ global.Sentry = Sentry;
 
 setTimeout(async () => {
     // keep monitoring in an infinate loop.
-    
+
     //eslint-disable-next-line
     while (true) {
         await Main.runJob(monitorStore);
