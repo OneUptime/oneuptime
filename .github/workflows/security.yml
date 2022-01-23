@@ -10,7 +10,7 @@
 # For more examples, including how to limit scans to only high-severity issues
 # and fail PR checks, see https://github.com/snyk/actions/
 
-name: Snyk Infrastructure as Code
+name: Security
 
 on:
   push:

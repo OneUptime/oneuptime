@@ -1,7 +1,6 @@
-name: Common Jobs
+name: Common
 push:
-    branches:    
-      - '*'        # matches every branch
+    branches: [ master ]
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
 jobs:
