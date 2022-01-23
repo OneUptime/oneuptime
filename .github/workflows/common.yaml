@@ -1,0 +1,37 @@
+name: Lint
+push:
+    branches:    
+      - '**'        # matches every branch
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+jobs:
+  Explore-GitHub-Actions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y curl gcc
+      - run: apt-get install -y build-essential
+      - run: curl -sL https://deb.nodesource.com/setup_12.x | -E bash -
+      - run: apt-get install -y nodejs
+      - run: npm ci
+      - run: npm run lint
+      - run: chmod +x ./ci/scripts/cleanup.sh
+      - run: ./ci/scripts/cleanup.sh
+
+# Run lint all projects
+lint-projects:
+    stage: BuildAndTest
+    script:
+        - apt-get update
+        - apt-get install -y curl gcc
+        - apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | -E bash -
+        - apt-get install -y nodejs
+        - npm ci
+        - npm run lint
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
