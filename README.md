@@ -1,8 +1,20 @@
 # OneUptime
 
-## CI/CD Status
+OneUptime is an open-source complete SRE and DevOps platform. 
 
-[![pipeline status](https://gitlab.com/oneuptime/app/badges/master/pipeline.svg)](https://gitlab.com/oneuptime/app/-/commits/master)
+OneUptime monitors your website, dashboards, API's, and more and alerts your team when downtime happens. We also give you a Status Page which keeps your customers looped in and improves transparency.
+
+OneUptime does: 
+- Uptime Monitoring just like Pingdom
+- Status Page just like StatusPage.io
+- Tests just like Postman
+- Security just like Snyk
+- Logs Management just like Loggly
+- Incident Management just like PagerDuty
+- Performance Monitoring just like NewRelic
+- Error Tracking just like Sentry
+
+All under one platform. 
 
 ## Contents
 
@@ -15,8 +27,5 @@
 -   [Running tests](/docs/running-tests.md)
 -   [Deployment](/docs/deployment.md)
 
-## LISENCE
-
-Copyright (C) HackerBay, Inc - All Rights Reserved
-Unauthorized copying of this project, via any medium is strictly prohibited
-This project is proprietary and confidential
+# Contribute
+For contribution guidelines, see [CONTRIBUTING](/contributing.md).
