@@ -1,8 +1,7 @@
 name: Common
 push:
     branches: [ master ]
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
+    branches-ignore: [ hotfix-master, hotfix-release]
 jobs:
   lint:
     runs-on: ubuntu-latest
