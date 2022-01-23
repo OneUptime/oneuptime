@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const express = require('express');
 const loginHistoryService = require('../services/loginHistoryService');

@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const ProbeService = require('../services/probeService');
 const sendErrorResponse = require('./response').sendErrorResponse;
 const ErrorService = require('../services/errorService');

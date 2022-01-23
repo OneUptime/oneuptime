@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 // Initial colors for the status page
 module.exports = {
     default: {

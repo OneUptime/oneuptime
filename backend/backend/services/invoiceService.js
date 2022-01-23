@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 module.exports = {
     //Description: Call this fuction to retrieve list of invoices for a customer.

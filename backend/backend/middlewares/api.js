@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const mongoose = require('../config/db');
 const ProjectService = require('../services/projectService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;

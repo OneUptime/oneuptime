@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const url = require('url');
 const _ = require('lodash');

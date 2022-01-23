@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const express = require('express');
 const ApplicationLogService = require('../services/applicationLogService');

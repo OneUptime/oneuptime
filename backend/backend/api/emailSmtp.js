@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const express = require('express');
 const EmailSmtpService = require('../services/emailSmtpService');

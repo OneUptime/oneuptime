@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 module.exports = {
     //Description: Get all team members of Project or Subproject.

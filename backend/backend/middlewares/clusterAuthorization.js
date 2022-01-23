@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 module.exports = {

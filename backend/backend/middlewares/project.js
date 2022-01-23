@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const ProjectService = require('../services/projectService');
 const ErrorService = require('../services/errorService');

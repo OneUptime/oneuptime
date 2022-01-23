@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 module.exports = {
     CLIENT_ID: process.env['CLIENT_ID'] || '3133949145.437395941636',

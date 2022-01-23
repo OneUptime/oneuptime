@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const mongoose = require('mongoose');
 const logger = require('./logger');

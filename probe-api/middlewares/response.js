@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 module.exports = {
     sendErrorResponse: function(req, res, error) {

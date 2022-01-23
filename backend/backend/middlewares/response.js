@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const Mongoose = require('mongoose');
 const mongoose = require('../config/db');

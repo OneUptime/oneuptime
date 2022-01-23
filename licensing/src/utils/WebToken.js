@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const jwt = require('jsonwebtoken');
 const { tokenSecret } = require('../config/token');
 

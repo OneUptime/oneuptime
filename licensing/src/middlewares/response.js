@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const JsonToCsv = require('./jsonToCsv');
 
 module.exports = {

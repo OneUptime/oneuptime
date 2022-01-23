@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const logger = require('../../common-server/utils/logger');
 const getApi = require('../utils/api').getApi;
 const ApiMonitors = require('./apiMonitors');

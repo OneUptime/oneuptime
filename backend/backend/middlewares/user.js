@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const jwtSecretKey = process.env['JWT_SECRET'];
 const jwt = require('jsonwebtoken');

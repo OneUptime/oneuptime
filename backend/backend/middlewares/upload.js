@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 
 const { GridFsStorage } = require('multer-gridfs-storage');
 const crypto = require('crypto');

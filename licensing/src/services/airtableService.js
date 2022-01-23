@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 const Airtable = require('airtable');
 const { airtableApiKey, airtableBaseId } = require('../config/airtable');
 

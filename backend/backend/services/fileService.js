@@ -1,8 +1,4 @@
-/**
- *
- * Copyright HackerBay, Inc.
- *
- */
+
 module.exports = {
     findOneBy: async function(query) {
         const gfs = await Grid(mongoose.connection.db, mongoose.mongo);
