@@ -574,10 +574,9 @@ class TopContent extends Component {
                                             src="/dashboard/assets/icons/question.svg"
                                             id="search-input-img"
                                             style={{
-                                                width: '22px',
-                                                height: '22px',
+                                                width: '25px',
+                                                height: '25px',
                                                 position: 'relative',
-                                                color: '#fff',
                                             }}
                                             alt="search-icon"
                                         />
