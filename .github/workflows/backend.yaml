@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '16'
-      - name: Run tests
+      - name: Run Backend tests
         run: |-
           sudo apt-get update
           sudo apt-get install -y curl gcc
