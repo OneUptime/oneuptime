@@ -184,7 +184,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - FETCH_RESOURCES_URL=http://probe-api:3400
+            - PROBE_API_URL=http://probe-api:3400
         depends_on:
             - backend
             - data-ingestor
