@@ -25,4 +25,5 @@ jobs:
           cd accounts
           echo 'HERE'
           npm ci
+          npm run audit
 
