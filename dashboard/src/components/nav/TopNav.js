@@ -465,7 +465,11 @@ class TopContent extends Component {
                 <div>
                     <ShouldRender if={this.props.subProjects.length > 0}>
                         <SubProjectDropDown
-                            value={activeSubProject || 'Select SubProject'}
+                            value={
+                                (activeSubProject &&
+                                    `You are currently viewing ${activeSubProject}`) ||
+                                'Select SubProject'
+                            }
                             options={[
                                 {
                                     value: this.props.currentProject?._id,
@@ -570,8 +574,8 @@ class TopContent extends Component {
                                             src="/dashboard/assets/icons/question.svg"
                                             id="search-input-img"
                                             style={{
-                                                width: '20px',
-                                                height: '20px',
+                                                width: '22px',
+                                                height: '22px',
                                                 position: 'relative',
                                                 color: '#fff',
                                             }}
