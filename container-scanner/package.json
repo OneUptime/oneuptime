@@ -10,7 +10,7 @@
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },
-    "author": "David Adewole",
+    "author": "HackerBay, Inc.",
     "license": "MIT",
     "dependencies": {
         "@sentry/node": "^6.16.1",

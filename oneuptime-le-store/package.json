@@ -11,9 +11,9 @@
         "mongo",
         "oneuptime"
     ],
-    "author": "Jude Ojini <judoc96@gmail.com>",
+    "author": "HackerBay, Inc.  <hello@hackerbay.io>",
     "contributors": [
-        "Jude Ojini <judoc96@gmail.com>"
+        "HackerBay, Inc.  <hello@hackerbay.io>"
     ],
     "license": "MIT",
     "dependencies": {
