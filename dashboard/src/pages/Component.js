@@ -219,7 +219,14 @@ class ComponentDashboardView extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="New Component Form"
+                    name={
+                        this.state.showNewComponentForm ||
+                        !components ||
+                        components.length === 0 ||
+                        components[0] === false
+                            ? 'New Component Form'
+                            : 'Components'
+                    }
                     pageTitle="Components"
                     addBtn={components.length > 0 && components[0] !== false}
                     btnText="Create New Component"
