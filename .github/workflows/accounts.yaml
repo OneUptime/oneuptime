@@ -24,4 +24,5 @@ jobs:
           sudo apt-get install -y nodejs
           cd accounts
           echo 'HERE'
+          npm ci
 
