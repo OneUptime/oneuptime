@@ -15,5 +15,8 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '16'
-      - run: npm ci
-      - run: npm run test
+      - name: Run tests
+        run: |-
+          cd backend
+          npm ci
+          npm run test
