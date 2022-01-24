@@ -42,8 +42,8 @@
         "valid-url": "^1.0.9"
     },
     "scripts": {
-        "dev": "PORT=3100 react-scripts start",
-        "build": "react-scripts build",
+        "dev": "PORT=3100 react-scripts --openssl-legacy-provider start",
+        "build": "react-scripts --openssl-legacy-provider build",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.js",

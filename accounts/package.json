@@ -41,8 +41,8 @@
         "workbox-build": "^6.1.5"
     },
     "scripts": {
-        "dev": "PORT=3003 react-scripts start",
-        "build": "react-scripts build && npm run build-sw",
+        "dev": "PORT=3003 react-scripts --openssl-legacy-provider start",
+        "build": "react-scripts --openssl-legacy-provider build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
