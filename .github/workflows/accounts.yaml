@@ -25,7 +25,6 @@ jobs:
           cd data-ingestor
           npm ci
           npm run audit
-          npm run dep-check
           cd ..
           chmod +x ./ci/scripts/storehash.sh
           ./ci/scripts/storehash.sh audit_api-docs api-docs
