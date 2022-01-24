@@ -196,7 +196,13 @@ class ApplicationLog extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Logs"
+                    pageTitle="Logs"
+                    name={
+                        this.state.showNewLogContainerForm ||
+                        !applicationLogsList
+                            ? 'New Log Container'
+                            : 'Logs'
+                    }
                     addBtn={applicationLogsList}
                     btnText="Create New Log Container"
                     toggleForm={this.toggleForm}

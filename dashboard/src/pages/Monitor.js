@@ -394,7 +394,8 @@ class MonitorDashboardView extends Component {
                 <BreadCrumbItem route={pathname} name={componentName} />
                 <BreadCrumbItem
                     route={pathname + '#'}
-                    name="Monitors"
+                    name="New Monitor Form"
+                    pageTitle="Monitors"
                     addBtn={monitors.length > 0 && monitors[0] !== false}
                     btnText="Create New Monitor"
                     toggleForm={this.toggleForm}

@@ -213,7 +213,11 @@ class Application extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Application Security"
+                    name={
+                        this.state.showApplicationSecurityForm || isEmpty
+                            ? 'New Application Security'
+                            : 'Application Security'
+                    }
                     pageTitle="Application"
                     addBtn={!isEmpty}
                     btnText="Create Application Security"

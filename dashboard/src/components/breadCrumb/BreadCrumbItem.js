@@ -105,7 +105,7 @@ function BreadCrumbItem({
                 'Badge Badge--color--blue Box-background--blue bg-blue-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2 Margin-left--4'
             );
         }
-        titleText.innerHTML = name;
+        titleText.innerHTML = pageTitle || name;
         resourceType.innerHTML = type
             ? type === 'server-monitor'
                 ? 'Server Monitor'

@@ -219,7 +219,8 @@ class ComponentDashboardView extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Components"
+                    name="New Component Form"
+                    pageTitle="Components"
                     addBtn={components.length > 0 && components[0] !== false}
                     btnText="Create New Component"
                     toggleForm={this.toggleForm}
