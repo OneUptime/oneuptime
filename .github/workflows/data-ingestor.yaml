@@ -2,7 +2,6 @@ name: Data-Ingestor Audit Jobs
 
 on:
   push:
-    branches: [master release]
     # run this workflow when changes are pushed to data-ingestor
     paths:
       - "data-ingestor/**"
