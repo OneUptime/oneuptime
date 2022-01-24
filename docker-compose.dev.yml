@@ -117,6 +117,12 @@ services:
             - PORT=3400
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REALTIME_URL=http://realtime:3300
+        volumes:
+            - ./probe-api:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - /usr/src/app/greenlock.d/
 
     # There can only be one probe in developer docker compose.
     probe:
