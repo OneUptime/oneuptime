@@ -1,7 +1,7 @@
 const PerformanceTrackerModel = require('../models/performanceTracker');
 const ErrorService = require('./errorService');
 const ComponentService = require('./componentService');
-const { nanoid } = require('nanoid');
+const generate = require('nanoid/generate');
 const slugify = require('slugify');
 // const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
@@ -45,7 +45,7 @@ module.exports = {
             // handle the slug
             let name = data.name;
             name = slugify(name);
-            name = `${name}-${nanoid('1234567890', 8)}`;
+            name = `${name}-${generate('1234567890', 8)}`;
             data.slug = name.toLowerCase();
 
             let performanceTracker = await PerformanceTrackerModel.create(data);
@@ -229,7 +229,7 @@ module.exports = {
         if (data && data.name) {
             let name = data.name;
             name = slugify(name);
-            name = `${name}-${nanoid('1234567890', 8)}`;
+            name = `${name}-${generate('1234567890', 8)}`;
             data.slug = name.toLowerCase();
         }
         let performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(

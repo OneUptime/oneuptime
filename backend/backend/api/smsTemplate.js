@@ -4,9 +4,8 @@ const SmsTemplateService = require('../services/smsTemplateService');
 const router = express.Router();
 
 const createDOMPurify = require('dompurify');
-const jsdom = require('jsdom');
-const { JSDOM } = jsdom;
-const { window } = new JSDOM('').window;
+const jsdom = require('jsdom').jsdom;
+const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
 
 const { isAuthorized } = require('../middlewares/authorization');
