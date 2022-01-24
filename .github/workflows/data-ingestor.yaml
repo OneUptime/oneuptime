@@ -1,11 +1,11 @@
-name: Account Jobs
+name: Data-Ingestor Jobs
 
 on:
   push:
-    # run this workflow when changes are pushed to accounts
+    # run this workflow when changes are pushed to data-ingestor
     paths:
-      - "accounts/**"
-      - ".github/workflows/accounts.yaml"
+      - "data-ingestor/**"
+      - ".github/workflows/data-ingestor.yaml"
 
 jobs:
   test:
@@ -26,8 +26,6 @@ jobs:
           npm ci
           npm run audit
           cd ..
-          chmod +x ./ci/scripts/storehash.sh
-          ./ci/scripts/storehash.sh audit_api-docs api-docs
           chmod +x ./ci/scripts/cleanup.sh
           ./ci/scripts/cleanup.sh
 
