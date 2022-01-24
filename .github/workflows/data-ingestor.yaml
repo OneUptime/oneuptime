@@ -1,4 +1,4 @@
-name: Data-Ingestor Jobs
+name: Data-Ingestor Audit Jobs
 
 on:
   push:
