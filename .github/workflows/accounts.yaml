@@ -25,5 +25,5 @@ jobs:
           cd api-docs
           echo 'HERE'
           npm ci
-          npm run dep-check
+          npm run audit
 
