@@ -26,7 +26,10 @@ jobs:
           curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
           sudo apt-get install -y nodejs
           cd api-docs
-          echo 'HERE'
           npm ci
-          npm run audit
+          cd ..
+          chmod +x ./ci/scripts/storehash.sh
+          ./ci/scripts/storehash.sh audit_api-docs api-docs
+          chmod +x ./ci/scripts/cleanup.sh
+          ./ci/scripts/cleanup.sh
 
