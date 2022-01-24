@@ -1,0 +1,9 @@
+name: Main
+on: [push]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Jobs
+      - run: ./.github/workflows/data-ingestor/audit.yaml
