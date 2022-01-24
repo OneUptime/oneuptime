@@ -94,8 +94,8 @@
     },
     "scripts": {
         "lint": "eslint .",
-        "dev": "PORT=3000 react-scripts start",
-        "build": "react-scripts build && npm run build-sw",
+        "dev": "PORT=3000 react-scripts --openssl-legacy-provider start",
+        "build": "react-scripts --openssl-legacy-provider build && npm run build-sw",
         "postbuild": "purgecss --css build/assets/css/*.css --content build/index.html build/static/js/*.js --output build/assets/css",
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --forceExit --testSequencer ./src/test/puppeteer/CustomSequencer.js --runInBand ./src/test/puppeteer/*.test.js",
