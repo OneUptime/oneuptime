@@ -2,8 +2,9 @@ name: Main
 on: [push]
 
 jobs:
-  main:
+  job:
     runs-on: ubuntu-latest
     steps:
-      - name: Jobs
-      - run: ./.github/workflows/data-ingestor/audit.yaml
+      - name: All Jobs
+      - uses: actions/checkout@v2
+      - run: ./.github/workflows/data-ingestor
