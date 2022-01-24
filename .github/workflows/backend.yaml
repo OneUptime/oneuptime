@@ -1,0 +1,19 @@
+name: Backend Jobs
+
+on: 
+  push:
+    # run this workflow when changes are pushed to backend
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: npm ci
+      - run: npm run test
