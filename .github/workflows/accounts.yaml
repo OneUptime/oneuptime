@@ -1,0 +1,29 @@
+name: Account Jobs
+
+on:
+  push:
+    # run this workflow when changes are pushed to accounts
+    paths:
+      - "accounts/**"
+      - ".github/workflows/accounts.yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '17'
+      - name: Run tests
+        run: |-
+          - sudo apt-get update
+          - sudo apt-get install -y curl gcc
+          - sudo apt-get install -y build-essential
+          - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+          - sudo apt-get install -y nodejs
+          - cd accounts
+          - npm ci
+          - npm run audit
+          - npm run dep-check
+
