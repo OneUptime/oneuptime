@@ -1,7 +1,12 @@
 name: Main
 
-runs:
-  using: "composite"
-  steps:
-    - run: ./.github/workflows/data-ingestor/audit.yaml
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
 
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./.github/workflows/data-ingestor/audit.yaml
