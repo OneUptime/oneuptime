@@ -68,8 +68,8 @@ class ComponentSettings extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Component Settings"
-                    pageTitle="Advanced"
+                    name="Basic"
+                    pageTitle="Basic"
                 />
                 <div className="Box-root Margin-vertical--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
