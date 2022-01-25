@@ -9,6 +9,6 @@ jobs:
   job:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/data-ingestor
+      - uses: ./.github/data-ingestor/
 
 
