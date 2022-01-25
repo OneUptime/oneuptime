@@ -1,6 +1,9 @@
 name: All Jobs
 
-on: push
+on:
+  push:
+    branches:
+    - feature-github-actions-3
 
 jobs: 
   run_all_jobs:
