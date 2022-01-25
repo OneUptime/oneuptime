@@ -1,11 +1,7 @@
 name: Main
-on: [push]
 
-jobs:
-  job:
-    runs-on: ubuntu-latest
-    steps:
-      - name: All Jobs
-      - uses: ./.github/workflows/data-ingestor
-      - run: ./.github/workflows/data-ingestor
+runs:
+  using: "composite"
+  steps:
+    - run: ./.github/workflows/data-ingestor/audit.yaml
 
