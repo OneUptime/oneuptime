@@ -1,0 +1,9 @@
+name: All Jobs
+
+on: push
+
+jobs: 
+  run_all_jobs:
+    - name: Require Backend Job
+      id: Backend
+      uses: ./.github/backend
