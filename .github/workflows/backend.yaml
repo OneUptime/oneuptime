@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./ci/spec/backend/backend.yaml
+      - uses: actions/setup-node@v2
+      - USES: ./ci/spec/backend/backend.yaml
         with:
           node-version: '16'
