@@ -9,4 +9,4 @@ jobs:
   job:
     runs-on: ubuntu-latest
     steps:
-      - run: ./.github/workflows/data-ingestor/audit.yaml
+      - uses: ./.github/workflows/data-ingestor/audit.yaml
