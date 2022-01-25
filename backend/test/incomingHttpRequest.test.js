@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env.PORT = 3002;
 process.env.IS_SAAS_SERVICE = true;
 const chai = require('chai');
 const expect = require('chai').expect;

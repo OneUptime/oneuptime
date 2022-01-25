@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env.PORT = 3002;
 const expect = require('chai').expect;
 const data = require('./data/user');
 const profile = require('./data/user').profile;

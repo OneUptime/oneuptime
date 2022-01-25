@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env.PORT = 3002;
 process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;

@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-process.env.PORT = 3020;
+process.env.PORT = 3002;
 const userData = require('./data/user');
 const chai = require('chai');
 chai.use(require('chai-http'));

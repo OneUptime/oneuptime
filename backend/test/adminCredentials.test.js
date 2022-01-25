@@ -1,5 +1,5 @@
 const userData = require('./data/user');
-process.env.PORT = 3020;
+process.env.PORT = 3002;
 process.env.ADMIN_EMAIL = userData.adminUser.email.toLowerCase();
 process.env.ADMIN_PASSWORD = userData.adminUser.password;
 const chai = require('chai');
