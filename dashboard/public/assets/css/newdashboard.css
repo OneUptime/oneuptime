@@ -10301,8 +10301,17 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 
 .monitor-type-grid{
     display: grid;
-  grid-template-columns: auto;
-  grid-gap: 20px;
+    grid-template-columns: repeat(2, 350px);
+    grid-template-rows: auto;
+    grid-row-gap: 20px;
+}
+.monitor-description {
+    opacity: 0;
+    transition: all .3s linear;
+}
+
+.monitor-type-grid:hover .monitor-description {
+    opacity: 1;
 }
 
 .price-list-4c {
