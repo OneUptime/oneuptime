@@ -1,9 +1,11 @@
 name: All Jobs
 
-on:
+on: 
   push:
-    branches:
-    - feature-github-actions-3
+    # run this workflow when changes are pushed to backend
+    paths:
+      - "backend/**"
+      - ".github/backend.yaml"
     workflow_dispatch: {}
 
 jobs: 
