@@ -1,10 +1,8 @@
 name: All Jobs
+
 on: push
+    
 jobs:
   run_all_jobs:
-    - name: Require Backend Job
-      id: Backend
-      uses: ./.github/backend
-    - name: Require Data-Ingestor Job
-      id: Data-Ingestor
-      uses: ./.github/data-ingestor
+    name: Run tests
+    uses: ./.github/data-ingestor
