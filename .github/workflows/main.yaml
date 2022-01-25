@@ -5,7 +5,7 @@ on:
     # run this workflow when changes are pushed to backend
     paths:
       - "backend/**"
-      - ".github/main.yaml"
+      - ".github/workflows/main.yaml"
     workflow_dispatch: {}
 
 jobs: 
