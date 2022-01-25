@@ -1,8 +1,14 @@
-name: All Jobs
+name: Main
 
-on: push
-    
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+
 jobs:
-  run_all_jobs:
-    name: Run tests
-    uses: ./.github/data-ingestor
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/data-ingestor
+
+
