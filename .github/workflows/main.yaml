@@ -13,9 +13,9 @@ jobs:
     name: Running tests
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
-        uses: actions/setup-node@v2
-      - name: Require Backend Job
-        id: Backend
-        uses: ./.github/backend
+    - name: Check out repository
+      uses: actions/checkout@v2
+      uses: actions/setup-node@v2
+    - name: Require Backend Job
+      id: Backend
+      uses: ./.github/backend
