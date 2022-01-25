@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '16'
       - name: Run Backend tests
-        run: |-
+        run: |
           sudo apt-get update
           sudo apt-get install -y curl gcc
           sudo apt-get install -y build-essential
@@ -32,5 +32,4 @@ jobs:
           node --version
           cd backend
           npm ci
-          env
           npm run test
