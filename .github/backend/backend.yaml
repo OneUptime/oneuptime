@@ -1,5 +1,5 @@
-name: Backend Jobs
-
+name: Require Backend Job
+description: Performs some preparation to run tests
 on: 
   push:
     # run this workflow when changes are pushed to backend
@@ -7,7 +7,7 @@ on:
       - "backend/**"
       - ".github/workflows/backend.yaml"
 
-jobs:
+runs:
   test:
     runs-on: ubuntu-latest
     steps:

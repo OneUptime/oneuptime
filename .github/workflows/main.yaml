@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - feature-github-actions-3
+    workflow_dispatch: {}
 
 jobs: 
   run_all_jobs:
