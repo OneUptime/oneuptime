@@ -1,29 +1,28 @@
-name: Require Backend Job
+name: "Require Backend Job"
 description: Performs some preparation to run tests
 
 runs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-      - name: Run Backend tests
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl gcc
-          sudo apt-get install -y build-essential
-          curl -sSL https://get.docker.com/ | sh
-          sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
-          sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-          sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-          sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
-          sudo docker build -t oneuptime/backend:3.0 ./backend
-          sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true -p 3002:3002 -d oneuptime/backend:3.0
-          sudo docker ps
-          sudo apt-get install -y nodejs
-          node --version
-          cd backend
-          npm ci
-          npm run test
+  using: composite
+  steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+    - name: Run Backend tests
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl gcc
+        sudo apt-get install -y build-essential
+        curl -sSL https://get.docker.com/ | sh
+        sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+        sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        sudo docker build -t oneuptime/backend:3.0 ./backend
+        sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true -p 3002:3002 -d oneuptime/backend:3.0
+        sudo docker ps
+        sudo apt-get install -y nodejs
+        node --version
+        cd backend
+        npm ci
+        npm run test
