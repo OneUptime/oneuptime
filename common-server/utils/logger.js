@@ -86,7 +86,6 @@ transports.push(consoleTransport);
 transports.push(logstashTransport);
 
 const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
     format: winston.format.combine(
         winston.format(logFormatter)(),
         winston.format(envTag)()

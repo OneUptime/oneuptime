@@ -7,7 +7,7 @@
         "type": "git",
         "url": "git+https://github.com/Fyipe/api-docs.git"
     },
-    "author": "RT Bathula",
+    "author": "HackerBay, Inc.",
     "license": "ISC",
     "bugs": {
         "url": "https://github.com/fyipe/api-docs/issues"

@@ -30,6 +30,7 @@
         "fix": "npm run fix-lint",
         "build": "docker-compose build",
         "build-dev": "docker-compose -f docker-compose.dev.yml build $npm_config_services",
+        "logs-dev": "docker-compose -f docker-compose.dev.yml logs $npm_config_services",
         "force-build-dev": "docker-compose -f docker-compose.dev.yml build --no-cache $npm_config_services",
         "prod": "docker-compose up -d",
         "dev": "npm run start-enterprise-dev $npm_config_services",

@@ -10,7 +10,7 @@
         "dep-check": "depcheck ./ --skip-missing=true"
     },
     "keywords": [],
-    "author": "Jude Ojini",
+    "author": "HackerBay, Inc. ",
     "license": "ISC",
     "dependencies": {
         "@sentry/node": "^6.16.1",
