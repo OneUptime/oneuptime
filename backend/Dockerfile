@@ -15,9 +15,9 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
-COPY ./common-server/package*.json /usr/src/common-server/
+COPY ./package*.json /usr/src/common-server/
 RUN npm ci --only=production
-COPY ./common-server /usr/src/common-server
+COPY . /usr/src/common-server
 
 #SET ENV Variables
 ENV PRODUCTION=true
