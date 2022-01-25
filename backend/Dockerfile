@@ -30,11 +30,11 @@ WORKDIR /usr/src/app
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install app dependencies
-COPY ./backend/package*.json /usr/src/app/
+COPY ./package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
-COPY ./backend /usr/src/app
+COPY . /usr/src/app
 
 # Expose ports.
 #   - 3002: OneUptime-backend
