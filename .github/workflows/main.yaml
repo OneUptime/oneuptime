@@ -1,12 +1,10 @@
-name: Main
-
-on: 
-  push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-
+name: All Jobs
+on: push
 jobs:
-  job:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: ./.github/workflows/data-ingestor/audit.yaml
+  run_all_jobs:
+    - name: Require Backend Job
+      id: Backend
+      uses: ./.github/backend
+    - name: Require Data-Ingestor Job
+      id: Data-Ingestor
+      uses: ./.github/data-ingestor
