@@ -12,6 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./ci/spec/backend/backend.yaml
+      - uses: actions/setup-node@v2
         with:
           node-version: '16'
+      - name: Run Backend tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl gcc
+          sudo apt-get install -y build-essential
+          curl -sSL https://get.docker.com/ | sh
+          sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+          sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+          sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+          sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+          sudo docker ps
+          sudo apt-get install -y nodejs
+          cd backend
+          npm ci
+          ENCRYPTION_KEY=$ENCRYPTION_KEY TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_NAME=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD IS_SAAS_SERVICE=true IS_TESTING=true DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS TEST_UNMASKED_USERNAME=$TEST_UNMASKED_USERNAME TEST_UNMASKED_PASSWORD=$TEST_UNMASKED_PASSWORD TEST_SECURITY_SCAN_REPOSITORY_URL=$TEST_SECURITY_SCAN_REPOSITORY_URL npm test
