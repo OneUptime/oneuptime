@@ -15,8 +15,8 @@ jobs:
           check-latest: true
       - run: sudo npm install -g json
       - run: cd oneuptime-acme-http-01
-      - run: chmod +x ../ci/scripts/version-setup.sh
-      - run: ../ci/scripts/version-setup.sh
+      - run: chmod +x ./ci/scripts/version-setup.sh
+      - run: ./ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime-acme-http-01"'
       - run: echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
       - run: npm publish
