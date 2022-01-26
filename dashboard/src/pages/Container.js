@@ -216,7 +216,11 @@ class Container extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Container Security"
+                    name={
+                        this.state.showContainerSecurityForm || isEmpty
+                            ? 'New Container Security'
+                            : 'Container Security'
+                    }
                     pageTitle="Container"
                     addBtn={!isEmpty}
                     btnText="Create Container Security"

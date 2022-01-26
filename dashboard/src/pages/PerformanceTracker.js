@@ -197,7 +197,12 @@ class PerformanceTracker extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Performance Tracker"
+                    name={
+                        this.state.showNewPerformanceTrackerForm || isEmpty
+                            ? 'New Performance Tracker'
+                            : 'Performance Tracker'
+                    }
+                    pageTitle="Performance Tracker"
                     addBtn={!isEmpty}
                     btnText="Create New Performance Tracker"
                     toggleForm={this.toggleForm}

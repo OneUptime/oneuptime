@@ -10239,10 +10239,13 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     padding-left: 8px;
     padding-right: 8px;
     top: 0;
+    position: absolute;
     z-index: 1;
     padding-left: calc((50vw - 1390px / 2 + 278px));
     padding-right: calc((50vw - 1390px / 2 ));
 }
+
+
 .db-World-topContent--left {
     left: 0;
 }
@@ -10355,6 +10358,15 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 
 .price-list-item--active {
   border: 1px solid #000;
+}
+
+@media only screen and (min-width: 761px) and (max-width: 1062px) {
+    .db-World-topContent {
+        position: static;
+    }
+    .ddm-container{
+        margin-left: 245px;
+    }
 }
 
 @media only screen and (max-width: 1410px) {
@@ -11278,7 +11290,6 @@ table {
     height: 50px;
     border-radius: 5px;
     box-shadow: 0px 0px 20px 0px rgba(0,0,0,0.2);
-    opacity: 0.93;
 }
 .bs-padding-l-30 {
     padding-left: 30px;
@@ -11290,6 +11301,12 @@ table {
     width: 15px;
     height: 22px;
     z-index: 99;
+}
+
+@media only screen and (min-width: 1662px) and (max-width: 3039px) {
+    .floating-search-input {
+        left: calc(50vw + 250px - 1350px / 2);
+    }
 }
 
 @media only screen and (max-width: 807px) {

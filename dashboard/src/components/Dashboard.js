@@ -23,7 +23,6 @@ import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
 import { closeModal } from '../actions/modal';
-import SubProjectAlert from './basic/SubProjectAlert';
 import LoadingBar from 'react-top-loading-bar';
 
 export class DashboardApp extends Component {
@@ -212,7 +211,6 @@ export class DashboardApp extends Component {
 
                                     <div className="db-World-mainPane Box-root Margin-top--60">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
-                                            <SubProjectAlert />
                                             <BreadCrumbs
                                                 styles="breadCrumbContainer Card-shadow--medium db-mb"
                                                 name={this.props.pageName}

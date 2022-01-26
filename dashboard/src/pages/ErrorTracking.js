@@ -203,7 +203,12 @@ class ErrorTracking extends Component {
                 />
                 <BreadCrumbItem
                     route={pathname}
-                    name="Error Tracking"
+                    pageTitle="Error Tracking"
+                    name={
+                        this.state.showNewErrorTrackerForm || !errorTrackersList
+                            ? 'New Error Tracker'
+                            : 'Error Tracking'
+                    }
                     addBtn={errorTrackersList}
                     btnText="Create New Error Tracker"
                     toggleForm={this.toggleForm}

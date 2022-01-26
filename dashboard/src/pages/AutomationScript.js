@@ -56,7 +56,15 @@ class AutomationScript extends Component {
                     slug={currentProject ? currentProject.slug : null}
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
-                <BreadCrumbItem route={pathname} name="Automation Scripts" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={
+                        this.state.toggleNewScript
+                            ? 'New Automation Script'
+                            : 'Automation Scripts'
+                    }
+                    pageTitle="Automation Scripts"
+                />
                 <div id="automationScriptsPage">
                     <ShouldRender if={!this.state.toggleNewScript}>
                         <AutomatedTabularList
