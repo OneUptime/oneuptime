@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import getParentRoute from '../utils/getParentRoute';
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { showDeleteModal } from '../actions/component';
@@ -64,7 +65,15 @@ class ComponentSettingsAdvanced extends Component {
                     slug={currentProject ? currentProject.slug : null}
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
-                <BreadCrumbItem route={pathname} name="Advanced" />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'advanced')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Advanced"
+                    pageTitle="Advanced"
+                />
                 <div>
                     <div id="advancedPage">
                         <div className="db-BackboneViewContainer">
