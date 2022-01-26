@@ -2,7 +2,8 @@ name: Helm Chart Audit
 
 on:
   push:
-    branches: [master]
+    branches: 
+      - master
 
 jobs:
   audit:

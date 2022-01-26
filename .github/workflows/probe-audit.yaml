@@ -2,7 +2,8 @@ name: Probe Audit
 
 on:
   push:
-    branches: [master]
+    branches: 
+      - master
 
 jobs:
   audit:

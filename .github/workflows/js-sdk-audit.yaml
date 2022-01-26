@@ -2,7 +2,8 @@ name: JS SDK Audit
 
 on:
   push:
-    branches: [master]
+    branches: 
+      - master
 
 jobs:
   audit:

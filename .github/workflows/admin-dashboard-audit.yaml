@@ -2,7 +2,8 @@ name: Admin Dashboard Audit
 
 on:
   push:
-    branches: [master]
+    branches: 
+      - master
 
 jobs:
   audit:

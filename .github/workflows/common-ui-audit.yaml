@@ -2,7 +2,8 @@ name: Common UI Audit
 
 on:
   push:
-    branches: [master]
+    branches: 
+      - master
 
 jobs:
   audit:

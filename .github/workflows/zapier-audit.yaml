@@ -2,7 +2,8 @@ name: Zapier Audit
 
 on:
   push:
-    branches: [master]
+    branches: 
+      - master
 
 jobs:
   audit:
