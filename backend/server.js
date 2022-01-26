@@ -10,7 +10,6 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
-
 const express = require('express');
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
