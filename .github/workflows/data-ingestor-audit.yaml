@@ -1,0 +1,24 @@
+name: Data Ingestor Audit
+
+on:
+  push:
+    branches: [master]
+    # run this workflow when changes are pushed to data-ingestor
+    paths:
+      - "data-ingestor/**"
+      - ".github/workflows/data-ingestor-audit.yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          check-latest: true
+      - name: Run audit
+        run: |-
+          cd data-ingestor
+          npm ci
+          npm run audit
+
