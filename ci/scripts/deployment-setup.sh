@@ -22,8 +22,9 @@ aws --version # confirm installation
 sudo rm -rf ~/.aws || echo "Directory already deleted"
 sudo rm -rf /root/.config || echo "Directory already deleted"
 sudo rm -rf /root/.kube || echo "Directory already deleted"
+
 # Configure aws cli
 sudo aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
 sudo aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-sudo aws configure set default.region ${{ secrets.AWS_DEFAULT_REGION }}
+sudo aws configure set default.region $AWS_DEFAULT_REGION
 sudo aws configure set default.output json
