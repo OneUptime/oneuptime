@@ -19,7 +19,7 @@ jobs:
       - run: chmod +x ./ci/scripts/version-setup.sh
       - run: ./ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime-staging"'
-      - run: echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
+      - run: echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_AUTH_TOKEN}}" > ~/.npmrc
       - run: npm run build
       - run: npm publish
 
