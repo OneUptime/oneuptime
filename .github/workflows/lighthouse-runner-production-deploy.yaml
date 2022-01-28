@@ -21,8 +21,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
-      - run: chmod +x ./ci/scripts/version-setup.sh
-      - run: ./ci/scripts/version-setup.sh
+      
       - run: chmod +x ./ci/scripts/deployment-setup.sh
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
