@@ -32,7 +32,7 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/fi-haraka:3.0.$CI_PIPELINE_ID --push -f ./haraka/Dockerfile ./haraka
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/fi-haraka:master --push -f ./haraka/Dockerfile ./haraka
-      - run: sudo kubectl set image deployment/fi-fi-haraka fi-fi-haraka=oneuptime/fi-haraka:3.0.$CI_PIPELINE_ID
+      - run: sudo kubectl set image deployment/fi-haraka fi-haraka=oneuptime/fi-haraka:3.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

@@ -8,6 +8,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./oneuptime-acme-http-01
     env:
       DOCKERHUBPASSWORD: ${{secrets.DOCKERHUBPASSWORD}}
       DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
@@ -22,7 +25,6 @@ jobs:
         with:
           check-latest: true
       - run: sudo npm install -g json
-      - run: cd oneuptime-acme-http-01
       - run: chmod +x ./ci/scripts/version-setup.sh
       - run: ./ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime-acme-http-01"'

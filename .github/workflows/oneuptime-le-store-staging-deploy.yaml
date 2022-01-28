@@ -16,13 +16,15 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
       AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
       NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+    defaults:
+      run:
+        working-directory: ./oneuptime-le-store
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           check-latest: true
       - run: sudo npm install -g json
-      - run: cd oneuptime-le-store
       - run: chmod +x ./ci/scripts/version-setup.sh
       - run: ./ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime-le-store-staging"'
