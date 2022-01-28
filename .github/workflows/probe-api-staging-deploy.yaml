@@ -1,4 +1,4 @@
-name: Porbe API Staging Deploy
+name: Probe API Staging Deploy
 
 on:
   push:
