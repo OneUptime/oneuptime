@@ -30,8 +30,8 @@ jobs:
         # Build and deploy backend.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:3.0.$CI_PIPELINE_ID --push ./backend
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:master --push ./backend
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:3.0.$CI_PIPELINE_ID --push -f ./backend/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/backend:master --push -f ./backend/Dockerfile .
       - run: sudo kubectl set image deployment/fi-backend fi-backend=oneuptime/backend:3.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh

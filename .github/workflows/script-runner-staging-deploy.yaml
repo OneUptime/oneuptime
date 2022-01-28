@@ -31,8 +31,8 @@ jobs:
         # Build and deploy script-runner.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/script-runner:3.0.$CI_PIPELINE_ID --push ./script-runner
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/script-runner:master --push ./script-runner
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/script-runner:3.0.$CI_PIPELINE_ID --push -f ./script-runner/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/script-runner:master --push -f ./script-runner/Dockerfile .
       - run: sudo kubectl set image deployment/fi-script fi-script=oneuptime/script-runner:3.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
