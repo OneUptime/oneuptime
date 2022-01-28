@@ -21,11 +21,11 @@ jobs:
       - run: bash ./ci/scripts/deployment-staging-setup.sh
       - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy dashboard.
-      - run: sudo docker login --username ${{secrets.DOCKERHUBUSERNAME}} --password ${{secrets.DOCKERHUBPASSWORD}}
+      - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard:4.0.${{github.run_number}} --push ./dashboard
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard:3.0.$CI_PIPELINE_IID --push ./dashboard
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/dashboard:master --push ./dashboard
-      - run: sudo kubectl set image deployment/fi-dashboard fi-dashboard=oneuptime/dashboard:4.0.${{github.run_number}}
+      - run: sudo kubectl set image deployment/fi-dashboard fi-dashboard=oneuptime/dashboard:3.0.$CI_PIPELINE_IID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

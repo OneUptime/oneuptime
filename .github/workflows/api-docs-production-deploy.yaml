@@ -21,11 +21,11 @@ jobs:
       - run: bash ./ci/scripts/deployment-production-setup.sh
       - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy api-docs.
-      - run: sudo docker login --username ${{secrets.DOCKERHUBUSERNAME}} --password ${{secrets.DOCKERHUBPASSWORD}}
+      - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:4.0.${{github.run_number}} --push ./api-docs
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:3.0.$CI_PIPELINE_IID --push ./api-docs
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:master --push ./api-docs
-      - run: sudo kubectl set image deployment/fi-api-docs fi-api-docs=oneuptime/api-docs:4.0.${{github.run_number}}
+      - run: sudo kubectl set image deployment/fi-api-docs fi-api-docs=oneuptime/api-docs:3.0.$CI_PIPELINE_IID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
