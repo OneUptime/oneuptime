@@ -2,8 +2,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "init-script"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
       app.kubernetes.io/part-of: oneuptime
       app.kubernetes.io/managed-by: Helm
@@ -12,8 +12,8 @@ spec:
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "init-script" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "init-script"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   env:
                       - name: NODE_NAME
                         valueFrom:
@@ -44,18 +44,18 @@ spec:
                       - name: ENCRYPTION_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: encryptionkey
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
-                        value: {{ .Values.saas.stripe.publicKey }}
+                        value: {{ $.Values.saas.stripe.publicKey }}
                       - name: STRIPE_PRIVATE_KEY
-                        value: {{ .Values.saas.stripe.privateKey }}
+                        value: {{ $.Values.saas.stripe.privateKey }}
                       {{- end }}
             restartPolicy: Never
 ---

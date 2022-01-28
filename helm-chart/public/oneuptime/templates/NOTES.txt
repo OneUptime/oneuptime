@@ -15,7 +15,7 @@ Make sure external IP's are assigned.
 
 Please run these commands to get OneUptime URL
 
-$ kubectl get svc {{ .Release.Name }}-nginx-ingress-controller --namespace={{ .Release.Namespace }}
+$ kubectl get svc {{ $.Release.Name }}-nginx-ingress-controller --namespace={{ $.Release.Namespace }}
 
 NOTE: It may take a few minutes for the LoadBalancer IP to be available. 
 If the load balancer did not assign an external IP yet (if the IP is still pending). 

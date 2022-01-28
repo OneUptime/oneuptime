@@ -9,26 +9,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "licensing"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+        app: {{ printf "%s-%s" $.Release.Name "licensing"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+            app: {{ printf "%s-%s" $.Release.Name "licensing"  }}
     replicas: 1
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+                app: {{ printf "%s-%s" $.Release.Name "licensing"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "licensing" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "licensing"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -58,37 +58,37 @@ spec:
                     - name: IS_SAAS_SERVICE
                       value: 'true'
                     - name: AIRTABLE_API_KEY
-                      value: {{ .Values.saas.licensing.airtable.key }}
+                      value: {{ $.Values.saas.licensing.airtable.key }}
                     - name: AIRTABLE_BASE_ID
-                      value: {{ .Values.saas.licensing.airtable.baseId }}
+                      value: {{ $.Values.saas.licensing.airtable.baseId }}
                     - name: TOKEN_SECRET
-                      value: {{ .Values.saas.licensing.tokenSecret }}
+                      value: {{ $.Values.saas.licensing.tokenSecret }}
                     - name: NODE_ENV
-                      value: {{ .Values.nodeEnv }}
+                      value: {{ $.Values.nodeEnv }}
                     - name: SENTRY_DSN
-                      value: {{ .Values.sentry.licensing.dsn }}
+                      value: {{ $.Values.sentry.licensing.dsn }}
                   ports:
-                      - containerPort: {{ .Values.host.licensingPort }}
-                        hostPort: {{ .Values.host.licensingPort }}
-                        name: {{ printf "%s-%s" .Release.Name "licensing"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.licensingPort }}
+                        hostPort: {{ $.Values.host.licensingPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+        app: {{ printf "%s-%s" $.Release.Name "licensing"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+    name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
 spec:
     ports:
-        - port: {{ .Values.host.licensingServicePort }}
+        - port: {{ $.Values.host.licensingServicePort }}
           protocol: TCP
-          targetPort: {{ .Values.host.licensingPort }}
+          targetPort: {{ $.Values.host.licensingPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "licensing"  }}
+        app: {{ printf "%s-%s" $.Release.Name "licensing"  }}
     type: ClusterIP
 ---
 {{- end }}
@@ -97,14 +97,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "licensing"  }}
+  name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "licensing"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "licensing"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

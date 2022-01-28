@@ -9,26 +9,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+        app: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+                app: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "helm-chart" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -60,28 +60,28 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                   ports:
-                      - containerPort: {{ .Values.host.helmChartPort }}
-                        hostPort: {{ .Values.host.helmChartPort }}
-                        name: {{ printf "%s-%s" .Release.Name "helmchart"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.helmChartPort }}
+                        hostPort: {{ $.Values.host.helmChartPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "helmchart"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+        app: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.helmChartServicePort }}
+        - port: {{ $.Values.host.helmChartServicePort }}
           protocol: TCP
-          targetPort: {{ .Values.host.helmChartPort }}
+          targetPort: {{ $.Values.host.helmChartPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+        app: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
     type: ClusterIP
 ---
 ###########################################
@@ -92,14 +92,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+  name: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

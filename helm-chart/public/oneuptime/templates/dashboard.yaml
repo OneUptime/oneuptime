@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "dashboard" }}
+        app: {{ printf "%s-%s" $.Release.Name "dashboard" }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+                app: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "dashboard" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -49,30 +49,30 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                       - name: DOMAIN
-                        value: {{ .Values.domain }}
+                        value: {{ $.Values.domain }}
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.dashboard.dsn }}
+                        value: {{ $.Values.sentry.dashboard.dsn }}
                       - name: PUSHNOTIFICATION_PUBLIC_KEY
-                        value: {{ .Values.pushNotification.publicKey }}
+                        value: {{ $.Values.pushNotification.publicKey }}
                       {{- if .Values.statusPageDomain }}
                       - name: STATUSPAGE_DOMAIN
-                        value: {{ .Values.statusPageDomain }}
+                        value: {{ $.Values.statusPageDomain }}
                       {{- end }}
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
-                        value: {{ .Values.saas.stripe.publicKey }}
+                        value: {{ $.Values.saas.stripe.publicKey }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: AMPLITUDE_PUBLIC_KEY
-                        value: {{ .Values.saas.amplitude.key }}
+                        value: {{ $.Values.saas.amplitude.key }}
                       {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.dashboardPort }}
-                        hostPort: {{ .Values.host.dashboardPort }}
-                        name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.dashboardPort }}
+                        hostPort: {{ $.Values.host.dashboardPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 # OneUptime Dashoard Service
@@ -80,17 +80,17 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        app: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.dashboardServicePort }}
-          targetPort: {{ .Values.host.dashboardPort }}
+        - port: {{ $.Values.host.dashboardServicePort }}
+          targetPort: {{ $.Values.host.dashboardPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+        app: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
     type: ClusterIP
 ---
 ##########################################################
@@ -100,14 +100,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
+  name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "dashboard"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

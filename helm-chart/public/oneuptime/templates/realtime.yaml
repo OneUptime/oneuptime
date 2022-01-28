@@ -3,26 +3,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "realtime"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "realtime"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "realtime"  }}
+        app: {{ printf "%s-%s" $.Release.Name "realtime"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "realtime"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "realtime"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "realtime"  }}
+                app: {{ printf "%s-%s" $.Release.Name "realtime"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "realtime" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "realtime"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "realtime"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 450m
@@ -50,38 +50,38 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                       - name: PORT
-                        value: {{ .Values.host.realtimePort | quote }}
+                        value: {{ $.Values.host.realtimePort | quote }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.realtime.dsn }}
+                        value: {{ $.Values.sentry.realtime.dsn }}
                   ports:
-                      - containerPort: {{ .Values.host.realtimePort }}
-                        hostPort: {{ .Values.host.realtimePort }}
-                        name: {{ printf "%s-%s" .Release.Name "realtime"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.realtimePort }}
+                        hostPort: {{ $.Values.host.realtimePort }}
+                        name: {{ printf "%s-%s" $.Release.Name "realtime"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "realtime"  }}
+        app: {{ printf "%s-%s" $.Release.Name "realtime"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "realtime"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "realtime"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.realtimeServicePort }}
-          targetPort: {{ .Values.host.realtimePort }}
+        - port: {{ $.Values.host.realtimeServicePort }}
+          targetPort: {{ $.Values.host.realtimePort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "realtime" }}
+        app: {{ printf "%s-%s" $.Release.Name "realtime" }}
     type: ClusterIP
 ---
 ###########################
@@ -90,14 +90,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "realtime"  }}
+  name: {{ printf "%s-%s" $.Release.Name "realtime"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "realtime"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "realtime"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

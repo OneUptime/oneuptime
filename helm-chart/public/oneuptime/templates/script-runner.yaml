@@ -4,26 +4,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "script"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "script"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "script"  }}
+        app: {{ printf "%s-%s" $.Release.Name "script"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "script"  }}
+            app: {{ printf "%s-%s" $.Release.Name "script"  }}
     replicas: 1
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "script"  }}
+                app: {{ printf "%s-%s" $.Release.Name "script"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "script-runner" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "script"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "script"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -51,9 +51,9 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.scriptRunner.dsn }}
+                        value: {{ $.Values.sentry.scriptRunner.dsn }}
                       - name: SERVER_URL
                         value: {{ template "oneuptime.serverUrl" $ }}
                       - name: IS_SAAS_SERVICE
@@ -61,30 +61,30 @@ spec:
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                   ports:
-                      - containerPort: {{ .Values.host.scriptRunnerPort }}
-                        hostPort: {{ .Values.host.scriptRunnerPort }}
-                        name: {{ printf "%s-%s" .Release.Name "script"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.scriptRunnerPort }}
+                        hostPort: {{ $.Values.host.scriptRunnerPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "script"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 # OneUptime Script Runner Deployment
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "script"  }}
+        app: {{ printf "%s-%s" $.Release.Name "script"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "script"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "script"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.scripRunnerServicePort }}
-          targetPort: {{ .Values.host.scriptRunnerPort }}
+        - port: {{ $.Values.host.scripRunnerServicePort }}
+          targetPort: {{ $.Values.host.scriptRunnerPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "script"  }}
+        app: {{ printf "%s-%s" $.Release.Name "script"  }}
     type: ClusterIP
 ---
 ###################################
@@ -94,14 +94,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "script"  }}
+  name: {{ printf "%s-%s" $.Release.Name "script"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "script"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "script"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}
