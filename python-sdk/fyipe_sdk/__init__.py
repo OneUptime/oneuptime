@@ -1,5 +1,5 @@
-from fyipe_sdk.fyipe_sdk.logger import *
-from fyipe_sdk.fyipe_sdk.tracker import *
-from fyipe_sdk.fyipe_sdk.util import *
-from fyipe_sdk.fyipe_sdk.logtype import *
+from oneuptime_sdk.oneuptime_sdk.logger import *
+from oneuptime_sdk.oneuptime_sdk.tracker import *
+from oneuptime_sdk.oneuptime_sdk.util import *
+from oneuptime_sdk.oneuptime_sdk.logtype import *
 

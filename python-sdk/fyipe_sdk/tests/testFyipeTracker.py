@@ -1,7 +1,7 @@
 import unittest
 from faker import Faker
 import requests
-from fyipe_sdk import FyipeTracker
+from oneuptime_sdk import OneUptimeTracker
 
 class TrackerTest(unittest.TestCase):
     def setUp(self):
@@ -79,7 +79,7 @@ class TrackerTest(unittest.TestCase):
         return response.json()
     
     def test_should_take_in_custom_timeline_event(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         timeline = tracker.getTimeline()
         self.assertIsInstance(timeline, list)
@@ -88,7 +88,7 @@ class TrackerTest(unittest.TestCase):
     
     def test_should_ensure_timeline_event_contains_eventId_and_timestamp(self):
     
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         timeline = tracker.getTimeline()
@@ -96,7 +96,7 @@ class TrackerTest(unittest.TestCase):
         self.assertIsInstance(timeline[0]["timestamp"], str)
     
     def test_should_ensure_different_timeline_event_have_the_same_eventId(self): 
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], "error")
@@ -108,7 +108,7 @@ class TrackerTest(unittest.TestCase):
         options = {
             "maxTimeline": -5
         }
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
 
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], "error")
@@ -119,7 +119,7 @@ class TrackerTest(unittest.TestCase):
         options = {
             "maxTimeline": 2
         }
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
 
         customTimeline2 = {
             "category": "logout",
@@ -138,7 +138,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(timeline[1]["category"], customTimeline2["category"])
     
     def test_should_add_tags(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         tag = {
             "key": "location",
@@ -153,7 +153,7 @@ class TrackerTest(unittest.TestCase):
     
     def test_should_add_multiple_tags(self):
         
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
         tags = []
         tag = {
             "key": "location",
@@ -180,7 +180,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(len(tags), len(availableTags))
     
     def test_should_overwrite_existing_keys_to_avoid_duplicate_tags(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         tags = []
         tag = {
@@ -224,7 +224,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(tagE["value"], availableTags[0]["value"])# latest value for that tag location
     
     def test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         errorMessage = "Uncaught Exception"
         tracker.captureMessage(errorMessage)
@@ -232,7 +232,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(event["fingerprint"][0], errorMessage)
     
     def test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         fingerprints = ['custom', 'errors']
         tracker.setFingerPrint(fingerprints)
@@ -243,7 +243,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(event["fingerprint"][1], fingerprints[1])
     
     def test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         fingerprint = 'custom-fingerprint'
         tracker.setFingerPrint(fingerprint)
@@ -253,7 +253,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(event["fingerprint"][0], fingerprint)
     
     def test_should_create_an_event_ready_for_the_server_using_capture_message(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         errorMessage = 'This is a test'
         tracker.captureMessage(errorMessage)
@@ -262,7 +262,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(event["exception"]["message"], errorMessage) 
     
     def test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
 
         
@@ -277,7 +277,7 @@ class TrackerTest(unittest.TestCase):
     
     
     def test_should_create_an_event_ready_for_the_server_using_capture_exception(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         errorMessage = 'Error Found'
         tracker.captureException(Exception(errorMessage))
@@ -286,7 +286,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(event["exception"]["message"], errorMessage)
     
     def test_should_create_an_event_with_array_of_stacktrace(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         errorType = 'ZeroDivisionError'
         try: 
@@ -300,7 +300,7 @@ class TrackerTest(unittest.TestCase):
         self.assertIsInstance(event["exception"]["stacktrace"]["frames"],list)
     
     def test_should_create_an_event_with_the_object_of_the_stacktrace_in_place(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         errorType = 'ZeroDivisionError'
         try:  
@@ -315,7 +315,7 @@ class TrackerTest(unittest.TestCase):
         self.assertIn("fileName", frame)
     
     def test_should_create_an_event_and_new_event_should_have_different_id(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
         errorMessage = 'division by zero'
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         event = tracker.captureMessage(errorMessage)
@@ -342,7 +342,7 @@ class TrackerTest(unittest.TestCase):
         self.assertNotEqual(event["_id"], newEvent["_id"])
     
     def test_should_create_an_event_that_has_timeline_and_new_event_having_timeline_and_tags(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
         errorMessage = 'division by zero'
         errorMessageObj = 'division by zero';
         # add timeline to first tracker
@@ -377,7 +377,7 @@ class TrackerTest(unittest.TestCase):
         self.assertEqual(len(newEvent["tags"]), 2) # the default and custom tag
     
     def test_should_contain_version_number_and_sdk_name_in_captured_message(self):
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"])
 
         errorMessage = 'Error Found'
         tracker.captureMessage(errorMessage)
@@ -390,7 +390,7 @@ class TrackerTest(unittest.TestCase):
         options = {
             "captureCodeSnippet": True
         }
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
 
         event = None
@@ -415,7 +415,7 @@ class TrackerTest(unittest.TestCase):
         options = {
             "captureCodeSnippet": False
         }
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
 
         event = None
@@ -440,7 +440,7 @@ class TrackerTest(unittest.TestCase):
         options = {
             "captureCodeSnippet": "hello" # sdk expects a true or false but it defaults to true if wrong value is sent
         }
-        tracker = FyipeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
+        tracker = OneUptimeTracker(self.apiUrl, self.errorTracker["_id"], self.errorTracker["key"], options)
         tracker.addToTimeline(self.customTimeline["category"], self.customTimeline["content"], self.customTimeline["type"])
         
 

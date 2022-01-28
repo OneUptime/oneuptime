@@ -1,6 +1,6 @@
 import requests
 
-class FyipeTransport:
+class OneUptimeTransport:
     
     def __init__(self, apiUrl):
         # set up the api transporter

@@ -23,8 +23,8 @@ version init-script
 version licensing
 version helm-chart
 version js-sdk
-version fyipe-le-store
-version fyipe-acme-http-01
+version oneuptime-le-store
+version oneuptime-acme-http-01
 version lighthouse-runner
 version script-runner
 version container-scanner

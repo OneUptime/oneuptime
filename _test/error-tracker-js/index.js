@@ -1,4 +1,4 @@
-import fyipe from 'fyipe-staging'
+import oneuptime from 'oneuptime-staging'
 
 // constructor
 
@@ -8,7 +8,7 @@ const options = {
 };
 
 // constructor                    
-const tracker = new fyipe.ErrorTracker(                    
+const tracker = new oneuptime.ErrorTracker(                    
     'https://staging.oneuptime.com/api',
     '605bad70ae110c0013e14005',
     'cb4b107a-7f28-464d-9fda-32715fa4cd68',

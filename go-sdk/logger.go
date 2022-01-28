@@ -1,4 +1,4 @@
-package fyipe
+package oneuptime
 
 import (
 	"bytes"
@@ -20,30 +20,30 @@ type stack []*layer
 type layer struct {
 	// mu protects concurrent reads and writes to these objects.
 	mu           sync.RWMutex
-	fyipeLogger  *FyipeLogger
-	fyipeTracker *FyipeTracker
+	oneuptimeLogger  *OneUptimeLogger
+	oneuptimeTracker *OneUptimeTracker
 	realm        *Realm
 }
 
-// return stored fyipeLogger
-func (l *layer) FyipeLogger() *FyipeLogger {
+// return stored oneuptimeLogger
+func (l *layer) OneUptimeLogger() *OneUptimeLogger {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.fyipeLogger
+	return l.oneuptimeLogger
 }
 
-// set the current fyipeLogger
-func (l *layer) SetFyipeLogger(f *FyipeLogger) {
+// set the current oneuptimeLogger
+func (l *layer) SetOneUptimeLogger(f *OneUptimeLogger) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.fyipeLogger = f
+	l.oneuptimeLogger = f
 }
 
-// constructor for default fyipeLogger
-func NewLogger(fyipeLogger *FyipeLogger) *Logger {
+// constructor for default oneuptimeLogger
+func NewLogger(oneuptimeLogger *OneUptimeLogger) *Logger {
 	logger := Logger{
 		stack: &stack{{
-			fyipeLogger: fyipeLogger,
+			oneuptimeLogger: oneuptimeLogger,
 		}},
 	}
 	return &logger
@@ -54,13 +54,13 @@ func CurrentLogger() *Logger {
 	return currentLogger
 }
 
-// set the current fyipeLogger being used by the user
-func (logger *Logger) BindFyipeLogger(fyipeLogger *FyipeLogger) {
+// set the current oneuptimeLogger being used by the user
+func (logger *Logger) BindOneUptimeLogger(oneuptimeLogger *OneUptimeLogger) {
 	top := logger.stackTop()
-	top.SetFyipeLogger(fyipeLogger)
+	top.SetOneUptimeLogger(oneuptimeLogger)
 }
 
-// always return the topof the stack which contains one fyipeLogger
+// always return the topof the stack which contains one oneuptimeLogger
 func (logger *Logger) stackTop() *layer {
 	logger.mu.RLock()
 	defer logger.mu.RUnlock()
@@ -71,14 +71,14 @@ func (logger *Logger) stackTop() *layer {
 	return top
 }
 
-// get the current fyipeLogger for usage
-func (logger *Logger) FyipeLogger() *FyipeLogger {
+// get the current oneuptimeLogger for usage
+func (logger *Logger) OneUptimeLogger() *OneUptimeLogger {
 	top := logger.stackTop()
-	return top.FyipeLogger()
+	return top.OneUptimeLogger()
 }
 
 func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags []string) (LoggerResponse, error) {
-	currentFyipeLogger := logger.FyipeLogger()
+	currentOneUptimeLogger := logger.OneUptimeLogger()
 
 	postBody, _ := json.Marshal(struct {
 		Content           interface{} `json:"content"`
@@ -88,12 +88,12 @@ func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags [
 	}{
 		Content:           content,
 		Type:              tagType,
-		ApplicationLogKey: currentFyipeLogger.options.ApplicationLogKey,
+		ApplicationLogKey: currentOneUptimeLogger.options.ApplicationLogKey,
 		Tags:              tags,
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
-	resp, err := http.Post(currentFyipeLogger.options.ApiUrl, "application/json", responseBody)
+	resp, err := http.Post(currentOneUptimeLogger.options.ApiUrl, "application/json", responseBody)
 
 	if err != nil {
 		// log.Fatalf("An Error Occured %v", err)

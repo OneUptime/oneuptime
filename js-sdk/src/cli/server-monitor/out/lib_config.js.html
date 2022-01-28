@@ -41,7 +41,7 @@ const API_URL =
     process.env.API_URL ||
     (process.env.NODE_ENV === 'development'
         ? 'http://localhost:3002'
-        : 'https://fyipe.com/api');
+        : 'https://oneuptime.com/api');
 
 const onlineTestData = {
     cpuLoad: 10.451510774011686,
@@ -85,17 +85,17 @@ const offlineTestData = {
 
 const LOG_PATH = {
     linux: {
-        log: '/var/log/Fyipe Server Monitor/fyipeservermonitor.log',
-        error: '/var/log/Fyipe Server Monitor/fyipeservermonitor_error.log',
+        log: '/var/log/OneUptime Server Monitor/oneuptimeservermonitor.log',
+        error: '/var/log/OneUptime Server Monitor/oneuptimeservermonitor_error.log',
     },
     darwin: {
-        log: '/Library/Logs/Fyipe Server Monitor/fyipeservermonitor.log',
+        log: '/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor.log',
         error:
-            '/Library/Logs/Fyipe Server Monitor/fyipeservermonitor_error.log',
+            '/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor_error.log',
     },
     win32: {
-        log: path.join(__dirname, 'fyipeservermonitor.out.log'),
-        error: path.join(__dirname, 'fyipeservermonitor.err.log'),
+        log: path.join(__dirname, 'oneuptimeservermonitor.out.log'),
+        error: path.join(__dirname, 'oneuptimeservermonitor.err.log'),
     },
 };
 

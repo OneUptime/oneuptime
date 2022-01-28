@@ -41,7 +41,7 @@ module.exports = {
         feedback.templateName = 'User Feedback';
 
         try {
-            MailService.sendLeadEmailToFyipeTeam(feedback);
+            MailService.sendLeadEmailToOneUptimeTeam(feedback);
             MailService.sendUserFeedbackResponse(user.email, user.name);
         } catch (error) {
             ErrorService.log('feedbackservice.create', error);

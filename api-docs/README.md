@@ -1,6 +1,6 @@
 # OneUptime API Documentation
 
-[![Build Status](https://travis-ci.org/Fyipe/api-docs.svg?branch=master)](https://travis-ci.org/Fyipe/api-docs)
+[![Build Status](https://travis-ci.org/OneUptime/api-docs.svg?branch=master)](https://travis-ci.org/OneUptime/api-docs)
 
 This is the API Reference for OneUptime which is hosted at [https://oneuptime.com/docs](https://oneuptime.com/docs).
 

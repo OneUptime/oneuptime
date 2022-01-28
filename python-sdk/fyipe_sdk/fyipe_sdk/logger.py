@@ -2,7 +2,7 @@ import requests
 from .logtype import LogType
 
 
-class FyipeLogger:
+class OneUptimeLogger:
     def __init__(self, apiUrl, applicationLogId, applicationLogKey):
         self.applicationLogId = applicationLogId
         self.applicationLogKey = applicationLogKey

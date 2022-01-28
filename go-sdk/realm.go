@@ -1,4 +1,4 @@
-package fyipe
+package oneuptime
 
 import (
 	"strings"
@@ -94,7 +94,7 @@ func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception, er
 		ErrorTrackerKey: errorTrackerKey,
 		SDK: &SDK{
 			Name:    "go-sdk",
-			Version: Version, // TODO dynamic version setting cuz version is set manually in the fyipeTracker.go file before every release
+			Version: Version, // TODO dynamic version setting cuz version is set manually in the oneuptimeTracker.go file before every release
 		},
 	}
 

@@ -23,8 +23,8 @@ deploy_staging_go-sdk:
         - git tag v3.0.$CI_PIPELINE_IID-qa
         # - go build
         # - git checkout staging || git checkout -b staging
-        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git staging --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git v3.0.$CI_PIPELINE_IID-qa --force
+        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git v3.0.$CI_PIPELINE_IID-qa --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -64,9 +64,9 @@ production_go-sdk:
         - git tag v0.3.0.$CI_PIPELINE_IID
         # - go build
         # - git checkout staging || git checkout -b staging
-        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git staging --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git v3.0.$CI_PIPELINE_IID --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git master --force
+        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git v3.0.$CI_PIPELINE_IID --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh

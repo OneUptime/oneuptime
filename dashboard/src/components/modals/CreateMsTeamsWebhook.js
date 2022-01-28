@@ -354,7 +354,7 @@ class CreateMsTeams extends React.Component {
                                             <a
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#microsoft-teams"
+                                                href="https://github.com/OneUptime/feature-docs/blob/master/Webhooks.md#microsoft-teams"
                                                 style={{
                                                     textDecoration: 'underline',
                                                 }}

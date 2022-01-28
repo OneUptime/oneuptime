@@ -4,14 +4,14 @@
  * @author bunday
  */
 
-namespace Fyipe;
+namespace OneUptime;
 
 use stdClass;
-use Fyipe\Util;
-use Fyipe\FyipeTransport;
+use OneUptime\Util;
+use OneUptime\OneUptimeTransport;
 use ErrorException;
 
-class FyipeTracker
+class OneUptimeTracker
 {
     /**
      * @var string
@@ -43,7 +43,7 @@ class FyipeTracker
     private $apiTransport;
 
     /**
-     * FyipeTracker constructor.
+     * OneUptimeTracker constructor.
      * @param string $apiUrl
      * @param string $errorTrackerId
      * @param string $errorTrackerKey
@@ -57,13 +57,13 @@ class FyipeTracker
         $this->setUpOptions($options);
         $this->utilObj = new Util($this->options);
         $this->setEventId();
-        $this->listenerObj = new FyipeListener(
+        $this->listenerObj = new OneUptimeListener(
             $this->getEventId(),
             $this->options
         ); // Initialize Listener for timeline
 
         // Initializa transport API
-        $this->apiTransport = new FyipeTransport($this->apiUrl);
+        $this->apiTransport = new OneUptimeTransport($this->apiUrl);
         // initialize exception handler listener
         set_exception_handler(array($this, 'setUpExceptionHandlerListener'));
 
@@ -274,7 +274,7 @@ class FyipeTracker
     }
     private function getSDKDetails()
     {
-        // get the full directory path, then strip away src/Fyipe before concatenating
+        // get the full directory path, then strip away src/OneUptime before concatenating
         $filePath = substr(__DIR__, 0, strlen(__DIR__) - 9) . "composer.json";
         $content = file_get_contents($filePath);
         $content = json_decode($content, true);

@@ -223,7 +223,7 @@ body{
     opacity:0
 }
 .notify-input.methods .methods-dropdown:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\27A1';
     color:#797979;
     transition:color .15s ease;

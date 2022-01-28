@@ -8,8 +8,8 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const componentName = 'hackerbay';
-const monitorName = 'fyipe';
-const monitorName1 = 'testFyipe';
+const monitorName = 'oneuptime';
+const monitorName1 = 'testoneuptime';
 
 let browser, page;
 const gotoTheFirstStatusPage = async page => {

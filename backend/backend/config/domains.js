@@ -1,3 +1,3 @@
 module.exports = {
-    domains: ['hackerbay.io', 'fyipe.com'],
+    domains: ['hackerbay.io', 'oneuptime.com'],
 };

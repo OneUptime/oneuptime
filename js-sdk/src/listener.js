@@ -1,12 +1,12 @@
-import FyipeTimelineManager from './timelineManager';
+import OneUptimeTimelineManager from './timelineManager';
 import Util from './util';
 import Http from 'http';
 import Https from 'https';
-class FyipeListener {
+class OneUptimeListener {
     constructor(eventId, isWindow, options) {
         this.options = options;
         this.isWindow = isWindow;
-        this.timelineObj = new FyipeTimelineManager(options);
+        this.timelineObj = new OneUptimeTimelineManager(options);
         this.utilObj = new Util();
         this.currentEventId = eventId;
         this.BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
@@ -112,14 +112,14 @@ class FyipeListener {
                 status_code: '',
             };
             this.addEventListener('load', function() {
-                // check if it is not a request to Fyipe servers
+                // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = this.status;
                     _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });
             this.addEventListener('error', function() {
-                // check if it is not a request to Fyipe servers
+                // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = this.status;
                     _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
@@ -366,4 +366,4 @@ class FyipeListener {
         return attributes; // return the final list of attributes
     }
 }
-export default FyipeListener;
+export default OneUptimeListener;

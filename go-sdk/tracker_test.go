@@ -1,4 +1,4 @@
-package fyipe
+package oneuptime
 
 import (
 	"fmt"
@@ -51,7 +51,7 @@ func TestTakeInCustomTimelineEvent(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 10,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -74,7 +74,7 @@ func TestPositiveTimelineIsRequired(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: -5,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -92,7 +92,7 @@ func TestCustomTimelineContainsimeStamp(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 10,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -115,7 +115,7 @@ func TestCustomTimelineContainsEventId(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 10,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -138,7 +138,7 @@ func TestTwoTimelineContainsSameEventId(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 10,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -166,7 +166,7 @@ func TestOlderTimelineAreDiscarded(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -205,7 +205,7 @@ func TestTagIsAdded(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -233,7 +233,7 @@ func TestTagsAreAdded(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -267,7 +267,7 @@ func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -301,7 +301,7 @@ func TestFingerprintShouldBeCaptureMessage(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -327,7 +327,7 @@ func TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -355,7 +355,7 @@ func TestCreateEventReadyForServerUsingCaptureMessage(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -384,7 +384,7 @@ func TestCaptureMessageTimelineAndEventWithSameID(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -421,7 +421,7 @@ func TestCaptureExceptionReadyForServer(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -451,7 +451,7 @@ func TestCaptureExceptionAndCaptureMessageWithDifferentID(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,
@@ -501,7 +501,7 @@ func TestCapturedErrorWithDifferentProperties(t *testing.T) {
 		MaxTimeline:        2,
 		CaptureCodeSnippet: true,
 	}
-	option := FyipeTrackerOption{
+	option := OneUptimeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),
 		ErrorTrackerKey: errorTracker["key"].(string),
 		ApiUrl:          apiUrl,

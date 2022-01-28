@@ -1,6 +1,6 @@
-# Fyipe Logger Quickstart
+# OneUptime Logger Quickstart
 
-A fyipe application logger that can be used to send logs about your applications and log them to fyipe dashboard.
+A oneuptime application logger that can be used to send logs about your applications and log them to oneuptime dashboard.
 
 ## Installation
 
@@ -10,7 +10,7 @@ You can install to use in your project:
 
 ```
 $ cd project
-$ npm install fyipe
+$ npm install oneuptime
 ```
 
 ## Basic Usage
@@ -20,10 +20,10 @@ $ npm install fyipe
 ```javascript
 // In a FrontEnd Environment
 // If your env supports import
-import Fyipe from 'fyipe';
+import OneUptime from 'oneuptime';
 
 // If your env supports require
-const Fyipe = require('fyipe');
+const OneUptime = require('oneuptime');
 
 // set up tracking configurations
 const options = {
@@ -32,8 +32,8 @@ const options = {
 };
 
 // constructor
-const logger = new Fyipe.Logger(
-    'API_URL', // https://fyipe.com/api
+const logger = new OneUptime.Logger(
+    'API_URL', // https://oneuptime.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
 );
@@ -66,12 +66,12 @@ logger.log(item, tag);
 ### Using it as a script tag
 
 ```javascript
-<script src="https://unpkg.com/fyipe"></script>
+<script src="https://unpkg.com/oneuptime"></script>
 <script>
     function logError() {
         // constructor
-        const logger = new Fyipe.Logger(
-            'API_URL', // https://fyipe.com/api
+        const logger = new OneUptime.Logger(
+            'API_URL', // https://oneuptime.com/api
             'APPLICATION_LOG_ID',
             'APPLICATION_LOG_KEY'
         );

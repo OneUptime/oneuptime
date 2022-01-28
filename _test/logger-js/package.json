@@ -10,6 +10,6 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "fyipe-staging": "^3.0.9421"
+        "oneuptime-staging": "^3.0.9421"
     }
 }

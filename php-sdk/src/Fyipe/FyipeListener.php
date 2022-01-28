@@ -4,25 +4,25 @@
  * @author bunday
  */
 
-namespace Fyipe;
+namespace OneUptime;
 
 use stdClass;
 
-class FyipeListener
+class OneUptimeListener
 {
     private $timelineObj;
     private $currentEventId;
     private $utilObj;
 
     /**
-     * FyipeListener constructor.
+     * OneUptimeListener constructor.
      * @param string $eventId
      * @param array $options
      */
     public function __construct($eventId, $options)
     {
         // start the timeline manager
-        $this->timelineObj = new FyipeTimelineManager($options);
+        $this->timelineObj = new OneUptimeTimelineManager($options);
         $this->currentEventId = $eventId;
         $this->utilObj = new Util($options);
     }

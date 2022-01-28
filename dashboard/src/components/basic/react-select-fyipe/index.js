@@ -2,7 +2,7 @@ import React from 'react';
 import Select from 'react-select';
 import PropTypes from 'prop-types';
 
-const ReactSelectFyipe = props => (
+const ReactSelectOneUptime = props => (
     <Select
         {...props}
         styles={{
@@ -32,8 +32,8 @@ const ReactSelectFyipe = props => (
     />
 );
 
-ReactSelectFyipe.displayName = 'ReactSelectFyipe';
-ReactSelectFyipe.propTypes = {
+ReactSelectOneUptime.displayName = 'ReactSelectOneUptime';
+ReactSelectOneUptime.propTypes = {
     style: PropTypes.object,
 };
-export default ReactSelectFyipe;
+export default ReactSelectOneUptime;

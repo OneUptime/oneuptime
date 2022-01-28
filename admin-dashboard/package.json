@@ -30,7 +30,7 @@
         "react-router-redux": "^4.0.8",
         "react-scripts": "^4.0.3",
         "react-select": "^4.3.1",
-        "react-select-fyipe": "^2.1.8",
+        "react-select-oneuptime": "^2.1.8",
         "react-widgets": "^4.4.9",
         "redux": "^4.1.1",
         "redux-form": "^8.3.7",

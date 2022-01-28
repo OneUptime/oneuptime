@@ -12,9 +12,9 @@
 MONGO_SERVER_HOST='a59a474aad89940889c1eb69b1a8f884-135820180.us-east-2.elb.amazonaws.com'
 MONGO_SERVER_PORT="27017"
 
-ONEUPTIME_DB_USERNAME='fyipe'
+ONEUPTIME_DB_USERNAME='oneuptime'
 ONEUPTIME_DB_PASSWORD='password'
-ONEUPTIME_DB_NAME='fyipedb'
+ONEUPTIME_DB_NAME='oneuptimedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 FILE_NAME="oneuptime-backup-1638534940.archive"
@@ -30,9 +30,9 @@ function HELP() {
 	echo ""
 	echo " -f       Name of file to be restored"
 	echo " -l       File path on local system where file will be restored from. Default value - $FILE_PATH"
-	echo " -n       Database name. Default value 'fyipedb'"
+	echo " -n       Database name. Default value 'oneuptimedb'"
 	echo " -p       Database password. Default value 'password'"
-	echo " -u       Set database username. Default value 'fyipe'."
+	echo " -u       Set database username. Default value 'oneuptime'."
 	echo " -v       Set database environment. Enums {Production, Staging}, defaults to 'Staging'."
 	echo ""
 	echo " -h       Help."

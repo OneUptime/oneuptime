@@ -4,7 +4,7 @@
  * @author bunday
  */
 
-namespace Fyipe;
+namespace OneUptime;
 
 use stdClass;
 

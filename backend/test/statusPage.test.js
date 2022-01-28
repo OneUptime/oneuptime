@@ -425,7 +425,7 @@ describe('Status API', function() {
 
     it('should create a domain', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'fyipeapp.com' };
+        const data = { domain: 'oneuptimeapp.com' };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -439,7 +439,7 @@ describe('Status API', function() {
 
     it('should create a domain with subdomain', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'status.fyipeapp.com' };
+        const data = { domain: 'status.oneuptimeapp.com' };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -455,7 +455,7 @@ describe('Status API', function() {
     // a domain needs to be created before verifying it
     it('should verify a domain', function(done) {
         const authorization = `Basic ${token}`;
-        const domain = 'fyipeapp.com';
+        const domain = 'oneuptimeapp.com';
         const verificationToken = 'm2ab5osUmz9Y7Ko';
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
@@ -531,7 +531,7 @@ describe('Status API', function() {
 
     it('should not verify a domain if txt record is not found', function(done) {
         const authorization = `Basic ${token}`;
-        const domain = 'fyipeapp.com';
+        const domain = 'oneuptimeapp.com';
         const verificationToken = 'thistokenwillnotwork';
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
@@ -583,7 +583,7 @@ describe('Status API', function() {
 
     it('should not save domain if domain is invalid', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'status.fyipe.hackerbay' };
+        const data = { domain: 'status.oneuptime.hackerbay' };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -600,7 +600,7 @@ describe('Status API', function() {
     it.skip('should save an array of valid domains', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
-            domain: [{ domain: 'fyipe.z.com' }, { domain: 'fyipe1.z.com' }],
+            domain: [{ domain: 'oneuptime.z.com' }, { domain: 'oneuptime1.z.com' }],
         };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
@@ -619,8 +619,8 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [
-                { domain: 'fyipe.z1.com' },
-                { domain: 'fyipe.z1.hackerbay' },
+                { domain: 'oneuptime.z1.com' },
+                { domain: 'oneuptime.z1.hackerbay' },
             ],
         };
         request
@@ -650,7 +650,7 @@ describe('Status API', function() {
 
     it('should reject adding an existing domain', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'status.fyipeapp.com' };
+        const data = { domain: 'status.oneuptimeapp.com' };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -666,7 +666,7 @@ describe('Status API', function() {
     // This test will try to create another domain with the same domain on another project
     it('should add domain if it exist in another project and if the domain in other project is NOT verified.', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'fyipeapp.com' };
+        const data = { domain: 'oneuptimeapp.com' };
         request
             .post(`/project/create`)
             .set('Authorization', authorization)
@@ -702,7 +702,7 @@ describe('Status API', function() {
                                     res.body.domains.length
                                 ).to.be.greaterThan(0);
                                 expect(res.body.domains[0].domain).to.be.equal(
-                                    'fyipeapp.com'
+                                    'oneuptimeapp.com'
                                 );
                                 done();
                             });
@@ -759,7 +759,7 @@ describe('Status API', function() {
 
     it('should update a domain on a status page successfully', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: 'app.fyipeapp.com' };
+        const data = { domain: 'app.oneuptimeapp.com' };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -797,7 +797,7 @@ describe('Status API', function() {
 
     it('should not update a domain on a status page if the domain is not a string', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: { url: 'shop.fyipeapp.com' } };
+        const data = { domain: { url: 'shop.oneuptimeapp.com' } };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -816,7 +816,7 @@ describe('Status API', function() {
 
     it('should not update a domain on a status page if the status page is missing or not found', function(done) {
         const authorization = `Basic ${token}`;
-        const data = { domain: { url: 'shop.fyipeapp.com' } };
+        const data = { domain: { url: 'shop.oneuptimeapp.com' } };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain

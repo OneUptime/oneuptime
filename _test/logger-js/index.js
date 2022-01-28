@@ -1,6 +1,6 @@
 // In a FrontEnd Environment
-import fyipe from 'fyipe-staging';
-const Logger = fyipe.Logger;
+import oneuptime from 'oneuptime-staging';
+const Logger = oneuptime.Logger;
 
 // constructor
 const logger = new Logger(

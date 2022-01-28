@@ -95,7 +95,7 @@ class TrackerTest extends TestCase
 
     public function test_should_take_in_custom_timeline_event()
     {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $timeline = $tracker->getTimeline();
         $this->assertIsArray($timeline);
@@ -104,14 +104,14 @@ class TrackerTest extends TestCase
     }
     public function test_should_ensure_timeline_event_contains_eventId_and_timestamp()
     {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $timeline = $tracker->getTimeline();
         $this->assertIsString($timeline[0]->eventId);
         $this->assertIsNumeric($timeline[0]->timestamp);
     }
     public function test_should_ensure_different_timeline_event_have_the_same_eventId() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, 'error');
         $timeline = $tracker->getTimeline();
@@ -122,7 +122,7 @@ class TrackerTest extends TestCase
         $options = new stdClass();
         $options->maxTimeline = -5;
 
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, 'error');
         $timeline = $tracker->getTimeline();
@@ -132,7 +132,7 @@ class TrackerTest extends TestCase
         $options = new stdClass();
         $options->maxTimeline = 2;
 
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $customTimeline2 = new stdClass();
         $customTimeline2->category = 'logout';
@@ -153,7 +153,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($timeline[1]->category, $customTimeline2->category);
     }
     public function test_should_add_tags() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tag = new stdClass();
         $tag->key = 'location';
         $tag->value = 'Ontario';
@@ -166,7 +166,7 @@ class TrackerTest extends TestCase
     }
     public function test_should_add_multiple_tags() {
         
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tags = [];
         $tag = new stdClass();
         $tag->key = 'location';
@@ -190,7 +190,7 @@ class TrackerTest extends TestCase
         $this->assertCount(sizeof($tags), $availableTags);
     }
     public function test_should_overwrite_existing_keys_to_avoid_duplicate_tags() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tags = [];
         $tag = new stdClass();
         $tag->key = 'location';
@@ -226,7 +226,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($tagE->value, $availableTags[0]->value); // latest value for that tag location
     }
     public function test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         $errorMessage = 'Uncaught Exception';
         $tracker->captureMessage($errorMessage);
@@ -234,7 +234,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($event->fingerprint[0], $errorMessage);
     }
     public function test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         
         $fingerprints = ['custom', 'errors'];
@@ -246,7 +246,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($event->fingerprint[1], $fingerprints[1]);
     }
     public function test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         $fingerprint = 'custom-fingerprint';
         $tracker->setFingerPrint($fingerprint);
@@ -256,7 +256,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($event->fingerprint[0], $fingerprint);
     }
     public function test_should_create_an_event_ready_for_the_server_using_capture_message() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         $errorMessage = 'This is a test';
         $tracker->captureMessage($errorMessage);
@@ -265,7 +265,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($event->exception->message, $errorMessage);
     }
     public function test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
         
         $errorMessage = 'This is a test';
@@ -277,7 +277,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($event->exception->message, $errorMessage);
     }
     public function test_should_create_an_event_ready_for_the_server_using_capture_exception() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         $errorMessage = 'Error Found';
         $tracker->captureException(new Error($errorMessage));
@@ -286,7 +286,7 @@ class TrackerTest extends TestCase
         $this->assertEquals($event->exception->message, $errorMessage);
     }
     public function test_should_create_an_event_with_array_of_stacktrace() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         $errorMessage = 'Error Found';
         $tracker->captureException(new Error($errorMessage));
@@ -297,7 +297,7 @@ class TrackerTest extends TestCase
         $this->assertIsArray($event->exception->stacktrace->frames);
     }
     public function test_should_create_an_event_with_the_object_of_the_stacktrace_in_place() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
 
         $errorMessage = 'Error Found';
         $tracker->captureException(new Error($errorMessage));
@@ -308,7 +308,7 @@ class TrackerTest extends TestCase
         $this->assertArrayHasKey('fileName', $frame);
     }
     public function test_should_create_an_event_and_new_event_should_have_different_id() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $errorMessage = 'Error Found';
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -327,7 +327,7 @@ class TrackerTest extends TestCase
         $this->assertNotEquals($event->_id, $newEvent->_id);
     }
     public function test_should_create_an_event_that_has_timeline_and_new_event_having_timeline_and_tags() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $errorMessage = 'Error Found';
         $errorMessageObj = 'Object Error Found';
         // add timeline to first tracker
@@ -355,7 +355,7 @@ class TrackerTest extends TestCase
         $this->assertCount(2, $newEvent->tags);// the default and custom tag
     }
     public function test_should_contain_version_number_and_sdk_name_in_captured_message() {
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key);
         $errorMessage = 'Error Found';
         $tracker->captureMessage($errorMessage);
         $event = $tracker->getCurrentEvent();
@@ -366,7 +366,7 @@ class TrackerTest extends TestCase
     public function test_should_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
         $options = new stdClass();
         $options->captureCodeSnippet = true;
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -379,7 +379,7 @@ class TrackerTest extends TestCase
     public function test_should_add_code_capture_and_confirm_data_type_of_fields_added_to_frame() {
         $options = new stdClass();
         $options->captureCodeSnippet = true;
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -393,7 +393,7 @@ class TrackerTest extends TestCase
     public function test_should_not_add_code_capture_to_stack_trace_when_flag_is_passed_in_options() {
         $options = new stdClass();
         $options->captureCodeSnippet = false;
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);
@@ -407,7 +407,7 @@ class TrackerTest extends TestCase
     public function test_should_add_code_capture_to_stack_trace_by_default_when_unwanted_flag_is_passed_in_options() {
         $options = new stdClass();
         $options->captureCodeSnippet = "hello"; // sdk expects a true or false but it defaults to true if wrong value is sent
-        $tracker = new Fyipe\FyipeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
+        $tracker = new OneUptime\OneUptimeTracker($this->apiUrl, static::$errorTracker->_id, static::$errorTracker->key, $options);
 
         $errorMessageObj = 'Object Error Found';
         $tracker->addToTimeline(static::$customTimeline->category, static::$customTimeline->content, static::$customTimeline->type);

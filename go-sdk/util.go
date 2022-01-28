@@ -1,4 +1,4 @@
-package fyipe
+package oneuptime
 
 import (
 	"bufio"

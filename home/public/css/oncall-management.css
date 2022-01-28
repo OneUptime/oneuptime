@@ -794,7 +794,7 @@ main header .stripes :nth-child(5){
     position:absolute;
     left:0;
     color:#45b2e8;
-    font:16px fyipeIcons;
+    font:16px oneuptimeIcons;
     content:"\2192"
 }
 #routing-diagram,#routing-diagram-grid{

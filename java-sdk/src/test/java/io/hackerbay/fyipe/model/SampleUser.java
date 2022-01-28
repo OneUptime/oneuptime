@@ -1,4 +1,4 @@
-package io.hackerbay.fyipe.model;
+package io.hackerbay.oneuptime.model;
 
 public class SampleUser {
     private String name;

@@ -122,9 +122,9 @@ redis:
     size: 20Gi
 
 mongo:
-  fyipeDbUsername: fyipe
-  fyipeDbPassword: password
-  databaseName: fyipedb
+  oneuptimeDbUsername: oneuptime
+  oneuptimeDbPassword: password
+  databaseName: oneuptimedb
   rootUsername: root
   rootPassword: root
 

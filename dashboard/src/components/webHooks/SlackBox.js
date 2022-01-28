@@ -29,7 +29,7 @@ class SlackBox extends React.Component {
                                                         }}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        href="https://github.com/Fyipe/feature-docs/blob/master/Webhooks.md#slack"
+                                                        href="https://github.com/OneUptime/feature-docs/blob/master/Webhooks.md#slack"
                                                     >
                                                         here
                                                     </a>{' '}

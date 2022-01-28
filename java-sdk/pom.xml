@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.hackerbay.fyipe</groupId>
+    <groupId>io.hackerbay.oneuptime</groupId>
     <artifactId>java-sdk</artifactId>
     <version>3.0.0</version>
     <properties>
@@ -101,9 +101,9 @@
             </plugin>
         </plugins> 
     </build>
-    <name>Fyipe Java SDK</name>
-    <description>A Fyipe package that tracks error event and send logs from your applications to your fyipe dashboard.</description>
-    <url>https://www.fyipe.com/</url>
+    <name>OneUptime Java SDK</name>
+    <description>A OneUptime package that tracks error event and send logs from your applications to your oneuptime dashboard.</description>
+    <url>https://www.oneuptime.com/</url>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
         <dependency>
@@ -150,9 +150,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/Fyipe/java-sdk.git</connection>
-        <developerConnection>scm:git:ssh://github.com:Fyipe/java-sdk.git</developerConnection>
-        <url>http://github.com/Fyipe/java-sdk</url>
+        <connection>scm:git:git://github.com/OneUptime/java-sdk.git</connection>
+        <developerConnection>scm:git:ssh://github.com:OneUptime/java-sdk.git</developerConnection>
+        <url>http://github.com/OneUptime/java-sdk</url>
     </scm>
     <distributionManagement>
         <snapshotRepository>

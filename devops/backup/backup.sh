@@ -9,9 +9,9 @@ MONGO_HOSTS='a59a474aad89940889c1eb69b1a8f884-135820180.us-east-2.elb.amazonaws.
 MONGO_HOST='a59a474aad89940889c1eb69b1a8f884-135820180.us-east-2.elb.amazonaws.com' #Add one host because mongodump only supports one host.
 MONGO_PORT="27017"
 
-ONEUPTIME_DB_USERNAME='fyipe'
+ONEUPTIME_DB_USERNAME='oneuptime'
 ONEUPTIME_DB_PASSWORD='password'
-ONEUPTIME_DB_NAME='fyipedb'
+ONEUPTIME_DB_NAME='oneuptimedb'
 CURRENT_DATE=$(date +%s)
 CURRENT_USER=$(whoami)
 BACKUP_PATH=~/db-backup
@@ -35,11 +35,11 @@ function HELP() {
   echo "all arguments are optional and have a default value when not set"
   echo ""
   echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
-  echo " -n       Database name. Default value 'fyipedb'"
+  echo " -n       Database name. Default value 'oneuptimedb'"
   echo " -p       Database password. Default value 'password'"
   echo " -r       Helm release name. Default value 'fi'"
   echo " -t       Backup retain days. Set the number of days backup is kept before it is deleted. Default value '14'"
-  echo " -u       Set database username. Default value 'fyipe'."
+  echo " -u       Set database username. Default value 'oneuptime'."
   echo " -v       Set database environment. Enums {Production, Staging}, defaults to 'Staging'."
   echo ""
   echo " -h       Help."

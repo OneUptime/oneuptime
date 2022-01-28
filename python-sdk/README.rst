@@ -9,18 +9,18 @@ Install
 
 To install::
 
-    pip install fyipe-sdk
+    pip install oneuptime-sdk
 
 Overview
 --------
 
-The usual way to use `fyipe_sdk` application log is something like below::
+The usual way to use `oneuptime_sdk` application log is something like below::
 
-   from fyipe_sdk import logger
+   from oneuptime_sdk import logger
 
     # constructor
-    fyipeLogger = logger.FyipeLogger(
-        'API_URL', # https://fyipe.com/api
+    oneuptimeLogger = logger.OneUptimeLogger(
+        'API_URL', # https://oneuptime.com/api
         'APPLICATION_LOG_ID',
         'APPLICATION_LOG_KEY'
     )
@@ -28,7 +28,7 @@ The usual way to use `fyipe_sdk` application log is something like below::
    # Sending a string log to the server
 
     item = 'This is a simple log'
-    response = fyipeLogger.log(item)
+    response = oneuptimeLogger.log(item)
     print(response)
 
    # Sending an object log to the server
@@ -38,13 +38,13 @@ The usual way to use `fyipe_sdk` application log is something like below::
         'page': 'Landing Page'
     }
 
-    response = fyipeLogger.log(item)
+    response = oneuptimeLogger.log(item)
     print(response)
 
 
-The usual way to use `fyipe_sdk` error tracker is something like below::
+The usual way to use `oneuptime_sdk` error tracker is something like below::
 
-   from fyipe_sdk import tracker
+   from oneuptime_sdk import tracker
 
     # set up tracking configurations    
     options = {
@@ -53,19 +53,19 @@ The usual way to use `fyipe_sdk` error tracker is something like below::
     }   
 
     # constructor
-    fyipeTracker = tracker.FyipeTracker(
-        'API_URL', # https://fyipe.com/api
+    oneuptimeTracker = tracker.OneUptimeTracker(
+        'API_URL', # https://oneuptime.com/api
         'ERROR_TRACKER_ID',
         'ERROR_TRACKER_KEY',
         options
     )
 
-   # capturing error exception manually and sent to your fyipe dashboard
+   # capturing error exception manually and sent to your oneuptime dashboard
     try:
         # your code logic
         result = 5/0 # Should throw a division by zero error
     catch Exception as error:
-        fyipeTracker.captureException(error)
+        oneuptimeTracker.captureException(error)
 
    
 

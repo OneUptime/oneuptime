@@ -6,8 +6,8 @@ const serverBuild = {
     target: 'node',
     output: {
         path: path.resolve('dist'),
-        filename: 'fyipe.js',
-        library: 'Fyipe',
+        filename: 'oneuptime.js',
+        library: 'OneUptime',
         libraryExport: 'default',
         libraryTarget: 'umd',
         globalObject: 'this',
@@ -27,18 +27,13 @@ const serverBuild = {
         ],
     },
     resolve: {
-        extensions: ['.js'],
-    },
-    node: {
-        fs: 'empty',
-        child_process: 'empty',
-        net: 'empty',
-        module: 'empty',
-    },
+        extensions: ['.js']
+
+    }
 };
 /*const webBuild = {
     ...serverBuild,
     target: 'web',
-    output: { ...serverBuild.output, filename: 'fyipe.min.js' },
+    output: { ...serverBuild.output, filename: 'oneuptime.min.js' },
 };*/
 module.exports = serverBuild;

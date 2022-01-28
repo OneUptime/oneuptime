@@ -1,11 +1,11 @@
-package io.hackerbay.fyipe;
+package io.hackerbay.oneuptime;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.hackerbay.fyipe.model.SampleComponent;
-import io.hackerbay.fyipe.model.SampleLog;
-import io.hackerbay.fyipe.model.SampleUser;
-import io.hackerbay.fyipe.util.ApiRequest;
+import io.hackerbay.oneuptime.model.SampleComponent;
+import io.hackerbay.oneuptime.model.SampleLog;
+import io.hackerbay.oneuptime.model.SampleUser;
+import io.hackerbay.oneuptime.util.ApiRequest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -14,7 +14,7 @@ import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
-public class FyipeLoggerTest {
+public class OneUptimeLoggerTest {
     private final String apiUrl = "http://localhost:3002/api";
     private String applicationLogId = "";
     private String applicationLogKey = "";
@@ -60,26 +60,26 @@ public class FyipeLoggerTest {
 
     @Test
     public void itShouldRequestForApplicationLogKey() throws IOException {
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, "");
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, "");
         JsonObject response = logger.log("Just a content");
         assertEquals("Application Log Key is required.", response.get("message").getAsString());
     }
     @Test
     public void itShouldRequestForContent() throws IOException {
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         JsonObject response = logger.log("");
         assertEquals("Content to be logged is required.", response.get("message").getAsString());
     }
     @Test
     public void itShouldRejectInvalidApplicationLog() throws IOException {
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, "randomkey");
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, "randomkey");
         JsonObject response = logger.log("content");
         assertEquals("Application Log does not exist.", response.get("message").getAsString());
     }
     @Test
     public void itShouldLogARequestOfTypeString() throws IOException {
         String contentToBeLogged = "I want to log this";
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         JsonObject response = logger.log(contentToBeLogged);
         assertEquals(contentToBeLogged, response.get("content").getAsString());
         assertEquals("info", response.get("type").getAsString());
@@ -87,7 +87,7 @@ public class FyipeLoggerTest {
     @Test
     public void itShouldLogARequestOfTypeObject() throws IOException {
         SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         JsonObject response = logger.log(new Gson().toJson(contentToBeLogged));
         assertEquals(contentToBeLogged.getPage(), response.get("content").getAsJsonObject().get("page").getAsString());
         assertEquals(contentToBeLogged.getName(), response.get("content").getAsJsonObject().get("name").getAsString());
@@ -97,7 +97,7 @@ public class FyipeLoggerTest {
     @Test
     public void itShouldLogARequestOfTypeObjectForError() throws IOException {
         SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         JsonObject response = logger.error(new Gson().toJson(contentToBeLogged));
         assertEquals(contentToBeLogged.getPage(), response.get("content").getAsJsonObject().get("page").getAsString());
         assertEquals(contentToBeLogged.getName(), response.get("content").getAsJsonObject().get("name").getAsString());
@@ -107,7 +107,7 @@ public class FyipeLoggerTest {
     @Test
     public void itShouldLogARequestOfTypeStringForWarning() throws IOException {
         String contentToBeLogged = "I want to log this";
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         JsonObject response = logger.warning(contentToBeLogged);
         assertEquals(contentToBeLogged, response.get("content").getAsString());
         assertEquals("warning", response.get("type").getAsString());
@@ -115,7 +115,7 @@ public class FyipeLoggerTest {
     @Test
     public void itShouldLogARequestOfTypeObjectForErrorWithATag() throws IOException {
         SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         String [] tags = new String[1];
         tags[0] = "server";
         JsonObject response = logger.error(new Gson().toJson(contentToBeLogged), tags);
@@ -128,7 +128,7 @@ public class FyipeLoggerTest {
     @Test
     public void itShouldLogARequestOfTypeObjectForWarningWith3Tags() throws IOException {
         SampleLog contentToBeLogged = new SampleLog("Home Page", 50, "Travis");
-        FyipeLogger logger = new FyipeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
+        OneUptimeLogger logger = new OneUptimeLogger(this.apiUrl, this.applicationLogId, this.applicationLogKey);
         String [] tags = { "server", "content", "monitoring"};
         JsonObject response = logger.warning(new Gson().toJson(contentToBeLogged), tags);
         assertEquals(contentToBeLogged.getPage(), response.get("content").getAsJsonObject().get("page").getAsString());

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @fileoverview Main CLI that is run via the fyipe-server-monitor command.
+ * @fileoverview Main CLI that is run via the oneuptime-server-monitor command.
  * @author HackerBay, Inc.
  * @module server-monitor
  * @see module:api
@@ -21,7 +21,7 @@ const logger = require('../lib/logger');
 const { API_URL, LOG_PATH } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
-program.version(version, '-v, --version').description('Fyipe Monitoring Shell');
+program.version(version, '-v, --version').description('OneUptime Monitoring Shell');
 program.name('server-monitor');
 
 program
@@ -152,8 +152,8 @@ checkParams(questions).then(values => {
         }
 
         const svc = new Service({
-            name: 'Fyipe Server Monitor',
-            description: 'Fyipe Monitoring Shell',
+            name: 'OneUptime Server Monitor',
+            description: 'OneUptime Monitoring Shell',
             script: require('path').join(__dirname, 'server-monitor.js'),
             env: [
                 {
@@ -178,24 +178,24 @@ checkParams(questions).then(values => {
         });
 
         svc.on('install', function() {
-            logger.info('Fyipe Server Monitor daemon installed');
+            logger.info('OneUptime Server Monitor daemon installed');
             svc.start();
         });
 
         svc.on('alreadyinstalled', function() {
-            logger.warn('Fyipe Server Monitor daemon already installed');
+            logger.warn('OneUptime Server Monitor daemon already installed');
         });
 
         svc.on('start', function() {
-            logger.info('Fyipe Server Monitor daemon started');
+            logger.info('OneUptime Server Monitor daemon started');
         });
 
         svc.on('stop', function() {
-            logger.info('Fyipe Server Monitor daemon stopped');
+            logger.info('OneUptime Server Monitor daemon stopped');
         });
 
         svc.on('uninstall', function() {
-            logger.info('Fyipe Server Monitor uninstalled');
+            logger.info('OneUptime Server Monitor uninstalled');
         });
 
         if (daemon === 'errors') {

@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>fyipe: Go Coverage Report</title>
+		<title>oneuptime: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,19 +55,19 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">hackerbay/fyipe/fyipe.go (83.3%)</option>
+				<option value="file0">hackerbay/oneuptime/oneuptime.go (83.3%)</option>
 				
-				<option value="file1">hackerbay/fyipe/fyipeTracker.go (92.5%)</option>
+				<option value="file1">hackerbay/oneuptime/oneuptimeTracker.go (92.5%)</option>
 				
-				<option value="file2">hackerbay/fyipe/helper.go (77.5%)</option>
+				<option value="file2">hackerbay/oneuptime/helper.go (77.5%)</option>
 				
-				<option value="file3">hackerbay/fyipe/logger.go (90.6%)</option>
+				<option value="file3">hackerbay/oneuptime/logger.go (90.6%)</option>
 				
-				<option value="file4">hackerbay/fyipe/realm.go (100.0%)</option>
+				<option value="file4">hackerbay/oneuptime/realm.go (100.0%)</option>
 				
-				<option value="file5">hackerbay/fyipe/tracker.go (92.6%)</option>
+				<option value="file5">hackerbay/oneuptime/tracker.go (92.6%)</option>
 				
-				<option value="file6">hackerbay/fyipe/util.go (89.7%)</option>
+				<option value="file6">hackerbay/oneuptime/util.go (89.7%)</option>
 				
 				</select>
 			</div>
@@ -81,7 +81,7 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package fyipe
+		<pre class="file" id="file0" style="display: none">package oneuptime
 
 import (
         "errors"
@@ -94,7 +94,7 @@ type LoggerOptions struct {
         ApiUrl            string
 }
 
-type FyipeLogger struct {
+type OneUptimeLogger struct {
         options LoggerOptions
 }
 
@@ -106,7 +106,7 @@ var (
         ErrContentMissing           = "Content cant be empty"
 )
 
-func NewFyipeLogger(options LoggerOptions) (*FyipeLogger, error) <span class="cov8" title="1">{
+func NewOneUptimeLogger(options LoggerOptions) (*OneUptimeLogger, error) <span class="cov8" title="1">{
         if options.ApplicationLogId == "" </span><span class="cov8" title="1">{
                 return nil, errors.New(ErrApplicationLogIDMissing)
         }</span>
@@ -119,22 +119,22 @@ func NewFyipeLogger(options LoggerOptions) (*FyipeLogger, error) <span class="co
         // set up API URL
         <span class="cov8" title="1">options.ApiUrl = options.ApiUrl + "/application-log/" + options.ApplicationLogId + "/log"
 
-        fyipeLogger := FyipeLogger{
+        oneuptimeLogger := OneUptimeLogger{
                 options: options,
         }
-        return &amp;fyipeLogger, nil</span>
+        return &amp;oneuptimeLogger, nil</span>
 }
 
 // Init initializes the SDK with loggerOptions.
 // it returns the error if any of the options are invalid
 func Init(options LoggerOptions) error <span class="cov8" title="1">{
-        currentFyipeLogger, err := NewFyipeLogger(options)
+        currentOneUptimeLogger, err := NewOneUptimeLogger(options)
         if err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
-        // confirm Logger is ready to be used by binding user's fyipeLogger
+        // confirm Logger is ready to be used by binding user's oneuptimeLogger
         <span class="cov8" title="1">logger := CurrentLogger()
-        logger.BindFyipeLogger(currentFyipeLogger)
+        logger.BindOneUptimeLogger(currentOneUptimeLogger)
 
         return nil</span>
 }
@@ -145,7 +145,7 @@ func LogInfo(content interface{}, tags []string) (LoggerResponse, error) <span c
                 return LoggerResponse{}, errors.New(ErrContentMissing)
         }</span>
 
-        // access fyipe Logger and send an api request
+        // access oneuptime Logger and send an api request
         <span class="cov8" title="1">logger := CurrentLogger()
         var res, err = logger.MakeApiRequest(content, "info", tags)
 
@@ -161,7 +161,7 @@ func LogWarning(content interface{}, tags []string) (LoggerResponse, error) <spa
                 return LoggerResponse{}, errors.New(ErrContentMissing)
         }</span>
 
-        // access fyipe Logger and send an api request
+        // access oneuptime Logger and send an api request
         <span class="cov8" title="1">logger := CurrentLogger()
         var res, err = logger.MakeApiRequest(content, "warning", tags)
 
@@ -176,7 +176,7 @@ func LogError(content interface{}, tags []string) (LoggerResponse, error) <span 
                 return LoggerResponse{}, errors.New(ErrContentMissing)
         }</span>
 
-        // access fyipe Logger and send an api request
+        // access oneuptime Logger and send an api request
         <span class="cov8" title="1">logger := CurrentLogger()
         var res, err = logger.MakeApiRequest(content, "error", tags)
 
@@ -187,14 +187,14 @@ func LogError(content interface{}, tags []string) (LoggerResponse, error) <span 
 }
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package fyipe
+		<pre class="file" id="file1" style="display: none">package oneuptime
 
 import (
         "errors"
         "reflect"
 )
 
-// This is the version of Fyipe Go SDK.
+// This is the version of OneUptime Go SDK.
 const Version = "0.0.1"
 
 const MAX_ITEMS_ALLOWED_IN_STACK = 100
@@ -204,15 +204,15 @@ type TrackerOption struct {
         CaptureCodeSnippet bool
 }
 
-type FyipeTrackerOption struct {
+type OneUptimeTrackerOption struct {
         ErrorTrackerId  string
         ErrorTrackerKey string
         ApiUrl          string
         Options         TrackerOption
 }
 
-type FyipeTracker struct {
-        options FyipeTrackerOption
+type OneUptimeTracker struct {
+        options OneUptimeTrackerOption
 }
 
 // Generic Error Messages
@@ -222,7 +222,7 @@ var (
         ErrInvalidTimeline        = "Timeline Value must be between 0 and 100"
 )
 
-func NewFyipeTracker(options FyipeTrackerOption) (*FyipeTracker, error) <span class="cov8" title="1">{
+func NewOneUptimeTracker(options OneUptimeTrackerOption) (*OneUptimeTracker, error) <span class="cov8" title="1">{
         if options.ApiUrl == "" </span><span class="cov0" title="0">{
                 return nil, errors.New(ErrApiURLMissing)
         }</span>
@@ -240,22 +240,22 @@ func NewFyipeTracker(options FyipeTrackerOption) (*FyipeTracker, error) <span cl
         // set up API URL
         <span class="cov8" title="1">options.ApiUrl = options.ApiUrl + "/error-tracker/" + options.ErrorTrackerId + "/track"
 
-        fyipeTracker := FyipeTracker{
+        oneuptimeTracker := OneUptimeTracker{
                 options: options,
         }
-        return &amp;fyipeTracker, nil</span>
+        return &amp;oneuptimeTracker, nil</span>
 }
 
 // Init initializes the SDK with trackerOptions.
 // it returns the error if any of the options are invalid
-func InitTracker(options FyipeTrackerOption) error <span class="cov8" title="1">{
-        currentFyipeTracker, err := NewFyipeTracker(options)
+func InitTracker(options OneUptimeTrackerOption) error <span class="cov8" title="1">{
+        currentOneUptimeTracker, err := NewOneUptimeTracker(options)
         if err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
-        // confirm Tracker is ready to be used by binding user's fyipeTracker
+        // confirm Tracker is ready to be used by binding user's oneuptimeTracker
         <span class="cov8" title="1">tracker := CurrentTracker()
-        tracker.BindFyipeTracker(currentFyipeTracker)
+        tracker.BindOneUptimeTracker(currentOneUptimeTracker)
 
         return nil</span>
 }
@@ -326,7 +326,7 @@ func CaptureException(exception error) TrackerResponse <span class="cov8" title=
 }</span>
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package fyipe
+		<pre class="file" id="file2" style="display: none">package oneuptime
 
 import (
         "bytes"
@@ -458,7 +458,7 @@ func AssertNotEqual(t *testing.T, testName string, actual string, expected strin
 }
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package fyipe
+		<pre class="file" id="file3" style="display: none">package oneuptime
 
 import (
         "bytes"
@@ -480,30 +480,30 @@ type stack []*layer
 type layer struct {
         // mu protects concurrent reads and writes to these objects.
         mu           sync.RWMutex
-        fyipeLogger  *FyipeLogger
-        fyipeTracker *FyipeTracker
+        oneuptimeLogger  *OneUptimeLogger
+        oneuptimeTracker *OneUptimeTracker
         realm        *Realm
 }
 
-// return stored fyipeLogger
-func (l *layer) FyipeLogger() *FyipeLogger <span class="cov8" title="1">{
+// return stored oneuptimeLogger
+func (l *layer) OneUptimeLogger() *OneUptimeLogger <span class="cov8" title="1">{
         l.mu.RLock()
         defer l.mu.RUnlock()
-        return l.fyipeLogger
+        return l.oneuptimeLogger
 }</span>
 
-// set the current fyipeLogger
-func (l *layer) SetFyipeLogger(f *FyipeLogger) <span class="cov8" title="1">{
+// set the current oneuptimeLogger
+func (l *layer) SetOneUptimeLogger(f *OneUptimeLogger) <span class="cov8" title="1">{
         l.mu.Lock()
         defer l.mu.Unlock()
-        l.fyipeLogger = f
+        l.oneuptimeLogger = f
 }</span>
 
-// constructor for default fyipeLogger
-func NewLogger(fyipeLogger *FyipeLogger) *Logger <span class="cov8" title="1">{
+// constructor for default oneuptimeLogger
+func NewLogger(oneuptimeLogger *OneUptimeLogger) *Logger <span class="cov8" title="1">{
         logger := Logger{
                 stack: &amp;stack{{
-                        fyipeLogger: fyipeLogger,
+                        oneuptimeLogger: oneuptimeLogger,
                 }},
         }
         return &amp;logger
@@ -514,13 +514,13 @@ func CurrentLogger() *Logger <span class="cov8" title="1">{
         return currentLogger
 }</span>
 
-// set the current fyipeLogger being used by the user
-func (logger *Logger) BindFyipeLogger(fyipeLogger *FyipeLogger) <span class="cov8" title="1">{
+// set the current oneuptimeLogger being used by the user
+func (logger *Logger) BindOneUptimeLogger(oneuptimeLogger *OneUptimeLogger) <span class="cov8" title="1">{
         top := logger.stackTop()
-        top.SetFyipeLogger(fyipeLogger)
+        top.SetOneUptimeLogger(oneuptimeLogger)
 }</span>
 
-// always return the topof the stack which contains one fyipeLogger
+// always return the topof the stack which contains one oneuptimeLogger
 func (logger *Logger) stackTop() *layer <span class="cov8" title="1">{
         logger.mu.RLock()
         defer logger.mu.RUnlock()
@@ -531,14 +531,14 @@ func (logger *Logger) stackTop() *layer <span class="cov8" title="1">{
         return top
 }</span>
 
-// get the current fyipeLogger for usage
-func (logger *Logger) FyipeLogger() *FyipeLogger <span class="cov8" title="1">{
+// get the current oneuptimeLogger for usage
+func (logger *Logger) OneUptimeLogger() *OneUptimeLogger <span class="cov8" title="1">{
         top := logger.stackTop()
-        return top.FyipeLogger()
+        return top.OneUptimeLogger()
 }</span>
 
 func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags []string) (LoggerResponse, error) <span class="cov8" title="1">{
-        currentFyipeLogger := logger.FyipeLogger()
+        currentOneUptimeLogger := logger.OneUptimeLogger()
 
         postBody, _ := json.Marshal(struct {
                 Content           interface{} `json:"content"`
@@ -548,12 +548,12 @@ func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags [
         }{
                 Content:           content,
                 Type:              tagType,
-                ApplicationLogKey: currentFyipeLogger.options.ApplicationLogKey,
+                ApplicationLogKey: currentOneUptimeLogger.options.ApplicationLogKey,
                 Tags:              tags,
         })
         responseBody := bytes.NewBuffer(postBody)
 
-        resp, err := http.Post(currentFyipeLogger.options.ApiUrl, "application/json", responseBody)
+        resp, err := http.Post(currentOneUptimeLogger.options.ApiUrl, "application/json", responseBody)
 
         if err != nil </span><span class="cov0" title="0">{
                 // log.Fatalf("An Error Occured %v", err)
@@ -574,7 +574,7 @@ func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags [
 }
 </pre>
 		
-		<pre class="file" id="file4" style="display: none">package fyipe
+		<pre class="file" id="file4" style="display: none">package oneuptime
 
 import (
         "strings"
@@ -670,7 +670,7 @@ func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception, er
                 ErrorTrackerKey: errorTrackerKey,
                 SDK: &amp;SDK{
                         Name:    "go-sdk",
-                        Version: Version, // TODO dynamic version setting cuz version is set manually in the fyipeTracker.go file before every release
+                        Version: Version, // TODO dynamic version setting cuz version is set manually in the oneuptimeTracker.go file before every release
                 },
         }
 
@@ -690,7 +690,7 @@ func (realm *Realm) clearRealm() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package fyipe
+		<pre class="file" id="file5" style="display: none">package oneuptime
 
 import (
         "bytes"
@@ -707,29 +707,29 @@ type Tracker struct {
 
 var currentTracker = NewTracker(nil, NewRealm())
 
-// constructor for default fyipeTracker
-func NewTracker(fyipeTracker *FyipeTracker, realm *Realm) *Tracker <span class="cov8" title="1">{
+// constructor for default oneuptimeTracker
+func NewTracker(oneuptimeTracker *OneUptimeTracker, realm *Realm) *Tracker <span class="cov8" title="1">{
         tracker := Tracker{
                 stack: &amp;stack{{
-                        fyipeTracker: fyipeTracker,
+                        oneuptimeTracker: oneuptimeTracker,
                         realm:        realm,
                 }},
         }
         return &amp;tracker
 }</span>
 
-// return stored fyipeTracker
-func (l *layer) FyipeTracker() *FyipeTracker <span class="cov8" title="1">{
+// return stored oneuptimeTracker
+func (l *layer) OneUptimeTracker() *OneUptimeTracker <span class="cov8" title="1">{
         l.mu.RLock()
         defer l.mu.RUnlock()
-        return l.fyipeTracker
+        return l.oneuptimeTracker
 }</span>
 
-// set the current fyipeTracker
-func (l *layer) SetFyipeTracker(f *FyipeTracker) <span class="cov8" title="1">{
+// set the current oneuptimeTracker
+func (l *layer) SetOneUptimeTracker(f *OneUptimeTracker) <span class="cov8" title="1">{
         l.mu.Lock()
         defer l.mu.Unlock()
-        l.fyipeTracker = f
+        l.oneuptimeTracker = f
 }</span>
 
 // returns an instance of previously initialized Tracker.
@@ -737,13 +737,13 @@ func CurrentTracker() *Tracker <span class="cov8" title="1">{
         return currentTracker
 }</span>
 
-// set the current fyipeTracker being used by the user
-func (tracker *Tracker) BindFyipeTracker(fyipeTracker *FyipeTracker) <span class="cov8" title="1">{
+// set the current oneuptimeTracker being used by the user
+func (tracker *Tracker) BindOneUptimeTracker(oneuptimeTracker *OneUptimeTracker) <span class="cov8" title="1">{
         top := tracker.stackTop()
-        top.SetFyipeTracker(fyipeTracker)
+        top.SetOneUptimeTracker(oneuptimeTracker)
 }</span>
 
-// always return the topof the stack which contains one fyipeTracker
+// always return the topof the stack which contains one oneuptimeTracker
 func (tracker *Tracker) stackTop() *layer <span class="cov8" title="1">{
         tracker.mu.RLock()
         defer tracker.mu.RUnlock()
@@ -754,10 +754,10 @@ func (tracker *Tracker) stackTop() *layer <span class="cov8" title="1">{
         return top
 }</span>
 
-// get the current fyipeTracker for usage
-func (tracker *Tracker) FyipeTracker() *FyipeTracker <span class="cov8" title="1">{
+// get the current oneuptimeTracker for usage
+func (tracker *Tracker) OneUptimeTracker() *OneUptimeTracker <span class="cov8" title="1">{
         top := tracker.stackTop()
-        return top.FyipeTracker()
+        return top.OneUptimeTracker()
 }</span>
 
 func (tracker *Tracker) Realm() *Realm <span class="cov8" title="1">{
@@ -765,9 +765,9 @@ func (tracker *Tracker) Realm() *Realm <span class="cov8" title="1">{
         return top.realm
 }</span>
 func (tracker *Tracker) AddToTimeline(timeline *Timeline) <span class="cov8" title="1">{
-        currentFyipeTracker := tracker.FyipeTracker()
+        currentOneUptimeTracker := tracker.OneUptimeTracker()
 
-        options := currentFyipeTracker.options.Options
+        options := currentOneUptimeTracker.options.Options
 
         userTimeline := options.MaxTimeline
 
@@ -791,14 +791,14 @@ func (tracker *Tracker) SetFingerprint(fingerprint []string) <span class="cov8" 
 }</span>
 
 func (tracker *Tracker) GetExceptionStackTrace(exception error) *Stacktrace <span class="cov8" title="1">{
-        currentFyipeTracker := tracker.FyipeTracker()
+        currentOneUptimeTracker := tracker.OneUptimeTracker()
 
-        options := currentFyipeTracker.options.Options
+        options := currentOneUptimeTracker.options.Options
         return GetExceptionStackTrace(exception, options)
 }</span>
 
 func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) TrackerResponse <span class="cov8" title="1">{
-        currentFyipeTracker := tracker.FyipeTracker()
+        currentOneUptimeTracker := tracker.OneUptimeTracker()
 
         AddToTimeline(&amp;Timeline{
                 Category: category,
@@ -806,7 +806,7 @@ func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception)
                 Type:     "error",
         })
 
-        tracker.Realm().PrepareErrorObject(category, errorObj, currentFyipeTracker.options.ErrorTrackerKey)
+        tracker.Realm().PrepareErrorObject(category, errorObj, currentOneUptimeTracker.options.ErrorTrackerKey)
 
         trackerResponse, err := tracker.sendErrorToServer()
 
@@ -820,13 +820,13 @@ func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception)
 }
 
 func (tracker *Tracker) sendErrorToServer() (TrackerResponse, error) <span class="cov8" title="1">{
-        currentFyipeTracker := tracker.FyipeTracker()
+        currentOneUptimeTracker := tracker.OneUptimeTracker()
         currentErrorEvent := tracker.Realm().currentErrorEvent
 
         postBody, _ := json.Marshal(currentErrorEvent)
         responseBody := bytes.NewBuffer(postBody)
 
-        resp, err := http.Post(currentFyipeTracker.options.ApiUrl, "application/json", responseBody)
+        resp, err := http.Post(currentOneUptimeTracker.options.ApiUrl, "application/json", responseBody)
 
         if err != nil </span><span class="cov0" title="0">{
                 // log.Fatalf("An Error Occured %v", err)
@@ -847,7 +847,7 @@ func (tracker *Tracker) sendErrorToServer() (TrackerResponse, error) <span class
 }
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package fyipe
+		<pre class="file" id="file6" style="display: none">package oneuptime
 
 import (
         "bufio"

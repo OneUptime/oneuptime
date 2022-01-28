@@ -9,7 +9,7 @@ A oneuptime sdk for application logger that can be used to send logs about your 
 Via Gem
 
 ```
- gem install fyipe
+ gem install oneuptime
 ```
 
 <a name="module_api"></a>
@@ -17,11 +17,11 @@ Via Gem
 ## Basic Usage for Logging
 
 ```ruby
-require 'fyipe'
+require 'oneuptime'
 
 # constructor
-logger = FyipeLogger.new(
-    'API_URL', # https://fyipe.com/api
+logger = OneUptimeLogger.new(
+    'API_URL', # https://oneuptime.com/api
     'APPLICATION_LOG_ID',
     'APPLICATION_LOG_KEY'
 )
@@ -64,7 +64,7 @@ puts response
 ## Basic Usage for Tracking
 
 ```ruby
-require 'fyipe'
+require 'oneuptime'
 
 # set up tracking configurations
 options = {
@@ -73,8 +73,8 @@ options = {
 }
 
 # constructor
-tracker = FyipeLogger.new(
-    'API_URL', # https://fyipe.com/api
+tracker = OneUptimeLogger.new(
+    'API_URL', # https://oneuptime.com/api
     'ERROR_TRACKER_ID',
     'ERROR_TRACKER_KEY',
     options # optional
@@ -109,7 +109,7 @@ tags = [tagOne, tagTwo]
 tracker.setTags(tags)
 
 
-# all error exception captured are sent to your fyipe dashboard
+# all error exception captured are sent to your oneuptime dashboard
 
 # capturing errors in a begin and rescue
 begin
@@ -123,7 +123,7 @@ end
 tracker.captureMessage('some error text')
 
 # capturing errors authomatically
-NonExistingMethod() # calling this will trigger an error and its sent to your fyipe dashboard
+NonExistingMethod() # calling this will trigger an error and its sent to your oneuptime dashboard
 
 ```
 
@@ -139,11 +139,11 @@ Main API to send logs to the server.
     -   [Basic Usage for Logging](#basic-usage-for-logging)
     -   [Basic Usage for Tracking](#basic-usage-for-tracking)
     -   [API Documentation](#api-documentation)
-        -   [FyipeLogger.new(apiUrl, applicationId, applicationKey)](#fyipeloggernewapiurl-applicationid-applicationkey)
+        -   [OneUptimeLogger.new(apiUrl, applicationId, applicationKey)](#oneuptimeloggernewapiurl-applicationid-applicationkey)
             -   [logger.log(log, \tags)](#loggerloglog-tags)
             -   [logger.warning(warning, \tags)](#loggerwarningwarning-tags)
             -   [logger.error(error, \tags)](#loggererrorerror-tags)
-        -   [FyipeTracker.new(apiUrl, errorTrackerId, errorTrackerKey)](#fyipetrackernewapiurl-errortrackerid-errortrackerkey)
+        -   [OneUptimeTracker.new(apiUrl, errorTrackerId, errorTrackerKey)](#oneuptimetrackernewapiurl-errortrackerid-errortrackerkey)
             -   [options](#options)
             -   [tracker.setTag(key, value)](#trackersettagkey-value)
             -   [tracker.setTags([{key, value}])](#trackersettagskey-value)
@@ -155,7 +155,7 @@ Main API to send logs to the server.
 
 <a name="logger_api--logger"></a>
 
-### FyipeLogger.new(apiUrl, applicationId, applicationKey)
+### OneUptimeLogger.new(apiUrl, applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -172,7 +172,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>FyipeLogger.new</code>](#logger_api--logger)
+**Kind**: method of [<code>OneUptimeLogger.new</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -184,7 +184,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>FyipeLogger.new</code>](#logger_api--logger)
+**Kind**: method of [<code>OneUptimeLogger.new</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param    | Type                                       | Description                                                 |
@@ -196,7 +196,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>FyipeLogger.new</code>](#logger_api--logger)
+**Kind**: method of [<code>OneUptimeLogger.new</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param  | Type                                       | Description                                                 |
@@ -206,7 +206,7 @@ Logs a request of type `error` to the server.
 
 <a name="tracker_api--tracker"></a>
 
-### FyipeTracker.new(apiUrl, errorTrackerId, errorTrackerKey)
+### OneUptimeTracker.new(apiUrl, errorTrackerId, errorTrackerKey)
 
 Create a constructor from the class, which will be used to track errors sent to the server.
 
@@ -222,16 +222,16 @@ Create a constructor from the class, which will be used to track errors sent to 
 
 #### options
 
-| Param              | Type                 | Description                                                                                           |
-| ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------- |
-| maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
-| captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+| Param              | Type                 | Description                                                                                               |
+| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                       |
+| captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your oneuptime dashboard. |
 
 #### tracker.setTag(key, value)
 
 Set tag for the error to be sent to the server.
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -243,7 +243,7 @@ Set tag for the error to be sent to the server.
 
 Set multiple tags for the error to be sent to the server. Takes in a list
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -255,7 +255,7 @@ Set multiple tags for the error to be sent to the server. Takes in a list
 
 Set fingerprint for the next error to be captured.
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param       | Type                                                | Description                                                   |
@@ -266,7 +266,7 @@ Set fingerprint for the next error to be captured.
 
 Add a custom timeline element to the next error to be sent to the server
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param    | Type                                       | Description                         |
@@ -279,7 +279,7 @@ Add a custom timeline element to the next error to be sent to the server
 
 Capture a custom error message to be sent to the server
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>Promise</code>
 
 | Param   | Type                | Description                           |
@@ -290,7 +290,7 @@ Capture a custom error message to be sent to the server
 
 Capture a custom error object to be sent to the server
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>Promise</code>
 
 | Param | Type                          | Description                                |
@@ -300,6 +300,6 @@ Capture a custom error object to be sent to the server
 ## Contribution
 
 -   Clone repository
--   run `cd ruby-sdk/fyipe`
+-   run `cd ruby-sdk/oneuptime`
 -   run `bundle install` to install dependencies
 -   run `bundle exec rspec` to run tests

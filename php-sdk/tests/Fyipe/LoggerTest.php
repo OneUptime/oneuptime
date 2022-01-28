@@ -84,26 +84,26 @@ class LoggerTest extends TestCase
 
     public function test_application_log_key_is_required()
     {
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, '');
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, '');
         $response = $logger->log('test content');
         $this->assertEquals("Application Log Key is required.", $response->message);
     }
     public function test_content_is_required()
     {
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->log('');
         $this->assertEquals("Content to be logged is required.", $response->message);
     }
     public function test_valid_applicaiton_log_id_is_required()
     {
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, '5eec6f33d7d57033b3a7d502', static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, '5eec6f33d7d57033b3a7d502', static::$applicationLog->key);
         $response = $logger->log('content');
         $this->assertEquals("Application Log does not exist.", $response->message);
     }
     public function test_valid_string_content_of_type_info_is_logged()
     {
         $log = "sample content to be logged";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->log($log);
         $this->assertEquals($log, $response->content);
         $this->assertEquals(true, is_string($response->content));
@@ -114,7 +114,7 @@ class LoggerTest extends TestCase
         $log = new stdClass();
         $log->name = "Travis";
         $log->location = "Atlanta";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->log($log);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
@@ -123,7 +123,7 @@ class LoggerTest extends TestCase
     public function test_valid_string_content_of_type_error_is_logged()
     {
         $log = "sample content to be logged";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->error($log);
         $this->assertEquals($log, $response->content);
         $this->assertEquals(true, is_string($response->content));
@@ -134,7 +134,7 @@ class LoggerTest extends TestCase
         $log = new stdClass();
         $log->name = "Travis";
         $log->location = "Atlanta";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->warning($log);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
@@ -146,7 +146,7 @@ class LoggerTest extends TestCase
         $log->name = "Travis";
         $log->location = "Atlanta";
         $tag = "Famous";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->log($log, $tag);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
@@ -160,7 +160,7 @@ class LoggerTest extends TestCase
         $log = new stdClass();
         $log->name = "Travis";
         $log->location = "Atlanta";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->error($log);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
@@ -172,7 +172,7 @@ class LoggerTest extends TestCase
         $log->name = "Travis";
         $log->location = "Atlanta";
         $tag = ['Enough', 'Php', 'Error', 'Serverside'];
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         $response = $logger->warning($log, $tag);
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
@@ -190,7 +190,7 @@ class LoggerTest extends TestCase
         $log->location = "Atlanta";
         $tag = new stdClass();
         $tag->type = "testing";
-        $logger = new Fyipe\FyipeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
+        $logger = new OneUptime\OneUptimeLogger($this->apiUrl, static::$applicationLog->_id, static::$applicationLog->key);
         try {
             $logger->warning($log, $tag);
         } catch (\Throwable $th) {

@@ -1,5 +1,5 @@
-# spec/fyipe_logger_spec.rb
-require_relative '../lib/fyipe'
+# spec/oneuptime_logger_spec.rb
+require_relative '../lib/oneuptime'
 require_relative 'helper'
 
 RSpec.configure do |config|
@@ -34,25 +34,25 @@ RSpec.configure do |config|
     }
 end
 
-RSpec.describe FyipeLogger do
+RSpec.describe OneUptimeLogger do
     it 'test_application_log_key_is_required' do
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], '')
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], '')
         response = logger.log('test content')
         expect(response['message']).to eql 'Application Log Key is required.'
     end
     it 'test_content_is_required' do
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.log('')
         expect(response['message']).to eql 'Content to be logged is required.'
     end
     it 'test_valid_applicaiton_log_id_is_required' do
-        logger = FyipeLogger.new($apiUrl, "5eec6f33d7d57033b3a7d502", $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, "5eec6f33d7d57033b3a7d502", $applicationLog["key"])
         response = logger.log('test')
         expect(response['message']).to eql 'Application Log does not exist.'
     end
     it 'test_valid_string_content_of_type_info_is_logged' do
         log = "sample content to be logged"
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.log(log)
         expect(response['content']).to eql log
         expect(response['content']).to be_an_instance_of(String)
@@ -63,7 +63,7 @@ RSpec.describe FyipeLogger do
             "name" => "Tony Lewinsky",
             "location" => "Liverpool"
         }
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.log(log)
         expect(response['content']["location"]).to eql log["location"]
         expect(response['content']).to be_an_instance_of(Hash)
@@ -71,7 +71,7 @@ RSpec.describe FyipeLogger do
     end
     it 'test_valid_string_content_of_type_error_is_logged' do
         log = "sample content to be logged"
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.error(log)
         expect(response['content']).to eql log
         expect(response['content']).to be_an_instance_of(String)
@@ -82,7 +82,7 @@ RSpec.describe FyipeLogger do
             "name" => "Tony Lewinsky",
             "location" => "Liverpool"
         }
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.warning(log)
         expect(response['content']["location"]).to eql log["location"]
         expect(response['content']).to be_an_instance_of(Hash)
@@ -94,7 +94,7 @@ RSpec.describe FyipeLogger do
             "location" => "Liverpool"
         }
         tag = "Famous";
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.warning(log, tag)
         expect(response['content']["location"]).to eql log["location"]
         expect(response['content']).to be_an_instance_of(Hash)
@@ -104,7 +104,7 @@ RSpec.describe FyipeLogger do
     end
     it 'test_valid_object_content_of_type_error_with_no_tag_is_logged' do
         log = "sample content to be logged"
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.error(log)
         expect(response['content']).to eql log
         expect(response['content']).to be_an_instance_of(String)
@@ -116,7 +116,7 @@ RSpec.describe FyipeLogger do
             "location" => "Liverpool"
         }
         tags = ['testing', 'rubylansh', 'trial', 'correct']
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         response = logger.warning(log, tags)
         expect(response['content']["location"]).to eql log["location"]
         expect(response['content']).to be_an_instance_of(Hash)
@@ -133,7 +133,7 @@ RSpec.describe FyipeLogger do
             "location" => "Liverpool"
         }
         tags = {"content" => "test"}
-        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        logger = OneUptimeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
         begin
             response = logger.warning(log, tags)
         rescue => exception

@@ -4,11 +4,11 @@
  * @author bunday
  */
 
-namespace Fyipe;
+namespace OneUptime;
 
 
 
-class FyipeLogger
+class OneUptimeLogger
 {
     /**
      * @var string
@@ -26,7 +26,7 @@ class FyipeLogger
     private $applicationLogKey;
 
     /**
-     * FyipeLogger constructor.
+     * OneUptimeLogger constructor.
      * @param string $apiUrl
      * @param string $applicationLogId
      * @param string $applicationLogKey

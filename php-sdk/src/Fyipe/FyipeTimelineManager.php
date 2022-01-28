@@ -4,16 +4,16 @@
  * @author bunday
  */
 
-namespace Fyipe;
+namespace OneUptime;
 
 
-class FyipeTimelineManager
+class OneUptimeTimelineManager
 {
     private $options=[];
     private $timeLineStack = [];
 
     /**
-     * FyipeTimelineManager constructor.
+     * OneUptimeTimelineManager constructor.
      * @param array $options
      */
     public function __construct($options){

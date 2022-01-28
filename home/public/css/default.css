@@ -78,7 +78,7 @@ code,pre{
     font-family:Source Code Pro,Consolas,Menlo,monospace
 }
 @font-face{
-    font-family:fyipeIcons;
+    font-family:oneuptimeIcons;
     font-display: optional;
     src:url(data:application/font-woff;base64,d09GRk9UVE8AAAZUAAoAAAAAB6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABDRkYgAAADKAAAAx8AAAOKkWuAp0dTVUIAAAZIAAAACgAAAAoAAQAAT1MvMgAAAXAAAABJAAAAYGcdjVZjbWFwAAACvAAAAFYAAACUKEhKfWhlYWQAAAD8AAAAMAAAADYJAklYaGhlYQAAAVAAAAAgAAAAJAYoAa5obXR4AAABLAAAACQAAAAoEOAAWW1heHAAAAD0AAAABgAAAAYAClAAbmFtZQAAAbwAAAD%2FAAABuXejDuxwb3N0AAADFAAAABMAAAAg%2F7gAMgAAUAAACgAAeNpjYGRgYABifeaSpHh%2Bm68MzMwHgCIMl08yqyDo%2F95Mkcy8QC4zAxNIFAD8tAiweNpjfMAQyfiAgYEpgoGBcQmQlmFgYPgAZOtAcQZEDgCHaQVGeNpjYGRgYD7z34eBgSmCgeH%2Ff6ZIBqAICuACAHpYBNp42mNgZtzAOIGBlYGDqYDJgYGBwQNCMwYwGDEcA%2FKBUthBqHe4H4MDg4L6Imae%2Fz4MB5jPMGwBCjOC5Bi9mKYAKQUGBgAFHgteAAAAeNplkMFqwkAURU9itBVKF6XLLrLsxiGKMYH0B4IgoqjdRokajAmNUfolhX5Df7IvZhBt5zHMeffduQwDPPCFQbWM81mzyZ3uocEz95qtK0%2BTN140t2jzLk7DaotiEmk2eWSlucErH5otnvjW3OSTH82tSg8n8eaYRkVXOY4TzIaLURB2tDaPi0OSZ3Y9G09tx6lxm5erPDtVA%2BX7wT7axXm5Vmmy7ClXDfqe515CCJkQs%2BFIKk8t6KJwzhUwY8iCkVBI54%2FvvzKXruBAQk6GfZM0ZipKxdfqVpylfErlP11uKHypgL2k7iSz8qxFTSV5SU%2FIlT2gjyfl%2FgKN9EDsAHjaY2BgYGaA4DAGRgYQkAHyGMF8NgYrIM3JIAHEEACj8QNOBhYGOyDNAYRMQFpBcZL6ov%2F%2Foaw5%2F%2F%2F%2Ff3kvH8iD2McCxExAO1kYWIE2cjCwAwAgUQwvAAB42mNgZgCD%2F1sZjBiwAAAswgHqAHjaNVFbbxNHGN2JMmtlNnIoZFFx1F2nDoTWgJLIhRQqWlRowyXiUkqE1IZLVW0dJzHYjpAhxnbYi8HXdWxsEKCIi0DdqjxVyhOKkBBS%2FdAX%2FkJfmiCe0Gz4orbjLNFo5uj79B19Z85BXGsLhxAiB7ef%2BFmZGj8XaVb9dgdn%2B5Dd02J%2F2JqFIXtpeQ5Lc6h1YzKbXcN2F%2F2qg373wZ3ly%2Bs5gpCwfpO3d8dnXwyfOheJhC9FgsovsanJ4MCuzw84sN%2BBb1Zh34ADfU7za6fq%2Fyl8Ib7K9E4Eo9HgpHLQu6aL45CB8ug6yqAbKIeyqMAhjjD1nM49596hbqQgHf2B%2Fm5xt3S8sqXlORFe%2FHuSvuD3vesUQ4eVxjgEfm08PWK5%2FoF14lBjDAJvXI0xMRS0%2BMVjbGLIbzV%2BP2y5aOC46IfAb7TzT5cFbSJwEKCc9eXifGgqtOBahN3vWy7aOS76f1zkrVNiaNw1NIpfhyBg8X%2FN428t3v2KJl6KtVqxWpXpCD2Bq5XZW3XPrWv1dMVHEmZy9pr8dhsGdQuhKt%2FTh9Mz6nTCE34Yeyy56byfUHMzqaWrEpRpHldmrpqJrosXPyV0N%2BzAsMJYKzwMwjacTmtXGe9%2B7InkrtPz3aRoaIWPSUEtGjL1wUcYFnoJXeChG7qwpmfUHkI30XsvRdMsmKZMs9TwEsjR67ik6%2Fk14hk4jVcGe4k9yMMojGDNyKiqRy1opi5phUrG7HLDnkfdxOHktZIu072wB9jFhpHReoj3UXNF3lmReb%2FC0eaMx%2BESO1NY1w2myfuMuXW7VKvJ9CQ9im9Wy3XmllpLVX0kWUzNpmW6E%2FrY8ePkjLaV%2FPCMWVTeTJidTYtyuJpuWhSOMYsuwBhMgNK0dCtxS3O7%2Fmtvy7YL9lKn7RfvbODaEerw%2BXfuPfT92WDkiopLpaJZ9pQNUy9JAlNdyjVVH6PDTDV7saB2TadSCVWQYIQeZ2F8QgTVM30zdZtFlcOVSmU1WYFXolFFeRB9Kgt8PJmMx2vJu7IwvZoOS9XRFwsLsXCylKjMyGxXrV5kXxb%2BBxsddR0AAAEAAAAAAAAAAAAA) format('woff')
 }
@@ -447,7 +447,7 @@ width:100%
     transition:color .1s
 }
 .common-ProductLockupBack:before{
-    font:normal 48px/24px fyipeIcons;
+    font:normal 48px/24px oneuptimeIcons;
     content:'\279D';
     transform:scaleX(-1);
     width:36px;
@@ -491,13 +491,13 @@ width:100%
     color:#000
 }
 .common-Link--arrow:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\2192';
     padding-left:5px
 }
 .common-Link--arrowL:before{
     display:inline-block;
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\2192';
     transform:rotate(180deg);
     margin-right:5px;
@@ -1342,7 +1342,7 @@ width:100%
     fill:currentColor
 }
 .globalNav .item-dashboard:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\279E';
     padding-left:1px
 }
@@ -1677,7 +1677,7 @@ width:100%
 }
 .globalNav .blogPosts a:after{
     content:'\27A2';
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     margin-left:6px;
     vertical-align:-3px
 }
@@ -1804,7 +1804,7 @@ width:100%
     font-weight:600
 }
 .globalNav .mobileSignIn:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\279C';
     margin-left:6px
 }
@@ -1997,7 +1997,7 @@ width:100%
     color:#000000
 }
 .productNav a.external:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\279E';
     padding-left:5px
 }
@@ -2575,7 +2575,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     color:#000000
 }
 .globalFooterNav .countryList h4 a:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\2192';
     margin-left:6px
 }
@@ -2596,7 +2596,7 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
     transition:color .1s
 }
 .globalFooterNav .globalLink strong:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\2192';
     margin-left:6px
 }

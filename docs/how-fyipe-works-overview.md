@@ -15,4 +15,4 @@ One of the main purpose of OneUptime is to monitor resources. The flow of how th
 7. Each schedule contains an escalation policy which defines which team will be alerted for the incident.
 8. The members in the team will be alerted via SMS, Call and/or Email.
 
-![](./how-fyipe-works-flowchart.png)
+![](./how-oneuptime-works-flowchart.png)

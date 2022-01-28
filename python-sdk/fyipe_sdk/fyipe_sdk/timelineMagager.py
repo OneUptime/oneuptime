@@ -1,6 +1,6 @@
 from datetime import datetime
 
-class FyipeTimelineManager:
+class OneUptimeTimelineManager:
 
     def __init__(self, options):
         self.options = options

@@ -1,6 +1,6 @@
 ##################################################################################
 ## Important: If you're implenting this in the enterprise environment, this should always be `false`.
-## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
+## Is this OneUptime SaaS service. This will deploy all the SaaS env vars
 
 ##
 
@@ -20,7 +20,7 @@ saas:
             baseId: appksCeuKfCS0e8fR
         tokenSecret: LicenseTokenSecret
 
-fyipe:
+oneuptime:
     hosts:
         host1:
             host: localhost
@@ -32,7 +32,7 @@ fyipe:
 
 image:
     registry: docker.io
-    repository: fyipeproject
+    repository: oneuptimeproject
     tag: test
     pullPolicy: Always
     restartPolicy: Always

@@ -69,7 +69,7 @@ const client = getMongoClient();
 })();
 
 // attach the database to global object
-global.db = client.db('fyipedb');
+global.db = client.db('oneuptimedb');
 
 // Sentry: The request handler must be the first middleware on the app
 app.use(Sentry.Handlers.requestHandler());

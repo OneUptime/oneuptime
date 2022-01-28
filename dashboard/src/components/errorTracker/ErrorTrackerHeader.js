@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import Select from '../../components/basic/react-select-fyipe';
+import Select from '../../components/basic/react-select-oneuptime';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';

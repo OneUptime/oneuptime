@@ -61,12 +61,12 @@ if (User.isLoggedIn()) {
 }
 
 const App = props => {
-    const oldHostNames = ['staging.fyipe.com', 'fyipe.com'];
+    const oldHostNames = ['staging.oneuptime.com', 'oneuptime.com'];
     const currentHostName = window.location.hostname;
 
     if (oldHostNames.includes(currentHostName)) {
         const updatedLink = `${window.location.origin.replace(
-            'fyipe',
+            'oneuptime',
             'oneuptime'
         )}${window.location.pathname}`;
 

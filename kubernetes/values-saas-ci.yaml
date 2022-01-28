@@ -1,6 +1,6 @@
 ##################################################################################
 ## Important: If you're implenting this in the enterprise environment, this should always be `false`.
-## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
+## Is this OneUptime SaaS service. This will deploy all the SaaS env vars
 
 ##
 
@@ -8,7 +8,7 @@ saas:
     isSaasService: true
     slackErrorLog:
         webhook: https://hooks.slack.com/services/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
-        channel: fyipe-engineering
+        channel: oneuptime-engineering
     stripe:
         publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
         privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN

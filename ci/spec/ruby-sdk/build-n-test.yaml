@@ -16,7 +16,7 @@ test_ruby-sdk:
         - sudo docker run --env-file ./backend/.env  -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d oneuptime/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
         - sudo apt install -y rbenv
-        - cd ruby-sdk/fyipe
+        - cd ruby-sdk/oneuptime
         - sudo gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
         - bundle --version
         - bundle install

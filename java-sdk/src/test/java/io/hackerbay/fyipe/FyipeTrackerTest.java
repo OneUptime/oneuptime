@@ -1,9 +1,9 @@
-package io.hackerbay.fyipe;
+package io.hackerbay.oneuptime;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.hackerbay.fyipe.model.*;
-import io.hackerbay.fyipe.util.ApiRequest;
+import io.hackerbay.oneuptime.model.*;
+import io.hackerbay.oneuptime.util.ApiRequest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,7 +13,7 @@ import java.util.Random;
 
 import static org.junit.Assert.*;
 
-public class FyipeTrackerTest {
+public class OneUptimeTrackerTest {
     private final String apiUrl = "http://localhost:3002/api";
     private String errorTrackerId = "";
     private String errorTrackerKey = "";
@@ -63,7 +63,7 @@ public class FyipeTrackerTest {
     @Test
     public void itShouldTakeInCustomTimelineEvent() throws IOException {
 
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         ArrayList<Timeline> currentTimeline = tracker.getTimeline();
         assertEquals(1, currentTimeline.size());
@@ -71,7 +71,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldEnsureTimelineEventContainsEventIdAndTimestamp() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         ArrayList<Timeline> currentTimeline = tracker.getTimeline();
         assertNotNull( currentTimeline.get(0).getEventId());
@@ -79,7 +79,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldEnsureDifferentTimelineEventHaveTheSameEventId() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), ErrorEventType.warning.name());
         ArrayList<Timeline> currentTimeline = tracker.getTimeline();
@@ -89,7 +89,7 @@ public class FyipeTrackerTest {
     @Test
     public void itShouldEnsureMaxTimelineCantBeSetAsANegativeNumber() throws IOException {
         TrackerOption option = new TrackerOption(-5);
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey, option);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey, option);
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), ErrorEventType.warning.name());
         ArrayList<Timeline> currentTimeline = tracker.getTimeline();
@@ -100,7 +100,7 @@ public class FyipeTrackerTest {
         int maxTimeline = 2;
         String customCategory = "finance";
         TrackerOption option = new TrackerOption(maxTimeline);
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey, option);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey, option);
 
         // set up 3 timeline events
         tracker.addToTimeline(customCategory+""+this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), ErrorEventType.info.name());
@@ -117,7 +117,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldAddTags() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         Tag tag = new Tag("user-type", "customer");
         tracker.setTag(tag);
         ArrayList<Tag> currentTags = tracker.getTags();
@@ -126,7 +126,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldAddMultipleTags() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         ArrayList<Tag> sampleTags = new ArrayList<Tag>();
         sampleTags.add(new Tag("Content", "Audio"));
         sampleTags.add(new Tag("Attribute", "Beautiful"));
@@ -139,7 +139,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldOverwriteExistingKeysToAvoidDuplicateTags() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         ArrayList<Tag> sampleTags = new ArrayList<Tag>();
         Tag tagA = new Tag("Content", "Audio");
         sampleTags.add(tagA);
@@ -167,14 +167,14 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateFingerprintAsMessageForErrorCaptureWithoutAnyFingerprint() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Uncaught Exception";
         JsonObject response = tracker.captureMessage(errorMessage);
         assertEquals(response.getAsJsonArray("fingerprint").get(0).getAsString(), errorMessage);
     }
     @Test
     public void itShouldUseDefinedFingerprintArrayForErrorCaptureWithFingerprint() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         ArrayList<String> sampleFingerPrint = new ArrayList<>();
         sampleFingerPrint.add("custom");
         sampleFingerPrint.add("errors");
@@ -188,7 +188,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldUseDefinedFingerprintStringForErrorCapturedWithFingerprint() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String fingerprint = "created to merge";
         tracker.setFingerprint(fingerprint);
         String errorMessage = "Uncaught Exception";
@@ -197,7 +197,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateAnEventReadyForTheServerUsingCaptureMessage() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
 
         String errorMessage = "This is a test";
         tracker.captureMessage(errorMessage);
@@ -207,7 +207,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateAnEventReadyForTheServerWhileHavingTheTimelineWithSameEventId() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
 
         String errorMessage = "This is a test";
@@ -219,7 +219,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateAnEventReadyForTheServerUsingCaptureException() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Got an error here";
         tracker.captureException(new Exception(errorMessage));
         ErrorEvent errorEvent = tracker.getCurrentEvent();
@@ -229,7 +229,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateAnEventWithArrayOfStacktrace() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Got an error here";
         tracker.captureException(new Exception(errorMessage));
 
@@ -241,7 +241,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateAnEventAndNewEventShouldHaveDifferentId() throws  IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Got an error here";
         String errorObj = "Object Error Thrown";
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
@@ -261,7 +261,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldCreateAnEventThatHasTimelineAndNewEventHavingTimelineAndTags() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Got an error here";
         String errorObj = "Object Error Thrown";
         // add timeline to first tracker
@@ -288,7 +288,7 @@ public class FyipeTrackerTest {
     }
     @Test
     public void itShouldContainVersionNumberAndSdkNameInCapturedMessage() throws IOException {
-        FyipeTracker tracker = new FyipeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
+        OneUptimeTracker tracker = new OneUptimeTracker(this.apiUrl, this.errorTrackerId, this.errorTrackerKey);
         String errorMessage = "Got an error here";
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         JsonObject event = tracker.captureMessage(errorMessage);

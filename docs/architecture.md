@@ -42,7 +42,7 @@ In addition to the three main components, we have the server monitor. This is an
 
 The following diagram describes the general architecture of the OneUptime project.
 
-![](./fyipe_architecture.png)
+![](./oneuptime_architecture.png)
 
 ## Features
 

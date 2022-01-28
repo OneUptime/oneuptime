@@ -140,7 +140,7 @@ describe('API Monitor API', () => {
             await init.pageType(
                 page,
                 '#url',
-                'https://fyipe.com/api/monitor/valid-project-id'
+                'https://oneuptime.com/api/monitor/valid-project-id'
             );
             await init.selectDropdownValue('#method', 'post', page);
 
@@ -184,7 +184,7 @@ describe('API Monitor API', () => {
             await init.pageType(
                 page,
                 '#url',
-                'https://fyipe.com/api/monitor/valid-project-id'
+                'https://oneuptime.com/api/monitor/valid-project-id'
             );
             await init.pageWaitForSelector(page, '#advanceOptions');
             await init.pageClick(page, '#advanceOptions');

@@ -43,80 +43,80 @@
 
 
     <section>
-        <article><p><a href="https://github.com/Fyipe/js-sdk/blob/master/docs/server-monitor/README.md"><img src="https://img.shields.io/npm/v/fyipe-server-monitor" alt="npm"></a></p>
-<h1>Fyipe Server Monitor</h1>
-<p>A fyipe shell package that monitor's server resources - disk, memory and CPU percentage - used.</p>
+        <article><p><a href="https://github.com/OneUptime/js-sdk/blob/master/docs/server-monitor/README.md"><img src="https://img.shields.io/npm/v/oneuptime-server-monitor" alt="npm"></a></p>
+<h1>OneUptime Server Monitor</h1>
+<p>A oneuptime shell package that monitor's server resources - disk, memory and CPU percentage - used.</p>
 <h2>Installation</h2>
 <p>You can install to use on the CLI:</p>
-<pre class="prettyprint source lang-bash"><code>$ npm install -g fyipe-server-monitor
+<pre class="prettyprint source lang-bash"><code>$ npm install -g oneuptime-server-monitor
 </code></pre>
 <p>You can install to use in your project:</p>
 <pre class="prettyprint source lang-bash"><code>$ cd project
-$ npm install fyipe-server-monitor
+$ npm install oneuptime-server-monitor
 </code></pre>
 <h2>CLI Usage</h2>
 <p>You can use on the CLI:</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor
 </code></pre>
 <ul>
-<li>Run <code>fyipe-server-monitor</code>.</li>
-<li>Enter your Project ID, API URL, and API key - Get these from your Fyipe Dashboard.</li>
+<li>Run <code>oneuptime-server-monitor</code>.</li>
+<li>Enter your Project ID, API URL, and API key - Get these from your OneUptime Dashboard.</li>
 <li>Select Server Monitor from the list of Server Monitors.</li>
 <li>Server will be pinged every minute and the data stored in your project.</li>
 </ul>
 <p>You can also use it like this:</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --project-id 5d64d59cae46131619708309 --api-url https://oneuptime.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 </code></pre>
 <p>Or run as a daemon (requires <code>sudo</code> or admin privileges):</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --daemon --project-id 5d64d59cae46131619708309 --api-url https://fyipe.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --daemon --project-id 5d64d59cae46131619708309 --api-url https://oneuptime.com/api --api-key b02798c0-c898-11e9-9f14-4963dc67e2ab --monitor-id 5d7775e9f14a531364ba6917
 </code></pre>
 <p>You can use the following commands with the daemon: <code>start</code>, <code>restart</code>, <code>stop</code>, and <code>uninstall</code>.</p>
 <p>Run to start the stopped daemon (requires <code>sudo</code> or admin privileges):</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --daemon start
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --daemon start
 </code></pre>
 <p>Run to restart the running daemon (requires <code>sudo</code> or admin privileges):</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --daemon restart
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --daemon restart
 </code></pre>
 <p>Run to stop the running daemon (requires <code>sudo</code> or admin privileges):</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --daemon stop
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --daemon stop
 </code></pre>
 <p>Run to stop and uninstall the running daemon (requires <code>sudo</code> or admin privileges):</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --daemon uninstall
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --daemon uninstall
 </code></pre>
 <p>Run to check for logs and errors:</p>
-<pre class="prettyprint source lang-bash"><code>$ fyipe-server-monitor --daemon logs
-$ fyipe-server-monitor --daemon errors
+<pre class="prettyprint source lang-bash"><code>$ oneuptime-server-monitor --daemon logs
+$ oneuptime-server-monitor --daemon errors
 </code></pre>
 <p>A complete log of the daemon can be found in these directories:</p>
 <pre class="prettyprint source lang-bash"><code># linux logs
-/var/log/Fyipe Server Monitor/fyipeservermonitor.log
-/var/log/Fyipe Server Monitor/fyipeservermonitor_error.log
+/var/log/OneUptime Server Monitor/oneuptimeservermonitor.log
+/var/log/OneUptime Server Monitor/oneuptimeservermonitor_error.log
 
 # mac logs
-/Library/Logs/Fyipe Server Monitor/fyipeservermonitor.log
-/Library/Logs/Fyipe Server Monitor/fyipeservermonitor_error.log
+/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor.log
+/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor_error.log
 
 # windows logs
-&lt;service_path>/fyipeservermonitor.out.log
-&lt;service_path>/fyipeservermonitor.err.log
+&lt;service_path>/oneuptimeservermonitor.out.log
+&lt;service_path>/oneuptimeservermonitor.err.log
 </code></pre>
 <p>NB:- In most cases, <code>sudo</code> or admin privileges are required to run the shell as a daemon.</p>
 <h3>Services</h3>
 <h4>Linux</h4>
-<p>Services created by the daemon are like other services running on Linux. It can be started/stopped using <code>service fyipeservermonitor start</code> or <code>service fyipeservermonitor stop</code> and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/Fyipe Server Monitor/ for general output and error logging.</p>
+<p>Services created by the daemon are like other services running on Linux. It can be started/stopped using <code>service oneuptimeservermonitor start</code> or <code>service oneuptimeservermonitor stop</code> and logs are available. This file is created in /etc/init.d by default. Additionally, log files are generated in /var/log/OneUptime Server Monitor/ for general output and error logging.</p>
 <h4>Mac</h4>
-<p>Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/Fyipe Server Monitor/ for general output and error logging.</p>
+<p>Services created by the daemon are similar to most other services running on OSX. It can be stopped from the Activity Monitor and make logs available in the Console app. A plist file is created in /Library/LaunchDaemons by default. Additionally, two log files are generated in /Library/Logs/OneUptime Server Monitor/ for general output and error logging.</p>
 <h4>Windows</h4>
-<p>Services created by the daemon are similar to most other services running on Windows. It can be started/stopped from the windows service utility, via NET START or NET STOP commands, or even managed using the sc utility. A directory called daemon is created and populated with fyipeservermonitor.exe and fyipeservermonitor.xml. The XML file is a configuration for the executable. Additionally, logs are created in this directory (which are viewable in the Event log).</p>
+<p>Services created by the daemon are similar to most other services running on Windows. It can be started/stopped from the windows service utility, via NET START or NET STOP commands, or even managed using the sc utility. A directory called daemon is created and populated with oneuptimeservermonitor.exe and oneuptimeservermonitor.xml. The XML file is a configuration for the executable. Additionally, logs are created in this directory (which are viewable in the Event log).</p>
 <p><a name="module_api"></a></p>
 <h2>Programmatic Usage</h2>
-<pre class="prettyprint source lang-javascript"><code>const serverMonitor = require('fyipe-server-monitor');
+<pre class="prettyprint source lang-javascript"><code>const serverMonitor = require('oneuptime-server-monitor');
 
 const monitor = serverMonitor({
     projectId: '5d64d59cae46131619708309',
-    // (optional) If you have installed Fyipe Platform on your server,
+    // (optional) If you have installed OneUptime Platform on your server,
     // this should be your API URL
-    apiUrl: 'https://fyipe.com/api',
+    apiUrl: 'https://oneuptime.com/api',
     apiKey: 'b02798c0-c898-11e9-9f14-4963dc67e2ab',
     monitorId: '5d7775e9f14a531364ba6917',
     interval: '*/5 * * * * *', // cron job interval
@@ -140,7 +140,7 @@ monitor.start();
 </ul>
 <p><strong>Author</strong>: HackerBay, Inc.</p>
 <ul>
-<li><a href="#fyipe-server-monitor">Fyipe Server Monitor</a>
+<li><a href="#oneuptime-server-monitor">OneUptime Server Monitor</a>
 <ul>
 <li><a href="#installation">Installation</a></li>
 <li><a href="#cli-usage">CLI Usage</a></li>

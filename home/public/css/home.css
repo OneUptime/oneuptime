@@ -462,7 +462,7 @@ main header{
 }
 #intro .announcement:after{
     content:'\27A2';
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     position:relative;
     bottom:1px
 }

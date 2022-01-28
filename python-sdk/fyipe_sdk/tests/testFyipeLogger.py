@@ -1,7 +1,7 @@
 import unittest
 from faker import Faker
 import requests
-from fyipe_sdk import FyipeLogger
+from oneuptime_sdk import OneUptimeLogger
 
 class LoggerTest(unittest.TestCase):
     def setUp(self):
@@ -74,7 +74,7 @@ class LoggerTest(unittest.TestCase):
         return response.json()
 
     def test_application_log_key_is_required(self):
-        logger = FyipeLogger(self.apiUrl, self.applicationLog["_id"], "")
+        logger = OneUptimeLogger(self.apiUrl, self.applicationLog["_id"], "")
         response = logger.log("test content")
         self.assertEqual(
             "Application Log Key is required.",
@@ -83,7 +83,7 @@ class LoggerTest(unittest.TestCase):
         )
 
     def test_content_is_required(self):
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.log("")
@@ -92,7 +92,7 @@ class LoggerTest(unittest.TestCase):
         )
 
     def test_valid_applicaiton_log_id_is_required(self):
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, "5eec6f33d7d57033b3a7d502", self.applicationLog["key"]
         )
         response = logger.log("content")
@@ -104,7 +104,7 @@ class LoggerTest(unittest.TestCase):
 
     def test_valid_string_content_of_type_info_is_logged(self):
         log = "sample content to be logged"
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.log(log)
@@ -113,7 +113,7 @@ class LoggerTest(unittest.TestCase):
 
     def test_valid_object_content_of_type_info_is_logged(self):
         log = {"location": "Atlanta", "country": "USA"}
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.log(log)
@@ -122,7 +122,7 @@ class LoggerTest(unittest.TestCase):
 
     def test_valid_string_content_of_type_error_is_logged(self):
         log = "sample content to be logged"
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.error(log)
@@ -131,7 +131,7 @@ class LoggerTest(unittest.TestCase):
 
     def test_valid_object_content_of_type_warning_is_logged(self):
         log = "sample content to be logged"
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.warning(log)
@@ -141,7 +141,7 @@ class LoggerTest(unittest.TestCase):
     def test_valid_object_content_of_type_info_with_one_tag_is_logged(self):
         log = {"location": "Atlanta", "country": "USA"}
         tag = "intent"
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.log(log, tag)
@@ -152,7 +152,7 @@ class LoggerTest(unittest.TestCase):
 
     def test_valid_object_content_of_type_error_with_no_tag_is_logged(self):
         log = {"location": "Atlanta", "country": "USA"}
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.error(log)
@@ -162,7 +162,7 @@ class LoggerTest(unittest.TestCase):
     def test_valid_object_content_of_type_warning_with_four_tags_is_logged(self):
         log = {"location": "Atlanta", "country": "USA"}
         tag = ["Enough", "python", "Error", "Serverside"]
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.warning(log, tag)
@@ -176,7 +176,7 @@ class LoggerTest(unittest.TestCase):
     def test_valid_object_content_of_type_warning_return_invalid_tags(self):
         log = {"location": "Atlanta", "country": "USA"}
         tag = 500
-        logger = FyipeLogger(
+        logger = OneUptimeLogger(
             self.apiUrl, self.applicationLog["_id"], self.applicationLog["key"]
         )
         response = logger.warning(log, tag)

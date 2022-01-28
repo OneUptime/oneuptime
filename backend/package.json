@@ -21,9 +21,9 @@
         "express": "^4.17.1",
         "express-rate-limit": "^5.2.6",
         "express-request-id": "^1.4.1",
-        "fyipe-acme-http-01": "^3.0.10432",
-        "fyipe-gl-manager": "^3.0.13361",
-        "fyipe-le-store": "^3.0.10432",
+        "oneuptime-acme-http-01": "^3.0.10432",
+        "oneuptime-gl-manager": "^3.0.13361",
+        "oneuptime-le-store": "^3.0.10432",
         "geoip-lite": "^1.4.2",
         "greenlock": "^4.0.4",
         "gridfs-stream": "^1.1.1",
@@ -81,7 +81,7 @@
         "enterprise-test": "cross-env NODE_ENV=development IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
         "audit": "npm audit --audit-level=low",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,fyipe-acme-http-01,fyipe-gl-manager,fyipe-le-store'"
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,oneuptime-acme-http-01,oneuptime-gl-manager,oneuptime-le-store'"
     },
     "devDependencies": {
         "chai": "^4.3.4",

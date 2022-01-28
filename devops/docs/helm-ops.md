@@ -40,7 +40,7 @@ helm install -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values
 Staging:
 
 ```
-kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/fyipe-staging
+kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/oneuptime-staging
 helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime
 ```
 

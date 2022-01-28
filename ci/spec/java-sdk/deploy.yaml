@@ -31,7 +31,7 @@ staging_java-sdk:
         - git add .
         - git commit -m "staging deployment version 3.0.$CI_PIPELINE_IID-SNAPSHOT"
         - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/java-sdk.git staging --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -75,7 +75,7 @@ production_java-sdk:
         - git init
         - git add .
         - git commit -m "production deployment version 3.0.$CI_PIPELINE_IID"
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/java-sdk.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/java-sdk.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh

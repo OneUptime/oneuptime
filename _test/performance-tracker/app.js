@@ -1,6 +1,6 @@
 const express = require('express')
 // If your env supports require                  
-const Fyipe = require('fyipe-staging');
+const OneUptime = require('oneuptime-staging');
 const app = express()
 
 const axios = require('axios');
@@ -15,7 +15,7 @@ const options = {
 };
                                                     
 // constructor                    
-new Fyipe.PerformanceTracker(
+new OneUptime.PerformanceTracker(
     options
 );
 

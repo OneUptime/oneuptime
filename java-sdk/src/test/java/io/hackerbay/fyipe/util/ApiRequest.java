@@ -1,4 +1,4 @@
-package io.hackerbay.fyipe.util;
+package io.hackerbay.oneuptime.util;
 
 import com.google.gson.JsonObject;
 

@@ -157,7 +157,7 @@ export class Setting extends Component {
             this.props.statusPage.status &&
             this.props.statusPage.status._id
         ) {
-            hosted = `${this.props.statusPage.status._id}.fyipeapp.com`;
+            hosted = `${this.props.statusPage.status._id}.oneuptimeapp.com`;
         }
         if (
             this.props.statusPage &&

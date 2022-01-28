@@ -5,7 +5,7 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   labels:
     app: {{ printf "%s-%s" $.Release.Name "mongo-standalone"  }}
-    app.kubernetes.io/part-of: fyipe
+    app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     name: {{ printf "%s-%s" $.Release.Name "mongo-standalone" }}
 spec:

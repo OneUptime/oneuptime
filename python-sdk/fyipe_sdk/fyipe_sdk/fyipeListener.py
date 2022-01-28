@@ -1,11 +1,11 @@
-from .timelineMagager import FyipeTimelineManager
+from .timelineMagager import OneUptimeTimelineManager
 from .util import Util
 
 
-class FyipeListener:
+class OneUptimeListener:
     def __init__(self, eventId, options):
         # start the timeline manager
-        self.timelineObj = FyipeTimelineManager(options)
+        self.timelineObj = OneUptimeTimelineManager(options)
         self.currentEventId = eventId;
         self.utilObj = Util(options)
     

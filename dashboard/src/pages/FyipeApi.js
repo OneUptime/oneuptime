@@ -8,7 +8,7 @@ import APISettings from '../components/settings/APISettings';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
-class FyipeApi extends Component {
+class OneUptimeApi extends Component {
     render() {
         const {
             location: { pathname },
@@ -90,9 +90,9 @@ class FyipeApi extends Component {
     }
 }
 
-FyipeApi.displayName = 'FyipeApi';
+OneUptimeApi.displayName = 'OneUptimeApi';
 
-FyipeApi.propTypes = {
+OneUptimeApi.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -106,4 +106,4 @@ const mapStateToProps = state => {
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
-export default connect(mapStateToProps)(FyipeApi);
+export default connect(mapStateToProps)(OneUptimeApi);

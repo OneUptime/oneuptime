@@ -10,6 +10,6 @@
     "license": "ISC",
     "dependencies": {
         "express": "^4.17.1",
-        "fyipe-staging": "^3.0.10585"
+        "oneuptime-staging": "^3.0.10585"
     }
 }

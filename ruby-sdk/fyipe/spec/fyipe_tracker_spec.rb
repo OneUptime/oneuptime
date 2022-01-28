@@ -1,5 +1,5 @@
-# spec/fyipe_tracker_spec.rb
-require_relative '../lib/fyipe'
+# spec/oneuptime_tracker_spec.rb
+require_relative '../lib/oneuptime'
 require_relative 'helper'
 
 RSpec.configure do |config|
@@ -38,9 +38,9 @@ RSpec.configure do |config|
     }
 end
 
-RSpec.describe FyipeTracker do
+RSpec.describe OneUptimeTracker do
     it 'test_should_take_in_custom_timeline_event' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
         timeline = tracker.getTimeline()
         expect(timeline).to be_an_instance_of(Array)
@@ -48,7 +48,7 @@ RSpec.describe FyipeTracker do
         expect($customTimeline["category"]).to eql timeline[0]["category"]
     end
     it 'test_should_ensure_timeline_event_contains_eventId_and_timestamp' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
 
         timeline = tracker.getTimeline()
@@ -57,7 +57,7 @@ RSpec.describe FyipeTracker do
         expect(timeline[0]["timestamp"]).to be_an_instance_of(String)
     end
     it 'test_should_ensure_different_timeline_event_have_the_same_eventId' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], "error")
 
@@ -69,7 +69,7 @@ RSpec.describe FyipeTracker do
         options = {
             "maxTimeline": -5
         }
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
 
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], "error")
@@ -81,7 +81,7 @@ RSpec.describe FyipeTracker do
         options = {
             "maxTimeline": 2
         }
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
 
         customTimeline2 = {}
 
@@ -102,7 +102,7 @@ RSpec.describe FyipeTracker do
     end
 
     it 'test_should_add_tags' do 
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         tag = {
             "key": "location",
@@ -118,7 +118,7 @@ RSpec.describe FyipeTracker do
 
     it 'test_should_add_multiple_tags' do
         
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         tags = []
         tag = {
@@ -147,7 +147,7 @@ RSpec.describe FyipeTracker do
     end
 
     it 'test_should_overwrite_existing_keys_to_avoid_duplicate_tags' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         tags = []
         tag = {
@@ -192,7 +192,7 @@ RSpec.describe FyipeTracker do
     end
 
     it 'test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorMessage = "Uncaught Exception"
         tracker.captureMessage(errorMessage)
@@ -200,7 +200,7 @@ RSpec.describe FyipeTracker do
         expect(event["fingerprint"][0]).to eql errorMessage
     end
     it 'test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
 
         fingerprints = ['custom', 'errors']
@@ -212,7 +212,7 @@ RSpec.describe FyipeTracker do
         expect(event["fingerprint"][1]).to eql fingerprints[1]
     end
     it 'test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         fingerprint = 'custom-fingerprint'
         tracker.setFingerPrint(fingerprint)
@@ -222,7 +222,7 @@ RSpec.describe FyipeTracker do
         expect(event["fingerprint"][0]).to eql fingerprint
     end
     it 'test_should_create_an_event_ready_for_the_server_using_capture_message' do 
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorMessage = 'This is a test'
         tracker.captureMessage(errorMessage)
@@ -231,7 +231,7 @@ RSpec.describe FyipeTracker do
         expect(event["exception"]["message"]).to eql errorMessage
     end 
     it 'test_should_create_an_event_ready_for_the_server_while_having_the_timeline_with_same_event_id' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
         
         errorMessage = 'This is a test'
@@ -243,7 +243,7 @@ RSpec.describe FyipeTracker do
         expect(event["exception"]["message"]).to eql errorMessage
     end
     it 'test_should_create_an_event_ready_for_the_server_using_capture_exception' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorMessage = 'Error Found'
         tracker.captureException(Exception.new(errorMessage))
@@ -253,7 +253,7 @@ RSpec.describe FyipeTracker do
         expect(event["exception"]["message"]).to eql errorMessage
     end
     it 'test_should_create_an_event_with_array_of_stacktrace' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorType = ""
         begin
@@ -270,7 +270,7 @@ RSpec.describe FyipeTracker do
         expect(event["exception"]["stacktrace"]["frames"]).to be_an_instance_of(Array)
     end   
     it 'test_should_create_an_event_with_the_object_of_the_stacktrace_in_place' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorType = ''
         begin
@@ -289,7 +289,7 @@ RSpec.describe FyipeTracker do
 
     end 
     it 'test_should_create_an_event_and_new_event_should_have_different_id' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorMessage = 'random error occured'
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
@@ -321,7 +321,7 @@ RSpec.describe FyipeTracker do
         expect(event["_id"]).not_to eql newEvent["_id"]
     end
     it 'test_should_create_an_event_that_has_timeline_and_new_event_having_timeline_and_tags' do 
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorMessage = 'random error caused midway'
         errorMessageObj = '';
@@ -359,7 +359,7 @@ RSpec.describe FyipeTracker do
         expect(newEvent["tags"].length()).to eql 2 # the default and custom tag
     end
     it 'test_should_contain_version_number_and_sdk_name_in_captured_message' do
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
 
         errorMessage = 'Error Found'
         tracker.captureMessage(errorMessage)
@@ -373,7 +373,7 @@ RSpec.describe FyipeTracker do
         options = {
             "captureCodeSnippet": true
         }
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
 
         event = nil
@@ -400,7 +400,7 @@ RSpec.describe FyipeTracker do
         options = {
             "captureCodeSnippet": false
         }
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
 
         event = nil
@@ -427,7 +427,7 @@ RSpec.describe FyipeTracker do
         options = {
             "captureCodeSnippet": "heyy" # sdk expects a true or false but it defaults to true if wrong value is sent
         }
-        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker = OneUptimeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
 
         event = nil

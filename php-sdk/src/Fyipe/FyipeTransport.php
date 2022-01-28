@@ -4,9 +4,9 @@
  * @author bunday
  */
 
-namespace Fyipe;
+namespace OneUptime;
 
-class FyipeTransport
+class OneUptimeTransport
 {
     private $apiUrl;
     public function __construct($apiUrl)

@@ -1,4 +1,4 @@
-module hackerbay/fyipe
+module hackerbay/oneuptime
 
 go 1.16
 

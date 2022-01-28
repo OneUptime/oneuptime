@@ -1,11 +1,11 @@
 
 from .util import Util
-from .fyipeListener import FyipeListener
-from .fyipeTransport import FyipeTransport
+from .oneuptimeListener import OneUptimeListener
+from .oneuptimeTransport import OneUptimeTransport
 import sys
 import logging
 import traceback
-class FyipeTracker:
+class OneUptimeTracker:
     def __init__(self, apiUrl, errorTrackerId, errorTrackerKey, options = {}):
         self.configKeys = ['baseUrl'];
         self.MAX_ITEMS_ALLOWED_IN_STACK = 100
@@ -16,13 +16,13 @@ class FyipeTracker:
         self.errorTrackerId = errorTrackerId
         self.errorTrackerKey = errorTrackerKey
         self.apiUrl = apiUrl + "/error-tracker/" + errorTrackerId + "/track"
-        self.apiTransport = FyipeTransport(self.apiUrl)
+        self.apiTransport = OneUptimeTransport(self.apiUrl)
         self.tags = []
         self.fingerprint = []
         self.setUpOptions(options)
         self.util = Util(self.options)
         self.setEventId()
-        self.listenerObj = FyipeListener(self.eventId, self.options)
+        self.listenerObj = OneUptimeListener(self.eventId, self.options)
 
         # initialize exception handler listener
         sys.excepthook = self.custom_excepthook
@@ -30,7 +30,7 @@ class FyipeTracker:
     # set up options     
     def setUpOptions(self, options):
         """
-        Set up options needed for Fyipe Tracker
+        Set up options needed for OneUptime Tracker
         """
         if(isinstance(options, dict) != True):
             return # ignore passed options if it is not an object

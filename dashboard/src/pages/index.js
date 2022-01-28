@@ -48,7 +48,7 @@ const ApplicationDetail = lazy(() => import('./ApplicationDetail'));
 const ContainerDetail = lazy(() => import('./ContainerDetail'));
 const GitCredential = lazy(() => import('./GitCredential'));
 const DockerCredential = lazy(() => import('./DockerCredential'));
-const FyipeApi = lazy(() => import('./FyipeApi'));
+const OneUptimeApi = lazy(() => import('./OneUptimeApi'));
 const ChangePasswordSetting = lazy(() => import('./ChangePasswordSetting'));
 const DeleteAccountPage = lazy(() => import('./DeleteAccountPage'));
 const Consulting = lazy(() => import('./Consulting'));
@@ -101,7 +101,7 @@ export default {
     ContainerDetail,
     GitCredential,
     DockerCredential,
-    FyipeApi,
+    OneUptimeApi,
     ChangePasswordSetting,
     DeleteAccountPage,
     ScheduledEvent,

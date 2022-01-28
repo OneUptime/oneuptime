@@ -23,7 +23,7 @@ staging_python-sdk:
         - git add .
         - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/python-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/python-sdk.git staging --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -56,7 +56,7 @@ production_python-sdk:
         - git add .
         - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git checkout -f master
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/python-sdk.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/python-sdk.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
