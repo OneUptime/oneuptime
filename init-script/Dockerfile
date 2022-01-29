@@ -9,8 +9,7 @@ RUN apk update && apk add bash && apk add curl
 
 
 # Install python
-RUN apk add --update python make g++\
-   && rm -rf /var/cache/apk/*
+RUN apk add --update python
    
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
