@@ -30,6 +30,3 @@ jobs:
       - run: json -I -f package.json -e 'this.name="oneuptime-gl-manager-staging"'
       - run: echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
       - run: npm publish
-      - run: cd ..
-      - run: chmod +x ./ci/scripts/cleanup.sh
-      - run: ./ci/scripts/cleanup.sh
