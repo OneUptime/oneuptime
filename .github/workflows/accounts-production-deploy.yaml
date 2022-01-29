@@ -11,7 +11,7 @@ jobs:
     env:
       DOCKERHUBPASSWORD: ${{secrets.DOCKERHUBPASSWORD}}
       DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
-      CI_PIPELINE_ID: ${{github.run_number}}
+      CI_PIPELINE_IID: ${{github.run_number}}
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
       AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
@@ -20,7 +20,9 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
-      
+
+      - run: chmod +x ./ci/scripts/version-setup.sh
+      - run: ./ci/scripts/version-setup.sh
       - run: chmod +x ./ci/scripts/deployment-setup.sh
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
