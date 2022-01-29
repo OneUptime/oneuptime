@@ -19,7 +19,7 @@ staging_java-sdk:
         - sudo docker run --env-file ./backend/.env --net=host -d oneuptime/backend:3.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd java-sdk
-        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key ONEUPTIME default default 2024-07-16
         # - gpg --list-keys
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 23972C2E9738913575B32C581FEDD8E12C3929D9
         # - gpg --keyserver keyserver.ubuntu.com --send-keys 23972C2E9738913575B32C581FEDD8E12C3929D9
@@ -62,7 +62,7 @@ production_java-sdk:
         - sudo docker run --env-file ./backend/.env --net=host -d oneuptime/backend:3.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd java-sdk
-        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key FYIPE default default 2024-07-16
+        # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key ONEUPTIME default default 2024-07-16
         # - gpg --list-keys
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys AD260FCA4615DAD557090B1DC928B7479CFDE5A0
         # - gpg --keyserver keyserver.ubuntu.com --send-keys AD260FCA4615DAD557090B1DC928B7479CFDE5A0
