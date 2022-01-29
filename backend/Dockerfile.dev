@@ -10,7 +10,7 @@ RUN apk update && apk add bash && apk add curl
 
 
 # Install python
-RUN apk add --update python
+RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
