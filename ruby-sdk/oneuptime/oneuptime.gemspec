@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
     spec.email                 = ['hello@hackerbay.io']
     spec.summary               = 'OneUptime for Logging and Tracking'
     spec.description           = 'OneUptime is a ruby package that tracks error event and send logs from your applications to your oneuptime dashboard.'
-    spec.homepage              = 'https://github.com/OneUptime/ruby-sdk'
+    spec.homepage              = 'https://github.com/OneUptime/app'
     spec.license               = 'MIT'
     spec.platform              = Gem::Platform::RUBY
     spec.required_ruby_version = '>= 2.5.0'
