@@ -12,7 +12,7 @@ async function run() {
 
     for (let i = 0; i < statusPages.length; i++) {
         const statusPage = statusPages[i];
-        const token = `fyipe=${randomChar()}`;
+        const token = `oneuptime=${randomChar()}`;
         const now = new Date().toISOString();
 
         const { ops = [{}] } = await save(domainVerificationTokenCollection, [

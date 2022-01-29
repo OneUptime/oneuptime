@@ -105,7 +105,7 @@ describe('Monitor Detail API', () => {
             );
 
             await init.pageWaitForSelector(page, 'input[id=siteUrl]');
-            await init.pageType(page, 'input[id=siteUrl]', 'https://fyipe.com');
+            await init.pageType(page, 'input[id=siteUrl]', 'https://oneuptime.com');
             await init.page$Eval(page, '#addSiteUrlButton', e => e.click());
 
             await init.pageWaitForSelector(page, '#addSiteUrlButton', {

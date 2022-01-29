@@ -4,6 +4,8 @@ on:
   push:
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+      - 'staging-release'
 
 jobs:
   lint:

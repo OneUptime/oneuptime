@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import Tutorial from './Tutorial';
 import PropTypes from 'prop-types';
 import { closeTutorial } from '../../actions/tutorial';
-import ApiDoc from '../fyipeApi/ApiDoc';
+import ApiDoc from '../oneuptimeApi/ApiDoc';
 import ShouldRender from '../basic/ShouldRender';
 
 const Tutorials = ({ type, closeTutorial, currentProjectId }) => (

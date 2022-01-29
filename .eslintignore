@@ -25,6 +25,6 @@ api-docs/public/assets/*
 js-sdk/src/cli/server-monitor/out/scripts/prettify/*
 js-sdk/dist/logger.js
 js-sdk/dist/logger.min.js
-js-sdk/dist/fyipe.js
-js-sdk/dist/fyipe.min.js
+js-sdk/dist/oneuptime.js
+js-sdk/dist/oneuptime.min.js
 _test/*

@@ -8,8 +8,8 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const componentName = 'hackerbay';
-const monitorName = 'fyipe';
-const monitorName1 = 'testFyipe';
+const monitorName = 'oneuptime';
+const monitorName1 = 'testoneuptime';
 const customDomain = `${utils.generateRandomString()}.com`;
 
 let browser, page;
@@ -186,7 +186,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             await init.pageWaitForSelector(page, '#customDomain');
-            await init.pageType(page, '#customDomain', 'fyipeapp');
+            await init.pageType(page, '#customDomain', 'oneuptimeapp');
 
             await init.pageWaitForSelector(page, '#createCustomDomainBtn');
             await init.pageClick(page, '#createCustomDomainBtn');

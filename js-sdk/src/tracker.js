@@ -1,4 +1,4 @@
-import FyipeListener from './listener';
+import OneUptimeListener from './listener';
 import Util from './util';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
@@ -24,7 +24,7 @@ class ErrorTracker {
         this._setUpOptions(options);
         this._setEventId();
         this.isWindow = typeof window !== 'undefined';
-        this.listenerObj = new FyipeListener(
+        this.listenerObj = new OneUptimeListener(
             this.getEventId(),
             this.isWindow,
             this.options

@@ -54,7 +54,7 @@ class ApplicationLogDetailView extends Component {
                                 any logs, Click{' '}
                                 <a
                                     rel="noopener noreferrer"
-                                    href="https://github.com/Fyipe/feature-docs/blob/master/log.md"
+                                    href="https://github.com/OneUptime/feature-docs/blob/master/log.md"
                                     target="_blank"
                                     className="Border-bottom--white Text-fontWeight--bold Text-color--white"
                                 >

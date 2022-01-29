@@ -5,7 +5,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: {{ printf "%s-%s-%s" $.Release.Name $key "testtls"  }}
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm

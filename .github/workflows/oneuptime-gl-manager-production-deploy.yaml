@@ -8,18 +8,25 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUBPASSWORD: ${{secrets.DOCKERHUBPASSWORD}}
+      DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+      NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
+    defaults:
+      run:
+        working-directory: ./oneuptime-gl-manager
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           check-latest: true
       - run: sudo npm install -g json
-      - run: cd oneuptime-gl-manager
       - run: chmod +x ../ci/scripts/version-setup.sh
       - run: ../ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime-gl-manager"'
       - run: echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
       - run: npm publish
-      - run: cd ..
-      - run: chmod +x ./ci/scripts/cleanup.sh
-      - run: ./ci/scripts/cleanup.sh

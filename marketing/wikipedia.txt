@@ -14,7 +14,7 @@
 
 '''OneUptime''' is a [[cloud computing]] company that produces a [[Software as a service|SaaS]] incident response platform for Enterprise IT departments.<ref>{{Cite web|url=https://oneuptime.com|website=www.oneuptime.com|title=OneUptime - One Complete SRE and IT Ops platform.}}</ref>
 
-OneUptime is headquartered in [[New York, NY]] <ref>{{Cite web|url=https://www.crunchbase.com/organization/fyipe|website=www.crunchbase.com|title=OneUptime, Crunchbase}}</ref> with operations in [[Hyderabad, India]]. Its platform is designed to alert clients to disruptions and outages through [[machine learning]] and automation.
+OneUptime is headquartered in [[New York, NY]] <ref>{{Cite web|url=https://www.crunchbase.com/organization/oneuptime|website=www.crunchbase.com|title=OneUptime, Crunchbase}}</ref> with operations in [[Hyderabad, India]]. Its platform is designed to alert clients to disruptions and outages through [[machine learning]] and automation.
 
 OneUptime is a owned by HackerBay, Inc. an enterprise software company responsible for building products like [[CloudBoost]]<ref>{{Cite web|url=https://cloudboost.io|website=www.cloudboost.io|title=CloudBoost}}</ref>, OneUptime and many more. <ref>{{Cite web|url=https://hackerbay.io|website=www.hackerbay.io|title=HackerBay}}</ref>
 

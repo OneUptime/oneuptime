@@ -69,13 +69,13 @@ app.use(async function(req, res, next) {
     const host = req.hostname;
 
     try {
-        if (host && host === 'fyipe.com') {
+        if (host && host === 'oneuptime.com') {
             res.writeHead(301, {
                 Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
             });
             return res.end();
         }
-        if (host && host === 'staging.fyipe.com') {
+        if (host && host === 'staging.oneuptime.com') {
             res.writeHead(301, {
                 Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
             });

@@ -434,7 +434,7 @@ mongoose.connection.on('connected', async () => {
             const greenlock = Gl.create({
                 manager: 'oneuptime-gl-manager',
                 packageRoot: process.cwd(),
-                maintainerEmail: 'certs@fyipe.com',
+                maintainerEmail: 'certs@oneuptime.com',
                 staging: false,
                 notify: function(event, details) {
                     if ('error' === event) {
@@ -454,7 +454,7 @@ mongoose.connection.on('connected', async () => {
             });
             await greenlock.manager.defaults({
                 agreeToTerms: true,
-                subscriberEmail: 'certs@fyipe.com',
+                subscriberEmail: 'certs@oneuptime.com',
             });
             global.greenlock = greenlock;
         }

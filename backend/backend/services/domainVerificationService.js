@@ -142,7 +142,7 @@ module.exports = {
         try {
             const parsed = psl.parse(subDomain);
             const host = 'oneuptime';
-            const previousHost = 'fyipe';
+            const previousHost = 'oneuptime';
             const domain = parsed.domain;
             const domainToLookup = `${host}.${domain}`;
             const prevDomainToLookup = `${previousHost}.${domain}`;

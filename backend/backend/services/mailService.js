@@ -871,7 +871,7 @@ const _this = {
             throw error;
         }
     },
-    sendLeadEmailToFyipeTeam: async function(lead) {
+    sendLeadEmailToOneUptimeTeam: async function(lead) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -1038,7 +1038,7 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendLeadEmailToFyipeTeam', error);
+            ErrorService.log('mailService.sendLeadEmailToOneUptimeTeam', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,

@@ -45,7 +45,7 @@ class ScheduledEvent extends Component {
             url = 'null';
         } else if (
             window.location.href.indexOf('localhost') > -1 ||
-            window.location.href.indexOf('fyipeapp.com') > 0
+            window.location.href.indexOf('oneuptimeapp.com') > 0
         ) {
             statusPageSlug = window.location.host.split('.')[0];
             url = 'null';

@@ -144,18 +144,18 @@ const updatedScheduledEventDescription = 'event description updated';
 const updatedScheduledEventName = 'event name updated';
 
 const dockerCredential = {
-    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'fyipetest',
+    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'oneuptimetest',
     dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || '4G76c2aavPHa',
     dockerRegistryUrl:
         process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL ||
         'https://registry.hub.docker.com',
     imagePath:
-        process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH || 'fyipeproject/home',
+        process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH || 'oneuptimeproject/home',
     imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS || 'latest',
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'fyipetest',
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'oneuptimetest',
     gitPassword:
         process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
     gitRepositoryUrl:

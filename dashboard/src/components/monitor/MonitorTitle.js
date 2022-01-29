@@ -208,7 +208,7 @@ export class MonitorTitle extends Component {
                                     You need to install an agent on your server,
                                     please{' '}
                                     <a
-                                        href="https://www.npmjs.com/package/fyipe"
+                                        href="https://www.npmjs.com/package/oneuptime"
                                         rel="noopener noreferrer"
                                         target="_blank"
                                         style={{

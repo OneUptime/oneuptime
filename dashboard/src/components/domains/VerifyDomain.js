@@ -86,7 +86,7 @@ class VerifyDomain extends Component {
                                             registrar. For help on how you can
                                             add txt records, follow this{' '}
                                             <a
-                                                href="https://github.com/Fyipe/feature-docs/blob/master/txt-records.md"
+                                                href="https://github.com/OneUptime/feature-docs/blob/master/txt-records.md"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="Text-fontWeight--medium"

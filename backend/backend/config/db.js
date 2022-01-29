@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const logger = require('./logger');
 const mongoUrl =
-    process.env['MONGO_URL'] || 'mongodb://localhost:27017/fyipedb';
+    process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
 
 mongoose.set('useNewUrlParser', true);
 mongoose.set('useUnifiedTopology', true);

@@ -9,8 +9,8 @@ try {
     // try to use local package (with recent changes)
     serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
 } catch (error) {
-    const fyipe = require('fyipe');
-    serverMonitor = fyipe.ServerMonitor;
+    const oneuptime = require('oneuptime');
+    serverMonitor = oneuptime.ServerMonitor;
 }
 
 require('should');

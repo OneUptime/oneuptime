@@ -1,4 +1,4 @@
-class FyipeTimelineManager {
+class OneUptimeTimelineManager {
     constructor(options) {
         this.options = options;
         this.timeLineStack = [];
@@ -27,4 +27,4 @@ class FyipeTimelineManager {
         this.timeLineStack = [];
     }
 }
-export default FyipeTimelineManager;
+export default OneUptimeTimelineManager;

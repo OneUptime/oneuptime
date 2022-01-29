@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { getMonitorLogs } from '../../actions/monitor';
 //import MonitorLogsList from '../monitor/MonitorLogsList';
-import Select from '../../components/basic/react-select-fyipe';
+import Select from '../../components/basic/react-select-oneuptime';
 //import ShouldRender from '../../components/basic/ShouldRender';
 //import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 //import moment from 'moment';

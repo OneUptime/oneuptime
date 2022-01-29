@@ -4,30 +4,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "probe-api"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+        app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "probe-api"  }}
+        app.kubernetes.io/component:  {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         {{- end }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "probe-api"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+                app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "probe-api" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "probe-api"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 450m
@@ -37,7 +37,7 @@ spec:
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       - name: NODE_NAME
                         valueFrom:
@@ -64,23 +64,23 @@ spec:
                       - name: MONGO_URL
                         value: {{ template "oneuptime.mongodbConnectionString" . }}
                       - name: ONEUPTIME_HOST
-                        value: {{ .Values.oneuptime.hosts.host1.host }}
+                        value: {{ $.Values.oneuptime.hosts.host1.host }}
                       - name: DEPLOYMENT_NAME
-                        value: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+                        value: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                       - name: CONTAINER_NAME
-                        value: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+                        value: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                       - name: BACKEND_PROTOCOL
-                        value: {{ .Values.backendProtocol }}
+                        value: {{ $.Values.backendProtocol }}
                       - name: PORT
-                        value: {{ .Values.host.fetchResourcesPort | quote }}
+                        value: {{ $.Values.host.fetchResourcesPort | quote }}
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: IS_TESTING
-                        value: {{ .Values.isTesting | quote }}
+                        value: {{ $.Values.isTesting | quote }}
                   ports:
-                      - containerPort: {{ .Values.host.fetchResourcesPort }}
-                        hostPort: {{ .Values.host.fetchResourcesPort }}
-                        name: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+                      - containerPort: {{ $.Values.host.fetchResourcesPort }}
+                        hostPort: {{ $.Values.host.fetchResourcesPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                 {{- if $.Values.saas.isRunningOnGCPMarketplace }}
                 - name: ubbagent
                   image: $imageUbbagent
@@ -112,24 +112,24 @@ spec:
                   configMap:
                     name: ubbagent-config
                 {{- end }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 # OneUptime Backend Deployment
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+        app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "probe-api"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.fetchResourcesServicePort }}
-          targetPort: {{ .Values.host.fetchResourcesPort }}
+        - port: {{ $.Values.host.fetchResourcesServicePort }}
+          targetPort: {{ $.Values.host.fetchResourcesPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+        app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
     type: ClusterIP
 ---
 ##################################################
@@ -138,14 +138,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "probe-api"  }}
+  name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "probe-api"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

@@ -1,14 +1,14 @@
-[![npm](https://img.shields.io/npm/v/fyipe)](https://www.npmjs.com/package/fyipe)
+[![npm](https://img.shields.io/npm/v/oneuptime)](https://www.npmjs.com/package/oneuptime)
 
-# Fyipe
+# OneUptime
 
-Fyipe is one complete SRE and DevOps platform.
+OneUptime is one complete SRE and DevOps platform.
 
-Fyipe lets you do:
+OneUptime lets you do:
 
 Monitoring: Monitors your website, web apps, APIs, servers and more and give you detailed metrics of things that might be wrong with your infrastructure.
 
-Status Page: Fyipe gives you a beautiful and customizable status page for your online business which helps improve transparency with your customers and cuts support costs.
+Status Page: OneUptime gives you a beautiful and customizable status page for your online business which helps improve transparency with your customers and cuts support costs.
 
 Tests: Write automated tests for your website, API's and more and know instantly when they start failing.
 
@@ -16,19 +16,19 @@ On-Call and Incident Management: On-Call Management lets you alert the right tea
 
 Performance Monitoring: Monitor the performance of your apps, servers, APIs, and more and alert your team when any of your performance metrics degrades.
 
-## Fyipe JavaScript SDK
+## OneUptime JavaScript SDK
 
 JavaScript SDK which has:
 
 ### Logger: Logs all your application logs
 
-A fyipe application logger that can be used to send logs about your applications and log them to fyipe dashboard.
+A oneuptime application logger that can be used to send logs about your applications and log them to oneuptime dashboard.
 
 [Logger Documentation: Quick start and API Reference](./docs/logger/Readme.md)
 
 ### Error Tracker: Keeps a log of all your application errors.
 
-A fyipe error tracker is used to automatically log errors which happen in your app and log them to Fyipe dashboard.
+A oneuptime error tracker is used to automatically log errors which happen in your app and log them to OneUptime dashboard.
 
 [Error Tracker Documentation: Quick start and API Reference](./docs/error-tracker/Readme.md)
 

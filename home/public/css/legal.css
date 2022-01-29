@@ -341,7 +341,7 @@ header#main-header a:hover{
     color:#000000
 }
 header#main-header .button a:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:"\279D";
     padding-left:5px
 }

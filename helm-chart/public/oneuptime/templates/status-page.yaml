@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "status"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "status"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "status"  }}
+        app: {{ printf "%s-%s" $.Release.Name "status"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "status"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "status"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "status"  }}
+                app: {{ printf "%s-%s" $.Release.Name "status"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "status-page" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "status"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "status"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -49,11 +49,11 @@ spec:
                         fieldRef:
                           fieldPath: spec.serviceAccountName
                     - name: ONEUPTIME_HOST
-                      value: {{ .Values.oneuptime.hosts.host1.host }}
+                      value: {{ $.Values.oneuptime.hosts.host1.host }}
                     - name: NODE_ENV
-                      value: {{ .Values.nodeEnv }}
+                      value: {{ $.Values.nodeEnv }}
                     - name: SENTRY_DSN
-                      value: {{ .Values.sentry.statusPage.dsn }}
+                      value: {{ $.Values.sentry.statusPage.dsn }}
                     - name: BACKEND_URL
                       value: {{ template "oneuptime.backendHost" . }}
                     - name: MONGO_URL
@@ -62,42 +62,42 @@ spec:
                     - name: IS_SAAS_SERVICE
                       value: 'true'
                     - name: STATUSPAGE_CERT
-                      value: {{ .Values.statusPage.cert }}
+                      value: {{ $.Values.statusPage.cert }}
                     - name: STATUSPAGE_PRIVATEKEY
-                      value: {{ .Values.statusPage.key }}
+                      value: {{ $.Values.statusPage.key }}
                     {{- end }}
                     {{- if .Values.backendProtocol }}
                     - name: BACKEND_PROTOCOL
-                      value: {{ .Values.backendProtocol }}
+                      value: {{ $.Values.backendProtocol }}
                     {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.statusPageHttpPort }}
-                        hostPort: {{ .Values.host.statusPageHttpPort }}
-                        name: {{ printf "%s-%s" .Release.Name "status-http"  }}
-                      - containerPort: {{ .Values.host.statusPageHttpsPort }}
-                        hostPort: {{ .Values.host.statusPageHttpsPort }}
-                        name: {{ printf "%s-%s" .Release.Name "status-https"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.statusPageHttpPort }}
+                        hostPort: {{ $.Values.host.statusPageHttpPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "status-http"  }}
+                      - containerPort: {{ $.Values.host.statusPageHttpsPort }}
+                        hostPort: {{ $.Values.host.statusPageHttpsPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "status-https"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "status"  }}
+        app: {{ printf "%s-%s" $.Release.Name "status"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "status"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "status"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.statusPageHttpServicePort }}
+        - port: {{ $.Values.host.statusPageHttpServicePort }}
           name: "http"
-          targetPort: {{ .Values.host.statusPageHttpPort }}
-        - port: {{ .Values.host.statusPageHttpsServicePort }}
+          targetPort: {{ $.Values.host.statusPageHttpPort }}
+        - port: {{ $.Values.host.statusPageHttpsServicePort }}
           name: "https"
-          targetPort: {{ .Values.host.statusPageHttpsPort }}
+          targetPort: {{ $.Values.host.statusPageHttpsPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "status"  }}
+        app: {{ printf "%s-%s" $.Release.Name "status"  }}
     {{- if .Values.saas.isSaasService }}
     # Load balancer becasue we need to expose Status page on different domains. 
     type: LoadBalancer
@@ -111,14 +111,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "status"  }}
+  name: {{ printf "%s-%s" $.Release.Name "status"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "status"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "status"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

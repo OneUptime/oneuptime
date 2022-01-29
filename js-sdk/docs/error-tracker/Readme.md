@@ -1,6 +1,6 @@
-# Fyipe Error Tracker
+# OneUptime Error Tracker
 
-A fyipe error tracker is used to automatically log errors which happen in your app and log them to Fyipe dashboard.
+A oneuptime error tracker is used to automatically log errors which happen in your app and log them to OneUptime dashboard.
 
 ## Installation
 
@@ -10,17 +10,17 @@ You can install to use in your project:
 
 ```
 $ cd project
-$ npm install fyipe
+$ npm install oneuptime
 ```
 
 ## Basic Usage
 
 ```javascript
 // If your env supports import
-import Fyipe from 'fyipe';
+import OneUptime from 'oneuptime';
 
 // If your env supports require
-const Fyipe = require('fyipe');
+const OneUptime = require('oneuptime');
 
 // set up tracking configurations
 const options = {
@@ -29,8 +29,8 @@ const options = {
 };
 
 // constructor
-const tracker = new Fyipe.ErrorTracker(
-    'API_URL', // https://fyipe.com/api
+const tracker = new OneUptime.ErrorTracker(
+    'API_URL', // https://oneuptime.com/api
     'ERROR_TRACKER_ID',
     'ERROR_TRACKER_KEY',
     options // Optional Field
@@ -50,7 +50,7 @@ tracker.setTags([
     { key: 'location', value: 'online' },
 ]); // an array of tags
 
-// capturing error exception manually and sent to your fyipe dashboard
+// capturing error exception manually and sent to your oneuptime dashboard
 try {
     // your code logic
     NonExistingMethodCall();
@@ -80,10 +80,10 @@ Create a constructor from the class, which will be used to track events and exce
 
 #### options
 
-| Param              | Type                 | Description                                                                                           |
-| ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------- |
-| maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
-| captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+| Param              | Type                 | Description                                                                                               |
+| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                       |
+| captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your oneuptime dashboard. |
 
 #### tracker.setTag(key, value)
 

@@ -4,7 +4,7 @@
 
 ```
 sudo kubectl config get-contexts
-sudo kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/fyipe-staging
+sudo kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/oneuptime-staging
 ```
 
 # Pods

@@ -19,7 +19,7 @@ The first thing to take note of is passing the right arguments.
 | -------- | :------------------------------------------------------------------------------ | :------------------------------ |
 | -a       | IP Address of remote server                                                     | No Default. Compulsory argument |
 | -l       | Backup path on local system where backup file will be stored.                   | /root/Documents/backup          |
-| -n       | Database name.                                                                  | 'fyipedb'                       |
+| -n       | Database name.                                                                  | 'oneuptimedb'                   |
 | -p       | Database password.                                                              | 'password'                      |
 | -t       | Backup retain days. Set the number of days backup is kept before it is deleted. | 14                              |
 | -u       | Set database username.                                                          | 'oneuptime'                     |
@@ -56,7 +56,7 @@ The first thing to take note of is passing the right arguments.
 | -------- | :---------------------------------------------------------- | :------------------------------- |
 | -f       | Name of file to be restored.                                | No default. Compulsory argument. |
 | -l       | File path on local system where file will be restored from. | /root/Documents/backup           |
-| -n       | Database name. Default value                                | 'fyipedb'                        |
+| -n       | Database name. Default value                                | 'oneuptimedb'                    |
 | -p       | Database password. Default value                            | 'password'                       |
 | -u       | Set database username.                                      | 'oneuptime'                      |
 | -h       | Help                                                        | null                             |

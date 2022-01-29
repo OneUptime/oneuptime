@@ -4,7 +4,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from '../../components/basic/react-select-fyipe';
+import Select from '../../components/basic/react-select-oneuptime';
 
 /**
  * onChange from Redux Form Field has to be called explicity.

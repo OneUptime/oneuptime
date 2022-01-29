@@ -5,14 +5,14 @@
     "main": "Gruntfile.js",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Fyipe/api-docs.git"
+        "url": "git+https://github.com/OneUptime/api-docs.git"
     },
     "author": "HackerBay, Inc.",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/fyipe/api-docs/issues"
+        "url": "https://github.com/oneuptime/api-docs/issues"
     },
-    "homepage": "https://github.com/fyipe/api-docs#readme",
+    "homepage": "https://github.com/oneuptime/api-docs#readme",
     "dependencies": {
         "@sentry/node": "^6.16.1",
         "@sentry/tracing": "^6.16.1",

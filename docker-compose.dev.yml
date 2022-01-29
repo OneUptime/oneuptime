@@ -72,7 +72,7 @@ services:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
@@ -115,7 +115,7 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         volumes:
             - ./probe-api:/usr/src/app
@@ -176,7 +176,7 @@ services:
         env_file:
             - ./init-script/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
@@ -219,7 +219,7 @@ services:
         env_file:
             - ./backend/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}

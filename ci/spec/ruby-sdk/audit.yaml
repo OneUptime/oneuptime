@@ -13,7 +13,7 @@ audit_ruby-sdk:
         - sudo apt install -y rbenv
         - ruby -v
         - gem env home
-        - cd ruby-sdk/fyipe
+        - cd ruby-sdk/oneuptime
         - sudo gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
         - which bundle
         - gem list bundler

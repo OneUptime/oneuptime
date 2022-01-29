@@ -1,6 +1,6 @@
 {
-    "name": "fyipe/sdk",
-    "description": "Fyipe SDK package send logs from your applications to your fyipe dashboard.",
+    "name": "oneuptime/sdk",
+    "description": "OneUptime SDK package send logs from your applications to your oneuptime dashboard.",
     "license": "MIT",
     "version": "3.0.9",
     "minimum-stability": "stable",
@@ -27,12 +27,12 @@
     },
     "autoload": {
         "psr-0": {
-            "Fyipe\\": "src/"
+            "OneUptime\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-0": {
-            "Fyipe\\Tests": "tests/"
+            "OneUptime\\Tests": "tests/"
         }
     },
     "scripts": {

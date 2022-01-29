@@ -9,26 +9,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "home"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "home"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "home"  }}
+        app: {{ printf "%s-%s" $.Release.Name "home"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "home"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "home"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "home"  }}
+                app: {{ printf "%s-%s" $.Release.Name "home"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "home" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "home"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "home"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -38,11 +38,11 @@ spec:
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.home.dsn }}
+                        value: {{ $.Values.sentry.home.dsn }}
                       - name: ONEUPTIME_HOST
-                        value: {{ .Values.oneuptime.hosts.host1.host }}
+                        value: {{ $.Values.oneuptime.hosts.host1.host }}
                       - name: NODE_NAME
                         valueFrom:
                           fieldRef:
@@ -64,28 +64,28 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                   ports:
-                      - containerPort: {{ .Values.host.homePort }}
-                        hostPort: {{ .Values.host.homePort }}
-                        name: {{ printf "%s-%s" .Release.Name "home"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.homePort }}
+                        hostPort: {{ $.Values.host.homePort }}
+                        name: {{ printf "%s-%s" $.Release.Name "home"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "home"  }}
+        app: {{ printf "%s-%s" $.Release.Name "home"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "home"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "home"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.homeServicePort }}
+        - port: {{ $.Values.host.homeServicePort }}
           protocol: TCP
-          targetPort: {{ .Values.host.homePort }}
+          targetPort: {{ $.Values.host.homePort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "home"  }}
+        app: {{ printf "%s-%s" $.Release.Name "home"  }}
     type: ClusterIP
 ---
 ###########################################
@@ -95,14 +95,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "home"  }}
+  name: {{ printf "%s-%s" $.Release.Name "home"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "home"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "home"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

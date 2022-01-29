@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "admin"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "admin"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "admin"  }}
+        app: {{ printf "%s-%s" $.Release.Name "admin"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "admin"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "admin"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "admin"  }}
+                app: {{ printf "%s-%s" $.Release.Name "admin"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "admin-dashboard" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "admin"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "admin"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -53,37 +53,37 @@ spec:
                       value: 'true'
                     {{- else }}
                     - name: LICENSE_URL
-                      value: {{ .Values.oneuptime.licensingUrl }}
+                      value: {{ $.Values.oneuptime.licensingUrl }}
                     {{- end }}
                     - name: NODE_ENV
-                      value: {{ .Values.nodeEnv }}
+                      value: {{ $.Values.nodeEnv }}
                     - name: SENTRY_DSN
-                      value: {{ .Values.sentry.adminDashboard.dsn }}
+                      value: {{ $.Values.sentry.adminDashboard.dsn }}
                     - name: IS_THIRD_PARTY_BILLING
-                      value: {{ .Values.isThirdPartyBilling | quote }}
+                      value: {{ $.Values.isThirdPartyBilling | quote }}
                     - name: INTERNAL_SMTP_SERVER
                       value: {{ template "oneuptime.internalSmtpServer" . }}
                   ports:
-                      - containerPort: {{ .Values.host.adminDashboardPort }}
-                        hostPort: {{ .Values.host.adminDashboardPort }}
-                        name: {{ printf "%s-%s" .Release.Name "admin"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.adminDashboardPort }}
+                        hostPort: {{ $.Values.host.adminDashboardPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "admin"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "admin"  }}
+        app: {{ printf "%s-%s" $.Release.Name "admin"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "admin"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "admin"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.adminDashboardServicePort }}
-          targetPort: {{ .Values.host.adminDashboardPort }}
+        - port: {{ $.Values.host.adminDashboardServicePort }}
+          targetPort: {{ $.Values.host.adminDashboardPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "admin"  }}
+        app: {{ printf "%s-%s" $.Release.Name "admin"  }}
     type: ClusterIP
 ---
 ##################################
@@ -92,14 +92,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "admin"  }}
+  name: {{ printf "%s-%s" $.Release.Name "admin"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "admin"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "admin"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

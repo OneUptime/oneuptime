@@ -134,7 +134,7 @@
     transition:color .1s
 }
 .common-ProductLockupBack:before{
-    font:normal 48px/24px fyipeIcons;
+    font:normal 48px/24px oneuptimeIcons;
     content:'\279D';
     transform:scaleX(-1);
     width:36px;
@@ -178,13 +178,13 @@
     color:#000
 }
 .common-Link--arrow:after{
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\2192';
     padding-left:5px
 }
 .common-Link--arrowL:before{
     display:inline-block;
-    font:normal 16px fyipeIcons;
+    font:normal 16px oneuptimeIcons;
     content:'\2192';
     transform:rotate(180deg);
     margin-right:5px;

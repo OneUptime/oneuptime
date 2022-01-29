@@ -11,25 +11,25 @@ staging_ruby-sdk:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt install -y rbenv
         # - sudo gem install bundler
-        - cd ruby-sdk/fyipe
+        - cd ruby-sdk/oneuptime
         - sudo gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
         - bundle install
         - git init
         - git add .
-        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_ID"
         - mkdir -p ~/.gem
         - GEMPATH=~/.gem/credentials
         - rm $GEMPATH || true # reomve previous saved file or just continue if it doesnt exist (new container)
         - touch $GEMPATH # start recreation
         - CUSTOMSPACE=' '
         - echo "---" >> $GEMPATH
-        - echo ":fyipegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
+        - echo ":oneuptimegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
         - chmod 0600 $GEMPATH
-        - bundle exec gem bump -v 3.0.$CI_PIPELINE_IID-qa
-        - gem build fyipe.gemspec
-        - gem push fyipe-3.0.$CI_PIPELINE_IID.pre.qa.gem -k fyipegem
+        - bundle exec gem bump -v 3.0.$CI_PIPELINE_ID-qa
+        - gem build oneuptime.gemspec
+        - gem push oneuptime-3.0.$CI_PIPELINE_ID.pre.qa.gem -k oneuptimegem
         - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/ruby-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/ruby-sdk.git staging --force
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
@@ -53,12 +53,12 @@ production_ruby-sdk:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt install -y rbenv
         # - sudo gem install bundler
-        - cd ruby-sdk/fyipe
+        - cd ruby-sdk/oneuptime
         - sudo gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
         - bundle install
         - git init
         - git add .
-        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - pwd -P
         - git checkout -f master
         - pwd -P
@@ -68,16 +68,16 @@ production_ruby-sdk:
         - touch $GEMPATH # start recreation
         - CUSTOMSPACE=' '
         - echo "---" >> $GEMPATH
-        - echo ":fyipegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
+        - echo ":oneuptimegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
         - chmod 0600 $GEMPATH
         - ls -l
         - pwd -P
-        - bundle exec gem bump -v 3.0.$CI_PIPELINE_IID
-        - gem build fyipe.gemspec
-        - gem push fyipe-3.0.$CI_PIPELINE_IID.gem -k fyipegem
+        - bundle exec gem bump -v 3.0.$CI_PIPELINE_ID
+        - gem build oneuptime.gemspec
+        - gem push oneuptime-3.0.$CI_PIPELINE_ID.gem -k oneuptimegem
         # - git add .
-        # - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/ruby-sdk.git master --force
+        # - git commit -m "production commit version 3.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/ruby-sdk.git master --force
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

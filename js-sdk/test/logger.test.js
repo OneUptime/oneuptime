@@ -7,9 +7,9 @@ const API_URL = 'http://localhost:3002/api';
 const request = chai.request.agent(API_URL);
 const timeout = 5000;
 
-import FyipeLogger from '../src/logger';
+import OneUptimeLogger from '../src/logger';
 
-describe('FyipeLogger', function() {
+describe('OneUptimeLogger', function() {
     const sleep = milliseconds => {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
@@ -40,7 +40,7 @@ describe('FyipeLogger', function() {
                                     `/application-log/${projectId}/${componentId}/create`
                                 )
                                 .set('Authorization', `Basic ${token}`)
-                                .send({ name: 'Application FyipeLogger' })
+                                .send({ name: 'Application OneUptimeLogger' })
                                 .end(function(err, res) {
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
@@ -53,7 +53,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should request for application log key', function() {
-        const firstLog = new FyipeLogger(API_URL, applicationLog._id, '');
+        const firstLog = new OneUptimeLogger(API_URL, applicationLog._id, '');
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -62,7 +62,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should request for content', function() {
-        const firstLog = new FyipeLogger(
+        const firstLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -75,7 +75,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return invalid application log', function() {
-        const firstLog = new FyipeLogger(API_URL, applicationLog._id, 'key');
+        const firstLog = new OneUptimeLogger(API_URL, applicationLog._id, 'key');
         firstLog.log('content').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -84,7 +84,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item of type string', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -98,7 +98,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item of type object', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -123,7 +123,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item with log type of error', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -137,7 +137,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item with log type of warning', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -151,7 +151,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item with log type of info with one tag', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -169,7 +169,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item with log type of warning with no tag', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -183,7 +183,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should return a valid logged item with log type of error with 3 tags', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -203,7 +203,7 @@ describe('FyipeLogger', function() {
         });
     });
     it('should reject a valid logged item with log type of error with invalid tags', function() {
-        const validLog = new FyipeLogger(
+        const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key

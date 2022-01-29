@@ -10,26 +10,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+        app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+                app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "api-docs" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 250m
@@ -39,9 +39,9 @@ spec:
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.apiDocs.dsn }}
+                        value: {{ $.Values.sentry.apiDocs.dsn }}
                       - name: NODE_NAME
                         valueFrom:
                           fieldRef:
@@ -63,10 +63,10 @@ spec:
                           fieldRef:
                             fieldPath: spec.serviceAccountName
                   ports:
-                      - containerPort: {{ .Values.host.apiDocsPort }}
-                        hostPort: {{ .Values.host.apiDocsPort }}
-                        name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+                      - containerPort: {{ $.Values.host.apiDocsPort }}
+                        hostPort: {{ $.Values.host.apiDocsPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 # OneUptime API docs Service
@@ -74,18 +74,18 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+        app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.apiDocsServicePort }}
+        - port: {{ $.Values.host.apiDocsServicePort }}
           protocol: TCP
-          targetPort: {{ .Values.host.apiDocsPort }}
+          targetPort: {{ $.Values.host.apiDocsPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+        app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
     type: ClusterIP
 ---
 ###########################################
@@ -95,14 +95,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
+  name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "api-docs"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

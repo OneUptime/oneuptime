@@ -8,11 +8,20 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUBPASSWORD: ${{secrets.DOCKERHUBPASSWORD}}
+      DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
+      CI_PIPELINE_ID: ${{github.run_number}}
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           check-latest: true
+      - run: chmod +x ./ci/scripts/version-setup.sh
+      - run: ./ci/scripts/version-setup.sh
       - run: chmod +x ./ci/scripts/version-setup.sh
       - run: ./ci/scripts/version-setup.sh
       - run: chmod +x ./ci/scripts/deployment-setup.sh
@@ -23,9 +32,11 @@ jobs:
         # Build and deploy init-script.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/init-script:3.0.$CI_PIPELINE_IID --push ./init-script
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/init-script:master --push ./init-script
-      - run: sudo kubectl set image deployment/fi-init-script fi-init-script=oneuptime/init-script:3.0.$CI_PIPELINE_IID
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/init-script:3.0.$CI_PIPELINE_ID --push -f ./init-script/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/init-script:master --push -f ./init-script/Dockerfile .
+      - run: sudo kubectl delete job fi-init-script || echo "Job not found"
+      - run: sudo helm upgrade --reuse-values fi ./helm-chart/public/oneuptime
+
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

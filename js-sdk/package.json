@@ -1,11 +1,11 @@
 {
-    "name": "fyipe",
+    "name": "oneuptime",
     "version": "3.0.0",
-    "description": "Fyipe is a JS package that tracks error event and send logs from your applications to your fyipe dashboard.",
-    "main": "dist/fyipe.js",
-    "unpkg": "dist/fyipe.min.js",
+    "description": "OneUptime is a JS package that tracks error event and send logs from your applications to your oneuptime dashboard.",
+    "main": "dist/oneuptime.js",
+    "unpkg": "dist/oneuptime.min.js",
     "bin": {
-        "fyipe": "./src/cli/fyipe.js"
+        "oneuptime": "./src/cli/oneuptime.js"
     },
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
@@ -18,7 +18,7 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli,babel-loader,depcheck,mocha,webpack'"
     },
     "keywords": [
-        "fyipe",
+        "oneuptime",
         "logger",
         "activities",
         "logs",
@@ -69,7 +69,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/Fyipe/js-sdk"
+        "url": "https://github.com/OneUptime/js-sdk"
     },
     "optionalDependencies": {
         "node-linux": "^0.1.12",

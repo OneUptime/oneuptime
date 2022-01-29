@@ -8,7 +8,7 @@ const API_URL = 'http://localhost:3002/api';
 const request = chai.request.agent(API_URL);
 const timeout = 5000;
 
-import FyipeTracker from '../src/tracker';
+import OneUptimeTracker from '../src/tracker';
 const customTimeline = {
     category: 'cart',
     content: {
@@ -49,7 +49,7 @@ describe('Tracker Timeline', function() {
                                     `/error-tracker/${projectId}/${componentId}/create`
                                 )
                                 .set('Authorization', `Basic ${token}`)
-                                .send({ name: 'Application FyipeTracker' })
+                                .send({ name: 'Application OneUptimeTracker' })
                                 .end(function(err, res) {
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
@@ -62,7 +62,7 @@ describe('Tracker Timeline', function() {
         });
     });
     it('should take in custom timeline event', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -78,7 +78,7 @@ describe('Tracker Timeline', function() {
         expect(timeline[0].category).to.equal(customTimeline.category);
     });
     it('should ensure timeline event contains eventId and timestamp', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -93,7 +93,7 @@ describe('Tracker Timeline', function() {
         expect(timeline[0].timestamp).to.be.a('number');
     });
     it('should ensure different timeline event have the same eventId', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -114,7 +114,7 @@ describe('Tracker Timeline', function() {
     });
     it('should ensure max timline cant be set as a negative number', function() {
         const options = { maxTimeline: -5 };
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,
@@ -135,7 +135,7 @@ describe('Tracker Timeline', function() {
     });
     it('should ensure new timeline event after max timeline are discarded', function() {
         const options = { maxTimeline: 2 };
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,
@@ -172,7 +172,7 @@ describe('Tracker Timeline', function() {
 });
 describe('Tags', function() {
     it('should add tags ', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -186,7 +186,7 @@ describe('Tags', function() {
         expect(availableTags[0]).to.have.property('value');
     });
     it('should add multiple tags ', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -202,7 +202,7 @@ describe('Tags', function() {
         expect(availableTags.length).to.equal(3);
     });
     it('should overwrite existing keys to avoid duplicate tags ', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -224,7 +224,7 @@ describe('Tags', function() {
 });
 describe('Fingerpint', function() {
     it('should create fingerprint as message for error capture without any fingerprint', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -235,7 +235,7 @@ describe('Fingerpint', function() {
         expect(event.fingerprint[0]).to.equal(errorMessage);
     });
     it('should use defined fingerprint array for error capture with fingerprint', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -249,7 +249,7 @@ describe('Fingerpint', function() {
         expect(event.fingerprint[1]).to.equal(fingerprints[1]);
     });
     it('should use defined fingerprint string for error capture with fingerprint', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -264,7 +264,7 @@ describe('Fingerpint', function() {
 });
 describe('Capture Message', function() {
     it('should create an event ready for the server', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -276,7 +276,7 @@ describe('Capture Message', function() {
         expect(event.exception.message).to.equal(errorMessage);
     });
     it('should create an event ready for the server while having the timeline with same event id', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -296,7 +296,7 @@ describe('Capture Message', function() {
 });
 describe('Capture Exception', function() {
     it('should create an event ready for the server', async function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -308,7 +308,7 @@ describe('Capture Exception', function() {
         expect(event.exception.message).to.equal(errorMessage);
     });
     it('should create an event with a array of stacktrace ', async function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -322,7 +322,7 @@ describe('Capture Exception', function() {
         expect(event.exception.stacktrace.frames).to.be.an('array');
     });
     it('should create an event with the object of the stacktrace in place', async function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -337,7 +337,7 @@ describe('Capture Exception', function() {
         expect(frame).to.have.property('fileName');
     });
     it('should create an event and new event should have different id ', async function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -365,7 +365,7 @@ describe('Capture Exception', function() {
         expect(event._id).to.not.equal(newEvent._id);
     });
     it('should create an event that has timeline and new event having tags', async function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -400,7 +400,7 @@ describe('Capture Exception', function() {
 });
 describe('SDK Version', function() {
     it('should contain version number and sdk name in captured message', function() {
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key
@@ -415,7 +415,7 @@ describe('SDK Version', function() {
 describe('Code Capture Snippet', function() {
     it('should add code capture to stack trace when flag is passed in options', async function() {
         const options = { captureCodeSnippet: true };
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,
@@ -433,7 +433,7 @@ describe('Code Capture Snippet', function() {
     });
     it('should add code capture and confirm data type of fields added to frame', async function() {
         const options = { captureCodeSnippet: true };
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,
@@ -451,7 +451,7 @@ describe('Code Capture Snippet', function() {
     });
     it('should not add code capture to stack trace when flag is passed in options', async function() {
         const options = { captureCodeSnippet: false };
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,
@@ -469,7 +469,7 @@ describe('Code Capture Snippet', function() {
     });
     it('should add code capture to stack trace by default when unwanted flag is passed in options', async function() {
         const options = { captureCodeSnippet: 'heyy' }; // expects a true or false but it defaults to true
-        const tracker = new FyipeTracker(
+        const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,

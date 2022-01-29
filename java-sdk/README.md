@@ -1,8 +1,8 @@
-[![maven](https://img.shields.io/maven-central/v/io.hackerbay.fyipe/java-sdk)](https://search.maven.org/artifact/io.hackerbay.fyipe/java-sdk)
+[![maven](https://img.shields.io/maven-central/v/io.hackerbay.oneuptime/java-sdk)](https://search.maven.org/artifact/io.hackerbay.oneuptime/java-sdk)
 
-# Fyipe SDK
+# OneUptime SDK
 
-A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
+A oneuptime sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
 ## Installation
 
@@ -12,7 +12,7 @@ You can install to use in your project by adding the following to your `pom.xml`
 
 ```xml
 <dependency>
-    <groupId>io.hackerbay.fyipe</groupId>
+    <groupId>io.hackerbay.oneuptime</groupId>
     <artifactId>java-sdk</artifactId>
     <version>CURRENT_VERSION</version>
 </dependency>
@@ -20,7 +20,7 @@ You can install to use in your project by adding the following to your `pom.xml`
 
 ### Others
 
-Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.fyipe/java-sdk) for other modes of installation.
+Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.oneuptime/java-sdk) for other modes of installation.
 
 <a name="module_api"></a>
 
@@ -28,14 +28,14 @@ Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.
 
 ```java
 import com.google.gson.JsonObject;
-import io.hackerbay.fyipe.FyipeLogger;
+import io.hackerbay.oneuptime.OneUptimeLogger;
 import java.io.IOException;
 
 public class SampleClass {
 
-    // set up the FyipeLogger
-    public FyipeLogger logger = new FyipeLogger(
-        "API_URL", // https://fyipe.com/api
+    // set up the OneUptimeLogger
+    public OneUptimeLogger logger = new OneUptimeLogger(
+        "API_URL", // https://oneuptime.com/api
         "APPLICATION_LOG_ID",
         "APPLICATION_LOG_KEY"
     );
@@ -68,10 +68,10 @@ public class SampleClass {
 
 ```java
 import com.google.gson.JsonObject;
-import io.hackerbay.fyipe.FyipeTracker;
+import io.hackerbay.oneuptime.OneUptimeTracker;
 import java.io.IOException;
-import io.hackerbay.fyipe.model.Tag;
-import io.hackerbay.fyipe.model.TrackerOption;
+import io.hackerbay.oneuptime.model.Tag;
+import io.hackerbay.oneuptime.model.TrackerOption;
 
 
 public class SampleClass {
@@ -79,9 +79,9 @@ public class SampleClass {
     // set up option
     TrackerOption trackerOption = new TrackerOption(50); // set maximum timeline per event
 
-    // set up the FyipeTracker
-    public FyipeTracker tracker = new FyipeTracker(
-        "API_URL", // https://fyipe.com/api
+    // set up the OneUptimeTracker
+    public OneUptimeTracker tracker = new OneUptimeTracker(
+        "API_URL", // https://oneuptime.com/api
         "ERROR_TRACKER_ID",
         "ERROR_TRACKER_KEY",
         trackerOption
@@ -112,7 +112,7 @@ public class SampleClass {
     try {
         // some code that might fail
     } catch(Exception e) {
-        tracker.captureException(e); // this is sent to your fyipe dashboard
+        tracker.captureException(e); // this is sent to your oneuptime dashboard
     }
 
     // capturing errors using the message signature
@@ -120,7 +120,7 @@ public class SampleClass {
 
     // capturing errors authomatically
 
-    throw new Exception("Something went wrong"); // calling this will trigger an error and its sent to your fyipe dashboard
+    throw new Exception("Something went wrong"); // calling this will trigger an error and its sent to your oneuptime dashboard
 }
 ```
 
@@ -130,18 +130,18 @@ Main API to send logs to the server.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe SDK](#fyipe-sdk)
+-   [OneUptime SDK](#oneuptime-sdk)
     -   [Installation](#installation)
         -   [Maven Install](#maven-install)
         -   [Others](#others)
     -   [Basic Usage for Logging](#basic-usage-for-logging)
     -   [Basic Usage for Tracking](#basic-usage-for-tracking)
     -   [API Documentation](#api-documentation)
-        -   [new FyipeLogger(apiUrl, applicationId, applicationKey)](#new-fyipeloggerapiurl-applicationid-applicationkey)
+        -   [new OneUptimeLogger(apiUrl, applicationId, applicationKey)](#new-oneuptimeloggerapiurl-applicationid-applicationkey)
             -   [logger.log(log, tags)](#loggerloglog-tags)
             -   [logger.warning(warning, tags)](#loggerwarningwarning-tags)
             -   [logger.error(error, tags)](#loggererrorerror-tags)
-        -   [new FyipeTracker(apiUrl, errorTrackerId, errorTrackerKey, option)](#new-fyipetrackerapiurl-errortrackerid-errortrackerkey-option)
+        -   [new OneUptimeTracker(apiUrl, errorTrackerId, errorTrackerKey, option)](#new-oneuptimetrackerapiurl-errortrackerid-errortrackerkey-option)
             -   [TrackerOption options](#trackeroption-options)
             -   [tracker.setTag(Tag tag)](#trackersettagtag-tag)
             -   [tracker.setTags(ArrayList<Tag> tags)](#trackersettagsarraylisttag-tags)
@@ -153,7 +153,7 @@ Main API to send logs to the server.
 
 <a name="logger_api--logger"></a>
 
-### new FyipeLogger(apiUrl, applicationId, applicationKey)
+### new OneUptimeLogger(apiUrl, applicationId, applicationKey)
 
 Create a constructor from the class, which will be used to send logs to the server.
 
@@ -170,7 +170,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new OneUptimeLogger</code>](#logger_api--logger)
 **Returns**: <code>JsonObject</code> - A response of a success or failure.
 
 | Param | Type                  | Description                                                 |
@@ -182,7 +182,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new OneUptimeLogger</code>](#logger_api--logger)
 **Returns**: <code>JsonObject</code> - A response of a success or failure.
 
 | Param   | Type                  | Description                                                 |
@@ -194,7 +194,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>new FyipeLogger</code>](#logger_api--logger)
+**Kind**: method of [<code>new OneUptimeLogger</code>](#logger_api--logger)
 **Returns**: <code>JsonObject</code> - A response of a success or failure.
 
 | Param | Type                  | Description                                                 |
@@ -204,7 +204,7 @@ Logs a request of type `error` to the server.
 
 <a name="tracker_api--tracker"></a>
 
-### new FyipeTracker(apiUrl, errorTrackerId, errorTrackerKey, option)
+### new OneUptimeTracker(apiUrl, errorTrackerId, errorTrackerKey, option)
 
 Create a constructor from the class, which will be used to track errors sent to the server.
 
@@ -228,7 +228,7 @@ Create a constructor from the class, which will be used to track errors sent to 
 
 Set tag for the error to be sent to the server.
 
-**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>new OneUptime\OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type             | Description     |
@@ -239,7 +239,7 @@ Set tag for the error to be sent to the server.
 
 Set multiple tags for the error to be sent to the server. Takes in an array
 
-**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>new OneUptime\OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                          | Description                                  |
@@ -250,7 +250,7 @@ Set multiple tags for the error to be sent to the server. Takes in an array
 
 Set fingerprint for the next error to be captured.
 
-**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>new OneUptime\OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param       | Type                                                     | Description                                                   |
@@ -261,7 +261,7 @@ Set fingerprint for the next error to be captured.
 
 Add a custom timeline element to the next error to be sent to the server
 
-**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>new OneUptime\OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param    | Type                    | Description                         |
@@ -274,7 +274,7 @@ Add a custom timeline element to the next error to be sent to the server
 
 Capture a custom error message to be sent to the server
 
-**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>new OneUptime\OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>Promise</code>
 
 | Param    | Type                | Description                           |
@@ -285,7 +285,7 @@ Capture a custom error message to be sent to the server
 
 Capture a custom error object to be sent to the server
 
-**Kind**: method of [<code>new Fyipe\FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>new OneUptime\OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>Promise</code>
 
 | Param  | Type                   | Description                                |

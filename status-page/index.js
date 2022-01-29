@@ -14,7 +14,7 @@ const cors = require('cors');
 // mongodb
 const MongoClient = require('mongodb').MongoClient;
 const mongoUrl =
-    process.env['MONGO_URL'] || 'mongodb://localhost:27017/fyipedb';
+    process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
 
 const { NODE_ENV } = process.env;
 
@@ -120,7 +120,7 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
 // fetch details about a domain from the db
 async function handleCustomDomain(client, collection, domain) {
     const statusPage = await client
-        .db('fyipedb')
+        .db('oneuptimedb')
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
@@ -148,7 +148,7 @@ async function handleCustomDomain(client, collection, domain) {
 // fetch certificate for a particular domain
 async function handleCertificate(client, collection, domain) {
     const certificate = await client
-        .db('fyipedb')
+        .db('oneuptimedb')
         .collection(collection)
         .findOne({ id: domain });
 
@@ -160,25 +160,25 @@ app.use(async function(req, res, next) {
     const completeUrl = `https://${host}${req.url}`;
 
     try {
-        if (host && completeUrl === 'https://fyipe.com/') {
+        if (host && completeUrl === 'https://oneuptime.com/') {
             res.writeHead(301, {
                 Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
             });
             return res.end();
         }
-        if (host && completeUrl === 'https://staging.fyipe.com/') {
+        if (host && completeUrl === 'https://staging.oneuptime.com/') {
             res.writeHead(301, {
                 Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
             });
             return res.end();
         }
-        if (host && host === 'fyipe.com') {
+        if (host && host === 'oneuptime.com') {
             res.writeHead(301, {
                 Location: `https://oneuptime.com${req.url}`,
             });
             return res.end();
         }
-        if (host && host === 'staging.fyipe.com') {
+        if (host && host === 'staging.oneuptime.com') {
             res.writeHead(301, {
                 Location: `https://staging.oneuptime.com${req.url}`,
             });
@@ -197,8 +197,8 @@ app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
         host &&
-        (host === 'fyipe.com' ||
-            host === 'staging.fyipe.com' ||
+        (host === 'oneuptime.com' ||
+            host === 'staging.oneuptime.com' ||
             host === 'oneuptime.com' ||
             host === 'staging.oneuptime.com' ||
             host.indexOf('localhost') > -1)

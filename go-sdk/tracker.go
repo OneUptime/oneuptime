@@ -1,4 +1,4 @@
-package fyipe
+package oneuptime
 
 import (
 	"bytes"
@@ -15,29 +15,29 @@ type Tracker struct {
 
 var currentTracker = NewTracker(nil, NewRealm())
 
-// constructor for default fyipeTracker
-func NewTracker(fyipeTracker *FyipeTracker, realm *Realm) *Tracker {
+// constructor for default oneuptimeTracker
+func NewTracker(oneuptimeTracker *OneUptimeTracker, realm *Realm) *Tracker {
 	tracker := Tracker{
 		stack: &stack{{
-			fyipeTracker: fyipeTracker,
+			oneuptimeTracker: oneuptimeTracker,
 			realm:        realm,
 		}},
 	}
 	return &tracker
 }
 
-// return stored fyipeTracker
-func (l *layer) FyipeTracker() *FyipeTracker {
+// return stored oneuptimeTracker
+func (l *layer) OneUptimeTracker() *OneUptimeTracker {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.fyipeTracker
+	return l.oneuptimeTracker
 }
 
-// set the current fyipeTracker
-func (l *layer) SetFyipeTracker(f *FyipeTracker) {
+// set the current oneuptimeTracker
+func (l *layer) SetOneUptimeTracker(f *OneUptimeTracker) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.fyipeTracker = f
+	l.oneuptimeTracker = f
 }
 
 // returns an instance of previously initialized Tracker.
@@ -45,13 +45,13 @@ func CurrentTracker() *Tracker {
 	return currentTracker
 }
 
-// set the current fyipeTracker being used by the user
-func (tracker *Tracker) BindFyipeTracker(fyipeTracker *FyipeTracker) {
+// set the current oneuptimeTracker being used by the user
+func (tracker *Tracker) BindOneUptimeTracker(oneuptimeTracker *OneUptimeTracker) {
 	top := tracker.stackTop()
-	top.SetFyipeTracker(fyipeTracker)
+	top.SetOneUptimeTracker(oneuptimeTracker)
 }
 
-// always return the topof the stack which contains one fyipeTracker
+// always return the topof the stack which contains one oneuptimeTracker
 func (tracker *Tracker) stackTop() *layer {
 	tracker.mu.RLock()
 	defer tracker.mu.RUnlock()
@@ -62,10 +62,10 @@ func (tracker *Tracker) stackTop() *layer {
 	return top
 }
 
-// get the current fyipeTracker for usage
-func (tracker *Tracker) FyipeTracker() *FyipeTracker {
+// get the current oneuptimeTracker for usage
+func (tracker *Tracker) OneUptimeTracker() *OneUptimeTracker {
 	top := tracker.stackTop()
-	return top.FyipeTracker()
+	return top.OneUptimeTracker()
 }
 
 func (tracker *Tracker) Realm() *Realm {
@@ -73,9 +73,9 @@ func (tracker *Tracker) Realm() *Realm {
 	return top.realm
 }
 func (tracker *Tracker) AddToTimeline(timeline *Timeline) {
-	currentFyipeTracker := tracker.FyipeTracker()
+	currentOneUptimeTracker := tracker.OneUptimeTracker()
 
-	options := currentFyipeTracker.options.Options
+	options := currentOneUptimeTracker.options.Options
 
 	userTimeline := options.MaxTimeline
 
@@ -99,14 +99,14 @@ func (tracker *Tracker) SetFingerprint(fingerprint []string) {
 }
 
 func (tracker *Tracker) GetExceptionStackTrace(exception error) *Stacktrace {
-	currentFyipeTracker := tracker.FyipeTracker()
+	currentOneUptimeTracker := tracker.OneUptimeTracker()
 
-	options := currentFyipeTracker.options.Options
+	options := currentOneUptimeTracker.options.Options
 	return GetExceptionStackTrace(exception, options)
 }
 
 func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) TrackerResponse {
-	currentFyipeTracker := tracker.FyipeTracker()
+	currentOneUptimeTracker := tracker.OneUptimeTracker()
 
 	AddToTimeline(&Timeline{
 		Category: category,
@@ -114,7 +114,7 @@ func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception)
 		Type:     "error",
 	})
 
-	tracker.Realm().PrepareErrorObject(category, errorObj, currentFyipeTracker.options.ErrorTrackerKey)
+	tracker.Realm().PrepareErrorObject(category, errorObj, currentOneUptimeTracker.options.ErrorTrackerKey)
 
 	trackerResponse, err := tracker.sendErrorToServer()
 
@@ -128,13 +128,13 @@ func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception)
 }
 
 func (tracker *Tracker) sendErrorToServer() (TrackerResponse, error) {
-	currentFyipeTracker := tracker.FyipeTracker()
+	currentOneUptimeTracker := tracker.OneUptimeTracker()
 	currentErrorEvent := tracker.Realm().currentErrorEvent
 
 	postBody, _ := json.Marshal(currentErrorEvent)
 	responseBody := bytes.NewBuffer(postBody)
 
-	resp, err := http.Post(currentFyipeTracker.options.ApiUrl, "application/json", responseBody)
+	resp, err := http.Post(currentOneUptimeTracker.options.ApiUrl, "application/json", responseBody)
 
 	if err != nil {
 		// log.Fatalf("An Error Occured %v", err)

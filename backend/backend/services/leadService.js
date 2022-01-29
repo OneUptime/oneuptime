@@ -25,7 +25,7 @@ module.exports = {
 
         lead = await lead.save();
         try {
-            MailService.sendLeadEmailToFyipeTeam(lead);
+            MailService.sendLeadEmailToOneUptimeTeam(lead);
             if (data.type) {
                 if (data.type === 'demo') {
                     MailService.sendRequestDemoEmail(data.email);

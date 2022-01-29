@@ -1,6 +1,6 @@
-# Fyipe SDK
+# OneUptime SDK
 
-A fyipe sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
+A oneuptime sdk for application logger that can be used to send logs about your applications created on your fypie dashboard which can also used for error tracking
 
 ## Installation
 
@@ -24,7 +24,7 @@ import (
 
 // constructor
 option := LoggerOptions{
-    ApiUrl: "API_URL",  // https://fyipe.com/api
+    ApiUrl: "API_URL",  // https://oneuptime.com/api
     ApplicationLogId: "APPLICATION_LOG_ID",
     ApplicationLogKey: "APPLICATION_LOG_KEY",
 }
@@ -94,10 +94,10 @@ timelineOpt := TrackerOption{
 	CaptureCodeSnippet: true,
 }
 
-option := FyipeTrackerOption{
+option := OneUptimeTrackerOption{
 	ErrorTrackerId:  "ERROR_TRACKER_ID",
 	ErrorTrackerKey: "ERROR_TRACKER_KEY",
-	ApiUrl:          "API_URL", // https://fyipe.com/api,
+	ApiUrl:          "API_URL", // https://oneuptime.com/api,
 	Options:         timelineOpt, // optional
 }
 InitTracker(option)
@@ -125,7 +125,7 @@ tags := map[string]string{
 // setting the array of tags
 SetTags(tags)
 
-// all error exception captured are set to your fyipe dashboard
+// all error exception captured are set to your oneuptime dashboard
 
 // this sdk can capture errors managed by  go-errors or pkg/errors
 err := errors.Errorf("Dang! Error Happened")
@@ -143,7 +143,7 @@ Main API to send logs to the server.
 
 **Author**: HackerBay, Inc.
 
--   [Fyipe SDK](#fyipe-sdk)
+-   [OneUptime SDK](#oneuptime-sdk)
     -   [Installation](#installation)
         -   [Go Install](#go-install)
     -   [Basic Usage for Logging](#basic-usage-for-logging)
@@ -154,8 +154,8 @@ Main API to send logs to the server.
             -   [LogInfo(log, tags)](#loginfolog-tags)
             -   [LogWarning(warning, tags)](#logwarningwarning-tags)
             -   [LogError(error, tags)](#logerrorerror-tags)
-        -   [InitTracker(FyipeTrackerOption)](#inittrackerfyipetrackeroption)
-            -   [FyipeTrackerOption](#fyipetrackeroption)
+        -   [InitTracker(OneUptimeTrackerOption)](#inittrackeroneuptimetrackeroption)
+            -   [OneUptimeTrackerOption](#oneuptimetrackeroption)
             -   [TrackerOption](#trackeroption)
             -   [SetTag(key, value)](#settagkey-value)
             -   [SetTags(tags)](#settagstags)
@@ -194,7 +194,7 @@ LoggerOption
 
 Logs a request of type `info` to the server.
 
-**Kind**: method of [<code>FyipeLogger.new</code>](#logger_api--logger)
+**Kind**: method of [<code>OneUptimeLogger.new</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -206,7 +206,7 @@ Logs a request of type `info` to the server.
 
 Logs a request of type `warning` to the server.
 
-**Kind**: method of [<code>FyipeLogger.new</code>](#logger_api--logger)
+**Kind**: method of [<code>OneUptimeLogger.new</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param   | Type                                       | Description                                                 |
@@ -218,7 +218,7 @@ Logs a request of type `warning` to the server.
 
 Logs a request of type `error` to the server.
 
-**Kind**: method of [<code>FyipeLogger.new</code>](#logger_api--logger)
+**Kind**: method of [<code>OneUptimeLogger.new</code>](#logger_api--logger)
 **Returns**: <code>Object</code> - An object response of a success or failure.
 
 | Param | Type                                       | Description                                                 |
@@ -228,18 +228,18 @@ Logs a request of type `error` to the server.
 
 <a name="tracker_api--tracker"></a>
 
-### InitTracker(FyipeTrackerOption)
+### InitTracker(OneUptimeTrackerOption)
 
 Create a constructor from the class, which will be used to track errors sent to the server.
 
 **Kind**: Constructor
 **Returns**: <code>Initialized Tracker</code>
 
-| Param              | Type                | Description                                                                   |
-| ------------------ | ------------------- | ----------------------------------------------------------------------------- |
-| FyipeTrackerOption | <code>struct</code> | The Object containing the Error Tracking Container details and tracker option |
+| Param                  | Type                | Description                                                                   |
+| ---------------------- | ------------------- | ----------------------------------------------------------------------------- |
+| OneUptimeTrackerOption | <code>struct</code> | The Object containing the Error Tracking Container details and tracker option |
 
-#### FyipeTrackerOption
+#### OneUptimeTrackerOption
 
 **Kind**: Struct
 **Returns**: <code>null</code>
@@ -253,16 +253,16 @@ Create a constructor from the class, which will be used to track errors sent to 
 
 #### TrackerOption
 
-| Param              | Type                 | Description                                                                                           |
-| ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------- |
-| MaxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
-| CaptureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+| Param              | Type                 | Description                                                                                               |
+| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| MaxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                       |
+| CaptureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your oneuptime dashboard. |
 
 #### SetTag(key, value)
 
 Set tag for the error to be sent to the server.
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                | Description            |
@@ -274,7 +274,7 @@ Set tag for the error to be sent to the server.
 
 Set multiple tags for the error to be sent to the server. Takes in a map of string of string
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param | Type                           | Description          |
@@ -285,7 +285,7 @@ Set multiple tags for the error to be sent to the server. Takes in a map of stri
 
 Set fingerprint for the next error to be captured.
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param       | Type                         | Description                                                   |
@@ -296,7 +296,7 @@ Set fingerprint for the next error to be captured.
 
 Add a custom timeline element to the next error to be sent to the server
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>null</code>
 
 | Param    | Type                                       | Description                         |
@@ -309,7 +309,7 @@ Add a custom timeline element to the next error to be sent to the server
 
 Capture a custom error message to be sent to the server
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>response</code>
 
 | Param   | Type                | Description                           |
@@ -320,7 +320,7 @@ Capture a custom error message to be sent to the server
 
 Capture a custom error object to be sent to the server
 
-**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Kind**: method of [<code>OneUptimeTracker</code>](#tracker_api--tracker)
 **Returns**: <code>response</code>
 
 | Param | Type                      | Description                                |

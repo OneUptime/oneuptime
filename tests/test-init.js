@@ -16,7 +16,7 @@ const _this = {
     registerUser: async function(user, page) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
-            utils.BACKEND_URL.includes('staging.fyipe.com') ||
+            utils.BACKEND_URL.includes('staging.oneuptime.com') ||
             utils.BACKEND_URL.includes('staging.oneuptime.com')
         ) {
             const { email } = user;
@@ -135,7 +135,7 @@ const _this = {
     registerFailedUser: async function(user, page) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
-            utils.BACKEND_URL.includes('staging.fyipe.com') ||
+            utils.BACKEND_URL.includes('staging.oneuptime.com') ||
             utils.BACKEND_URL.includes('staging.oneuptime.com')
         ) {
             const { email } = user;

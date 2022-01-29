@@ -1,8 +1,8 @@
 #!/bin/sh
 
-ONEUPTIME_DB_USERNAME='fyipe'
+ONEUPTIME_DB_USERNAME='oneuptime'
 ONEUPTIME_DB_PASSWORD='password'
-ONEUPTIME_DB_NAME='fyipedb'
+ONEUPTIME_DB_NAME='oneuptimedb'
 BACKUP_RETAIN_DAYS=14
 BACKUP_PATH=~/db-backup
 
@@ -17,9 +17,9 @@ function HELP() {
   echo "optional arguments have a default value when not set"
   echo ""
   echo " -l       Backup path on local system where backup file will be stored. Default value - $BACKUP_PATH"
-  echo " -n       Database name. Default value 'fyipedb'"
+  echo " -n       Database name. Default value 'oneuptimedb'"
   echo " -p       Database password. Default value 'password'"
-  echo " -u       Set database username. Default value 'fyipe'."
+  echo " -u       Set database username. Default value 'oneuptime'."
   echo " -t       Backup retain days. Number of days backup is kept before it is deleted. Default value '14'"
   echo ""
   echo " -h      Help."

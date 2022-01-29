@@ -4,30 +4,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "backend"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "backend"  }}
+    namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "backend"  }}
+        app: {{ printf "%s-%s" $.Release.Name "backend"  }}
         {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/component:  {{ printf "%s-%s" .Release.Name "backend"  }}
+        app.kubernetes.io/component:  {{ printf "%s-%s" $.Release.Name "backend"  }}
         {{- end }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "backend"  }}
-    replicas: {{ .Values.replicaCount }}
+            app: {{ printf "%s-%s" $.Release.Name "backend"  }}
+    replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "backend"  }}
+                app: {{ printf "%s-%s" $.Release.Name "backend"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "backend" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "backend"  }}
-                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  name: {{ printf "%s-%s" $.Release.Name "backend"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
                       cpu: 450m
@@ -57,116 +57,116 @@ spec:
                       - name: JWT_SECRET
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: encryptionkey
                       - name: ENCRYPTION_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "oneuptime.mongodbConnectionString" . }}
                       - name: REDIS_HOST
                         value: {{ template "oneuptime.redisHost" . }}
                       - name: ONEUPTIME_HOST
-                        value: {{ .Values.oneuptime.hosts.host1.host }}
+                        value: {{ $.Values.oneuptime.hosts.host1.host }}
                       - name: DEPLOYMENT_NAME
-                        value: {{ printf "%s-%s" .Release.Name "backend"  }}
+                        value: {{ printf "%s-%s" $.Release.Name "backend"  }}
                       - name: CONTAINER_NAME
-                        value: {{ printf "%s-%s" .Release.Name "backend"  }}
+                        value: {{ printf "%s-%s" $.Release.Name "backend"  }}
                       - name: BACKEND_PROTOCOL
-                        value: {{ .Values.backendProtocol }}
+                        value: {{ $.Values.backendProtocol }}
                       - name: REDIS_PORT
-                        value: {{ .Values.redis.redisPort | quote }}
+                        value: {{ $.Values.redis.redisPort | quote }}
                       - name: PORT
-                        value: {{ .Values.host.backendPort | quote }}
+                        value: {{ $.Values.host.backendPort | quote }}
                       - name: EMAIL_VERIFY_TIME
                         value: '3600'
                       - name: BACKEND_HOST
-                        value: {{ .Values.host.backend }}
+                        value: {{ $.Values.host.backend }}
                       - name: PUSHNOTIFICATION_PRIVATE_KEY
-                        value: {{ .Values.pushNotification.privateKey }}
+                        value: {{ $.Values.pushNotification.privateKey }}
                       - name: PUSHNOTIFICATION_PUBLIC_KEY
-                        value: {{ .Values.pushNotification.publicKey }}
+                        value: {{ $.Values.pushNotification.publicKey }}
                       - name: PUSHNOTIFICATION_URL
-                        value: {{ .Values.pushNotification.url }}
+                        value: {{ $.Values.pushNotification.url }}
                       - name: SCRIPT_RUNNER_URL
                         value: {{ template "oneuptime.scriptRunnerUrl" $ }}
                       - name: REALTIME_URL
                         value: {{ template "oneuptime.realtimeUrl" $ }}
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.backend.dsn }}
+                        value: {{ $.Values.sentry.backend.dsn }}
                       - name: IS_TESTING
-                        value: {{ .Values.isTesting | quote }}
+                        value: {{ $.Values.isTesting | quote }}
                       - name: RATE_LIMITTER_TIME_PERIOD_IN_MS
-                        value: {{ .Values.rateLimitter.requestLimitTimePeriodInMS | quote }}
+                        value: {{ $.Values.rateLimitter.requestLimitTimePeriodInMS | quote }}
                       - name: RATE_LIMITTER_REQUEST_LIMIT
-                        value: {{ .Values.rateLimitter.requestLimit | quote }}
+                        value: {{ $.Values.rateLimitter.requestLimit | quote }}
                       - name: RATE_LIMITTER_ENABLED
-                        value: {{ .Values.rateLimitter.enabled | quote  }}
+                        value: {{ $.Values.rateLimitter.enabled | quote  }}
                       - name: ADMIN_EMAIL
-                        value: {{ .Values.oneuptime.admin.email }}
+                        value: {{ $.Values.oneuptime.admin.email }}
                       - name: ADMIN_PASSWORD
-                        value: {{ .Values.oneuptime.admin.password }}
+                        value: {{ $.Values.oneuptime.admin.password }}
                       - name: DISABLE_SIGNUP
-                        value: {{ .Values.disableSignup | quote  }}
+                        value: {{ $.Values.disableSignup | quote  }}
                       - name: INTERNAL_SMTP_SERVER
                         value: {{ template "oneuptime.internalSmtpServer" . }}
                       - name: INTERNAL_SMTP_PORT
                         value: {{ quote .Values.host.harakaServicePort }}
                       - name: INTERNAL_SMTP_USER
-                        value: {{ .Values.haraka.user }}
+                        value: {{ $.Values.haraka.user }}
                       - name: INTERNAL_SMTP_PASSWORD
-                        value: {{ .Values.haraka.password }}
+                        value: {{ $.Values.haraka.password }}
                       - name: INTERNAL_SMTP_FROM
-                        value: {{ .Values.haraka.fromEmail }}
+                        value: {{ $.Values.haraka.fromEmail }}
                       - name: INTERNAL_SMTP_NAME
-                        value: {{ .Values.haraka.fromName }}
+                        value: {{ $.Values.haraka.fromName }}
                       - name: LOGSTASH_HOST
-                        value: {{ .Values.logstashHost | quote }}
+                        value: {{ $.Values.logstashHost | quote }}
                       - name: LOGSTASH_PORT
-                        value: {{ .Values.logstashPort | quote }}
+                        value: {{ $.Values.logstashPort | quote }}
                       {{- if .Values.newRelic.backend.licenseKey }}
                       - name: NEW_RELIC_LICENSE_KEY
-                        value: {{ .Values.newRelic.backend.licenseKey }}
+                        value: {{ $.Values.newRelic.backend.licenseKey }}
                       {{- end }}
                       {{- if .Values.newRelic.backend.appName }}
                       - name: NEW_RELIC_APPLICATION_NAME
-                        value: {{ .Values.newRelic.backend.appName}}
+                        value: {{ $.Values.newRelic.backend.appName}}
                       {{- end }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
-                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       {{- if .Values.saas.isSaasService }}
                       - name: STRIPE_PUBLIC_KEY
-                        value: {{ .Values.saas.stripe.publicKey }}
+                        value: {{ $.Values.saas.stripe.publicKey }}
                       - name: STRIPE_PRIVATE_KEY
-                        value: {{ .Values.saas.stripe.privateKey }}
+                        value: {{ $.Values.saas.stripe.privateKey }}
                       - name: SLACK_BILLING_WEBHOOK
-                        value: {{ .Values.saas.stripe.slackWebhook }}
+                        value: {{ $.Values.saas.stripe.slackWebhook }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
                       - name: TWITTER_BEARER_TOKEN
-                        value: {{ .Values.saas.twitter.bearertoken }}
+                        value: {{ $.Values.saas.twitter.bearertoken }}
                       - name: AIRTABLE_API_KEY
-                        value: {{ .Values.saas.airtable.key }}
+                        value: {{ $.Values.saas.airtable.key }}
                       - name: AIRTABLE_BASE_ID
-                        value: {{ .Values.saas.airtable.baseId }}
+                        value: {{ $.Values.saas.airtable.baseId }}
                       - name: IS_THIRD_PARTY_BILLING
-                        value: {{ .Values.isThirdPartyBilling | quote }}
+                        value: {{ $.Values.isThirdPartyBilling | quote }}
                       - name: SLACK_ERROR_LOG_WEBHOOK
-                        value: {{ .Values.saas.slackErrorLog.webhook }}
+                        value: {{ $.Values.saas.slackErrorLog.webhook }}
                       - name: SLACK_ERROR_LOG_CHANNEL
-                        value: {{ .Values.saas.slackErrorLog.channel }}
+                        value: {{ $.Values.saas.slackErrorLog.channel }}
                       {{- end }}
                   ports:
-                      - containerPort: {{ .Values.host.backendPort }}
-                        hostPort: {{ .Values.host.backendPort }}
-                        name: {{ printf "%s-%s" .Release.Name "backend"  }}
+                      - containerPort: {{ $.Values.host.backendPort }}
+                        hostPort: {{ $.Values.host.backendPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "backend"  }}
                 {{- if $.Values.saas.isRunningOnGCPMarketplace }}
                 - name: ubbagent
                   image: $imageUbbagent
@@ -198,24 +198,24 @@ spec:
                   configMap:
                     name: ubbagent-config
                 {{- end }}
-            restartPolicy: {{ .Values.image.restartPolicy }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 # OneUptime Backend Deployment
 apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "backend"  }}
+        app: {{ printf "%s-%s" $.Release.Name "backend"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "backend"  }}
-    namespace: {{ .Release.Namespace }}
+    name: {{ printf "%s-%s" $.Release.Name "backend"  }}
+    namespace: {{ $.Release.Namespace }}
 spec:
     ports:
-        - port: {{ .Values.host.backendServicePort }}
-          targetPort: {{ .Values.host.backendPort }}
+        - port: {{ $.Values.host.backendServicePort }}
+          targetPort: {{ $.Values.host.backendPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "backend"  }}
+        app: {{ printf "%s-%s" $.Release.Name "backend"  }}
     type: ClusterIP
 ---
 ##################################################
@@ -224,14 +224,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "backend"  }}
+  name: {{ printf "%s-%s" $.Release.Name "backend"  }}
 spec:
-  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
-  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "backend"  }}
-  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+    name: {{ printf "%s-%s" $.Release.Name "backend"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}
