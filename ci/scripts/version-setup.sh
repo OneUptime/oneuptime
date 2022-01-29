@@ -4,7 +4,7 @@ This script changes version of every project
 "
 function version {
   cd $1
-  npm version "3.0.$CI_PIPELINE_IID"
+  npm version "3.0.$CI_PIPELINE_ID"
   cd ..
 }
 
@@ -31,4 +31,5 @@ version container-scanner
 version application-scanner
 version data-ingestor
 version realtime
+version probe-api
 version .

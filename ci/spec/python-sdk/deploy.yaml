@@ -14,14 +14,14 @@ staging_python-sdk:
         - pip3 install -r requirements.txt
         # - git init
         # - git add .
-        # - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
-        - bumpversion --new-version 3.0.$CI_PIPELINE_IID patch setup.py
+        # - git commit -m "staging commit version 3.0.$CI_PIPELINE_ID"
+        - bumpversion --new-version 3.0.$CI_PIPELINE_ID patch setup.py
         - python3 setup.py sdist bdist_wheel
         - twine check dist/*
         - twine upload --repository-url https://test.pypi.org/legacy/ dist/* -u=$PyPi_USERNAME -p=$PyPi_PASSWORD
         - git init
         - git add .
-        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_ID"
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/python-sdk.git staging --force
         - cd ..
@@ -48,13 +48,13 @@ production_python-sdk:
         - sudo apt-get install -y python3-pip
         - cd python-sdk
         - pip3 install -r requirements.txt
-        - bumpversion --new-version 3.0.$CI_PIPELINE_IID patch setup.py
+        - bumpversion --new-version 3.0.$CI_PIPELINE_ID patch setup.py
         - python3 setup.py sdist bdist_wheel
         - twine check dist/*
         - twine upload dist/* -u=$PyPi_USERNAME -p=$PyPi_PASSWORD
         - git init
         - git add .
-        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git checkout -f master
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/python-sdk.git master --force
         - cd ..
