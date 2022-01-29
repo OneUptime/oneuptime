@@ -26,7 +26,8 @@ jobs:
           check-latest: true
       - run: sudo npm install -g json
       - run: cd oneuptime-le-store
-      
+      - run: chmod +x ./ci/scripts/version-setup.sh
+      - run: ./ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime-le-store"'
       - run: echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" > ~/.npmrc
       - run: npm publish
