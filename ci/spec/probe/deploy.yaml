@@ -12,10 +12,10 @@ production_probe:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:3.0.$CI_PIPELINE_ID --push ./probe
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:4.0.$CI_PIPELINE_ID --push ./probe
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:latest --push ./probe
-        - sudo kubectl set image deployment/fi-probe1 fi-probe1=oneuptime/probe:3.0.$CI_PIPELINE_ID
-        - sudo kubectl set image deployment/fi-probe2 fi-probe2=oneuptime/probe:3.0.$CI_PIPELINE_ID
+        - sudo kubectl set image deployment/fi-probe1 fi-probe1=oneuptime/probe:4.0.$CI_PIPELINE_ID
+        - sudo kubectl set image deployment/fi-probe2 fi-probe2=oneuptime/probe:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -44,11 +44,11 @@ staging_probe:
         # Build and deploy probe.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:3.0.$CI_PIPELINE_ID --push ./probe
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:4.0.$CI_PIPELINE_ID --push ./probe
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe:master --push ./probe
-        - sudo kubectl set image deployment/fi-probe1 fi-probe1=oneuptime/probe:3.0.$CI_PIPELINE_ID
+        - sudo kubectl set image deployment/fi-probe1 fi-probe1=oneuptime/probe:4.0.$CI_PIPELINE_ID
         # Additionally update probe1 deployment as well.
-        - sudo kubectl set image deployment/fi-probe2 fi-probe2=oneuptime/probe:3.0.$CI_PIPELINE_ID
+        - sudo kubectl set image deployment/fi-probe2 fi-probe2=oneuptime/probe:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

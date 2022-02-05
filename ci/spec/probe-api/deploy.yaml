@@ -12,9 +12,9 @@ production_probe-api:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:3.0.$CI_PIPELINE_ID --push ./probe-api
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:4.0.$CI_PIPELINE_ID --push ./probe-api
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:latest --push ./probe-api
-        - sudo kubectl set image deployment/fi-probe-api fi-probe-api=oneuptime/probe-api:3.0.$CI_PIPELINE_ID
+        - sudo kubectl set image deployment/fi-probe-api fi-probe-api=oneuptime/probe-api:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -43,9 +43,9 @@ staging_probe-api:
         # Build and deploy probe-api.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:3.0.$CI_PIPELINE_ID --push ./probe-api
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:4.0.$CI_PIPELINE_ID --push ./probe-api
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:master --push ./probe-api
-        - sudo kubectl set image deployment/fi-probe-api fi-probe-api=oneuptime/probe-api:3.0.$CI_PIPELINE_ID
+        - sudo kubectl set image deployment/fi-probe-api fi-probe-api=oneuptime/probe-api:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

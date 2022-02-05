@@ -1,6 +1,6 @@
 apiVersion: v2
 name: OneUptime
-version: 3.0.0
+version: 4.0.0
 description: One complete DevOps and DevOps platform.
 keywords:
   - DevOps
