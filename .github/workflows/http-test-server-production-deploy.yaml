@@ -3,7 +3,7 @@ name: HTTP Test Server Production Deploy
 on:
   push:
     branches: 
-      - "release"
+      - release
 
 jobs:
   deploy:

@@ -3,7 +3,7 @@ name: Accounts Production Deploy
 on:
   push:
     branches: 
-      - "release"
+      - release
 
 jobs:
   deploy:
