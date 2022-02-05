@@ -34,6 +34,6 @@ entries:
       url: https://oneuptime.com/support
     name: OneUptime
     urls:
-    - OneUptime-3.0.0.tgz
-    version: 3.0.0
+    - OneUptime-4.0.0.tgz
+    version: 4.0.0
 generated: "2021-09-10T14:13:26.53643+01:00"

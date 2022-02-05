@@ -1,9 +1,8 @@
 name: Helm Chart Production Deploy
 
 on:
-  push:
-    branches: 
-      - "release"
+  release:
+    types: [published]
 
 jobs:
   deploy:
@@ -32,9 +31,9 @@ jobs:
         # Build and deploy helm-chart.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:3.0.$CI_PIPELINE_ID --push -f ./helm-chart/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:master --push -f ./helm-chart/Dockerfile .
-      - run: sudo kubectl set image deployment/fi-helm-chart fi-helm-chart=oneuptime/helm-chart:3.0.$CI_PIPELINE_ID
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:4.0.$CI_PIPELINE_ID --push -f ./helm-chart/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/helm-chart:latest --push -f ./helm-chart/Dockerfile .
+      - run: sudo kubectl set image deployment/fi-helm-chart fi-helm-chart=oneuptime/helm-chart:4.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

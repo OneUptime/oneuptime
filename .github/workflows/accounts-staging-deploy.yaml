@@ -32,11 +32,19 @@ jobs:
         # Build and deploy accounts.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:3.0.$CI_PIPELINE_ID --push -f ./accounts/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:master --push -f ./accounts/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:4.0.$CI_PIPELINE_ID-staging --push -f ./accounts/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:staging --push -f ./accounts/Dockerfile .
       - run: sudo kubectl config get-contexts
       - run: kubectl config get-contexts
-      - run: sudo kubectl set image deployment/fi-accounts fi-accounts=oneuptime/accounts:3.0.$CI_PIPELINE_ID
+      - run: sudo kubectl set image deployment/fi-accounts fi-accounts=oneuptime/accounts:4.0.$CI_PIPELINE_ID-staging
+        # Publish to GitHub registry. 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/oneuptime/accounts:staging --push -f ./accounts/Dockerfile .
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
