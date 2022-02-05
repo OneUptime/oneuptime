@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
+      - run: npm install
+      - run: sudo npm install -g json
       - run: chmod +x ../ci/scripts/version-setup.sh
       - run: ../ci/scripts/version-setup.sh
       - run: json -I -f package.json -e 'this.name="oneuptime"'
