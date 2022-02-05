@@ -37,6 +37,14 @@ jobs:
       - run: sudo kubectl config get-contexts
       - run: kubectl config get-contexts
       - run: sudo kubectl set image deployment/fi-accounts fi-accounts=oneuptime/accounts:3.0.$CI_PIPELINE_ID
+        # Publish to GitHub registry. 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: sudo docker push ghcr.io/oneuptime/accounts:3.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
