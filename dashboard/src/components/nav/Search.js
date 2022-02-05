@@ -451,7 +451,7 @@ class Search extends Component {
                     id="search"
                     iconLeftStyle={{
                         width: '25px',
-                        bottom: 11,
+                        bottom: '15px',
                     }}
                     placeholder="Search"
                     autofilled={'off'}

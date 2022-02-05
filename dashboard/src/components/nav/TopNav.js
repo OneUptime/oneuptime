@@ -467,8 +467,8 @@ class TopContent extends Component {
                         <SubProjectDropDown
                             value={
                                 (activeSubProject &&
-                                    `You are currently viewing ${activeSubProject}`) ||
-                                'Select SubProject'
+                                    `Current Sub Project: ${activeSubProject}`) ||
+                                'Main Project'
                             }
                             options={[
                                 {
@@ -557,33 +557,6 @@ class TopContent extends Component {
                                     topNavCardClass
                                 )}
 
-                            <div className="Box-root Flex-flex">
-                                <div
-                                    style={{
-                                        outline: 'none',
-                                        marginRight: '15px',
-                                        marginLeft: '15px',
-                                    }}
-                                >
-                                    <button
-                                        className={'db-Notifications-button'}
-                                        style={{ paddingTop: 7 }}
-                                        onClick={this.showFeedbackModal}
-                                    >
-                                        <img
-                                            src="/dashboard/assets/icons/question.svg"
-                                            id="search-input-img"
-                                            style={{
-                                                width: '22px',
-                                                height: '22px',
-                                                position: 'relative',
-                                            }}
-                                            alt="search-icon"
-                                        />
-                                    </button>
-                                </div>
-                            </div>
-
                             <ShouldRender
                                 if={
                                     isNotViewer &&
@@ -619,6 +592,35 @@ class TopContent extends Component {
                                     </div>
                                 </div>
                             </ShouldRender>
+
+                            <div className="Box-root Flex-flex">
+                                <div
+                                    style={{
+                                        outline: 'none',
+                                        marginRight: '15px',
+                                        marginLeft: '15px',
+                                    }}
+                                >
+                                    <button
+                                        className={'db-Notifications-button'}
+                                        style={{ paddingTop: 7 }}
+                                        onClick={this.showFeedbackModal}
+                                    >
+                                        <img
+                                            src="/dashboard/assets/icons/question.svg"
+                                            id="search-input-img"
+                                            style={{
+                                                width: '22px',
+                                                height: '22px',
+                                                position: 'relative',
+                                            }}
+                                            alt="help-icon"
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+
+                            
 
                             <ShouldRender if={isNotViewer}>
                                 <div className="Box-root Flex-flex">
