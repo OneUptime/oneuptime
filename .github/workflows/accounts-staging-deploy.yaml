@@ -44,8 +44,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: sudo docker tag oneuptime/accounts:4.0.$CI_PIPELINE_ID-staging ghcr.io/oneuptime/accounts:4.0.$CI_PIPELINE_ID-staging
-      - run: sudo docker push ghcr.io/oneuptime/accounts:4.0.$CI_PIPELINE_ID-staging
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/oneuptime/accounts:staging --push -f ./accounts/Dockerfile .
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
