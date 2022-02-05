@@ -1,8 +1,9 @@
 name: Status Page Production Deploy
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: 
+      - "release"
 
 jobs:
   deploy:

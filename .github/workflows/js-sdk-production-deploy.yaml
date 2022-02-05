@@ -1,8 +1,9 @@
 name: JavaScript SDK Production Deploy
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: 
+      - "release"
 
 jobs:
   deploy:
