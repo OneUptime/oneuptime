@@ -1,9 +1,8 @@
 name: OneUptime ACME HTTP Production Deploy
 
 on:
-  push:
-    branches: 
-      - "release"
+  release:
+    types: [published]
 
 jobs:
   deploy:

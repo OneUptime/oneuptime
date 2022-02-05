@@ -1,9 +1,8 @@
 name: Backend Production Deploy
 
 on:
-  push:
-    branches: 
-      - "release"
+  release:
+    types: [published]
 
 jobs:
   deploy:
