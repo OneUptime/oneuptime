@@ -43,7 +43,7 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 
 
 # Install app dependencies
-COPY package*.json /usr/src/app/
+COPY ./probe/package*.json /usr/src/app/
 RUN npm ci --only=production
 
 # Bundle app source
