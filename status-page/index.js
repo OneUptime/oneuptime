@@ -155,44 +155,6 @@ async function handleCertificate(client, collection, domain) {
     return certificate;
 }
 
-app.use(async function(req, res, next) {
-    const host = req.hostname;
-    const completeUrl = `https://${host}${req.url}`;
-
-    try {
-        if (host && completeUrl === 'https://oneuptime.com/') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
-            });
-            return res.end();
-        }
-        if (host && completeUrl === 'https://staging.oneuptime.com/') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
-            });
-            return res.end();
-        }
-        if (host && host === 'oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-        if (host && host === 'staging.oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-
-        return next();
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('Status Page: Error with fetch', error);
-        return next();
-    }
-});
-
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (

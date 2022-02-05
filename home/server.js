@@ -65,31 +65,6 @@ if (process.env.NODE_ENV === 'production') {
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-app.use(async function(req, res, next) {
-    const host = req.hostname;
-
-    try {
-        if (host && host === 'fyipe.com') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
-            });
-            return res.end();
-        }
-        if (host && host === 'staging.fyipe.com') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
-            });
-            return res.end();
-        }
-
-        return next();
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('HOME: Error with fetch', error);
-        return next();
-    }
-});
-
 /**
  * @param {string} val : The value to be parsed.
  * @description Resolves or Parses any value to boolean value.

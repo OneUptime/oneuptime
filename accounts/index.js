@@ -24,31 +24,6 @@ const compression = require('compression');
 
 app.use(compression());
 
-app.use(async function(req, res, next) {
-    const host = req.hostname;
-
-    try {
-        if (host && host === 'oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-        if (host && host === 'staging.oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-
-        return next();
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('ACCOUNT: Error with fetch', error);
-        return next();
-    }
-});
-
 app.get(['/env.js', '/accounts/env.js'], function(req, res) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,

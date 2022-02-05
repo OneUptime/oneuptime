@@ -87,30 +87,6 @@ app.use(function(req, res, next) {
     return next();
 });
 
-app.use(async function(req, res, next) {
-    const host = req.hostname;
-
-    try {
-        if (host && host === 'oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-        if (host && host === 'staging.oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-
-        return next();
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('Api Docs: Error with fetch', error);
-        return next();
-    }
-});
 
 // set the server port
 app.set('port', process.env.PORT || 1445);
