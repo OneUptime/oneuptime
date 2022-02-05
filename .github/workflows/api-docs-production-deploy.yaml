@@ -33,7 +33,7 @@ jobs:
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:4.0.$CI_PIPELINE_ID --push -f ./api-docs/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:master --push -f ./api-docs/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:latest --push -f ./api-docs/Dockerfile .
       - run: sudo kubectl set image deployment/fi-api-docs fi-api-docs=oneuptime/api-docs:4.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh

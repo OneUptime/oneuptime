@@ -14,7 +14,7 @@ staging_status-page:
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:4.0.$CI_PIPELINE_ID --push ./status-page
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:master --push ./status-page
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:staging --push ./status-page
         - sudo kubectl set image deployment/fi-status fi-status=oneuptime/status-page:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh

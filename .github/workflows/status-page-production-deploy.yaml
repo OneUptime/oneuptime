@@ -34,7 +34,7 @@ jobs:
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:4.0.$CI_PIPELINE_ID --push -f ./status-page/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:master --push -f ./status-page/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:latest --push -f ./status-page/Dockerfile .
       - run: sudo kubectl set image deployment/fi-status fi-status=oneuptime/status-page:4.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh

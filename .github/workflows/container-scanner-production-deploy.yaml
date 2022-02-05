@@ -33,7 +33,7 @@ jobs:
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/container-scanner:4.0.$CI_PIPELINE_ID --push -f ./container-scanner/Dockerfile .
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/container-scanner:master --push -f ./container-scanner/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/container-scanner:latest --push -f ./container-scanner/Dockerfile .
       - run: sudo kubectl set image deployment/fi-cont-scan fi-cont-scan=oneuptime/container-scanner:4.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
