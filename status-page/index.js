@@ -120,7 +120,7 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
 // fetch details about a domain from the db
 async function handleCustomDomain(client, collection, domain) {
     const statusPage = await client
-        .db('oneuptimedb')
+        .db(process.env.DB_NAME)
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
@@ -148,50 +148,12 @@ async function handleCustomDomain(client, collection, domain) {
 // fetch certificate for a particular domain
 async function handleCertificate(client, collection, domain) {
     const certificate = await client
-        .db('oneuptimedb')
+        .db(process.env.DB_NAME)
         .collection(collection)
         .findOne({ id: domain });
 
     return certificate;
 }
-
-app.use(async function(req, res, next) {
-    const host = req.hostname;
-    const completeUrl = `https://${host}${req.url}`;
-
-    try {
-        if (host && completeUrl === 'https://oneuptime.com/') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com?redirectedFromOldBranding=true`,
-            });
-            return res.end();
-        }
-        if (host && completeUrl === 'https://staging.oneuptime.com/') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com?redirectedFromOldBranding=true`,
-            });
-            return res.end();
-        }
-        if (host && host === 'oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-        if (host && host === 'staging.oneuptime.com') {
-            res.writeHead(301, {
-                Location: `https://staging.oneuptime.com${req.url}`,
-            });
-            return res.end();
-        }
-
-        return next();
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('Status Page: Error with fetch', error);
-        return next();
-    }
-});
 
 app.use('/', async function(req, res, next) {
     const host = req.hostname;

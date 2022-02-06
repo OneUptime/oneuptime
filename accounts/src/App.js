@@ -4,12 +4,14 @@ import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import BackboneModals from './containers/BackboneModals';
+
 import {
     DASHBOARD_URL,
     ADMIN_DASHBOARD_URL,
     IS_SAAS_SERVICE,
     User,
 } from './config';
+
 import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
@@ -52,17 +54,6 @@ const App = ({
     checkIfMasterAdminExists,
     saveStatusPage,
 }) => {
-    const oldHostNames = ['staging.oneuptime.com', 'oneuptime.com'];
-    const currentHostName = window.location.hostname;
-
-    if (oldHostNames.includes(currentHostName)) {
-        const updatedLink = `${window.location.origin.replace(
-            'oneuptime',
-            'oneuptime'
-        )}${window.location.pathname}`;
-
-        window.location.replace(updatedLink);
-    }
 
     useEffect(() => {
         // store initialUrl in sessionStorage

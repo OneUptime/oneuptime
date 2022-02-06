@@ -56,6 +56,8 @@ spec:
                       value: {{ $.Values.sentry.statusPage.dsn }}
                     - name: BACKEND_URL
                       value: {{ template "oneuptime.backendHost" . }}
+                    - name: DB_NAME
+                      value: {{ $.Values.mongo.databaseName }}
                     - name: MONGO_URL
                       value: {{ template "oneuptime.mongodbConnectionString" . }}
                     {{- if .Values.saas.isSaasService }}

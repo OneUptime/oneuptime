@@ -3,7 +3,7 @@ name: Admin Dashboard Production Deploy
 on:
   push:
     branches: 
-      - "release"
+      - release
 
 jobs:
   deploy:

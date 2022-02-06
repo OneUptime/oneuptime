@@ -3,7 +3,7 @@ name: Script Runner Production Deploy
 on:
   push:
     branches: 
-      - "release"
+      - release
 
 jobs:
   deploy:
