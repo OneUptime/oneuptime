@@ -52,17 +52,6 @@ const App = ({
     checkIfMasterAdminExists,
     saveStatusPage,
 }) => {
-    const oldHostNames = ['staging.oneuptime.com', 'oneuptime.com'];
-    const currentHostName = window.location.hostname;
-
-    if (oldHostNames.includes(currentHostName)) {
-        const updatedLink = `${window.location.origin.replace(
-            'oneuptime',
-            'oneuptime'
-        )}${window.location.pathname}`;
-
-        window.location.replace(updatedLink);
-    }
 
     useEffect(() => {
         // store initialUrl in sessionStorage

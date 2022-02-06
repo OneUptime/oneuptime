@@ -31,17 +31,6 @@ if (userData !== undefined) {
 }
 
 const App = () => {
-    const oldHostNames = ['staging.oneuptime.com', 'oneuptime.com'];
-    const currentHostName = window.location.hostname;
-
-    if (oldHostNames.includes(currentHostName)) {
-        const updatedLink = `${window.location.origin.replace(
-            'oneuptime',
-            'oneuptime'
-        )}${window.location.pathname}`;
-
-        window.location.replace(updatedLink);
-    }
 
     return (
         <div style={{ height: '100%' }}>
