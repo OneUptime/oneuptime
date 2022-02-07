@@ -10,17 +10,6 @@ const KubernetesMonitors = require('./kubernetesMonitors');
 const limit = process.env.RESOURCES_LIMIT;
 const asyncSleep = require('await-sleep');
 
-/**
- *
- * Investigation:
- *   - Log every request and kubectl log the backend.
- *
- *  If backend is normal then optimize code.
- *
- *  - Queuing system on probes.
- *  - Sharing of monitors in probes. (We can run multiple deployment of a single probe)
- *  - if criteria is request body , then curl otherwise ICMP ping which is a LOT faster.
- */
 
 const _this = {
     runJob: async function(monitorStore) {
