@@ -2224,242 +2224,270 @@ function handleMonitorList(monitors) {
     }
 }
 
+router.get(
+    '/resources/:statusPageSlug/ongoing-events',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
 
-router.get('/resources/:statusPageSlug/ongoing-events', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const ongoingEvents = await getOngoingScheduledEvents(
+                req,
+                statusPageSlug
+            );
+
+            return sendItemResponse(req, res, ongoingEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const ongoingEvents = await getOngoingScheduledEvents(req, statusPageSlug);
-
-        return sendItemResponse(req, res, ongoingEvents);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/future-events', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/future-events',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const futureEvents = await getFutureEvents(req, statusPageSlug);
+
+            return sendItemResponse(req, res, futureEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const futureEvents = await getFutureEvents(req, statusPageSlug);
-
-        return sendItemResponse(req, res, futureEvents);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/past-events', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/past-events',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const pastEvents = await getPastEvents(req, statusPageSlug);
+
+            return sendItemResponse(req, res, pastEvents);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const pastEvents = await getPastEvents(req, statusPageSlug);
-
-        return sendItemResponse(req, res, pastEvents);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/probes', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/probes',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const probes = await getProbes(req);
+
+            return sendItemResponse(req, res, probes);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const probes = await getProbes(req);
-
-        return sendItemResponse(req, res, probes);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/monitor-logs', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/monitor-logs',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const monitorLogs = await getMonitorLogs(req, statusPage.monitors);
+
+            return sendItemResponse(req, res, monitorLogs);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const monitorLogs = await getMonitorLogs(req, statusPage.monitors);
-
-        return sendItemResponse(req, res, monitorLogs);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/announcements', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/announcements',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const { _id: statusPageId, projectId } = statusPage;
+
+            const announcements = await getAnnouncements(
+                req,
+                statusPageId,
+                projectId
+            );
+
+            return sendItemResponse(req, res, announcements);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const { _id: statusPageId, projectId } = statusPage;
-        
-        const announcements = await  getAnnouncements(req, statusPageId, projectId);
-
-        return sendItemResponse(req, res, announcements);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/announcement-logs', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/announcement-logs',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const announcementLogs = await getAnnouncementLogs(statusPage);
+
+            return sendItemResponse(req, res, announcementLogs);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const announcementLogs = await  getAnnouncementLogs(statusPage);
-
-        return sendItemResponse(req, res, announcementLogs);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/timelines', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/timelines',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const timelines = await getMonitorTimelines(statusPageSlug);
+
+            return sendItemResponse(req, res, timelines);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const { _id: statusPageId, projectId } = statusPage;
-        
-        const timelines = await  getMonitorTimelines(statusPageSlug);
-
-        return sendItemResponse(req, res, timelines);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/notes', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/notes',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const statusPageNote = await getStatusPageNote(
+                req,
+                statusPageSlug,
+                statusPage.theme
+            );
+
+            return sendItemResponse(req, res, statusPageNote);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        
-        const statusPageNote = await  getStatusPageNote(req, statusPageSlug, statusPage.theme);
-
-        return sendItemResponse(req, res, statusPageNote);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/resources/:statusPageSlug/monitor-statuses', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageSlug } = req.params;
-        const { range } = req.query;
-        const response = {};
-        //get status pages
-        const statusPage = await getStatusPage(req, statusPageSlug);
-        if (statusPage.error) {
-            return sendErrorResponse(req, res, statusPage.data);
+router.get(
+    '/resources/:statusPageSlug/monitor-statuses',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+            const { range } = req.query;
+            const response = {};
+            //get status pages
+            const statusPage = await getStatusPage(req, statusPageSlug);
+            if (statusPage.error) {
+                return sendErrorResponse(req, res, statusPage.data);
+            }
+
+            const { monitors } = statusPage;
+
+            const monitorStatus = await getMonitorStatuses(req, monitors);
+
+            response.monitorStatus = monitorStatus || {};
+
+            statusPage.monitorsData.map(data => {
+                data.statuses = response.monitorStatus[data._id];
+                return data;
+            });
+
+            response.statusPages = statusPage;
+
+            const probes = await getProbes(req);
+
+            const time = await calculateTime(
+                statusPage,
+                monitorStatus,
+                probes,
+                range
+            );
+
+            response.time = time || {};
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const { monitors } = statusPage;
-
-        const monitorStatus = await getMonitorStatuses(req, monitors);
-
-        response.monitorStatus = monitorStatus || {};
-
-        statusPage.monitorsData.map(data => {
-            data.statuses = response.monitorStatus[data._id];
-            return data;
-        });
-
-        response.statusPages = statusPage;
-
-        const probes = await getProbes(req);
-
-        const time = await calculateTime(
-            statusPage,
-            monitorStatus,
-            probes,
-            range
-        );
-
-        response.time = time || {};
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 async function getStatusPage(req, statusPageSlug) {
     const url = req.query.url;

@@ -61,7 +61,6 @@ if (User.isLoggedIn()) {
 }
 
 const App = props => {
-
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
     const titleToExclude = [

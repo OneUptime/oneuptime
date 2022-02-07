@@ -54,7 +54,6 @@ const App = ({
     checkIfMasterAdminExists,
     saveStatusPage,
 }) => {
-
     useEffect(() => {
         // store initialUrl in sessionStorage
         User.setInitialUrl(window.location.href);

@@ -400,8 +400,7 @@ class NotesMain extends Component {
                                                             ).format('LLL')}
                                                         </span>
                                                     </div>
-                                                    </div>
-                                               
+                                                </div>
                                             ))}
                                 </span>
                             ) : (

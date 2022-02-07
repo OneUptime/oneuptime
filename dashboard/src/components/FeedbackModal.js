@@ -95,7 +95,9 @@ export class FeedbackModal extends Component {
 
                                             {!error && success && (
                                                 <span className="db-FeedbackForm-success">
-                                                    Thank you for reaching out. We will get back to you in less than 1 business day.
+                                                    Thank you for reaching out.
+                                                    We will get back to you in
+                                                    less than 1 business day.
                                                 </span>
                                             )}
                                             <span />

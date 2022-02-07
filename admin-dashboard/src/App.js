@@ -31,7 +31,6 @@ if (userData !== undefined) {
 }
 
 const App = () => {
-
     return (
         <div style={{ height: '100%' }}>
             <Router history={history}>

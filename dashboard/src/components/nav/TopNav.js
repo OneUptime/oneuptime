@@ -620,8 +620,6 @@ class TopContent extends Component {
                                 </div>
                             </div>
 
-                            
-
                             <ShouldRender if={isNotViewer}>
                                 <div className="Box-root Flex-flex">
                                     <div

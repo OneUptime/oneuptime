@@ -600,7 +600,10 @@ describe('Status API', function() {
     it.skip('should save an array of valid domains', function(done) {
         const authorization = `Basic ${token}`;
         const data = {
-            domain: [{ domain: 'oneuptime.z.com' }, { domain: 'oneuptime1.z.com' }],
+            domain: [
+                { domain: 'oneuptime.z.com' },
+                { domain: 'oneuptime1.z.com' },
+            ],
         };
         request
             .put(`/statusPage/${projectId}/${statusPageId}/domain`)

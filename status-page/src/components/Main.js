@@ -79,7 +79,6 @@ const greyBackground = {
 };
 
 class Main extends Component {
-    
     constructor(props) {
         super(props);
 
@@ -1817,16 +1816,16 @@ const FooterCard = ({
                         </a>
                     </span>
                     <ShouldRender if={statusData.enableMultipleLanguage}>
-                    <span
-                        style={{
-                            color: 'rgb(76, 76, 76)',
-                            cursor: 'pointer',
-                        }}
-                        onClick={() => setIsShown(!isShown)}
-                    >
-                        {' '}
-                        | <Translate>Language</Translate>
-                    </span>
+                        <span
+                            style={{
+                                color: 'rgb(76, 76, 76)',
+                                cursor: 'pointer',
+                            }}
+                            onClick={() => setIsShown(!isShown)}
+                        >
+                            {' '}
+                            | <Translate>Language</Translate>
+                        </span>
                     </ShouldRender>
                 </p>
             </div>

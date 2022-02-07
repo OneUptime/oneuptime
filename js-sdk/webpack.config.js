@@ -27,9 +27,8 @@ const serverBuild = {
         ],
     },
     resolve: {
-        extensions: ['.js']
-
-    }
+        extensions: ['.js'],
+    },
 };
 /*const webBuild = {
     ...serverBuild,

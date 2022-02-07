@@ -10,7 +10,6 @@ const KubernetesMonitors = require('./kubernetesMonitors');
 const limit = process.env.RESOURCES_LIMIT;
 const asyncSleep = require('await-sleep');
 
-
 const _this = {
     runJob: async function(monitorStore) {
         monitorStore = {};

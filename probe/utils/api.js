@@ -13,7 +13,7 @@ const _this = {
             probeVersion: config.probeVersion,
         };
     },
-    
+
     postApi: (url, data) => {
         const headers = _this.getHeaders();
 

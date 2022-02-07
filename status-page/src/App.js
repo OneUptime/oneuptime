@@ -60,7 +60,6 @@ const AppLoader = () => (
 );
 
 const App = () => {
-
     return (
         <>
             <Socket />

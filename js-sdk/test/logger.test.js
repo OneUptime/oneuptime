@@ -75,7 +75,11 @@ describe('OneUptimeLogger', function() {
         });
     });
     it('should return invalid application log', function() {
-        const firstLog = new OneUptimeLogger(API_URL, applicationLog._id, 'key');
+        const firstLog = new OneUptimeLogger(
+            API_URL,
+            applicationLog._id,
+            'key'
+        );
         firstLog.log('content').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(

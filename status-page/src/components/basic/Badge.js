@@ -9,7 +9,7 @@ function Badge({
     ...props
 }) {
     const shadow = fontColor
-        ? { 'boxShadow': `inset 0 0 0 1px ${fontColor}` }
+        ? { boxShadow: `inset 0 0 0 1px ${fontColor}` }
         : {};
     return (
         <div

@@ -21,7 +21,9 @@ const logger = require('../lib/logger');
 const { API_URL, LOG_PATH } = require('../lib/config');
 const serverMonitor = require('../lib/api');
 
-program.version(version, '-v, --version').description('OneUptime Monitoring Shell');
+program
+    .version(version, '-v, --version')
+    .description('OneUptime Monitoring Shell');
 program.name('server-monitor');
 
 program
