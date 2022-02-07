@@ -3,13 +3,15 @@
     "version": "3.0.2",
     "description": "One Complete SRE and DevOps platform.",
     "main": "index.js",
-    "dependencies": {},
+    "dependencies": {
+        "eslint-plugin-progress": "^0.0.1"
+    },
     "devDependencies": {
-        "ejs-lint": "^1.2.1",
         "@babel/core": "^7.10.2",
         "@babel/plugin-proposal-class-properties": "^7.10.1",
         "@babel/plugin-proposal-private-methods": "^7.10.1",
         "babel-eslint": "^10.1.0",
+        "ejs-lint": "^1.2.1",
         "eslint": "^6.8.0",
         "eslint-config-airbnb": "^18.2.1",
         "eslint-config-prettier": "^6.10.0",

@@ -66,9 +66,49 @@ export const getStatusPage = (statusPageSlug, url) => {
 // Calls the API to get all status page resources
 export const getAllStatusPageResource = (statusPageSlug, url, range) => {
     return function(dispatch) {
-        const promise = getApi(
-            `statusPage/resources/${statusPageSlug}?url=${url}&range=${range}`
-        );
+        const promises = []; 
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/ongoing-events?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/future-events?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/past-events?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/probes?url=${url}&range=${range}`
+        ));
+        
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/monitor-logs?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/announcements?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/announcement-logs?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/timelines?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/notes?url=${url}&range=${range}`
+        ));
+
+        promises.push(getApi(
+            `statusPage/resources/${statusPageSlug}/monitor-statuses?url=${url}&range=${range}`
+        ));
+
+
         dispatch(statusPageRequest());
         dispatch(getAnnouncementsRequest());
         dispatch(fetchMonitorStatusesRequest());
@@ -80,9 +120,21 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
         dispatch(ongoingEventRequest());
         dispatch(futureEventsRequest());
         dispatch(pastEventsRequest());
-        promise.then(
-            Data => {
-                const data = Data.data;
+
+        return Promise.all(promises).then(
+            ([ongoingEvents, futureEvents, pastEvents, probes, monitorLogs, announcement, announcementLogs, timelines, statusPageNote, monitorStatuses]) => {
+                const data = {
+                    ongoingEvents: ongoingEvents.data,
+                    futureEvents: futureEvents.data, 
+                    pastEvents: pastEvents.data,
+                    probes: probes.data, 
+                    monitorLogs: monitorLogs.data, 
+                    announcement: announcement.data, 
+                    announcementLogs: announcementLogs.data, 
+                    timelines: timelines.data,
+                    statusPageNote: statusPageNote.data, 
+                    ...monitorStatuses.data
+                };
                 dispatch(getAllStatusPageSuccess(data));
             },
             error => {
@@ -94,22 +146,28 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
                 ) {
                     dispatch(loginRequired(statusPageSlug));
                 }
-                if (error && error.response && error.response.data)
+
+                if (error && error.response && error.response.data){
                     error = error.response.data;
+                }
+
                 if (error && error.data) {
                     error = error.data;
                 }
+
                 if (error && error.message) {
                     error = error.message;
                 }
+
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
+
                 dispatch(statusPageFailure(errors(error)));
                 dispatch(loginError(errors(error)));
             }
         );
-        return promise;
+
     };
 };
 

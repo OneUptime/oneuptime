@@ -17,7 +17,8 @@
     },
     "plugins": [
         "react",
-        "jsx-a11y"
+        "jsx-a11y",
+        "progress"
     ],
     "extends": [
         "eslint:recommended",
@@ -46,6 +47,7 @@
         "valid-typeof": "error",
         "no-func-assign": "error",
         "no-extra-semi": "error",
+        "progress/activate": 1,
         "linebreak-style": [
             "error",
             "unix"

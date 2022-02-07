@@ -79,6 +79,7 @@ const greyBackground = {
 };
 
 class Main extends Component {
+    
     constructor(props) {
         super(props);
 
@@ -1815,6 +1816,7 @@ const FooterCard = ({
                             <Translate>Powered by</Translate> OneUptime
                         </a>
                     </span>
+                    <ShouldRender if={statusData.enableMultipleLanguage}>
                     <span
                         style={{
                             color: 'rgb(76, 76, 76)',
@@ -1825,6 +1827,7 @@ const FooterCard = ({
                         {' '}
                         | <Translate>Language</Translate>
                     </span>
+                    </ShouldRender>
                 </p>
             </div>
         </>

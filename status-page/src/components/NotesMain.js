@@ -9,6 +9,7 @@ import Markdown from 'markdown-to-jsx';
 import Notes from './Notes';
 import ShouldRender from './ShouldRender';
 import SubscribeBox from './Subscribe/SubscribeBox';
+
 import {
     getStatusPageNote,
     getStatusPageIndividualNote,
@@ -16,6 +17,7 @@ import {
     fetchLastIncidentTimelines,
     showIncidentCard,
 } from '../actions/status';
+
 import { openSubscribeMenu } from '../actions/subscribe';
 import { capitalize } from '../config';
 import Badge from './basic/Badge';
@@ -357,7 +359,7 @@ class NotesMain extends Component {
                                                 }
                                             })
                                             .map(message => (
-                                                <>
+                                                <div key={message._id}>
                                                     <div
                                                         className="incident_desc"
                                                         style={{
@@ -398,7 +400,8 @@ class NotesMain extends Component {
                                                             ).format('LLL')}
                                                         </span>
                                                     </div>
-                                                </>
+                                                    </div>
+                                               
                                             ))}
                                 </span>
                             ) : (
@@ -434,7 +437,7 @@ class NotesMain extends Component {
                         this.props.notesmessage
                     ) : (
                         <div>
-                            <Translate> No incident available</Translate>
+                            <Translate> No incident available.</Translate>
                         </div>
                     )}
                 </div>
