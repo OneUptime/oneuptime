@@ -78,14 +78,12 @@ const bool = val => {
 
 //Routes
 app.get('/', function(req, res) {
-    const { redirectedFromOldBranding } = req.query;
     res.render('index', {
         support: false,
         footerCards: true,
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: bool(redirectedFromOldBranding),
     });
 });
 
@@ -96,7 +94,7 @@ app.get('/support', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -107,7 +105,7 @@ app.get('/pricing', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -118,7 +116,7 @@ app.get('/enterprise/demo', function(req, res) {
         cta: false,
         blackLogo: true,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -139,7 +137,7 @@ app.get('/product/public-status-page', function(req, res) {
         requestDemoCta: false,
         footerCtaText:
             'Start with Status Pages, expand into everything else. Sign up today.',
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -156,7 +154,7 @@ app.get('/product/private-status-page', function(req, res) {
         requestDemoCta: false,
         footerCtaText:
             'Start with Status Pages, expand into everything else. Sign up today.',
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -175,7 +173,7 @@ app.get('/product/uptime-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -190,7 +188,7 @@ app.get('/product/logs-management', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -205,7 +203,7 @@ app.get('/product/error-tracking', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -299,7 +297,7 @@ app.get('/product/docker-container-security', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -314,7 +312,7 @@ app.get('/product/app-security', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -331,7 +329,7 @@ app.get('/product/api-monitoring', function(req, res) {
         requestDemoCta: false,
         footerCtaText:
             'Start with API monitoring, expand into everything else. Sign up today.',
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -346,7 +344,7 @@ app.get('/product/kubernetes-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -361,7 +359,7 @@ app.get('/product/performance-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -376,7 +374,7 @@ app.get('/product/server-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -391,7 +389,7 @@ app.get('/product/website-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -406,7 +404,7 @@ app.get('/product/iot-device-monitoring', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -421,7 +419,7 @@ app.get('/product/incident-management', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -436,7 +434,7 @@ app.get('/product/oncall-management', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -451,7 +449,7 @@ app.get('/customers', function(req, res) {
         cta: true,
         blackLogo: true,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -462,7 +460,7 @@ app.get('/enterprise/resources', function(req, res) {
         cta: true,
         blackLogo: true,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -473,7 +471,7 @@ app.get('/enterprise/overview', function(req, res) {
         cta: true,
         blackLogo: false,
         requestDemoCta: true,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -485,7 +483,7 @@ app.get('/legal', function(req, res) {
         blackLogo: false,
         section: 'terms',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -497,7 +495,7 @@ app.get('/legal/terms', function(req, res) {
         blackLogo: false,
         section: 'terms',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -509,7 +507,7 @@ app.get('/legal/privacy', function(req, res) {
         blackLogo: false,
         section: 'privacy',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -521,7 +519,7 @@ app.get('/legal/contact', function(req, res) {
         blackLogo: false,
         section: 'contact',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -533,7 +531,7 @@ app.get('/legal/subprocessors', function(req, res) {
         blackLogo: false,
         section: 'subprocessors',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -545,7 +543,7 @@ app.get('/legal/ccpa', function(req, res) {
         blackLogo: false,
         section: 'ccpa',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -557,7 +555,7 @@ app.get('/legal/hipaa', function(req, res) {
         blackLogo: false,
         section: 'hipaa',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -569,7 +567,7 @@ app.get('/legal/dmca', function(req, res) {
         blackLogo: false,
         section: 'dmca',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -581,7 +579,7 @@ app.get('/legal/pci', function(req, res) {
         blackLogo: false,
         section: 'pci',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -593,7 +591,7 @@ app.get('/legal/iso-27001', function(req, res) {
         blackLogo: false,
         section: 'iso-27001',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -605,7 +603,7 @@ app.get('/legal/iso-27017', function(req, res) {
         blackLogo: false,
         section: 'iso-27017',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -617,7 +615,7 @@ app.get('/legal/iso-27018', function(req, res) {
         blackLogo: false,
         section: 'iso-27018',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -629,7 +627,7 @@ app.get('/legal/iso-27017', function(req, res) {
         blackLogo: false,
         section: 'iso-27017',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -641,7 +639,7 @@ app.get('/legal/iso-27018', function(req, res) {
         blackLogo: false,
         section: 'iso-27018',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -653,7 +651,7 @@ app.get('/legal/soc-2', function(req, res) {
         blackLogo: false,
         section: 'soc-2',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -665,7 +663,7 @@ app.get('/legal/soc-3', function(req, res) {
         blackLogo: false,
         section: 'soc-3',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -677,7 +675,7 @@ app.get('/legal/data-residency', function(req, res) {
         blackLogo: false,
         section: 'data-residency',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -689,7 +687,7 @@ app.get('/legal/gdpr', function(req, res) {
         blackLogo: false,
         section: 'gdpr',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -701,7 +699,7 @@ app.get('/legal/sla', function(req, res) {
         blackLogo: false,
         section: 'sla',
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -712,7 +710,7 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
         cta: false,
         blackLogo: true,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
@@ -727,7 +725,7 @@ app.get('/table/:product', function(req, res) {
             cta: false,
             blackLogo: false,
             requestDemoCta: false,
-            redirectedFromOldBranding: false,
+            
         });
     } else {
         res.render('product-compare.ejs', {
@@ -738,7 +736,7 @@ app.get('/table/:product', function(req, res) {
             requestDemoCta: false,
             productConfig,
             onlyShowCompareTable: true,
-            redirectedFromOldBranding: false,
+            
         });
     }
 });
@@ -754,7 +752,7 @@ app.get('/compare/:product', function(req, res) {
             cta: false,
             blackLogo: false,
             requestDemoCta: false,
-            redirectedFromOldBranding: false,
+            
         });
     } else {
         res.render('product-compare.ejs', {
@@ -765,7 +763,7 @@ app.get('/compare/:product', function(req, res) {
             requestDemoCta: false,
             productConfig,
             onlyShowCompareTable: false,
-            redirectedFromOldBranding: false,
+            
         });
     }
 });
@@ -906,7 +904,7 @@ app.get('/*', function(req, res) {
         cta: false,
         blackLogo: false,
         requestDemoCta: false,
-        redirectedFromOldBranding: false,
+        
     });
 });
 
