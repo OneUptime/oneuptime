@@ -2,6 +2,8 @@
 */build/*
 */coverage/*
 
+*/dist/*
+
 */public/*
 */views/*
 
