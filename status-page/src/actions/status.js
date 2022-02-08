@@ -112,13 +112,13 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/timelines?url=${url}&range=${range}`
+                `statusPage/resources/${statusPageSlug}/monitor-timelines?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/notes?url=${url}&range=${range}`
+                `statusPage/resources/${statusPageSlug}/statuspage-notes?url=${url}&range=${range}`
             )
         );
 

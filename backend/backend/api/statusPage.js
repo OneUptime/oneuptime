@@ -2240,7 +2240,7 @@ router.get(
 
             const ongoingEvents = await getOngoingScheduledEvents(
                 req,
-                statusPageSlug
+                statusPage.slug
             );
 
             return sendItemResponse(req, res, ongoingEvents);
@@ -2264,7 +2264,7 @@ router.get(
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const futureEvents = await getFutureEvents(req, statusPageSlug);
+            const futureEvents = await getFutureEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, futureEvents);
         } catch (error) {
@@ -2287,7 +2287,7 @@ router.get(
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const pastEvents = await getPastEvents(req, statusPageSlug);
+            const pastEvents = await getPastEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, pastEvents);
         } catch (error) {
@@ -2395,7 +2395,7 @@ router.get(
 );
 
 router.get(
-    '/resources/:statusPageSlug/timelines',
+    '/resources/:statusPageSlug/monitor-timelines',
     checkUser,
     ipWhitelist,
     async function(req, res) {
@@ -2408,7 +2408,7 @@ router.get(
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const timelines = await getMonitorTimelines(statusPageSlug);
+            const timelines = await getMonitorTimelines(statusPage.slug);
 
             return sendItemResponse(req, res, timelines);
         } catch (error) {
@@ -2418,7 +2418,7 @@ router.get(
 );
 
 router.get(
-    '/resources/:statusPageSlug/notes',
+    '/resources/:statusPageSlug/statuspage-notes',
     checkUser,
     ipWhitelist,
     async function(req, res) {
@@ -2433,7 +2433,7 @@ router.get(
 
             const statusPageNote = await getStatusPageNote(
                 req,
-                statusPageSlug,
+                statusPage.slug,
                 statusPage.theme
             );
 
