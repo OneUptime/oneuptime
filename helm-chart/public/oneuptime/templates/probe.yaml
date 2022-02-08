@@ -60,6 +60,8 @@ spec:
                         value: {{ $value.name }}
                       - name: PROBE_KEY
                         value: {{ $value.key }}
+                      - name: PROBE_API_URL
+                        value: {{ template "oneuptime.probeApiUrl" $ }}
                       {{- if $.Values.newRelic.probe.licenseKey }}
                       - name: NEW_RELIC_LICENSE_KEY
                         value: {{ $.Values.newRelic.probe.licenseKey }}

@@ -77,6 +77,8 @@ spec:
                         value: {{ $.Values.nodeEnv }}
                       - name: IS_TESTING
                         value: {{ $.Values.isTesting | quote }}
+                      - name: DB_NAME
+                        value: {{ $.Values.mongo.databaseName }}
                   ports:
                       - containerPort: {{ $.Values.host.fetchResourcesPort }}
                         hostPort: {{ $.Values.host.fetchResourcesPort }}
