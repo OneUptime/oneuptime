@@ -37,7 +37,7 @@
         "nodemon": "^2.0.15",
         "npm-force-resolutions": "0.0.10",
         "ora": "^6.0.1",
-        "puppeteer": "^13.0.1",
+        "puppeteer": "^13.2.0",
         "start-server-and-test": "^1.14.0"
     }
 }
