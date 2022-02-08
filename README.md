@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="300" alt="oneuptimelogo" src="https://raw.githubusercontent.com/OneUptime/app/3382df24aa9418c7668e0752ff435fb80a7f2b72/marketing/logos/OneUptimePNG/3.png">
+  <img width="300" alt="oneuptimelogo" src="https://raw.githubusercontent.com/OneUptime/app/master/marketing/logos/OneUptimePNG/7.png">
 </p>
 <p align="center">
   <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
