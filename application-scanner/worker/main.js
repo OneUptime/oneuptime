@@ -19,7 +19,6 @@ module.exports = {
             return;
         } catch (error) {
             ErrorService.log('runApplicationScan.getApi', error);
-            global.Sentry.captureException(error);
         }
     },
 };

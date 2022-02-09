@@ -1,10 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import * as Sentry from '@sentry/react';
 
 class ErrorBoundary extends Component {
     render() {
-        const fallback = (
+        return (
             <div
                 id="app-loading"
                 style={{
@@ -25,11 +24,6 @@ class ErrorBoundary extends Component {
                     continue
                 </div>
             </div>
-        );
-        return (
-            <Sentry.ErrorBoundary fallback={fallback}>
-                {this.props.children}
-            </Sentry.ErrorBoundary>
         );
     }
 }

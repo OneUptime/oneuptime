@@ -62,12 +62,10 @@ const _this = {
                     delete monitorStore[key];
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
-                    global.Sentry.captureException(e);
                 }
             }
         } catch (error) {
             ErrorService.log('getApi', error);
-            global.Sentry.captureException(error);
         }
     },
 };

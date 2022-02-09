@@ -39,8 +39,6 @@ spec:
                         value: 'true'
                       - name: NODE_ENV
                         value: {{ $.Values.nodeEnv }}
-                      - name: SENTRY_DSN
-                        value: {{ $.Values.sentry.home.dsn }}
                       - name: ONEUPTIME_HOST
                         value: {{ $.Values.oneuptime.hosts.host1.host }}
                       - name: NODE_NAME

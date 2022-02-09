@@ -52,8 +52,6 @@ spec:
                             fieldPath: spec.serviceAccountName
                       - name: NODE_ENV
                         value: {{ $.Values.nodeEnv }}
-                      - name: SENTRY_DSN
-                        value: {{ $.Values.sentry.scriptRunner.dsn }}
                       - name: SERVER_URL
                         value: {{ template "oneuptime.serverUrl" $ }}
                       - name: IS_SAAS_SERVICE

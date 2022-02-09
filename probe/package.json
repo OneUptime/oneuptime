@@ -22,7 +22,6 @@
     },
     "homepage": "https://gitlab.com/oneuptime/probe#readme",
     "dependencies": {
-        "@sentry/node": "^6.16.1",
         "await-sleep": "^0.0.1",
         "axios": "^0.25.0",
         "chrome-launcher": "^0.15.0",

@@ -25,31 +25,12 @@ process.on('uncaughtException', err => {
 });
 
 const express = require('express');
-const Sentry = require('@sentry/node');
 const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cron = require('node-cron');
 const main = require('./workers/main');
-
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    release: `script-runner@${process.env.npm_package_version}`,
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: 0.0,
-    integrations: [
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-});
-
-// Sentry: The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());
 
 app.use(cors());
 
@@ -85,9 +66,6 @@ app.get(['/script/status', '/status'], function(req, res) {
 });
 
 app.use('/script', require('./api/script'));
-
-app.use(Sentry.Handlers.errorHandler());
-global.Sentry = Sentry;
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line

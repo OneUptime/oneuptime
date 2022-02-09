@@ -1,7 +1,5 @@
 const express = require('express');
 const app = express();
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 
 const { NODE_ENV } = process.env;
 
@@ -22,34 +20,10 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    integrations: [
-        // enable HTTP calls tracing
-        new Sentry.Integrations.Http({ tracing: true }),
-        // enable Express.js middleware tracing
-        new Tracing.Integrations.Express({
-            app,
-        }),
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-    environment: process.env.NODE_ENV,
-    release: `oneuptime-licensing@${process.env.npm_package_version}`,
-    tracesSampleRate: 0.0,
-});
-
 const path = require('path');
 const http = require('http').createServer(app);
 const bodyParser = require('body-parser');
 const cors = require('cors');
-
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
 
@@ -102,8 +76,6 @@ app.get(['/', '/license'], function(req, res) {
 app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
-
-app.use(Sentry.Handlers.errorHandler());
 
 module.exports = app;
 module.exports.close = function() {

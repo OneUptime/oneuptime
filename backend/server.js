@@ -11,35 +11,12 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 const express = require('express');
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 const logger = require('./backend/config/logger');
 const expressRequestId = require('express-request-id')();
 
 const app = express();
 
 app.use(expressRequestId);
-
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    release: `oneuptime-backend@${process.env.npm_package_version}`,
-    environment: process.env.NODE_ENV,
-    integrations: [
-        // enable HTTP calls tracing
-        new Sentry.Integrations.Http({ tracing: true }),
-        // enable Express.js middleware tracing
-        new Tracing.Integrations.Express({
-            app,
-        }),
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-    tracesSampleRate: 0.0,
-});
 
 process.on('exit', () => {
     logger.info('Server Shutting Shutdown');
@@ -98,11 +75,8 @@ const { getProjectId } = require('./backend/middlewares/api');
 //     // eslint-disable-next-line no-console
 //     console.log('redis error: ', err);
 // }
-global.io = io;
 
-// Sentry: The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
+global.io = io;
 
 app.use(cors());
 
@@ -417,8 +391,6 @@ app.use(['/api'], require('./backend/api/apiStatus'));
 app.use('/*', function(req, res) {
     res.status(404).send('Endpoint not found.');
 });
-
-app.use(Sentry.Handlers.errorHandler());
 
 //attach cron jobs
 require('./backend/workers/main');

@@ -15,7 +15,6 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@sentry/node": "^6.16.1",
         "body-parser": "^1.19.1",
         "cross-env": "^7.0.3",
         "custom-env": "^2.0.1",

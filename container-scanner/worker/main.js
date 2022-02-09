@@ -17,7 +17,6 @@ module.exports = {
             return;
         } catch (error) {
             ErrorService.log('runContainerScan.getApi', error);
-            global.Sentry.captureException(error);
         }
     },
 };

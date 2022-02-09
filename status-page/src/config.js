@@ -53,8 +53,6 @@ export const DOMAIN = window.location.origin;
 
 export const VERSION = process.env.VERSION || env('VERSION');
 
-export const SENTRY_DSN = process.env.SENTRY_DSN || env('SENTRY_DSN');
-
 export const User = {
     getAccessToken() {
         return localStorage.getItem('access_token');

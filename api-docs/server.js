@@ -18,36 +18,10 @@ process.on('uncaughtException', err => {
 });
 
 const express = require('express');
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 const app = express();
 const path = require('path');
 const version = require('./api/version');
 const cors = require('cors');
-
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    integrations: [
-        // enable HTTP calls tracing
-        new Sentry.Integrations.Http({ tracing: true }),
-        // enable Express.js middleware tracing
-        new Tracing.Integrations.Express({
-            app,
-        }),
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-    environment: process.env.NODE_ENV,
-    release: `oneuptime-api-docs@${process.env.npm_package_version}`,
-    tracesSampleRate: 0.0,
-});
-
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
 
@@ -109,8 +83,6 @@ app.use(
 app.get(['/', '/docs'], function(req, res) {
     res.render('pages/index');
 });
-
-app.use(Sentry.Handlers.errorHandler());
 
 app.listen(app.get('port'), function() {
     // eslint-disable-next-line no-console

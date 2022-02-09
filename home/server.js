@@ -18,8 +18,6 @@ process.on('uncaughtException', err => {
 });
 
 const express = require('express');
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 const app = express();
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -29,30 +27,6 @@ const tryToCatch = require('try-to-catch');
 const productCompare = require('./config/product-compare');
 const axios = require('axios');
 const builder = require('xmlbuilder2');
-
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    integrations: [
-        // enable HTTP calls tracing
-        new Sentry.Integrations.Http({ tracing: true }),
-        // enable Express.js middleware tracing
-        new Tracing.Integrations.Express({
-            app,
-        }),
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-    environment: process.env.NODE_ENV,
-    release: `oneuptime-homepage@${process.env.npm_package_version}`,
-    tracesSampleRate: 0.0,
-});
-
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -856,8 +830,6 @@ app.get('/*', function(req, res) {
         requestDemoCta: false,
     });
 });
-
-app.use(Sentry.Handlers.errorHandler());
 
 app.set('port', process.env.PORT || 1444);
 

@@ -96,8 +96,6 @@ spec:
                         value: {{ template "oneuptime.realtimeUrl" $ }}
                       - name: NODE_ENV
                         value: {{ $.Values.nodeEnv }}
-                      - name: SENTRY_DSN
-                        value: {{ $.Values.sentry.backend.dsn }}
                       - name: IS_TESTING
                         value: {{ $.Values.isTesting | quote }}
                       - name: RATE_LIMITTER_TIME_PERIOD_IN_MS

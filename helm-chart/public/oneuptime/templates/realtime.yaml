@@ -58,8 +58,6 @@ spec:
                             key: clusterkey
                       - name: NODE_ENV
                         value: {{ $.Values.nodeEnv }}
-                      - name: SENTRY_DSN
-                        value: {{ $.Values.sentry.realtime.dsn }}
                   ports:
                       - containerPort: {{ $.Values.host.realtimePort }}
                         hostPort: {{ $.Values.host.realtimePort }}

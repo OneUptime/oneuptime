@@ -8,17 +8,6 @@ import store, { history, isServer } from './store';
 import App from './App';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
-import * as Sentry from '@sentry/react';
-import { Integrations } from '@sentry/tracing';
-import { SENTRY_DSN, VERSION } from './config';
-
-Sentry.init({
-    dsn: SENTRY_DSN,
-    release: `oneuptime-accounts@${VERSION}`,
-    integrations: [new Integrations.BrowserTracing()],
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: 0.0,
-});
 
 if (!isServer) {
     ReactGA.initialize('UA-115085157-1');

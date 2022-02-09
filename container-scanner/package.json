@@ -13,7 +13,6 @@
     "author": "HackerBay, Inc.",
     "license": "MIT",
     "dependencies": {
-        "@sentry/node": "^6.16.1",
         "axios": "^0.24.0",
         "cors": "^2.8.5",
         "custom-env": "^2.0.1",

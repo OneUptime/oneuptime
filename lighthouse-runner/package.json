@@ -13,7 +13,6 @@
     "author": "HackerBay, Inc.",
     "license": "MIT",
     "dependencies": {
-        "@sentry/node": "^6.16.1",
         "axios": "^0.25.0",
         "chrome-launcher": "^0.15.0",
         "cors": "^2.8.5",

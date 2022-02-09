@@ -51,8 +51,6 @@ export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const DISABLE_SIGNUP = env('DISABLE_SIGNUP') === 'true';
 
-export const SENTRY_DSN = process.env.SENTRY_DSN || env('SENTRY_DSN');
-
 export const VERSION = process.env.VERSION || env('VERSION');
 
 export const User = {

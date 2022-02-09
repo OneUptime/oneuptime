@@ -3,8 +3,6 @@
     "version": "3.0.0",
     "private": true,
     "dependencies": {
-        "@sentry/react": "^6.12.0",
-        "@sentry/tracing": "^6.12.0",
         "axios": "^0.21.1",
         "chai": "^4.3.4",
         "chai-http": "^4.3.0",

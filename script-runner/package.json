@@ -12,7 +12,6 @@
     "author": "Augustine",
     "license": "ISC",
     "dependencies": {
-        "@sentry/node": "^6.16.1",
         "axios": "^0.25.0",
         "body-parser": "^1.19.1",
         "cors": "^2.8.5",

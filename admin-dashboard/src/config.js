@@ -66,8 +66,6 @@ export const IS_THIRD_PARTY_BILLING =
 
 export const LICENSING_URL = licensingUrl;
 
-export const SENTRY_DSN = process.env.SENTRY_DSN || env('SENTRY_DSN');
-
 export const VERSION = process.env.VERSION || env('VERSION');
 
 export const User = {

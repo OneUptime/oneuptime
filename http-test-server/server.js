@@ -18,7 +18,6 @@ process.on('uncaughtException', err => {
 });
 
 const express = require('express');
-const Sentry = require('@sentry/node');
 const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -36,24 +35,6 @@ global.httpServerResponse = {
     header: {},
     body: { status: 'ok' },
 };
-
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    release: `http-test-server@${process.env.npm_package_version}`,
-    environment: process.env.NODE_ENV,
-    tracesSampleRate: 0.0,
-    integrations: [
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-});
-
-// Sentry: The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());
 
 app.use('*', function(req, res, next) {
     if (process.env && process.env.PRODUCTION) {
@@ -126,8 +107,6 @@ app.get('/api/webhooks/:id', function(req, res) {
 app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
-
-app.use(Sentry.Handlers.errorHandler());
 
 app.set('port', process.env.PORT || 3010);
 

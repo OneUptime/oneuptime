@@ -80,9 +80,7 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
             process.env.PUSHNOTIFICATION_PUBLIC_KEY,
         REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
         REACT_APP_VERSION: process.env.REACT_APP_VERSION,
-        REACT_APP_STATUSPAGE_DOMAIN: process.env.STATUSPAGE_DOMAIN,
-        REACT_APP_SENTRY_DSN:
-            process.env.SENTRY_DSN || process.env.REACT_APP_SENTRY_DSN,
+        REACT_APP_STATUSPAGE_DOMAIN: process.env.STATUSPAGE_DOMAIN
     };
 
     res.contentType('application/javascript');

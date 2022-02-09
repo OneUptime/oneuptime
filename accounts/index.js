@@ -31,8 +31,6 @@ app.get(['/env.js', '/accounts/env.js'], function(req, res) {
         REACT_APP_HOST: req.host,
         REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
         REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
-        REACT_APP_SENTRY_DSN:
-            process.env.SENTRY_DSN || process.env.REACT_APP_SENTRY_DSN,
         REACT_APP_VERSION:
             process.env.npm_package_version || process.env.REACT_APP_VERSION,
     };

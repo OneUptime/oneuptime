@@ -52,8 +52,6 @@ spec:
                       value: {{ $.Values.oneuptime.hosts.host1.host }}
                     - name: NODE_ENV
                       value: {{ $.Values.nodeEnv }}
-                    - name: SENTRY_DSN
-                      value: {{ $.Values.sentry.statusPage.dsn }}
                     - name: BACKEND_URL
                       value: {{ template "oneuptime.backendHost" . }}
                     - name: DB_NAME

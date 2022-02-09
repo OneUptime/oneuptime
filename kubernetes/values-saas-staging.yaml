@@ -104,39 +104,6 @@ newRelic:
         appName: 'OneUptime Probe Staging'
 
 nodeEnv: staging
-sentry:
-    backend:
-        dsn: https://cd018fc6179f47f9bbe2ac981f7222ec@o1080398.ingest.sentry.io/6086181
-    dashboard:
-        dsn: https://52139efa363c4d8f949127df6f5b9c06@o1080398.ingest.sentry.io/6086183
-    accounts:
-        dsn: https://00e10ef7b6864da2b9ec51022be9cfa1@o1080398.ingest.sentry.io/6086185
-    adminDashboard:
-        dsn: https://c6cba78027d0458281c83b9b71dbf811@o1080398.ingest.sentry.io/6086192
-    apiDocs:
-        dsn: https://718dbefd2cd740fda9d13152b119b9f1@o1080398.ingest.sentry.io/6086200
-    applicationScanner:
-        dsn: https://aeb7436b742d42bb93c0bb4a49a2d595@o1080398.ingest.sentry.io/6086203
-    containerScanner:
-        dsn: https://73036c160c894c95b362c545f007fa1b@o1080398.ingest.sentry.io/6086204
-    dataIngestor:
-        dsn: https://4ce6452749ed461a87599d204802d74e@o1080398.ingest.sentry.io/6086206
-    home:
-        dsn: https://c71be7e5bb9d4f318e5ac295c8dc8720@o1080398.ingest.sentry.io/6086207
-    httpTestServer:
-        dsn: https://2dda861b35554c4fa1df681d78ecee51@o1080398.ingest.sentry.io/6086219
-    licensing:
-        dsn: https://5be12db2ce4d4a3fb876e385a37cffc8@o1080398.ingest.sentry.io/6086221
-    lighthouse:
-        dsn: https://04a7261ec6844172b2d2a4f5fc1f0fdc@o1080398.ingest.sentry.io/6086224
-    probe:
-        dsn: https://f1c88d92c3f848c49f41d537bf124e05@o1080398.ingest.sentry.io/6086225
-    realtime:
-        dsn: https://3881f774f62b4f3d9f69177d0716ac01@o1080398.ingest.sentry.io/6086226
-    scriptRunner:
-        dsn: https://6e0b0991fc584e6da61d900bd20d81a1@o1080398.ingest.sentry.io/6086230
-    statusPage:
-        dsn: https://4257f73998344bddbf600fd11ef42050@o1080398.ingest.sentry.io/6086232
 
 logstashHost: 54.153.39.163
 logstashPort: 1514

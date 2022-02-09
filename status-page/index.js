@@ -99,8 +99,6 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
         REACT_APP_ONEUPTIME_HOST,
         REACT_APP_BACKEND_PROTOCOL,
         REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
-        REACT_APP_SENTRY_DSN:
-            process.env.SENTRY_DSN || process.env.REACT_APP_SENTRY_DSN,
         REACT_APP_VERSION:
             process.env.REACT_APP_VERSION || process.env.npm_package_version,
     };

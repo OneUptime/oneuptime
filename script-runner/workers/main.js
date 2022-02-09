@@ -14,7 +14,6 @@ module.exports = {
             );
         } catch (error) {
             errorService.log('getApi', error);
-            global.Sentry.captureException(error);
         }
     },
 };

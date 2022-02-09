@@ -6,8 +6,6 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 const express = require('express');
-const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
@@ -26,27 +24,6 @@ process.on('unhandledRejection', err => {
 process.on('uncaughtException', err => {
     console.error('Uncaught exception in server process occurred');
     console.error(err);
-});
-
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    release: `data-ingestor@${process.env.npm_package_version}`,
-    environment: process.env.NODE_ENV,
-    integrations: [
-        // enable HTTP calls tracing
-        new Sentry.Integrations.Http({ tracing: true }),
-        // enable Express.js middleware tracing
-        new Tracing.Integrations.Express({
-            app,
-        }),
-        new Sentry.Integrations.OnUncaughtException({
-            onFatalError() {
-                // override default behaviour
-                return;
-            },
-        }),
-    ],
-    tracesSampleRate: 0.0,
 });
 
 // mongodb
@@ -70,10 +47,6 @@ const client = getMongoClient();
 
 // attach the database to global object
 global.db = client.db('oneuptimedb');
-
-// Sentry: The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
 
@@ -142,8 +115,6 @@ app.get(['/data-ingestor/status', '/status'], function(req, res) {
 });
 
 app.use(['/probe', '/api/probe'], require('./api/probe'));
-
-app.use(Sentry.Handlers.errorHandler());
 
 app.set('port', process.env.PORT || 3200);
 

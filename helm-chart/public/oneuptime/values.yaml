@@ -257,40 +257,7 @@ newRelic:
     licenseKey:
     appName: 
 
-nodeEnv: development
-sentry:
-  backend:
-    dsn:
-  dashboard:
-    dsn:
-  accounts:
-    dsn:
-  adminDashboard:
-    dsn:
-  apiDocs:
-    dsn:
-  applicationScanner:
-    dsn:
-  containerScanner:
-    dsn:
-  dataIngestor:
-    dsn:
-  home:
-    dsn:
-  httpTestServer:
-    dsn:
-  licensing:
-    dsn:
-  lighthouse:
-    dsn:
-  probe:
-    dsn:
-  realtime:
-    dsn:
-  scriptRunner:
-    dsn:
-  statusPage:
-    dsn:
+nodeEnv: production
 
 applicationScanner:
   name: US
