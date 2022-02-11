@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:17-alpine
+FROM node:lts-alpine
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
