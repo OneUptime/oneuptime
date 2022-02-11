@@ -26,12 +26,7 @@ export class ProjectAlertLimitBox extends Component {
     handleClick = () => {
         const { renewAlertLimit, project } = this.props;
         const { alertLimit } = this.state;
-        const thisObj = this;
-        renewAlertLimit(project._id, alertLimit).then(() => {
-            if (window.location.href.indexOf('localhost') <= -1) {
-                thisObj.context.mixpanel.track('Project Alert Limit Renewed');
-            }
-        });
+        renewAlertLimit(project._id, alertLimit);
     };
 
     render() {
@@ -125,9 +120,7 @@ ProjectAlertLimitBox.propTypes = {
     requesting: PropTypes.bool,
 };
 
-ProjectAlertLimitBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ProjectAlertLimitBox.contextTypes = {};
 
 export default connect(
     mapStateToProps,
