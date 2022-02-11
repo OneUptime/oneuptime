@@ -95,14 +95,6 @@ autoScaler:
     minReplicas: 1
     maxReplicas: 5
 
-newRelic:
-    backend:
-        licenseKey: '521f482a2025b2740371c2b10ff58a069f8aNRAL'
-        appName: 'OneUptime Backend Staging'
-    probe:
-        licenseKey: '521f482a2025b2740371c2b10ff58a069f8aNRAL'
-        appName: 'OneUptime Probe Staging'
-
 nodeEnv: staging
 
 logstashHost: 54.153.39.163

@@ -5,7 +5,7 @@ node_modules
 
 # dependencies
 /node_modules
-/newrelic_agent.log
+
 .idea
 # testing
 /coverage

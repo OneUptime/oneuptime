@@ -1,8 +1,3 @@
-// if new relic license key exists. Then load the key.
-if (process.env.NEW_RELIC_LICENSE_KEY) {
-    require('newrelic');
-}
-
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {

@@ -62,14 +62,6 @@ spec:
                         value: {{ $value.key }}
                       - name: PROBE_API_URL
                         value: {{ template "oneuptime.probeApiUrl" $ }}
-                      {{- if $.Values.newRelic.probe.licenseKey }}
-                      - name: NEW_RELIC_LICENSE_KEY
-                        value: {{ $.Values.newRelic.probe.licenseKey }}
-                      {{- end }}
-                      {{- if $.Values.newRelic.probe.appName }}
-                      - name: NEW_RELIC_APPLICATION_NAME
-                        value: {{ $.Values.newRelic.probe.appName}}
-                      {{- end }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:

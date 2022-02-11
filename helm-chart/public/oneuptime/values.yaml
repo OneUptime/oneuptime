@@ -249,14 +249,6 @@ autoScaler:
   minReplicas: 1
   maxReplicas: 1
 
-newRelic:
-  backend:
-    licenseKey: 
-    appName: 
-  probe:
-    licenseKey:
-    appName: 
-
 nodeEnv: production
 
 applicationScanner:

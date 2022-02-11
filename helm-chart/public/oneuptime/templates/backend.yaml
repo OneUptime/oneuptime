@@ -126,14 +126,6 @@ spec:
                         value: {{ $.Values.logstashHost | quote }}
                       - name: LOGSTASH_PORT
                         value: {{ $.Values.logstashPort | quote }}
-                      {{- if .Values.newRelic.backend.licenseKey }}
-                      - name: NEW_RELIC_LICENSE_KEY
-                        value: {{ $.Values.newRelic.backend.licenseKey }}
-                      {{- end }}
-                      {{- if .Values.newRelic.backend.appName }}
-                      - name: NEW_RELIC_APPLICATION_NAME
-                        value: {{ $.Values.newRelic.backend.appName}}
-                      {{- end }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
