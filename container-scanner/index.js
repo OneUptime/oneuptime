@@ -54,8 +54,6 @@ app.get(['/container/version', '/version'], function(req, res) {
     res.send({ containerScannerVersion: process.env.npm_package_version });
 });
 
-
-
 //Run this cron every 5 minute.
 cron.schedule('*/5 * * * *', () => {
     setTimeout(() => {

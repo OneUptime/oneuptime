@@ -93,8 +93,6 @@ app.get(['/probe/version', '/version'], function(req, res) {
     res.send({ probeVersion: process.env.npm_package_version });
 });
 
-
-
 setTimeout(async () => {
     // keep monitoring in an infinate loop.
 

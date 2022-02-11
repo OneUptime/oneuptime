@@ -54,8 +54,6 @@ app.get(['/lighthouse/version', '/version'], function(req, res) {
     res.send({ lighthouseVersion: process.env.npm_package_version });
 });
 
-
-
 // This cron runs every 30 minutes.
 cron.schedule('*/30 * * * *', () => {
     setTimeout(() => {

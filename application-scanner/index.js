@@ -34,7 +34,6 @@ const Main = require('./worker/main');
 const cron = require('node-cron');
 const config = require('./utils/config');
 
-
 const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
@@ -56,7 +55,6 @@ app.get(['/application/version', '/version'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });
-
 
 // Run this cron every 5 minute.
 cron.schedule('*/5 * * * *', () => {

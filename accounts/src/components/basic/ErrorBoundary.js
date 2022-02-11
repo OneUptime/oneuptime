@@ -11,7 +11,6 @@ class ErrorBoundary extends Component {
     }
 
     render() {
-
         return (
             <div
                 id="app-loading"
@@ -40,7 +39,6 @@ class ErrorBoundary extends Component {
 ErrorBoundary.displayName = 'ErrorBoundary';
 
 ErrorBoundary.propTypes = {
-    children: PropTypes.any,
 };
 
 export default ErrorBoundary;
