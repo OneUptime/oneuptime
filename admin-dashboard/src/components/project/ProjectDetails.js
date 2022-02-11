@@ -269,8 +269,6 @@ ProjectDetails.propTypes = {
     project: PropTypes.object.isRequired,
 };
 
-ProjectDetails.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ProjectDetails.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDetails);

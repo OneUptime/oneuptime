@@ -1,16 +1,6 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component {
-    componentDidCatch(error, info) {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('An Error has occurred', {
-                error,
-                info,
-            });
-        }
-    }
-
     render() {
         return (
             <div
@@ -39,12 +29,8 @@ class ErrorBoundary extends Component {
 
 ErrorBoundary.displayName = 'ErrorBoundary';
 
-ErrorBoundary.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ErrorBoundary.contextTypes = {};
 
-ErrorBoundary.propTypes = {
-    children: PropTypes.any,
-};
+ErrorBoundary.propTypes = {};
 
 export default ErrorBoundary;

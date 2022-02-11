@@ -71,9 +71,7 @@ function mapStateToProps(state) {
     };
 }
 
-IncidentTimelineBox.contextTypes = {
-    mixpanel: PropTypes.object,
-};
+IncidentTimelineBox.contextTypes = {};
 
 export default connect(
     mapStateToProps,

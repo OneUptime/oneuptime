@@ -90,8 +90,6 @@ UserRestoreBox.propTypes = {
     restoreUser: PropTypes.func.isRequired,
 };
 
-UserRestoreBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserRestoreBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserRestoreBox);

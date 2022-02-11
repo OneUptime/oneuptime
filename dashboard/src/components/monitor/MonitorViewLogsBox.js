@@ -40,11 +40,6 @@ export class MonitorViewLogsBox extends Component {
             this.props.monitorType
         );
         this.setState({ page: this.state.page - 1 });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Previous Incident Requested', {
-                projectId: currentProject._id,
-            });
-        }
     };
 
     nextClicked = (monitorId, skip, limit) => {
@@ -64,11 +59,6 @@ export class MonitorViewLogsBox extends Component {
             this.props.monitorType
         );
         this.setState({ page: this.state.page + 1 });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Next Incident Requested', {
-                projectId: currentProject._id,
-            });
-        }
     };
     handleStartDateTimeChange = val => {
         const startDate = moment(val);
@@ -276,8 +266,6 @@ function mapStateToProps(state, props) {
     };
 }
 
-MonitorViewLogsBox.contextTypes = {
-    mixpanel: PropTypes.object,
-};
+MonitorViewLogsBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorViewLogsBox);

@@ -19,15 +19,10 @@ export class UserAdminModeEnableBox extends Component {
         const { enableAdminMode, userId } = this.props;
         const { AdminModeModalId } = this.state;
 
-        const thisObj = this;
         this.props.openModal({
             id: AdminModeModalId,
             onConfirm: values => {
-                return enableAdminMode(userId, values).then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Admin mode enabled');
-                    }
-                });
+                return enableAdminMode(userId, values);
             },
             content: UserAdminModeEnableModal,
         });
@@ -118,9 +113,7 @@ UserAdminModeEnableBox.propTypes = {
     userId: PropTypes.string,
 };
 
-UserAdminModeEnableBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserAdminModeEnableBox.contextTypes = {};
 
 export default connect(
     mapStateToProps,

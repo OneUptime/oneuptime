@@ -7,10 +7,6 @@ import { fetchLicense } from '../actions/license';
 
 class License extends Component {
     componentDidMount = async () => {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('User page Loaded');
-        }
-
         await this.props.fetchLicense();
     };
 
@@ -47,9 +43,7 @@ License.displayName = 'License';
 const mapDispatchToProps = dispatch =>
     bindActionCreators({ fetchLicense }, dispatch);
 
-License.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+License.contextTypes = {};
 
 License.propTypes = {
     fetchLicense: PropTypes.func.isRequired,

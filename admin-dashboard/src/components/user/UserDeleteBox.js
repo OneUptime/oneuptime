@@ -19,15 +19,11 @@ export class UserDeleteBox extends Component {
     handleClick = () => {
         const { deleteUser, userId } = this.props;
         const { deleteModalId } = this.state;
-        const thisObj = this;
+
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
-                return deleteUser(userId).then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('User Deleted');
-                    }
-                });
+                return deleteUser(userId);
             },
             content: UserDeleteModal,
         });
@@ -117,8 +113,6 @@ UserDeleteBox.propTypes = {
     openModal: PropTypes.func.isRequired,
 };
 
-UserDeleteBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserDeleteBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserDeleteBox);

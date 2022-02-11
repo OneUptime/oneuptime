@@ -19,10 +19,6 @@ import { User as LsUser } from '../config';
 
 class User extends Component {
     componentDidMount = async () => {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('User page Loaded');
-        }
-
         await this.props.fetchUserProjects(this.props.match.params.userId);
         await this.props.fetchUser(this.props.match.params.userId);
         await this.props.fetchUserloginHistory(this.props.match.params.userId);
@@ -181,9 +177,7 @@ const mapStateToProps = state => {
     };
 };
 
-User.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+User.contextTypes = {};
 
 User.propTypes = {
     match: PropTypes.object.isRequired,

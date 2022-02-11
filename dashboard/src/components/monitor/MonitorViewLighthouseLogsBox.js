@@ -43,11 +43,6 @@ export class MonitorViewLighthouseLogsBox extends Component {
             skip ? parseInt(skip, 10) - 5 : 5,
             limit
         );
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Previous Incident Requested', {
-                projectId: currentProject._id,
-            });
-        }
     };
 
     nextClicked = (monitorId, skip, limit) => {
@@ -58,11 +53,6 @@ export class MonitorViewLighthouseLogsBox extends Component {
             skip ? parseInt(skip, 10) + 5 : 5,
             limit
         );
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Next Incident Requested', {
-                projectId: currentProject._id,
-            });
-        }
     };
 
     handleKeyBoard = e => {
@@ -320,9 +310,7 @@ function mapStateToProps(state) {
     };
 }
 
-MonitorViewLighthouseLogsBox.contextTypes = {
-    mixpanel: PropTypes.object,
-};
+MonitorViewLighthouseLogsBox.contextTypes = {};
 
 export default connect(
     mapStateToProps,

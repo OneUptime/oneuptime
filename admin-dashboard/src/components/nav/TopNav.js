@@ -17,16 +17,10 @@ class TopContent extends Component {
     }
     showProfileMenu = e => {
         this.props.showProfileMenu(e.clientX);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Profile Menu Opened', {});
-        }
     };
 
     showNotificationsMenu = e => {
         this.props.openNotificationMenu(e.clientX);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Notification Menu Opened', {});
-        }
     };
 
     handleKeyBoard = e => {
@@ -165,8 +159,6 @@ TopContent.propTypes = {
     getProbes: PropTypes.func.isRequired,
 };
 
-TopContent.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+TopContent.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

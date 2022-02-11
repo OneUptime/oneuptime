@@ -17,12 +17,6 @@ export class UserSetting extends Component {
         };
     }
 
-    componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('User settings page Loaded');
-        }
-    }
-
     handleChange = () => {
         const { user, updateTwoFactorAuthToken, setTwoFactorAuth } = this.props;
         if (user) {
@@ -371,8 +365,6 @@ UserSetting.propTypes = {
     isVerified: PropTypes.bool,
 };
 
-UserSetting.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserSetting.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserSetting);

@@ -18,16 +18,12 @@ export class ProjectDeleteBox extends Component {
 
     handleClick = () => {
         const { deleteProject, project } = this.props;
-        const thisObj = this;
+
         const { deleteModalId } = this.state;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
-                return deleteProject(project._id).then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Project Deleted');
-                    }
-                });
+                return deleteProject(project._id);
             },
             content: ProjectDeleteModal,
         });
@@ -113,8 +109,6 @@ ProjectDeleteBox.propTypes = {
     openModal: PropTypes.func.isRequired,
 };
 
-ProjectDeleteBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ProjectDeleteBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDeleteBox);

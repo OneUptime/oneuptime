@@ -89,8 +89,6 @@ UserUnblockBox.propTypes = {
     unblockUser: PropTypes.func.isRequired,
 };
 
-UserUnblockBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserUnblockBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserUnblockBox);

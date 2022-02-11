@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
@@ -38,7 +37,6 @@ class ErrorBoundary extends Component {
 
 ErrorBoundary.displayName = 'ErrorBoundary';
 
-ErrorBoundary.propTypes = {
-};
+ErrorBoundary.propTypes = {};
 
 export default ErrorBoundary;

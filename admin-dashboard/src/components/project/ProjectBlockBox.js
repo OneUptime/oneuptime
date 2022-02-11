@@ -19,15 +19,11 @@ export class ProjectBlockBox extends Component {
     handleClick = () => {
         const { blockProject, project } = this.props;
         const { blockModalId } = this.state;
-        const thisObj = this;
+
         this.props.openModal({
             id: blockModalId,
             onConfirm: () => {
-                return blockProject(project._id).then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Project Blocked');
-                    }
-                });
+                return blockProject(project._id);
             },
             content: ProjectBlockModal,
         });
@@ -113,8 +109,6 @@ ProjectBlockBox.propTypes = {
     openModal: PropTypes.func.isRequired,
 };
 
-ProjectBlockBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ProjectBlockBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectBlockBox);

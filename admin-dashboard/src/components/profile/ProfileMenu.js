@@ -16,12 +16,8 @@ export class ProfileMenu extends Component {
     }
 
     logout() {
-        const values = { name: User.getName(), email: User.getEmail() };
         const { logoutUser } = this.props;
         logoutUser();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('User Logged Out', values);
-        }
     }
 
     showAboutModal = () => {
@@ -186,8 +182,6 @@ ProfileMenu.propTypes = {
     hideProfileMenu: PropTypes.func,
 };
 
-ProfileMenu.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ProfileMenu.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileMenu);

@@ -34,7 +34,6 @@ export class Setting extends Component {
         e.preventDefault();
         const { verifyDomain } = this.props;
         const { projectId } = this.props.statusPage.status;
-        const thisObj = this;
         const token = domainVerificationToken.verificationToken; // get the verification token
 
         const data = {
@@ -53,10 +52,6 @@ export class Setting extends Component {
                     if (this.props.verifyError) {
                         // prevent dismissal of modal if errored
                         return this.handleVerifyDomain();
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Domain verification');
                     }
 
                     this.props.closeModal({
@@ -79,7 +74,6 @@ export class Setting extends Component {
         e.preventDefault();
         const { deleteDomain } = this.props;
         const { _id, projectId } = this.props.statusPage.status;
-        const thisObj = this;
 
         const data = {
             projectId: projectId._id || projectId,
@@ -94,10 +88,6 @@ export class Setting extends Component {
                     if (this.props.deleteDomainError) {
                         // prevent dismissal of modal if errored
                         return this.handleDeleteDomain();
-                    }
-
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('Delete domain');
                     }
 
                     this.props.closeModal({

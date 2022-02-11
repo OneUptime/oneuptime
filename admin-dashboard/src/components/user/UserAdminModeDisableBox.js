@@ -84,9 +84,7 @@ UserAdminModeDisableBox.propTypes = {
     userId: PropTypes.string,
 };
 
-UserAdminModeDisableBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserAdminModeDisableBox.contextTypes = {};
 
 export default connect(
     mapStateToProps,

@@ -174,8 +174,6 @@ NotificationMenu.propTypes = {
     position: PropTypes.number,
 };
 
-NotificationMenu.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+NotificationMenu.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotificationMenu);

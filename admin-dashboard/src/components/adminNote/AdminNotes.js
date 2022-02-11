@@ -35,9 +35,6 @@ function validate(values) {
 export class AdminNotes extends Component {
     submitForm = async values => {
         await this.props.addNote(this.props.id, values.adminNotes);
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Admin Notes Updated', values);
-        }
     };
 
     render() {

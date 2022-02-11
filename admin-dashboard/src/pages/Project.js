@@ -20,9 +20,6 @@ import ProjectDomain from '../components/project/ProjectDomain';
 
 class Project extends Component {
     componentDidMount = async () => {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Project page Loaded');
-        }
         this.props.fetchProject(this.props.slug);
         if (this.props.project._id) {
             this.props.fetchProjectTeam(this.props.project._id);
@@ -242,9 +239,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-Project.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+Project.contextTypes = {};
 
 Project.propTypes = {
     addProjectNote: PropTypes.func.isRequired,

@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import PropTypes from 'prop-types';
 import { getMonitorLogs } from '../../actions/monitor';
 //import MonitorLogsList from '../monitor/MonitorLogsList';
 import Select from '../../components/basic/react-select-oneuptime';
@@ -40,11 +39,6 @@ export class PerformanceView extends Component {
             this.props.monitorType
         );
         this.setState({ page: this.state.page - 1 });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Previous Incident Requested', {
-                projectId: currentProject._id,
-            });
-        }
     };
 
     nextClicked = (monitorId, skip, limit) => {
@@ -64,11 +58,6 @@ export class PerformanceView extends Component {
             this.props.monitorType
         );
         this.setState({ page: this.state.page + 1 });
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Next Incident Requested', {
-                projectId: currentProject._id,
-            });
-        }
     };
     handleStartDateTimeChange = val => {
         const startDate = moment(val);
@@ -255,8 +244,6 @@ function mapStateToProps(state, props) {
     };
 }
 
-PerformanceView.contextTypes = {
-    mixpanel: PropTypes.object,
-};
+PerformanceView.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(PerformanceView);

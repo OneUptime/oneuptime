@@ -130,9 +130,7 @@ SideNav.propTypes = {
     closeSideNav: PropTypes.func,
     sidenavopen: PropTypes.bool,
 };
-SideNav.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+SideNav.contextTypes = {};
 
 // since sideNav is above page routes we have no access to the pages' props.match,
 // we rebuild the routes here to enable access to these properties

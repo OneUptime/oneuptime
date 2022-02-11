@@ -85,8 +85,6 @@ ProjectRestoreBox.propTypes = {
     restoreProject: PropTypes.func.isRequired,
 };
 
-ProjectRestoreBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+ProjectRestoreBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectRestoreBox);

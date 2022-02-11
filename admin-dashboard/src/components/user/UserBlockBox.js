@@ -19,15 +19,10 @@ export class UserBlockBox extends Component {
         const { blockUser, userId } = this.props;
         const { blockModalId } = this.state;
 
-        const thisObj = this;
         this.props.openModal({
             id: blockModalId,
             onConfirm: () => {
-                return blockUser(userId).then(() => {
-                    if (window.location.href.indexOf('localhost') <= -1) {
-                        thisObj.context.mixpanel.track('User Blocked');
-                    }
-                });
+                return blockUser(userId);
             },
             content: UserBlockModal,
         });
@@ -114,8 +109,6 @@ UserBlockBox.propTypes = {
     userId: PropTypes.string,
 };
 
-UserBlockBox.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+UserBlockBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserBlockBox);

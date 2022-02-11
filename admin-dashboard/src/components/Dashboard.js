@@ -52,22 +52,13 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Project Form Opened');
-        }
     };
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Profile Menu Closed');
-        }
     };
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Notification Menu Closed');
-        }
     };
 
     handleKeyBoard = e => {
@@ -300,9 +291,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-DashboardApp.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+DashboardApp.contextTypes = {};
 
 export default withRouter(
     connect(mapStateToProps, mapDispatchToProps)(DashboardApp)

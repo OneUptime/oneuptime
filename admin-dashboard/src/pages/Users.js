@@ -22,10 +22,6 @@ class Users extends Component {
     }
 
     componentDidMount() {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('Main page Loaded');
-        }
-
         window.addEventListener('keydown', this.handleKeyboard);
         this.props.fetchUsers();
     }
@@ -411,9 +407,7 @@ const mapStateToProps = state => {
     };
 };
 
-Users.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
+Users.contextTypes = {};
 
 Users.propTypes = {
     user: PropTypes.object.isRequired,
