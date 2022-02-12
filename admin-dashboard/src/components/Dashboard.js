@@ -251,7 +251,7 @@ DashboardApp.propTypes = {
     fetchLicense: PropTypes.func.isRequired,
     children: PropTypes.any,
     user: PropTypes.object.isRequired,
-    license: PropTypes.oneOfType([null, PropTypes.object]),
+    license:  PropTypes.object,
     fetchSettings: PropTypes.func.isRequired,
     settings: PropTypes.object.isRequired,
     twilio: PropTypes.object.isRequired,
