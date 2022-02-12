@@ -4,65 +4,62 @@ const getSlug = require('../utils/getSlug');
 const mongoose = require('../config/db');
 
 class ModelUtil {
-
     constructor({ model, friendlyName = '' }) {
-
-        if(!model){
-            throw new Error("model is required");
+        if (!model) {
+            throw new Error('model is required');
         }
 
-        if(!model instanceof mongoose.model){
-            throw new Error("model should be an instance of mongoose model");
+        if (!model instanceof mongoose.model) {
+            throw new Error('model should be an instance of mongoose model');
         }
 
         this.Model = model;
-        this.FriendlyName = friendlyName; 
+        this.FriendlyName = friendlyName;
     }
 
-    async create({ 
-        data = {}, 
-        checkDuplicates: {
-            valuesIn = [], 
-            byProject = true
-        },
-        slugify = '' // which field to slugify
+    async create({
+        data = {},
+        checkDuplicates: { valuesIn = [], byProject = true },
+        slugify = '', // which field to slugify
     }) {
         const item = new this.Model();
 
         if (valuesIn && valuesIn.length > 0) {
-
             const countQuery = {};
 
-            if(byProject){
-                countQuery.projectId = data.projectId; 
+            if (byProject) {
+                countQuery.projectId = data.projectId;
             }
 
-            if(typeof valuesIn === "string"){
+            if (typeof valuesIn === 'string') {
                 valuesIn = [valuesIn];
             }
 
-            for(const duplicateValueIn of valuesIn){
-                countQuery[duplicateValueIn] = data[duplicateValueIn]; 
+            for (const duplicateValueIn of valuesIn) {
+                countQuery[duplicateValueIn] = data[duplicateValueIn];
             }
 
             const existingItemCount = await this.countBy({
-                query: countQuery
+                query: countQuery,
             });
 
-            if(existingItemCount > 0){
+            if (existingItemCount > 0) {
                 const error = new Error(
-                    `${this.FriendlyName || `Item`} with the same ${checkDuplicatesValuesIn.join(',')} already exists.`
+                    `${this.FriendlyName ||
+                        `Item`} with the same ${checkDuplicatesValuesIn.join(
+                        ','
+                    )} already exists.`
                 );
                 error.code = 400;
                 throw error;
-            }       
+            }
         }
 
-        for (let key in data) {
+        for (const key in data) {
             item[key] = data[key];
         }
 
-        if(slugify && data[slugify]){
+        if (slugify && data[slugify]) {
             item.slug = getSlug(data[slugify]);
         }
 
@@ -76,7 +73,6 @@ class ModelUtil {
     }
 
     async deleteBy({ query = {}, multiple = false }) {
-
         query.deleted = false;
 
         const set = {
@@ -85,10 +81,10 @@ class ModelUtil {
             deletedAt: Date.now(),
         };
 
-        let functionToCall = 'findOneAndUpdate'
+        let functionToCall = 'findOneAndUpdate';
 
         if (multiple) {
-            functionToCall = 'findAndUpdate'
+            functionToCall = 'findAndUpdate';
         }
 
         return await this.Model[functionToCall](
@@ -102,16 +98,15 @@ class ModelUtil {
         );
     }
 
-    async findBy({ 
-        query = {}, 
-        skip = 0, 
-        limit = 10, 
-        populate = [], 
-        select = '', 
-        sort = [['createdAt', -1]], 
-        findOne = false 
+    async findBy({
+        query = {},
+        skip = 0,
+        limit = 10,
+        populate = [],
+        select = '',
+        sort = [['createdAt', -1]],
+        findOne = false,
     }) {
-
         if (typeof skip === 'string') skip = parseInt(skip);
 
         if (typeof limit === 'string') limit = parseInt(limit);
@@ -137,8 +132,23 @@ class ModelUtil {
         return items;
     }
 
-    async findOneBy({ query = {}, skip = 0, limit = 1, populate = [], select = '', sort = [] }) {
-        return await this.findBy({ query, skip, limit, populate, select, sort, findOne: true })
+    async findOneBy({
+        query = {},
+        skip = 0,
+        limit = 1,
+        populate = [],
+        select = '',
+        sort = [],
+    }) {
+        return await this.findBy({
+            query,
+            skip,
+            limit,
+            populate,
+            select,
+            sort,
+            findOne: true,
+        });
     }
 
     async updateBy({ query = {}, updatedValues = {}, multiple = true }) {
@@ -148,13 +158,13 @@ class ModelUtil {
 
         if (!query.deleted) query.deleted = false;
 
-        let functionToCall = 'updateMany'
+        let functionToCall = 'updateMany';
 
         if (multiple) {
-            functionToCall = 'updateOne'
+            functionToCall = 'updateOne';
         }
 
-        let updatedItems = await this.Model[functionToCall](query, {
+        const updatedItems = await this.Model[functionToCall](query, {
             $set: updatedValues,
         });
 
@@ -162,10 +172,8 @@ class ModelUtil {
     }
 
     async updateOneBy({ query = {}, updatedValues = {} }) {
-        return await this.updateBy({ query, updatedValues, updateOne = true })
+        return await this.updateBy({ query, updatedValues, updateOne: true });
     }
-
-
 }
 
 module.exports = ModelUtil;
