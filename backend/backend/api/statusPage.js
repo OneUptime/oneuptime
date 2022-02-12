@@ -782,7 +782,7 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(
+router.get('/:projectId/status-pages', getUser, isAuthorized, async function(
     req,
     res
 ) {
