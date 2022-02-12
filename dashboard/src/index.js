@@ -3,7 +3,6 @@ import { Provider } from 'react-redux';
 import { Frontload } from 'react-frontload';
 import ReactGA from 'react-ga';
 import { ThroughProvider } from 'react-through';
-import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
 import * as serviceWorker from './serviceWorker';
 import store, { history, isServer } from './store';

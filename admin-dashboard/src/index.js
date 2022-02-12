@@ -1,6 +1,5 @@
 import React from 'react';
 import { Provider } from 'react-redux';
-import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
 import store, { history } from './store';
 import App from './App';
