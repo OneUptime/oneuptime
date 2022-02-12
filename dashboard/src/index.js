@@ -20,7 +20,9 @@ render(
     <ThroughProvider>
         <Provider store={store} history={history}>
             <Frontload noServerRender={true}>
-                <App />
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
             </Frontload>
         </Provider>
     </ThroughProvider>,

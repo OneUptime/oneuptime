@@ -10,7 +10,9 @@ const target = document.getElementById('root');
 
 render(
     <Provider store={store} history={history}>
-        <App />
+        <ErrorBoundary>
+            <App />
+        </ErrorBoundary>
     </Provider>,
     target
 );

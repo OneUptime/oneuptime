@@ -3,21 +3,40 @@ const StatusPageModel = require('../models/statusPage');
 
 const StatusPageModelUtil = new ModelUtil({
     model: StatusPageModel,
-    friendlyName: "Status Page"
-})
+    friendlyName: 'Status Page',
+});
 
 module.exports = {
-    findBy: async function ({ query, skip, limit, populate, select, sort }) {
-        return await StatusPageModelUtil.findBy({ query, skip, limit, populate, select, sort });
+    findBy: async function({ query, skip, limit, populate, select, sort }) {
+        return await StatusPageModelUtil.findBy({
+            query,
+            skip,
+            limit,
+            populate,
+            select,
+            sort,
+        });
     },
 
-    create: async function ({ data }) {
+    findOneBy: async function({ query, select, populate, skip, limit, sort }) {
+        return await StatusPageModelUtil.findOneBy({
+            query,
+            skip,
+            limit,
+            populate,
+            select,
+            sort,
+        });
+    },
 
+    countBy: async function(query) {
+        return await StatusPageModelUtil.countBy({ query });
+    },
+
+    create: async function({ data }) {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
-        data.monitors = Array.isArray(data.monitors)
-            ? [...data.monitors]
-            : [];
+        data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
 
         data.statusBubbleId = data.statusBubbleId || uuid.v4();
 
@@ -25,7 +44,7 @@ module.exports = {
             data,
             checkDuplicatesValuesIn: ['name'],
             checkDuplicatesValuesInProject: true,
-            slufigyName: true
+            slugify: 'name',
         });
 
         const populateStatusPage = [
@@ -45,11 +64,11 @@ module.exports = {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
-        
+
         return newStatusPage;
     },
 
-    createDomain: async function (
+    createDomain: async function(
         subDomain,
         projectId,
         statusPageId,
@@ -154,7 +173,7 @@ module.exports = {
 
     // update all the occurence of the old domain to the new domain
     // use regex to replace the value
-    updateCustomDomain: async function (domainId, newDomain, oldDomain) {
+    updateCustomDomain: async function(domainId, newDomain, oldDomain) {
         const _this = this;
         const populateStatusPage = [
             {
@@ -195,7 +214,7 @@ module.exports = {
         }
     },
 
-    updateDomain: async function (
+    updateDomain: async function(
         projectId,
         statusPageId,
         domainId,
@@ -309,7 +328,7 @@ module.exports = {
         return result;
     },
 
-    deleteDomain: async function (statusPageId, domainId) {
+    deleteDomain: async function(statusPageId, domainId) {
         const populateStatusPage = [
             {
                 path: 'domains.domainVerificationToken',
@@ -358,16 +377,7 @@ module.exports = {
         );
     },
 
-    countBy: async function (query) {
-        if (!query) {
-            query = {};
-        }
-        query.deleted = false;
-        const count = await StatusPageModel.countDocuments(query);
-        return count;
-    },
-
-    duplicateStatusPage: async function (
+    duplicateStatusPage: async function(
         statusPageProjectId,
         statusPageSlug,
         statusPageName,
@@ -421,7 +431,7 @@ module.exports = {
         return this.create(data);
     },
 
-    deleteBy: async function (query, userId) {
+    deleteBy: async function(query, userId) {
         if (!query) {
             query = {};
         }
@@ -484,7 +494,7 @@ module.exports = {
         return statusPage;
     },
 
-    removeMonitor: async function (monitorId) {
+    removeMonitor: async function(monitorId) {
         const populateStatusPage = [
             {
                 path: 'monitors.monitor',
@@ -512,24 +522,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function ({ query, select, populate }) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-        let statusPageQuery = StatusPageModel.findOne(query)
-            .lean()
-            .sort([['createdAt', -1]]);
-
-        statusPageQuery = handleSelect(select, statusPageQuery);
-        statusPageQuery = handlePopulate(populate, statusPageQuery);
-
-        const statusPage = await statusPageQuery;
-        return statusPage;
-    },
-
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         const existingStatusPage = await this.findBy({
             query: {
                 name: data.name,
@@ -611,7 +604,7 @@ module.exports = {
         return updatedStatusPage;
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         if (!query) {
             query = {};
         }
@@ -648,7 +641,7 @@ module.exports = {
         return updatedData;
     },
 
-    getNotes: async function (query, skip, limit) {
+    getNotes: async function(query, skip, limit) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -738,7 +731,7 @@ module.exports = {
         }
     },
 
-    getIncident: async function (query) {
+    getIncident: async function(query) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -770,7 +763,7 @@ module.exports = {
         return incident;
     },
 
-    getIncidentNotes: async function (query, skip, limit) {
+    getIncidentNotes: async function(query, skip, limit) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -807,7 +800,7 @@ module.exports = {
         return { message, count };
     },
 
-    getNotesByDate: async function (query, skip, limit) {
+    getNotesByDate: async function(query, skip, limit) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -848,7 +841,7 @@ module.exports = {
         return { investigationNotes, count };
     },
 
-    getEvents: async function (query, skip, limit) {
+    getEvents: async function(query, skip, limit) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -946,7 +939,7 @@ module.exports = {
         }
     },
 
-    getFutureEvents: async function (query, skip, limit) {
+    getFutureEvents: async function(query, skip, limit) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1043,7 +1036,7 @@ module.exports = {
         }
     },
 
-    getPastEvents: async function (query, skip, limit) {
+    getPastEvents: async function(query, skip, limit) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1139,7 +1132,7 @@ module.exports = {
         }
     },
 
-    getEvent: async function (query) {
+    getEvent: async function(query) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1164,7 +1157,7 @@ module.exports = {
         return scheduledEvent;
     },
 
-    getEventNotes: async function (query, skip, limit) {
+    getEventNotes: async function(query, skip, limit) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1204,7 +1197,7 @@ module.exports = {
         return { notes: eventNote, count };
     },
 
-    getEventsByDate: async function (query, skip, limit) {
+    getEventsByDate: async function(query, skip, limit) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1235,7 +1228,7 @@ module.exports = {
         return { scheduledEvents, count };
     },
 
-    getStatusPage: async function ({ query, userId, populate, select }) {
+    getStatusPage: async function({ query, userId, populate, select }) {
         const thisObj = this;
         if (!query) {
             query = {};
@@ -1331,7 +1324,7 @@ module.exports = {
         return statusPage;
     },
 
-    getIncidents: async function (query) {
+    getIncidents: async function(query) {
         const _this = this;
 
         if (!query) query = {};
@@ -1393,7 +1386,7 @@ module.exports = {
             throw error;
         }
     },
-    isPermitted: async function (userId, statusPage) {
+    isPermitted: async function(userId, statusPage) {
         const fn = async resolve => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1422,32 +1415,38 @@ module.exports = {
         return fn;
     },
 
-    getStatusPagesByProjectId: async function ({ projectId, skip = 0, limit = 10 }) {
+    getStatusPagesByProjectId: async function({
+        projectId,
+        skip = 0,
+        limit = 10,
+    }) {
         const _this = this;
 
-        const selectStatusPage =
-            'slug title name description _id';
+        const selectStatusPage = 'slug title name description _id';
 
-        const [data, count] = await Promise.all([_this.findBy({
-            query: { projectId },
-            skip: skip,
-            limit: limit,
-            select: selectStatusPage,
-            populate: populateStatusPage,
-        }), _this.countBy({ projectId })]);
-
+        const [data, count] = await Promise.all([
+            _this.findBy({
+                query: { projectId },
+                skip: skip,
+                limit: limit,
+                select: selectStatusPage,
+                populate: populateStatusPage,
+            }),
+            _this.countBy({ query: { projectId } }),
+        ]);
 
         return {
-            data, count
+            data,
+            count,
         };
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         await StatusPageModel.deleteMany(query);
         return 'Status Page(s) Removed Successfully!';
     },
 
-    restoreBy: async function (query) {
+    restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
 
@@ -1537,8 +1536,8 @@ module.exports = {
         const monitorsIds =
             statusPages && statusPages.monitors
                 ? statusPages.monitors.map(m =>
-                    m.monitor && m.monitor._id ? m.monitor._id : null
-                )
+                      m.monitor && m.monitor._id ? m.monitor._id : null
+                  )
                 : [];
         const statuses = await Promise.all(
             monitorsIds.map(async m => {
@@ -1563,10 +1562,12 @@ module.exports = {
         return { bubble, statusMessage };
     },
 
-    doesDomainExist: async function (domain) {
+    doesDomainExist: async function(domain) {
         const _this = this;
         const statusPage = await _this.countBy({
-            domains: { $elemMatch: { domain } },
+            query: {
+                domains: { $elemMatch: { domain } },
+            },
         });
 
         if (!statusPage || statusPage === 0) return false;
@@ -1574,7 +1575,7 @@ module.exports = {
         return true;
     },
 
-    createExternalStatusPage: async function (data) {
+    createExternalStatusPage: async function(data) {
         const externalStatusPage = new ExternalStatusPageModel();
         externalStatusPage.url = data.url || null;
         externalStatusPage.name = data.name || null;
@@ -1586,7 +1587,7 @@ module.exports = {
 
         return newExternalStatusPage;
     },
-    getExternalStatusPage: async function (query, skip, limit) {
+    getExternalStatusPage: async function(query, skip, limit) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1607,7 +1608,7 @@ module.exports = {
         const externalStatusPages = await ExternalStatusPageModel.find(query);
         return externalStatusPages;
     },
-    updateExternalStatusPage: async function (projectId, _id, data) {
+    updateExternalStatusPage: async function(projectId, _id, data) {
         const query = { projectId, _id };
 
         const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
@@ -1621,7 +1622,7 @@ module.exports = {
         );
         return externalStatusPages;
     },
-    deleteExternalStatusPage: async function (projectId, _id, userId) {
+    deleteExternalStatusPage: async function(projectId, _id, userId) {
         const query = { projectId, _id };
 
         const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
@@ -1640,7 +1641,7 @@ module.exports = {
         return externalStatusPages;
     },
 
-    createAnnouncement: async function (data) {
+    createAnnouncement: async function(data) {
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map(monitor => ({
             monitorId: monitor,
@@ -1663,7 +1664,7 @@ module.exports = {
         return newAnnouncement;
     },
 
-    getAnnouncements: async function (query, skip, limit) {
+    getAnnouncements: async function(query, skip, limit) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1691,7 +1692,7 @@ module.exports = {
         return allAnnouncements;
     },
 
-    countAnnouncements: async function (query) {
+    countAnnouncements: async function(query) {
         if (!query) {
             query = {};
         }
@@ -1700,7 +1701,7 @@ module.exports = {
         return count;
     },
 
-    getSingleAnnouncement: async function (query) {
+    getSingleAnnouncement: async function(query) {
         if (!query) {
             query = {};
         }
@@ -1709,7 +1710,7 @@ module.exports = {
         return response;
     },
 
-    updateAnnouncement: async function (query, data) {
+    updateAnnouncement: async function(query, data) {
         const _this = this;
         if (!query) {
             query = {};
@@ -1751,7 +1752,7 @@ module.exports = {
         return response;
     },
 
-    updateManyAnnouncement: async function (query) {
+    updateManyAnnouncement: async function(query) {
         if (!query) {
             query = {};
         }
@@ -1768,7 +1769,7 @@ module.exports = {
         return response;
     },
 
-    deleteAnnouncement: async function (query, userId) {
+    deleteAnnouncement: async function(query, userId) {
         if (!query) {
             query = {};
         }
@@ -1789,7 +1790,7 @@ module.exports = {
         return response;
     },
 
-    createAnnouncementLog: async function (data) {
+    createAnnouncementLog: async function(data) {
         const announcementLog = new AnnouncementLogModel();
         announcementLog.announcementId = data.announcementId || null;
         announcementLog.createdById = data.createdById || null;
@@ -1801,7 +1802,7 @@ module.exports = {
         return newAnnouncementLog;
     },
 
-    updateAnnouncementLog: async function (query, data) {
+    updateAnnouncementLog: async function(query, data) {
         if (!query) {
             query = {};
         }
@@ -1818,7 +1819,7 @@ module.exports = {
         return response;
     },
 
-    getAnnouncementLogs: async function (query, skip, limit) {
+    getAnnouncementLogs: async function(query, skip, limit) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1849,7 +1850,7 @@ module.exports = {
         return announcementLogs;
     },
 
-    deleteAnnouncementLog: async function (query, userId) {
+    deleteAnnouncementLog: async function(query, userId) {
         if (!query) {
             query = {};
         }
@@ -1870,7 +1871,7 @@ module.exports = {
         return response;
     },
 
-    countAnnouncementLogs: async function (query) {
+    countAnnouncementLogs: async function(query) {
         if (!query) {
             query = {};
         }
@@ -1925,18 +1926,18 @@ const filterProbeData = (monitor, probe) => {
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter(probeStatuses => {
-                    return (
-                        probeStatuses._id === null ||
-                        probeStatuses._id === probe._id
-                    );
-                })
+                      return (
+                          probeStatuses._id === null ||
+                          probeStatuses._id === probe._id
+                      );
+                  })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-            probesStatus[0] &&
-            probesStatus[0].statuses &&
-            probesStatus[0].statuses.length > 0
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 
@@ -2003,5 +2004,3 @@ const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
 const axios = require('axios');
 const bearer = process.env.TWITTER_BEARER_TOKEN;
-
-

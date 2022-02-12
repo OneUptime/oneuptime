@@ -15,7 +15,6 @@ const { toXML } = require('jstoxml');
 const moment = require('moment');
 
 const { getUser, checkUser } = require('../middlewares/user');
-const { getSubProjects } = require('../middlewares/subProject');
 const { isUserAdmin } = require('../middlewares/project');
 const storage = require('../middlewares/upload');
 const { isAuthorized } = require('../middlewares/authorization');
@@ -773,7 +772,9 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
                 select: selectStatusPage,
                 populate: populateStatusPage,
             }),
-            StatusPageService.countBy({ projectId: projectId }),
+            StatusPageService.countBy({
+                query: { projectId: projectId },
+            }),
         ]);
         return sendListResponse(req, res, statusPages, count);
     } catch (error) {
@@ -781,21 +782,24 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
     }
 });
 
-router.get(
-    '/:projectId/statuspages',
-    getUser,
-    isAuthorized,
-    async function(req, res) {
-        try {
-            const statusPages = await StatusPageService.getStatusPagesByProjectId(
-                req.params.projectId
-            );
-            return sendItemResponse(req, res, statusPages); // frontend expects sendItemResponse
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
+router.get('/:projectId/statuspages', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const {
+            data,
+            count,
+        } = await StatusPageService.getStatusPagesByProjectId({
+            projectId: req.params.projectId,
+            skip: req.query.skip,
+            limit: req.query.limit,
+        });
+        return sendListResponse(req, res, data, count); // frontend expects sendItemResponse
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
     req,
@@ -835,7 +839,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
                 select: selectStatusPage,
                 populate: populateStatusPage,
             }),
-            StatusPageService.countBy({ projectId }),
+            StatusPageService.countBy({ query: { projectId } }),
         ]);
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
     } catch (error) {

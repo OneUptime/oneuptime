@@ -19,22 +19,29 @@ class ModelUtil {
         this.FriendlyName = friendlyName; 
     }
 
-    async create({ data = {}, checkDuplicatesValuesIn = [], checkDuplicatesValuesInProject = true, slufigyName = false }) {
+    async create({ 
+        data = {}, 
+        checkDuplicates: {
+            valuesIn = [], 
+            byProject = true
+        },
+        slugify = '' // which field to slugify
+    }) {
         const item = new this.Model();
 
-        if (checkDuplicatesValuesIn && checkDuplicatesValuesIn.length > 0) {
+        if (checkDuplicates.valuesIn && checkDuplicates.valuesIn.length > 0) {
 
             const countQuery = {};
 
-            if(checkDuplicatesValuesInProject){
+            if(checkDuplicates.byProject){
                 countQuery.projectId = data.projectId; 
             }
 
-            if(typeof checkDuplicatesValuesIn === "string"){
+            if(typeof checkDuplicates.valuesIn === "string"){
                 checkDuplicatesValuesIn = [checkDuplicatesValuesIn];
             }
 
-            for(const duplicateValueIn of checkDuplicatesValuesIn){
+            for(const duplicateValueIn of checkDuplicates.valuesIn){
                 countQuery[duplicateValueIn] = data[duplicateValueIn]; 
             }
 
@@ -55,8 +62,8 @@ class ModelUtil {
             item[key] = data[key];
         }
 
-        if(slufigyName){
-            item.slug = getSlug(data.name);
+        if(slugify && data[slugify]){
+            item.slug = getSlug(data[slugify]);
         }
 
         return await item.save();
@@ -96,7 +103,7 @@ class ModelUtil {
     }
 
     async findOneBy({ query = {}, skip = 0, limit = 1, populate = [], select = '', sort = [] }) {
-        return await this.findBy({ query, skip, limit, populate, select, sort, findOne = true })
+        return await this.findBy({ query, skip, limit, populate, select, sort, findOne: true })
     }
 
     async findBy({ query = {}, skip = 0, limit = 10, populate = [], select = '', sort = [], findOne = false }) {
