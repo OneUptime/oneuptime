@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
-import { history, isServer } from './store';
+import { history } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import BackboneModals from './containers/BackboneModals';
@@ -9,7 +9,6 @@ import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
-
 
 const cookies = new Cookies();
 const userData = cookies.get('admin-data');
