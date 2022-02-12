@@ -220,7 +220,7 @@ class SubscribeBox extends Component {
                                 <div className="directions">
                                     Get the{' '}
                                     <a
-                                        href={`${API_URL}/statusPage/${statusPage._id}/rss`}
+                                        href={`${API_URL}/status-page/${statusPage._id}/rss`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         style={{

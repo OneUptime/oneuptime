@@ -27,7 +27,7 @@ export const statusPageFailure = error => {
 // Calls the API to get status
 export const getStatusPage = (statusPageSlug, url) => {
     return function(dispatch) {
-        const promise = getApi(`statusPage/${statusPageSlug}?url=${url}`);
+        const promise = getApi(`status-page/${statusPageSlug}?url=${url}`);
 
         dispatch(statusPageRequest());
 
@@ -70,61 +70,61 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/ongoing-events?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/ongoing-events?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/future-events?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/future-events?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/past-events?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/past-events?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/probes?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/probes?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/monitor-logs?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/monitor-logs?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/announcements?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/announcements?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/announcement-logs?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/announcement-logs?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/monitor-timelines?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/monitor-timelines?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/statuspage-notes?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/statuspage-notes?url=${url}&range=${range}`
             )
         );
 
         promises.push(
             getApi(
-                `statusPage/resources/${statusPageSlug}/monitor-statuses?url=${url}&range=${range}`
+                `status-page/resources/${statusPageSlug}/monitor-statuses?url=${url}&range=${range}`
             )
         );
 
@@ -268,7 +268,7 @@ export const getStatusPageNote = (
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
+            `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -307,7 +307,7 @@ export const getStatusPageIndividualNote = (
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
+            `status-page/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -380,7 +380,7 @@ export const getScheduledEvent = (
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
+            `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
 
         dispatch(scheduledEventRequest());
@@ -443,7 +443,7 @@ export const getOngoingScheduledEvent = (
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
+            `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
         );
 
         dispatch(ongoingEventRequest());
@@ -488,7 +488,7 @@ export const individualEventsFailure = error => ({
 export const getIndividualEvent = (projectId, monitorId, date, name, theme) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
+            `status-page/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
         );
 
         dispatch(individualEventsRequest());
@@ -545,7 +545,7 @@ export const fetchFutureEvents = (
     try {
         dispatch(futureEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
+            `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
         dispatch(futureEventsSuccess(response.data));
     } catch (error) {
@@ -585,7 +585,7 @@ export const fetchPastEvents = (
     try {
         dispatch(pastEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
+            `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
         dispatch(pastEventsSuccess(response.data));
     } catch (error) {
@@ -640,7 +640,7 @@ export const moreNoteFailure = error => {
 export const getMoreNote = (projectId, statusPageSlug, skip) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}`
+            `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}`
         );
 
         dispatch(moreNoteRequest());
@@ -689,7 +689,7 @@ export const moreEventFailure = error => {
 export const getMoreEvent = (projectId, statusPageSlug, skip) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}`
+            `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}`
         );
 
         dispatch(moreEventRequest());
@@ -738,7 +738,7 @@ export const fetchMoreFutureEvents = (
     try {
         dispatch(moreFutureEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
+            `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
         );
         dispatch(moreFutureEventsSuccess(response.data));
     } catch (error) {
@@ -776,7 +776,7 @@ export const fetchMorePastEvents = (
     try {
         dispatch(morePastEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
+            `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
         );
         dispatch(morePastEventsSuccess(response.data));
     } catch (error) {
@@ -805,7 +805,7 @@ export function selectedProbe(val) {
 export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
     return function(dispatch) {
         const promise = postApi(
-            `statusPage/${projectId}/${monitorId}/monitorStatuses`,
+            `status-page/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
         );
         dispatch(fetchMonitorStatusesRequest(monitorId));
@@ -865,7 +865,7 @@ export function fetchMonitorStatusesFailure(error) {
 export function fetchMonitorLogs(projectId, monitorId, data) {
     return function(dispatch) {
         const promise = postApi(
-            `statusPage/${projectId}/${monitorId}/monitorLogs`,
+            `status-page/${projectId}/${monitorId}/monitorLogs`,
             data
         );
         dispatch(fetchMonitorLogsRequest(monitorId));
@@ -946,7 +946,7 @@ export function fetchEvent(projectId, scheduledEventId) {
 
         try {
             const response = await getApi(
-                `statusPage/${projectId}/scheduledEvent/${scheduledEventId}`
+                `status-page/${projectId}/scheduledEvent/${scheduledEventId}`
             );
             dispatch(fetchEventSuccess(response.data));
         } catch (error) {
@@ -990,7 +990,7 @@ export function fetchEventNote(projectId, scheduledEventSlug, type) {
 
         try {
             const response = await getApi(
-                `statusPage/${projectId}/notes/${scheduledEventSlug}?type=${type}`
+                `status-page/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
             dispatch(fetchEventNoteSuccess(response.data));
         } catch (error) {
@@ -1033,7 +1033,7 @@ export function moreEventNote(projectId, scheduledEventId, type, skip) {
             dispatch(moreEventNoteRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/notes/${scheduledEventId}?type=${type}&skip=${skip}`
+                `status-page/${projectId}/notes/${scheduledEventId}?type=${type}&skip=${skip}`
             );
             dispatch(moreEventNoteSuccess(response.data));
         } catch (error) {
@@ -1076,7 +1076,7 @@ export function fetchIncident(projectId, incidentSlug) {
         try {
             dispatch(fetchIncidentRequest());
             const response = await getApi(
-                `statusPage/${projectId}/incident/${incidentSlug}`
+                `status-page/${projectId}/incident/${incidentSlug}`
             );
 
             dispatch(fetchIncidentSuccess(response.data));
@@ -1120,7 +1120,7 @@ export function fetchIncidentNotes(projectId, incidentId, postOnStatusPage) {
             dispatch(fetchIncidentNotesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
+                `status-page/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
             );
             dispatch(fetchIncidentNotesSuccess(response.data));
         } catch (error) {
@@ -1168,7 +1168,7 @@ export function moreIncidentNotes(
             dispatch(moreIncidentNotesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
+                `status-page/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
             dispatch(moreIncidentNotesSuccess(response.data));
         } catch (error) {
@@ -1211,7 +1211,7 @@ export function fetchLastIncidentTimeline(projectId, incidentSlug) {
             dispatch(fetchLastIncidentTimelineRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/timeline/${incidentSlug}`
+                `status-page/${projectId}/timeline/${incidentSlug}`
             );
             dispatch(fetchLastIncidentTimelineSuccess(response.data));
         } catch (error) {
@@ -1254,7 +1254,7 @@ export function fetchLastIncidentTimelines(projectId, statusPageSlug) {
             dispatch(fetchLastIncidentTimelinesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${statusPageSlug}/timelines`
+                `status-page/${projectId}/${statusPageSlug}/timelines`
             );
             dispatch(fetchLastIncidentTimelinesSuccess(response.data));
         } catch (error) {
@@ -1302,7 +1302,7 @@ export function getAnnouncementsFailure(data) {
 export function getAnnouncements(projectId, statusPageId, skip = 0, limit) {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
+            `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
         );
         dispatch(getAnnouncementsRequest());
         promise.then(
@@ -1352,7 +1352,7 @@ export function getSingleAnnouncement(
 ) {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
+            `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         dispatch(getSingleAnnouncementRequest());
         promise.then(
@@ -1403,7 +1403,7 @@ export function fetchAnnouncementLogs(
 ) {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
+            `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
@@ -1502,7 +1502,7 @@ export function fetchTweetsFailure(error) {
 
 export function fetchTweets(handle, projectId) {
     return function(dispatch) {
-        const promise = postApi(`statusPage/${projectId}/tweets`, {
+        const promise = postApi(`status-page/${projectId}/tweets`, {
             handle,
         });
 
@@ -1552,7 +1552,7 @@ export function fetchExternalStatusPagesFailure(error) {
 export function fetchExternalStatusPages(projectId, statusPageId) {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
+            `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
 
         dispatch(fetchExternalStatusPagesRequest());

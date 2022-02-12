@@ -143,7 +143,7 @@ describe('Status API', function() {
     it('should not add status page if the page name is missing', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${projectId}`)
+            .post(`/status-page/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -162,7 +162,7 @@ describe('Status API', function() {
     it('should add status page', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${projectId}`)
+            .post(`/status-page/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'Status Page',
@@ -197,7 +197,7 @@ describe('Status API', function() {
     it('should add private status page', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${projectId}`)
+            .post(`/status-page/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'Private Status Page',
@@ -235,7 +235,7 @@ describe('Status API', function() {
     it('should get private status page for authorized user', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/statusPage/${privateStatusPageId}`)
+            .get(`/status-page/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -248,7 +248,7 @@ describe('Status API', function() {
     it('should get valid private status page rss for authorized user', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/statusPage/${privateStatusPageId}/rss`)
+            .get(`/status-page/${privateStatusPageId}/rss`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -259,7 +259,7 @@ describe('Status API', function() {
 
     it('should not get private status page for unauthorized user', function(done) {
         request
-            .get(`/statusPage/${privateStatusPageId}`)
+            .get(`/status-page/${privateStatusPageId}`)
             .end(function(err, res) {
                 if (err) throw err;
                 expect(res).to.have.status(401);
@@ -270,7 +270,7 @@ describe('Status API', function() {
     it('should not update status page settings when domain is not string', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send({
                 domain: 5,
@@ -285,7 +285,7 @@ describe('Status API', function() {
     it('should not update status page settings when domain is not valid', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send({
                 domain: 'wwwtest',
@@ -300,7 +300,7 @@ describe('Status API', function() {
     it('should update status page settings', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/statusPage/${projectId}`)
+            .put(`/status-page/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 _id: statusPageId,
@@ -334,7 +334,7 @@ describe('Status API', function() {
     it('should return monitor category with monitors in status page data', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/statusPage/${statusPageId}`)
+            .get(`/status-page/${statusPageId}`)
             .set('Authorization', authorization)
             .send()
             .end(function(err, res) {
@@ -358,7 +358,7 @@ describe('Status API', function() {
     it('should get list of scheduled events', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/statusPage/${projectId}/${statusPageId}/events`)
+            .get(`/status-page/${projectId}/${statusPageId}/events`)
             .set('Authorization', authorization)
             .send()
             .end(function(err, res) {
@@ -378,7 +378,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         request
             .get(
-                `/statusPage/${projectId}/${monitorId}/individualevents?date=${today}`
+                `/status-page/${projectId}/${monitorId}/individualevents?date=${today}`
             )
             .set('Authorization', authorization)
             .send()
@@ -407,7 +407,7 @@ describe('Status API', function() {
             })
             .then(() => {
                 request
-                    .post(`/statusPage/${projectId}/${monitorId}/monitorLogs`)
+                    .post(`/status-page/${projectId}/${monitorId}/monitorLogs`)
                     .set('Authorization', authorization)
                     .send({
                         responseTime: true,
@@ -427,7 +427,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptimeapp.com' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -441,7 +441,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -479,7 +479,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.x.com' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -492,7 +492,7 @@ describe('Status API', function() {
                     { verified: true }
                 ).then(function() {
                     request
-                        .get(`/statusPage/null?url=${domain}`)
+                        .get(`/status-page/null?url=${domain}`)
                         .send()
                         .end(function(err, res) {
                             if (err) throw err;
@@ -508,7 +508,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.y.com' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -516,7 +516,7 @@ describe('Status API', function() {
                 expect(res).to.have.status(200);
                 const domain = 'status.y.com';
                 request
-                    .get(`/statusPage/null?url=${domain}`)
+                    .get(`/status-page/null?url=${domain}`)
                     .send()
                     .end(function(err, res) {
                         if (err) throw err;
@@ -585,7 +585,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptime.hackerbay' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -606,7 +606,7 @@ describe('Status API', function() {
             ],
         };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -627,7 +627,7 @@ describe('Status API', function() {
             ],
         };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -641,7 +641,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptime.com' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -655,7 +655,7 @@ describe('Status API', function() {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
         request
-            .put(`/statusPage/${projectId}/${statusPageId}/domain`)
+            .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function(err, res) {
@@ -678,7 +678,7 @@ describe('Status API', function() {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
-                    .post(`/statusPage/${newProjectId}`)
+                    .post(`/status-page/${newProjectId}`)
                     .set('Authorization', authorization)
                     .send({
                         name: 'Status Page name',
@@ -694,7 +694,7 @@ describe('Status API', function() {
                         const newStatusPageId = res.body._id;
                         request
                             .put(
-                                `/statusPage/${newProjectId}/${newStatusPageId}/domain`
+                                `/status-page/${newProjectId}/${newStatusPageId}/domain`
                             )
                             .set('Authorization', authorization)
                             .send(data)
@@ -724,7 +724,7 @@ describe('Status API', function() {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
-                    .post(`/statusPage/${newProjectId}`)
+                    .post(`/status-page/${newProjectId}`)
                     .set('Authorization', authorization)
                     .send({
                         name: 'Status Page name',
@@ -740,7 +740,7 @@ describe('Status API', function() {
                         const newStatusPageId = res.body._id;
                         request
                             .put(
-                                `/statusPage/${newProjectId}/${newStatusPageId}/domain`
+                                `/status-page/${newProjectId}/${newStatusPageId}/domain`
                             )
                             .set('Authorization', authorization)
                             .send(data)
@@ -768,7 +768,7 @@ describe('Status API', function() {
             // select the first domain
             const { _id: domainId } = statusPage.domains[0];
             request
-                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
@@ -787,7 +787,7 @@ describe('Status API', function() {
             // select the first domain
             const { _id: domainId } = statusPage.domains[0];
             request
-                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
@@ -806,7 +806,7 @@ describe('Status API', function() {
             // select the first domain
             const { _id: domainId } = statusPage.domains[0];
             request
-                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
@@ -827,7 +827,7 @@ describe('Status API', function() {
             // provide a random object id
             const statusPageId = '5ea70eb4be9f4b177a1719ad';
             request
-                .put(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err, res) => {
@@ -844,7 +844,7 @@ describe('Status API', function() {
             // select the first domain
             const { _id: domainId } = statusPage.domains[0];
             request
-                .delete(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
                 .end((err, res) => {
                     if (err) throw err;
@@ -862,7 +862,7 @@ describe('Status API', function() {
             // create random status page id
             const statusPageId = '5ea70eb4be9f4b177a1719ad';
             request
-                .delete(`/statusPage/${projectId}/${statusPageId}/${domainId}`)
+                .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
                 .end((err, res) => {
                     if (err) throw err;
@@ -948,7 +948,7 @@ describe('StatusPage API with Sub-Projects', function() {
                     anotherUserToken = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${anotherUserToken}`;
                     request
-                        .post(`/statusPage/${projectId}`)
+                        .post(`/status-page/${projectId}`)
                         .set('Authorization', authorization)
                         .send({
                             links: [],
@@ -985,7 +985,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should not get private status page for authorized user that is not in project', function(done) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .get(`/statusPage/${privateStatusPageId}`)
+            .get(`/status-page/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -997,7 +997,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .post(`/statusPage/${subProjectId}`)
+            .post(`/status-page/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -1032,7 +1032,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should create a statusPage in parent project by valid admin.', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${projectId}`)
+            .post(`/status-page/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -1068,7 +1068,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should create a statusPage in sub-project by valid admin.', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/statusPage/${subProjectId}`)
+            .post(`/status-page/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -1103,7 +1103,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it("should get only sub-project's statuspages for valid sub-project user", function(done) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .get(`/statusPage/${subProjectId}/statuspage`)
+            .get(`/status-page/${subProjectId}/statuspage`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -1119,7 +1119,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should get both project and sub-project statuspage for valid parent project user.', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/statusPage/${projectId}/statuspages`)
+            .get(`/status-page/${projectId}/statuspages`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -1145,7 +1145,7 @@ describe('StatusPage API with Sub-Projects', function() {
             })
             .end(function() {
                 request
-                    .get(`/statusPage/${subProjectStatusPageId}`)
+                    .get(`/status-page/${subProjectStatusPageId}`)
                     .set('Authorization', authorization)
                     .end(function(err, res) {
                         if (err) throw err;
@@ -1160,7 +1160,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should not delete a status page for user that is not `admin` in sub-project.', function(done) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`)
+            .delete(`/status-page/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -1175,7 +1175,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should delete sub-project status page', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/statusPage/${subProjectId}/${subProjectStatusPageId}`)
+            .delete(`/status-page/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;
@@ -1187,7 +1187,7 @@ describe('StatusPage API with Sub-Projects', function() {
     it('should delete parent project status page', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/statusPage/${projectId}/${statusPageId}`)
+            .delete(`/status-page/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
             .end(function(err, res) {
                 if (err) throw err;

@@ -85,7 +85,7 @@ export function createDomain({
 
         try {
             const response = await putApi(
-                `statusPage/${projectId}/${statusPageId}/domain`,
+                `status-page/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
             dispatch(createDomainSuccess(response.data));
@@ -128,7 +128,7 @@ export function deleteDomain({ projectId, statusPageId, domainId }) {
         dispatch(deleteDomainRequest());
         try {
             const response = await deleteApi(
-                `statusPage/${projectId}/${statusPageId}/${domainId}`
+                `status-page/${projectId}/${statusPageId}/${domainId}`
             );
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
@@ -179,7 +179,7 @@ export function updateDomain({
         dispatch(updateDomainRequest());
         try {
             const response = await putApi(
-                `statusPage/${projectId}/${statusPageId}/${domainId}`,
+                `status-page/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
             dispatch(updateDomainSuccess(response.data));

@@ -41,7 +41,7 @@ const client = getMongoClient();
 })();
 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /statuspage/.env
+    // Load env vars from /status-page/.env
     require('dotenv').config();
 }
 

@@ -11,10 +11,10 @@ export function getProbes(projectId, skip, limit) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
-                `statusPage/${projectId}/probes?skip=${skip}&limit=${limit}`
+                `status-page/${projectId}/probes?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`statusPage/${projectId}/probes`);
+            promise = getApi(`status-page/${projectId}/probes`);
         }
         dispatch(probeRequest(promise));
 

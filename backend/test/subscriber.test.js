@@ -97,7 +97,7 @@ describe('Subscriber API', function() {
                                                 ).to.be.equal(monitor.name);
                                                 request
                                                     .post(
-                                                        `/statusPage/${projectId}`
+                                                        `/status-page/${projectId}`
                                                     )
                                                     .set(
                                                         'Authorization',

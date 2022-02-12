@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import StatusPagesTable from '../components/statusPage/StatusPagesTable';
+import StatusPagesTable from '../components/status-page/StatusPagesTable';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';

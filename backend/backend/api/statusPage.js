@@ -994,7 +994,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 refinedIncidents.push({
                     item: {
                         title: incident.title,
-                        guid: `${global.apiHost}/statusPage/${statusPageId}/rss/${incident._id}`,
+                        guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                         pubDate: new Date(incident.createdAt).toUTCString(),
                         description: `<![CDATA[Description: ${
                             incident.description
@@ -1032,7 +1032,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                                 'RSS feed for all incidents related to monitors attached to status page',
                         },
                         {
-                            link: `${global.apiHost}/statusPage/${statusPageId}/rss`,
+                            link: `${global.apiHost}/status-page/${statusPageId}/rss`,
                         },
                         {
                             lastBuildDate: () => new Date().toUTCString(),
@@ -1632,7 +1632,7 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
 });
 
 router.post(
-    '/:projectId/createExternalStatusPage/:statusPageId',
+    '/:projectId/createExternalstatus-page/:statusPageId',
     checkUser,
     async function(req, res) {
         try {
@@ -1740,7 +1740,7 @@ router.post(
 );
 
 router.post(
-    '/:projectId/updateExternalStatusPage/:externalStatusPageId',
+    '/:projectId/updateExternalstatus-page/:externalStatusPageId',
     checkUser,
     async function(req, res) {
         try {
@@ -1863,7 +1863,7 @@ router.get(
 );
 
 router.post(
-    '/:projectId/deleteExternalStatusPage/:externalStatusPageId',
+    '/:projectId/deleteExternalstatus-page/:externalStatusPageId',
     checkUser,
     async function(req, res) {
         try {
