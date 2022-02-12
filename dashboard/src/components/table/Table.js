@@ -17,11 +17,12 @@ class Table extends Component {
         const {
             title,
             description,
-            columns, // this contains props like [{name, }]
-            isLoading,
-            items,
-            noItemsMessage // what message should be displayed if there are no items,
-            headerButtons,
+            columns = [], // this contains props like [{name, id, onClick, itemPropertyKey visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
+            isLoading = false,
+            items = [],
+            displayNoItemsMessageWhenThereAreNoItems = true,
+            noItemsMessage = 'No items in this table.', // Message that should be displayed if there are no items,
+            headerButtons = [], // [{id, title, shortcutKey, onClick, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
         } = this.props;
 
 
@@ -89,7 +90,7 @@ class Table extends Component {
                     </table>
                 </div>
                 <TableLoader isLoading={isLoading}/>
-                <NoItemsMessage noItemsMessage={noItemsMessage} isLoading={isLoading} itemsCount={items ? items.length : 0} />
+                {displayNoItemsMessageWhenThereAreNoItems && <NoItemsMessage noItemsMessage={noItemsMessage} isLoading={isLoading} itemsCount={items ? items.length : 0} />}
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">

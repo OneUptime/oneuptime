@@ -1,4 +1,9 @@
 import React, { Component } from 'react';
+import RenderIfAdmin from '../basic/RenderIfAdmin';
+import RenderIfOwner from  '../basic/RenderIfOwner';
+import RenderIfMember from '../basic/RenderIfMember';
+import RenderIfViewer from '../basic/RenderIfViewer';
+
 
 export default class TableButton extends Component {
 
@@ -31,19 +36,42 @@ export default class TableButton extends Component {
     }
 
     render() {
-        const { visibleForAdmin, visibleForViewer, visibleForMember } = this.props;
+        const { visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember } = this.props;
 
         if(visibleForAdmin){
-            
+            return (
+                <RenderIfAdmin>
+                    {this.getButtonElement()}
+                </RenderIfAdmin>
+            )
         }
 
         if(visibleForViewer){
-
+            return (
+                <RenderIfViewer>
+                    {this.getButtonElement()}
+                </RenderIfViewer>
+            )
         }
         
         if(visibleForMember){
-            
+            return (
+                <RenderIfMember>
+                    {this.getButtonElement()}
+                </RenderIfMember>
+            )
         }
+
+        if(visibleForOwner){
+            return (
+                <RenderIfOwner>
+                    {this.getButtonElement()}
+                </RenderIfOwner>
+            )
+        }
+
+
+        return this.getButtonElement();
 
     }
 }

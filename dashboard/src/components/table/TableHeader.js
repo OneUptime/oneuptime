@@ -11,8 +11,8 @@ export default class TableHeader extends Component {
     }
 
     render() {
-        const { 
-            title, 
+        const {
+            title,
             description,
             headerButtons
         } = this.props;
@@ -25,51 +25,22 @@ export default class TableHeader extends Component {
                     <TableDescription description={description} />
                 </div>
 
-                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                {headerButtons && headerButtons.length > 0 && <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                     <div className="Box-root">
-                        <RenderIfAdmin
-                            subProjectId={props.subProjectStatusPage._id}
-                        >
-                            <button
-                                id={`btnCreateStatusPage_${props.subProjectName}`}
-                                onClick={() => {
-                                    props.openModal({
-                                        id: props.statusPageModalId,
-                                        content: DataPathHoC(
-                                            StatusPageForm,
-                                            {
-                                                projectId:
-                                                    props
-                                                        .subProjectStatusPage
-                                                        ._id,
-                                            }
-                                        ),
-                                    });
-                                }}
-                                className="Button bs-ButtonLegacy ActionIconParent"
-                                type="button"
-                            >
-                                <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                    <div className="Box-root Margin-right--8">
-                                        <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                    </div>
-                                    {props.allStatusPageLength === 1 ? (
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                            <span>Create Status Page</span>
-                                            <span className="new-btn__keycode">
-                                                N
-                                            </span>
-                                        </span>
-                                    ) : (
-                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                            <span>Create Status Page</span>
-                                        </span>
-                                    )}
-                                </div>
-                            </button>
-                        </RenderIfAdmin>
+                        {headerButtons && headerButtons.map((button) => {
+                            return (<TableButton
+                                title={button.title}
+                                shortcutKey={button.shortcutKey}
+                                id={button.tiidtle}
+                                onClick={button.onClick}
+                                visibleForOwner={button.visibleForOwner}
+                                visibleForAdmin={button.visibleForAdmin}
+                                visibleForViewer={button.visibleForViewer}
+                                visibleForMember={button.visibleForMember}
+                            />)
+                        })}
                     </div>
-                </div>
+                </div>}
             </div>
         </div>
         )

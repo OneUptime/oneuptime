@@ -5,6 +5,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
+
 export function RenderIfAdmin(props) {
     const { currentProject, children } = props;
     const userId = User.getUserId();
