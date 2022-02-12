@@ -2,7 +2,7 @@
 # OneUptime Init Script
 #
 
-FROM node:lts-alpine
+FROM node:17-alpine
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
