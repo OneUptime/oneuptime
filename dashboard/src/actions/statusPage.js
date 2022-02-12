@@ -819,7 +819,7 @@ export function fetchSubProjectStatusPagesError(error) {
 // Gets status pages by subProjectId.
 export function fetchSubProjectStatusPages(projectId, refresh) {
     return function(dispatch) {
-        const promise = getApi(`status-page/${projectId}/statuspages`);
+        const promise = getApi(`status-page/${projectId}`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
 
         promise.then(

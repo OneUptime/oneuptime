@@ -199,7 +199,7 @@ app.use(['/invoice', '/api/invoice'], require('./backend/api/invoice'));
 app.use(['/schedule', '/api/schedule'], require('./backend/api/schedule'));
 app.use(['/monitor', '/api/monitor'], require('./backend/api/monitor'));
 app.use(
-    ['/statusPage', '/api/statusPage'],
+    ['/status-page', '/api/status-page'],
     require('./backend/api/statusPage')
 );
 app.use(['/file', '/api/file'], require('./backend/api/file'));

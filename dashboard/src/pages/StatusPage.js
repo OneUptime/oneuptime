@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { history } from '../store';
+
 import {
     fetchSubProjectStatusPages,
     switchStatusPage,
