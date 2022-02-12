@@ -785,14 +785,10 @@ router.get(
     '/:projectId/statuspages',
     getUser,
     isAuthorized,
-    getSubProjects,
     async function(req, res) {
         try {
-            const subProjectIds = req.user.subProjects
-                ? req.user.subProjects.map(project => project._id)
-                : null;
-            const statusPages = await StatusPageService.getSubProjectStatusPages(
-                subProjectIds
+            const statusPages = await StatusPageService.getStatusPagesByProjectId(
+                req.params.projectId
             );
             return sendItemResponse(req, res, statusPages); // frontend expects sendItemResponse
         } catch (error) {
