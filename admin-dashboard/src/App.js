@@ -4,19 +4,12 @@ import { history, isServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import BackboneModals from './containers/BackboneModals';
-import ReactGA from 'react-ga';
 import { User, ACCOUNTS_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 
-if (!isServer) {
-    history.listen(location => {
-        ReactGA.set({ page: location.pathname });
-        ReactGA.pageview(location.pathname);
-    });
-}
 
 const cookies = new Cookies();
 const userData = cookies.get('admin-data');
