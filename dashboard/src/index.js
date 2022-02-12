@@ -8,6 +8,7 @@ import * as serviceWorker from './serviceWorker';
 import store, { history, isServer } from './store';
 import App from './App';
 import './index.css';
+import ErrorBoundary from './components/basic/ErrorBoundary';
 
 if (!isServer) {
     ReactGA.initialize('UA-115085157-1');
@@ -19,7 +20,9 @@ render(
     <ThroughProvider>
         <Provider store={store} history={history}>
             <Frontload noServerRender={true}>
-                <App />
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
             </Frontload>
         </Provider>
     </ThroughProvider>,

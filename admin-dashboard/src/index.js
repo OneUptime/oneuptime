@@ -4,12 +4,15 @@ import { render } from 'react-dom';
 import store, { history } from './store';
 import App from './App';
 import './index.css';
+import ErrorBoundary from './components/basic/ErrorBoundary';
 
 const target = document.getElementById('root');
 
 render(
     <Provider store={store} history={history}>
-        <App />
+        <ErrorBoundary> 
+            <App />
+        </ErrorBoundary>
     </Provider>,
     target
 );
