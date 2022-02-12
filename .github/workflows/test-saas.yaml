@@ -1,4 +1,4 @@
-name: Enterprise Test
+name: SaaS Test
 
 on: 
   push:
@@ -8,7 +8,7 @@ on:
       - 'staging-release'
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
