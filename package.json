@@ -25,6 +25,7 @@
         "prettier": "^1.19.1"
     },
     "scripts": {
+        "count-total-lines-of-code": "git grep ^ | wc -l",
         "uninstall": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)",
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
         "lint": "ejslint home/views/*.ejs && eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore",

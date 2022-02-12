@@ -1430,7 +1430,7 @@ module.exports = {
                 skip: skip,
                 limit: limit,
                 select: selectStatusPage,
-                populate: populateStatusPage,
+                pupulate: [],
             }),
             _this.countBy({ query: { projectId } }),
         ]);

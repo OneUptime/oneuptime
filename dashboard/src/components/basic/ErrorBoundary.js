@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component {
-
     constructor(props) {
         super(props);
         this.state = { hasError: false };
@@ -15,11 +15,10 @@ class ErrorBoundary extends Component {
         }
     }
 
-    static getDerivedStateFromError(error) {
+    static getDerivedStateFromError() {
         // Update state so the next render will show the fallback UI.
         return { hasError: true };
     }
-
 
     render() {
         if (this.state.hasError) {
@@ -40,8 +39,8 @@ class ErrorBoundary extends Component {
                     }}
                 >
                     <div>
-                        An unexpected error has occured. Please reload the page to
-                        continue
+                        An unexpected error has occured. Please reload the page
+                        to continue
                     </div>
                 </div>
             );
@@ -49,11 +48,12 @@ class ErrorBoundary extends Component {
 
         return this.props.children;
     }
-
 }
 
 ErrorBoundary.displayName = 'ErrorBoundary';
 
-ErrorBoundary.propTypes = {};
+ErrorBoundary.propTypes = {
+    children: PropTypes.any,
+};
 
 export default ErrorBoundary;

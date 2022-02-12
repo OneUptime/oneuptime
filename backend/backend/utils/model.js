@@ -29,19 +29,19 @@ class ModelUtil {
     }) {
         const item = new this.Model();
 
-        if (checkDuplicates.valuesIn && checkDuplicates.valuesIn.length > 0) {
+        if (valuesIn && valuesIn.length > 0) {
 
             const countQuery = {};
 
-            if(checkDuplicates.byProject){
+            if(byProject){
                 countQuery.projectId = data.projectId; 
             }
 
-            if(typeof checkDuplicates.valuesIn === "string"){
-                checkDuplicatesValuesIn = [checkDuplicatesValuesIn];
+            if(typeof valuesIn === "string"){
+                valuesIn = [valuesIn];
             }
 
-            for(const duplicateValueIn of checkDuplicates.valuesIn){
+            for(const duplicateValueIn of valuesIn){
                 countQuery[duplicateValueIn] = data[duplicateValueIn]; 
             }
 
@@ -102,24 +102,19 @@ class ModelUtil {
         );
     }
 
-    async findOneBy({ query = {}, skip = 0, limit = 1, populate = [], select = '', sort = [] }) {
-        return await this.findBy({ query, skip, limit, populate, select, sort, findOne: true })
-    }
-
-    async findBy({ query = {}, skip = 0, limit = 10, populate = [], select = '', sort = [], findOne = false }) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
+    async findBy({ 
+        query = {}, 
+        skip = 0, 
+        limit = 10, 
+        populate = [], 
+        select = '', 
+        sort = [['createdAt', -1]], 
+        findOne = false 
+    }) {
 
         if (typeof skip === 'string') skip = parseInt(skip);
 
         if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!sort) {
-            sort = [['createdAt', -1]];
-        }
 
         query.deleted = false;
 
@@ -129,7 +124,7 @@ class ModelUtil {
             functionToCall = 'findOne';
         }
 
-        let query = this.Model[functionToCall](query)
+        query = this.Model[functionToCall](query)
             .sort(sort)
             .limit(limit)
             .skip(skip)
@@ -142,8 +137,8 @@ class ModelUtil {
         return items;
     }
 
-    async updateOneBy({ query = {}, updatedValues = {} }) {
-        return await this.updateBy({ query, updatedValues, updateOne = true })
+    async findOneBy({ query = {}, skip = 0, limit = 1, populate = [], select = '', sort = [] }) {
+        return await this.findBy({ query, skip, limit, populate, select, sort, findOne: true })
     }
 
     async updateBy({ query = {}, updatedValues = {}, multiple = true }) {
@@ -165,6 +160,12 @@ class ModelUtil {
 
         return updatedItems;
     }
+
+    async updateOneBy({ query = {}, updatedValues = {} }) {
+        return await this.updateBy({ query, updatedValues, updateOne = true })
+    }
+
+
 }
 
 module.exports = ModelUtil;
