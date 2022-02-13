@@ -1,9 +1,9 @@
 import React from 'react';
-import Select from 'react-select';
+import ReactSelect from 'react-select';
 import PropTypes from 'prop-types';
 
-const ReactSelectOneUptime = props => (
-    <Select
+const Select = props => (
+    <ReactSelect
         {...props}
         styles={{
             control: provided => ({
@@ -32,8 +32,8 @@ const ReactSelectOneUptime = props => (
     />
 );
 
-ReactSelectOneUptime.displayName = 'ReactSelectOneUptime';
-ReactSelectOneUptime.propTypes = {
+Select.displayName = 'Select';
+Select.propTypes = {
     style: PropTypes.object,
 };
-export default ReactSelectOneUptime;
+export default Select;

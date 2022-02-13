@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import Select from '../../components/basic/react-select-oneuptime';
+import Select from '../../components/basic/Select';
 
 const RenderRotationFrequency = ({
     input,

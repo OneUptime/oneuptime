@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { getMonitorLogs } from '../../actions/monitor';
 //import MonitorLogsList from '../monitor/MonitorLogsList';
-import Select from '../../components/basic/react-select-oneuptime';
+import Select from '../../components/basic/Select';
 //import ShouldRender from '../../components/basic/ShouldRender';
 //import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 //import moment from 'moment';

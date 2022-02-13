@@ -7,7 +7,7 @@ import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
 import Incidents from '../components/reports/Incidents';
 import ResolveTime from '../components/reports/ResolveTime';
-import Select from '../components/basic/react-select-oneuptime';
+import Select from '../components/basic/Select';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';

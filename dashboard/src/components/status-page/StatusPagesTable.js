@@ -11,8 +11,6 @@ import {
     paginate,
 } from '../../actions/statusPage';
 import { openModal, closeModal } from '../../actions/modal';
-import StatuspageProjectBox from './StatuspageProjectBox';
-import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
@@ -193,21 +191,8 @@ const mapDispatchToProps = dispatch =>
 
 function mapStateToProps(state, ownProps) {
     const currentProject = state.project.currentProject;
-    const currentProjectId =
-        ownProps.projectId || (currentProject && currentProject._id);
+    const currentProjectId = currentProject._id;
     const statusPages = state.statusPage.subProjectStatusPages;
-
-    let subProjects = state.subProject.subProjects.subProjects;
-
-    // sort subprojects names for display in alphabetical order
-    const subProjectNames =
-        subProjects && subProjects.map(subProject => subProject.name);
-    subProjectNames && subProjectNames.sort();
-    subProjects =
-        subProjectNames &&
-        subProjectNames.map(name =>
-            subProjects.find(subProject => subProject.name === name)
-        );
 
     // find project statuspages or assign default value
     let projectStatusPage = statusPages.find(
@@ -238,17 +223,12 @@ function mapStateToProps(state, ownProps) {
                   limit: 10,
               };
     });
-    subProjectStatusPages.unshift(projectStatusPage);
-    const searchValues = state.form.search && state.form.search.values;
+
     return {
         currentProject,
-        subProjectStatusPages,
         statusPage: state.statusPage,
         isRequesting: state.statusPage.requesting,
-        subProjects,
         modalList: state.modal.modals,
-        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-        searchValues,
     };
 }
 

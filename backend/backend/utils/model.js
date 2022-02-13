@@ -1,16 +1,11 @@
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
 const getSlug = require('../utils/getSlug');
-const mongoose = require('../config/db');
 
 class ModelUtil {
     constructor({ model, friendlyName = '' }) {
         if (!model) {
             throw new Error('model is required');
-        }
-
-        if (!(model instanceof mongoose.model)) {
-            throw new Error('model should be an instance of mongoose model');
         }
 
         this.Model = model;

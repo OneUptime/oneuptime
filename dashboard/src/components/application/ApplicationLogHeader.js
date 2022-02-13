@@ -4,7 +4,7 @@ import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { connect } from 'react-redux';
-import Select from '../../components/basic/react-select-oneuptime';
+import Select from '../../components/basic/Select';
 import SearchBox from '../basic/SearchBox';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import Badge from '../common/Badge';

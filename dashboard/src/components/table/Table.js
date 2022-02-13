@@ -14,6 +14,7 @@ class Table extends Component {
 
     render() {
         const {
+            id
             title,
             description,
             columns = [], // this contains props like [{name, id, onClick, itemPropertyKey, itemPropertyNullText, itemPropertyDescriptionKey, itemPropertyDescriptionNullText, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
@@ -38,51 +39,57 @@ class Table extends Component {
         } = this.props;
 
         return (
-            <div className="Box-root">
-                <TableHeader
-                    title={title}
-                    description={description}
-                    headerButtons={headerButtons}
-                />
-                <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
-                    <table className="Table">
-                        <TableColumns columns={columns} />
-                        <TableItems
-                            items={items}
-                            columns={columns}
-                            actionButtons={actionButtons}
-                            onClickTableRow={onClickTableRow}
+            <div id={id} className="bs-BIM">
+                <div className="Box-root Margin-bottom--12">
+                    <div className="bs-ContentSection Card-root Card-shadow--medium"></div>
+                    <div className="Box-root">
+                        <TableHeader
+                            title={title}
+                            description={description}
+                            headerButtons={headerButtons}
                         />
-                    </table>
+                        <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
+                            <table className="Table">
+                                <TableColumns columns={columns} />
+                                <TableItems
+                                    items={items}
+                                    columns={columns}
+                                    actionButtons={actionButtons}
+                                    onClickTableRow={onClickTableRow}
+                                />
+                            </table>
+                        </div>
+                        <TableLoader isLoading={isLoading} />
+                        {displayNoItemsMessageWhenThereAreNoItems && (
+                            <NoItemsMessage
+                                noItemsMessage={noItemsMessage}
+                                isLoading={isLoading}
+                                itemsCount={items ? items.length : 0}
+                            />
+                        )}
+                        <TableFooter
+                            onNextClicked={onNextClicked}
+                            onPreviousClicked={onPreviousClicked}
+                            nextButtonText={nextButtonText}
+                            previousButtonText={previousButtonText}
+                            forceDisableNextButton={forceDisableNextButton}
+                            forceDisablePreviousButton={forceDisablePreviousButton}
+                            totalItemsCount={totalItemsCount}
+                            friendlyName={friendlyName}
+                            friendlyNamePlural={friendlyNamePlural}
+                            currentPageCount={currentPageCount}
+                            noOfItemsInPage={noOfItemsInPage}
+                            isLoading={isLoading}
+                        />
+                    </div>
                 </div>
-                <TableLoader isLoading={isLoading} />
-                {displayNoItemsMessageWhenThereAreNoItems && (
-                    <NoItemsMessage
-                        noItemsMessage={noItemsMessage}
-                        isLoading={isLoading}
-                        itemsCount={items ? items.length : 0}
-                    />
-                )}
-                <TableFooter
-                    onNextClicked={onNextClicked}
-                    onPreviousClicked={onPreviousClicked}
-                    nextButtonText={nextButtonText}
-                    previousButtonText={previousButtonText}
-                    forceDisableNextButton={forceDisableNextButton}
-                    forceDisablePreviousButton={forceDisablePreviousButton}
-                    totalItemsCount={totalItemsCount}
-                    friendlyName={friendlyName}
-                    friendlyNamePlural={friendlyNamePlural}
-                    currentPageCount={currentPageCount}
-                    noOfItemsInPage={noOfItemsInPage}
-                    isLoading={isLoading}
-                />
             </div>
         );
     }
 }
 
 Table.propTypes = {
+    id: PropTypes.string,
     title: PropTypes.string.isRequired,
     description: PropTypes.string.isRequired,
     columns: PropTypes.array.isRequired, // this contains props like [{name, id, onClick, itemPropertyKey, itemPropertyNullText, itemPropertyDescriptionKey, itemPropertyDescriptionNullText, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]

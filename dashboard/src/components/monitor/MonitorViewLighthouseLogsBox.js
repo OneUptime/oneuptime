@@ -10,7 +10,7 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import AddSiteUrl from '../modals/AddSiteUrl';
 import MonitorLighthouseLogsList from './MonitorLighthouseLogsList';
-import Select from '../../components/basic/react-select-oneuptime';
+import Select from '../../components/basic/Select';
 
 export class MonitorViewLighthouseLogsBox extends Component {
     constructor(props) {
