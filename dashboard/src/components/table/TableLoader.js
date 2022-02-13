@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 
 import { ListLoader } from '../basic/Loader';
-
+import PropTypes from 'prop-types';
 export default class TableLoader extends Component {
-
     constructor(props) {
         super(props);
     }
@@ -11,9 +10,6 @@ export default class TableLoader extends Component {
     render() {
         const { isLoading } = this.props;
 
-        return (<div>
-            {isLoading ? <ListLoader /> : null}
-        </div>
-        )
+        return <div>{isLoading ? <ListLoader /> : null}</div>;
     }
 }

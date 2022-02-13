@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
-
+import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 
 export default class NoItemsMessage extends Component {
-
     constructor(props) {
         super(props);
     }
@@ -12,12 +11,7 @@ export default class NoItemsMessage extends Component {
         const { isLoading, itemsCount, noItemsMessage } = this.props;
 
         return (
-            <ShouldRender
-                if={
-                    !isLoading &&
-                    itemsCount === 0
-                }
-            >
+            <ShouldRender if={!isLoading && itemsCount === 0}>
                 <div
                     className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
                     style={{
@@ -29,6 +23,12 @@ export default class NoItemsMessage extends Component {
                     {noItemsMessage}
                 </div>
             </ShouldRender>
-        )
+        );
     }
 }
+
+NoItemsMessage.propTypes = {
+    isLoading: PropTypes.bool.isRequired,
+    itemsCount: PropTypes.number,
+    noItemsMessage: PropTypes.string,
+};

@@ -9,7 +9,7 @@ class ModelUtil {
             throw new Error('model is required');
         }
 
-        if (!model instanceof mongoose.model) {
+        if (!(model instanceof mongoose.model)) {
             throw new Error('model should be an instance of mongoose model');
         }
 
@@ -46,7 +46,7 @@ class ModelUtil {
             if (existingItemCount > 0) {
                 const error = new Error(
                     `${this.FriendlyName ||
-                        `Item`} with the same ${checkDuplicatesValuesIn.join(
+                        `Item`} with the same ${duplicateValueIn.join(
                         ','
                     )} already exists.`
                 );
@@ -72,12 +72,12 @@ class ModelUtil {
         return count;
     }
 
-    async deleteBy({ query = {}, multiple = false }) {
+    async deleteBy({ query = {}, multiple = false, deletedByUserId }) {
         query.deleted = false;
 
         const set = {
             deleted: true,
-            deletedById: userId,
+            deletedById: deletedByUserId,
             deletedAt: Date.now(),
         };
 

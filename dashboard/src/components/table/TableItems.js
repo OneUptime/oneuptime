@@ -1,14 +1,19 @@
 import React, { Component } from 'react';
 import TableItem from './TableItem';
-
+import PropTypes from 'prop-types';
 export default class TableDescription extends Component {
-
     constructor(props) {
         super(props);
     }
 
     render() {
-        const { items, columns, id, onClickTableRow, actionButtons } = this.props;
+        const {
+            items,
+            columns,
+            id,
+            onClickTableRow,
+            actionButtons,
+        } = this.props;
 
         return (
             <tbody id={id}>
@@ -24,6 +29,6 @@ export default class TableDescription extends Component {
                     );
                 })}
             </tbody>
-        )
+        );
     }
 }
