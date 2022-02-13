@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import TableDescription from './TableDescription';
 import TableTitle from './TableTitle';
-import TableButton from './TableButton';
+import Button from '../basic/Button';
 
 export default class TableHeader extends Component {
 
@@ -28,7 +28,7 @@ export default class TableHeader extends Component {
                 {headerButtons && headerButtons.length > 0 && <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                     <div className="Box-root">
                         {headerButtons && headerButtons.map((button) => {
-                            return (<TableButton
+                            return (<Button
                                 title={button.title}
                                 shortcutKey={button.shortcutKey}
                                 id={button.tiidtle}
