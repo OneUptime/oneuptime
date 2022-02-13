@@ -46,7 +46,7 @@ class ModelUtil {
             if (existingItemCount > 0) {
                 const error = new Error(
                     `${this.FriendlyName ||
-                        `Item`} with the same ${duplicateValueIn.join(
+                        `Item`} with the same ${valuesIn.join(
                         ','
                     )} already exists.`
                 );

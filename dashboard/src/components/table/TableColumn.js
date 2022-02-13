@@ -1,8 +1,5 @@
 import React, { Component } from 'react';
-import RenderIfAdmin from '../basic/RenderIfAdmin';
-import RenderIfOwner from '../basic/RenderIfOwner';
-import RenderIfMember from '../basic/RenderIfMember';
-import RenderIfViewer from '../basic/RenderIfViewer';
+import RenderBasedOnRole from '../basic/RenderBasedOnRole';
 import PropTypes from 'prop-types';
 
 export default class TableColumn extends Component {
@@ -28,7 +25,7 @@ export default class TableColumn extends Component {
             visibleForAdmin,
             visibleForViewer,
             visibleForMember,
-            visibleForAll
+            visibleForAll,
         } = this.props;
 
         return (
@@ -48,10 +45,10 @@ export default class TableColumn extends Component {
 TableColumn.propTypes = {
     title: PropTypes.string.isRequired,
     onClick: PropTypes.func,
-   
 
     visibleForOwner: PropTypes.bool,
     visibleForAdmin: PropTypes.bool,
     visibleForViewer: PropTypes.bool,
     visibleForMember: PropTypes.bool,
+    visibleForAll: PropTypes.bool,
 };

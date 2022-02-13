@@ -5,6 +5,7 @@ import NoItemsMessage from './NoItemsMessage';
 import TableHeader from './TableHeader';
 import TableFooter from './TableFooter';
 import TableItems from './TableItems';
+import TableColumns from './TableColumns';
 
 class Table extends Component {
     constructor(props) {
@@ -89,9 +90,9 @@ Table.propTypes = {
     items: PropTypes.array.isRequired,
     displayNoItemsMessageWhenThereAreNoItems: PropTypes.bool,
     noItemsMessage: PropTypes.string, // Message that should be displayed if there are no items,
-    headerButtons:  PropTypes.string, // [{id, title, shortcutKey, onClick, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
-    onNextClicked:  PropTypes.func,
-    onPreviousClicked:  PropTypes.func,
+    headerButtons: PropTypes.string, // [{id, title, shortcutKey, onClick, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
+    onNextClicked: PropTypes.func,
+    onPreviousClicked: PropTypes.func,
     nextButtonText: PropTypes.string,
     previousButtonText: PropTypes.string,
     forceDisableNextButton: PropTypes.bool,
@@ -102,7 +103,7 @@ Table.propTypes = {
     currentPageCount: PropTypes.number,
     noOfItemsInPage: PropTypes.number,
     actionButtons: PropTypes.array,
-    onClickTableRow:  PropTypes.func,
+    onClickTableRow: PropTypes.func,
 };
 
 export default Table;

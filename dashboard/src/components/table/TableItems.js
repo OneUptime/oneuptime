@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import TableItem from './TableItem';
 import PropTypes from 'prop-types';
-export default class TableDescription extends Component {
+
+export default class TableItems extends Component {
     constructor(props) {
         super(props);
     }
@@ -32,3 +33,11 @@ export default class TableDescription extends Component {
         );
     }
 }
+
+TableItems.propTypes = {
+    columns: PropTypes.array.isRequired,
+    items: PropTypes.array.isRequired,
+    id: PropTypes.string,
+    onClickTableRow: PropTypes.func,
+    actionButtons: PropTypes.array,
+};

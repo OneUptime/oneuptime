@@ -13,3 +13,7 @@ export default class TableLoader extends Component {
         return <div>{isLoading ? <ListLoader /> : null}</div>;
     }
 }
+
+TableLoader.propTypes = {
+    isLoading: PropTypes.bool,
+};

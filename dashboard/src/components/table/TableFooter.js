@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import Button from '../basic/Button';
 import TablePaginationButtons from './TablePaginationButtons';
+import TablePaginationCount from './TablePaginationCount';
 import PropTypes from 'prop-types';
+
 export default class TableFooter extends Component {
     constructor(props) {
         super(props);
@@ -49,11 +50,10 @@ export default class TableFooter extends Component {
     }
 }
 
-
 TableFooter.propTypes = {
     isLoading: PropTypes.bool.isRequired,
-    onNextClicked:  PropTypes.func,
-    onPreviousClicked:  PropTypes.func,
+    onNextClicked: PropTypes.func,
+    onPreviousClicked: PropTypes.func,
     nextButtonText: PropTypes.string,
     previousButtonText: PropTypes.string,
     forceDisableNextButton: PropTypes.bool,
@@ -63,4 +63,4 @@ TableFooter.propTypes = {
     friendlyNamePlural: PropTypes.string,
     currentPageCount: PropTypes.number,
     noOfItemsInPage: PropTypes.number,
-}
+};

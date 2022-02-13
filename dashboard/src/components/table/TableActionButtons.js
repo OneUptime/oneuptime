@@ -46,8 +46,7 @@ export default class TableActionButtons extends Component {
     }
 }
 
-
 TableActionButtons.propTypes = {
     item: PropTypes.object.isRequired,
-    actionButtons: PropTypes.array
+    actionButtons: PropTypes.array,
 };

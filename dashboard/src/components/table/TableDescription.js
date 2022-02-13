@@ -18,4 +18,4 @@ export default class TableDescription extends Component {
 
 TableDescription.propTypes = {
     description: PropTypes.string,
-}
+};

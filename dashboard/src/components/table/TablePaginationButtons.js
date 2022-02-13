@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import Button from '../basic/Button';
+
 export default class TablePaginationButtons extends Component {
     constructor(props) {
         super(props);
@@ -54,3 +56,16 @@ export default class TablePaginationButtons extends Component {
         );
     }
 }
+
+TablePaginationButtons.propTypes = {
+    isLoading: PropTypes.bool.isRequired,
+    onNextClicked: PropTypes.func,
+    onPreviousClicked: PropTypes.func,
+    nextButtonText: PropTypes.string,
+    previousButtonText: PropTypes.string,
+    forceDisableNextButton: PropTypes.bool,
+    forceDisablePreviousButton: PropTypes.bool,
+    totalItemsCount: PropTypes.number,
+    currentPageCount: PropTypes.number,
+    noOfItemsInPage: PropTypes.number,
+};

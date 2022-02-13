@@ -35,11 +35,9 @@ export default class TableItem extends Component {
     }
 }
 
-
 TableItem.propTypes = {
     item: PropTypes.object.isRequired,
-    onClick:  PropTypes.func,
-    columns:  PropTypes.array,
-    actionButtons: PropTypes.array
-}
-
+    onClick: PropTypes.func,
+    columns: PropTypes.array,
+    actionButtons: PropTypes.array,
+};

@@ -8,7 +8,6 @@ export default class TableItemColumnData extends Component {
     }
 
     getElement() {
-
         const { item, column } = this.props;
         const {
             onColumnItemClick,
@@ -35,19 +34,18 @@ export default class TableItemColumnData extends Component {
                         itemPropertyDescriptionNullText}
                 </div>
             </div>
-        </td>
+        </td>;
     }
 
     render() {
-
         const { column } = this.props;
-        
+
         const {
             visibleForOwner,
             visibleForAdmin,
             visibleForViewer,
             visibleForMember,
-            visibleForAll
+            visibleForAll,
         } = column;
 
         return (
@@ -63,3 +61,8 @@ export default class TableItemColumnData extends Component {
         );
     }
 }
+
+TableItemColumnData.propTypes = {
+    column: PropTypes.object.isRequired,
+    item: PropTypes.object.isRequired,
+};

@@ -11,18 +11,18 @@ export default class RenderBasedOnRole extends Component {
         super(props);
     }
 
-    render(){
+    render() {
         const {
             visibleForOwner,
             visibleForAdmin,
             visibleForViewer,
             visibleForMember,
             visibleForAll,
-            children
+            children,
         } = this.props;
 
-        if(visibleForAll){
-            return children; 
+        if (visibleForAll) {
+            return children;
         }
 
         if (visibleForAdmin) {
@@ -43,3 +43,12 @@ export default class RenderBasedOnRole extends Component {
     }
 }
 
+RenderBasedOnRole.propTypes = {
+    children: PropTypes.any.isRequired,
+
+    visibleForOwner: PropTypes.bool,
+    visibleForAdmin: PropTypes.bool,
+    visibleForViewer: PropTypes.bool,
+    visibleForMember: PropTypes.bool,
+    visibleForAll: PropTypes.bool,
+};

@@ -1,8 +1,6 @@
 import React, { Component } from 'react';
-import RenderIfAdmin from './RenderIfAdmin';
-import RenderIfOwner from './RenderIfOwner';
-import RenderIfMember from './RenderIfMember';
-import RenderIfViewer from '../RenderIfViewer';
+import PropTypes from 'prop-types';
+import RenderBasedOnRole from './RenderBasedOnRole';
 
 export default class Button extends Component {
     constructor(props) {
@@ -45,7 +43,7 @@ export default class Button extends Component {
             visibleForAdmin,
             visibleForViewer,
             visibleForMember,
-            visibleForAll = true
+            visibleForAll = true,
         } = this.props;
 
         return (
@@ -61,3 +59,17 @@ export default class Button extends Component {
         );
     }
 }
+
+Button.propTypes = {
+    title: PropTypes.string.isRequired,
+    onClick: PropTypes.func,
+    disabled: PropTypes.bool,
+    id: PropTypes.string,
+    shortcutKey: PropTypes.string,
+
+    visibleForOwner: PropTypes.bool,
+    visibleForAdmin: PropTypes.bool,
+    visibleForViewer: PropTypes.bool,
+    visibleForMember: PropTypes.bool,
+    visibleForAll: PropTypes.bool,
+};

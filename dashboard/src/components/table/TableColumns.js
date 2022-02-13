@@ -13,8 +13,8 @@ export default class TableColumns extends Component {
             <thead className="Table-body">
                 <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                     {columns &&
-                        columns.map(column => {
-                            return <TableColumn column={column} />;
+                        columns.map((column, i) => {
+                            return <TableColumn key={i} column={column} />;
                         })}
                 </tr>
             </thead>
@@ -22,8 +22,6 @@ export default class TableColumns extends Component {
     }
 }
 
-
-Table.propTypes = {
+TableColumns.propTypes = {
     columns: PropTypes.array.isRequired, // this contains props like [{name, id, onClick, itemPropertyKey, itemPropertyNullText, itemPropertyDescriptionKey, itemPropertyDescriptionNullText, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
 };
-

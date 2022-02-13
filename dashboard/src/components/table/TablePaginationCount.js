@@ -37,3 +37,12 @@ export default class TablePaginationCount extends Component {
         );
     }
 }
+
+TablePaginationCount.propTypes = {
+    isLoading: PropTypes.bool.isRequired,
+    totalItemsCount: PropTypes.number,
+    friendlyName: PropTypes.string,
+    friendlyNamePlural: PropTypes.string,
+    currentPageCount: PropTypes.number,
+    noOfItemsInPage: PropTypes.number,
+};

@@ -24,9 +24,10 @@ export default class TableHeader extends Component {
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <div className="Box-root">
                                 {headerButtons &&
-                                    headerButtons.map(button => {
+                                    headerButtons.map((button, i) => {
                                         return (
                                             <Button
+                                                key={i}
                                                 title={button.title}
                                                 shortcutKey={button.shortcutKey}
                                                 id={button.tiidtle}
@@ -55,9 +56,8 @@ export default class TableHeader extends Component {
     }
 }
 
-
 TableHeader.propTypes = {
     title: PropTypes.string.isRequired,
-    description:  PropTypes.string,
-    headerButtons:  PropTypes.array,
-}
+    description: PropTypes.string,
+    headerButtons: PropTypes.array,
+};

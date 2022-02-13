@@ -15,3 +15,7 @@ export default class TableTitle extends Component {
         );
     }
 }
+
+TableTitle.propTypes = {
+    title: PropTypes.string.isRequired,
+};
