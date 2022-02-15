@@ -1,8 +1,8 @@
 import BaseAction from "./base";
 
 class ListActionBase extends BaseAction {
-    constructor({ friendlyName, apiPath, isInProject,isRequestAllowed }) {
-        super({ friendlyName, apiPath, isInProject, isRequestAllowed, actionType: "list" });
+    constructor({ friendlyName, apiPath, isResourceInProject,isRequestAllowed }) {
+        super({ friendlyName, apiPath, isResourceInProject, isRequestAllowed, actionType: "list" });
     }
 }
 

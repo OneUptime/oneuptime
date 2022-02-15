@@ -2,7 +2,7 @@ import { postApi, getApi, putApi, deleteApi } from '../api';
 import { getErrorMessageFromResponse } from '../../utils/error';
 
 class BaseAction {
-    constructor({ friendlyName, apiPath, isInProject, actionType, isRequestAllowed = true }) {
+    constructor({ friendlyName, apiPath, isResourceInProject, actionType, isRequestAllowed = true }) {
 
         if (!friendlyName) {
             throw new Error("friendlyName is required.")
@@ -18,7 +18,7 @@ class BaseAction {
             this.ApiName = friendlyName.toLowerCase().replace(" ", "-");
         }
 
-        this.isInProject = isInProject;
+        this.isResourceInProject = isResourceInProject;
         this.actionType = actionType;
         this.isRequestAllowed = isRequestAllowed;
 
@@ -91,7 +91,7 @@ class BaseAction {
 
                 let path = `${this.ApiName}`;
 
-                if (this.isInProject) {
+                if (this.isResourceInProject) {
                     path += `/${data.projectId}`;
                 }
 

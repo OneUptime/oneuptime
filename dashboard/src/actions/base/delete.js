@@ -1,8 +1,8 @@
 import BaseAction from "./base";
 
 class DeleteActionBase extends BaseAction {
-    constructor({ friendlyName, apiPath, isInProject, isRequestAllowed }) {
-        super({ friendlyName, apiPath, isInProject, isRequestAllowed, actionType: "delete" });
+    constructor({ friendlyName, apiPath, isResourceInProject, isRequestAllowed }) {
+        super({ friendlyName, apiPath, isResourceInProject, isRequestAllowed, actionType: "delete" });
     }
 }
 

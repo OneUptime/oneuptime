@@ -14,8 +14,6 @@ function BreadCrumbItem({
     status,
     containerType,
     icon,
-    switchToProjectViewerNav,
-    // addBtn,
     btnText,
     toggleForm,
 }) {
@@ -29,9 +27,6 @@ function BreadCrumbItem({
 
     const getRoute = route => {
         if (route === '/') {
-            if (switchToProjectViewerNav) {
-                return `/dashboard/project/${slug}/status-pages`;
-            }
             return `/dashboard/project/${slug}`;
         }
         return route;
@@ -142,7 +137,6 @@ BreadCrumbItem.propTypes = {
     status: PropTypes.string,
     containerType: PropTypes.string,
     icon: PropTypes.string,
-    switchToProjectViewerNav: PropTypes.bool,
     // addBtn: PropTypes.bool,
     btnText: PropTypes.string,
     toggleForm: PropTypes.func,
