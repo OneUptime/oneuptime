@@ -23,9 +23,6 @@ class SlackList extends React.Component {
         } else {
             getSlack(projectId);
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > WEBHOOKS');
-        }
     }
 
     componentDidMount() {
