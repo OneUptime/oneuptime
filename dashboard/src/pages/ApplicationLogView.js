@@ -28,11 +28,6 @@ class ApplicationLogView extends Component {
         };
     }
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINERS > LOG CONTAINER DETAIL PAGE'
-            );
-        }
 
         this.ready();
     }

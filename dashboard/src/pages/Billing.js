@@ -24,9 +24,6 @@ class Billing extends Component {
     }
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > BILLING');
-        }
         this.props.getSmtpConfig(this.props.currentProjectId);
     }
 

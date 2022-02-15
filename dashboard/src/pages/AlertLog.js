@@ -20,9 +20,6 @@ class AlertLog extends Component {
         this.state = {};
     }
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > ALERT LOG');
-        }
         if (this.props?.activeProjectId) {
             this.ready();
         }

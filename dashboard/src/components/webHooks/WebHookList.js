@@ -28,10 +28,6 @@ class WebHookList extends React.Component {
         } else {
             getWebHook(projectId);
         }
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > WEBHOOKS');
-        }
     }
 
     componentDidMount() {
@@ -79,11 +75,6 @@ class WebHookList extends React.Component {
         }
 
         paginate('prev');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > WEBHOOKS > PREVIOUS CLICKED'
-            );
-        }
     };
 
     nextClicked = () => {
@@ -102,9 +93,6 @@ class WebHookList extends React.Component {
             getWebHook(projectId, skip + limit, 10);
         }
         paginate('next');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > WEBHOOKS > NEXT CLICKED');
-        }
     };
 
     render() {

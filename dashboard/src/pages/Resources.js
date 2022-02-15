@@ -14,14 +14,6 @@ class Resources extends Component {
         this.props = props;
     }
 
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > RESOURCE CATEGORY LIST'
-            );
-        }
-    }
-
     render() {
         const {
             location: { pathname },

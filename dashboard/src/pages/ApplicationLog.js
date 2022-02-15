@@ -68,11 +68,6 @@ class ApplicationLog extends Component {
     componentDidMount() {
         this.props.loadPage('Logs');
         this.setState({ requesting: true });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER LIST'
-            );
-        }
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
             fetchComponent(currentProject._id, componentSlug).then(() => {

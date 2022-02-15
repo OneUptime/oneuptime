@@ -40,10 +40,6 @@ class IncidentLog extends React.Component {
     }
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT LOG');
-        }
-
         this.ready();
     }
 
@@ -162,11 +158,6 @@ class IncidentLog extends React.Component {
         this.setState({
             page: newPageState,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > PREVIOUS BUTTON CLICKED'
-            );
-        }
     };
 
     nextClicked = (projectId, skip, limit) => {
@@ -189,11 +180,6 @@ class IncidentLog extends React.Component {
         this.setState({
             page: newPageState,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT LOG > NEXT BUTTON CLICKED'
-            );
-        }
     };
 
     render() {

@@ -158,12 +158,6 @@ export class Reports extends Component {
         });
     }
 
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > REPORTS');
-        }
-    }
-
     render() {
         const {
             location: { pathname },

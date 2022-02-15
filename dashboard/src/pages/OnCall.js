@@ -29,9 +29,6 @@ export class OnCall extends Component {
     ready() {
         const { fetchSubProjectSchedules, currentProjectId } = this.props;
         fetchSubProjectSchedules(currentProjectId);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > CALL SCHEDULE LIST');
-        }
     }
 
     componentDidMount() {
@@ -66,9 +63,6 @@ export class OnCall extends Component {
         );
         this.setState({ [subProjectId]: this.state[subProjectId] - 1 });
         paginate('prev');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: CALL SCHEDULE > PREVIOUS PAGE');
-        }
     };
 
     nextClicked = (subProjectId, skip, limit) => {
@@ -81,9 +75,6 @@ export class OnCall extends Component {
                 : this.state[subProjectId] + 1,
         });
         paginate('next');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: CALL SCHEDULE > NEXT PAGE');
-        }
     };
 
     createSchedule = subProjectId => {
@@ -94,10 +85,6 @@ export class OnCall extends Component {
                 `/dashboard/project/${this.props.currentProject.slug}/schedule/${data[0].slug}`
             );
         });
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: NEW CALL SCHEDULE CREATED');
-        }
     };
 
     handleKeyBoard = e => {

@@ -11,9 +11,6 @@ import { history } from '../store';
 
 class SsoPage extends Component {
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > INTEGRATION');
-        }
 
         const currentProject = JSON.parse(User.getProject());
         const isScalePlan = currentProject?.stripePlanId

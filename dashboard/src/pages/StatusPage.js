@@ -87,11 +87,6 @@ class StatusPage extends Component {
                 });
             }
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGE LIST > STATUS PAGE'
-            );
-        }
     }
     componentWillMount() {
         resetIdCounter();

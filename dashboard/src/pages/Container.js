@@ -68,9 +68,6 @@ class Container extends Component {
     };
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Container Security page Loaded');
-        }
         const {
             projectId,
             componentId,

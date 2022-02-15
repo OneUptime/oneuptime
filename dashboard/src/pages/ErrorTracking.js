@@ -65,11 +65,6 @@ class ErrorTracking extends Component {
     };
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING LIST'
-            );
-        }
 
         this.ready();
     }

@@ -56,10 +56,6 @@ class Incident extends React.Component {
         resetIdCounter();
     }
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
-        }
-
         this.ready();
     }
     componentDidUpdate(prevProps) {
@@ -114,15 +110,6 @@ class Incident extends React.Component {
         this.setState({
             alertLogPage: this.state.alertLogPage + 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT ALERT CLICKED',
-                {
-                    projectId: this.props.projectId,
-                    incidentSlug: this.props.incidentSlug,
-                }
-            );
-        }
     };
 
     previousAlerts = () => {
@@ -135,15 +122,6 @@ class Incident extends React.Component {
         this.setState({
             alertLogPage: this.state.alertLogPage - 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS ALERT CLICKED',
-                {
-                    projectId: this.props.projectId,
-                    incidentSlug: this.props.incidentSlug,
-                }
-            );
-        }
     };
 
     nextSubscribers = () => {
@@ -157,15 +135,6 @@ class Incident extends React.Component {
         this.setState({
             subscribeAlertPage: this.state.subscribeAlertPage + 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEXT SUBSCRIBER CLICKED',
-                {
-                    projectId: this.props.projectId,
-                    incidentSlug: this.props.incidentSlug,
-                }
-            );
-        }
     };
 
     previousSubscribers = () => {
@@ -179,15 +148,6 @@ class Incident extends React.Component {
         this.setState({
             subscribeAlertPage: this.state.subscribeAlertPage - 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > PREVIOUS SUBSCRIBER CLICKED',
-                {
-                    projectId: this.props.projectId,
-                    incidentSlug: this.props.incidentSlug,
-                }
-            );
-        }
     };
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');

@@ -24,12 +24,6 @@ class EmailTemplates extends Component {
     };
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > EMAIL TEMPLATE'
-            );
-        }
-
         this.ready();
     }
 

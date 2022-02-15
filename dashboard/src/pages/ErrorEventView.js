@@ -19,12 +19,6 @@ import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
 import { history } from '../store';
 class ErrorEventView extends Component {
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING >  ERROR TRACKING DETAIL > ERROR TRACKING ISSUE DETAIL PAGE'
-            );
-        }
-
         this.ready();
     }
     componentDidUpdate(prevProps) {

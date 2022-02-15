@@ -11,11 +11,6 @@ import { logEvent } from '../analytics';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Advanced extends Component {
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > ADVANCED');
-        }
-    }
 
     handleKeyBoard = e => {
         switch (e.key) {

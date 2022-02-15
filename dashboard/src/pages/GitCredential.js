@@ -22,10 +22,6 @@ class GitCredential extends Component {
         if (prevProps.projectId !== this.props.projectId) {
             const { projectId, getGitCredentials } = this.props;
 
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('Git Credential page Loaded');
-            }
-
             // load all the Docker Credentials
             getGitCredentials({ projectId });
         }
@@ -33,10 +29,6 @@ class GitCredential extends Component {
 
     componentDidMount() {
         const { projectId, getGitCredentials } = this.props;
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Git Credential page Loaded');
-        }
 
         // load all the Git Credentials
         getGitCredentials({ projectId });

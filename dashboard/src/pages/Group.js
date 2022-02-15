@@ -14,9 +14,6 @@ import { subProjectTeamLoading } from '../actions/team';
 
 class Groups extends Component {
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS');
-        }
         this.props.getGroups();
         this.props.subProjectTeamLoading(User.getCurrentProjectId());
     }

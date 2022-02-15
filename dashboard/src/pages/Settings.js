@@ -11,11 +11,6 @@ import { logEvent } from '../analytics';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Settings extends Component {
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS');
-        }
-    }
 
     render() {
         const {

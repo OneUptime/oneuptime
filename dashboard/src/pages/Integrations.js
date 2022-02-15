@@ -24,11 +24,7 @@ class Integrations extends Component {
     componentWillMount() {
         resetIdCounter();
     }
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > INTEGRATION');
-        }
-    }
+
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;

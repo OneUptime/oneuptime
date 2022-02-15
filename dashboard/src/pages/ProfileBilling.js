@@ -15,12 +15,6 @@ class ProfileBilling extends Component {
         this.props = props;
     }
 
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROFILE > BILLING');
-        }
-    }
-
     render() {
         const {
             location: { pathname },

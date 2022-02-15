@@ -63,11 +63,6 @@ class PerformanceTracker extends Component {
 
     componentDidMount() {
         this.props.loadPage('Performance Tracker');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > PERFORMANCE MONITOR LIST'
-            );
-        }
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
             this.setState({ requesting: true });

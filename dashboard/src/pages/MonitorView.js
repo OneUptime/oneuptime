@@ -57,11 +57,6 @@ class MonitorView extends React.Component {
     }
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DETAIL PAGE'
-            );
-        }
 
         const { currentProject } = this.props;
 

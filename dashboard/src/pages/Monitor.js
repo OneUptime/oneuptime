@@ -83,11 +83,6 @@ class MonitorDashboardView extends Component {
 
     componentDidMount() {
         this.props.loadPage('Monitors');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
-            );
-        }
 
         this.ready();
     }
