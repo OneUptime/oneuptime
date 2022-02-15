@@ -3,7 +3,13 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [        
+    "configurations": [  
+        {
+            "name": "Node.js - Debug Current File",
+            "type": "node",
+            "request": "launch",
+            "program": "${file}"
+          },   
         {
             "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/backend",
