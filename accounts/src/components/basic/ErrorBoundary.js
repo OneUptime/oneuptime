@@ -3,6 +3,12 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 class ErrorBoundary extends Component {
+
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    
     componentDidCatch(error, info) {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('ERROR: ACCOUNTS', { error, info });
