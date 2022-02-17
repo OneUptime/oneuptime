@@ -17,9 +17,7 @@ const target = document.getElementById('root');
 render(
     <Provider store={store} history={history}>
         <Frontload noServerRender={true}>
-            <ErrorBoundary>
-                <App />
-            </ErrorBoundary>
+            <App />
         </Frontload>
     </Provider>,
     target
