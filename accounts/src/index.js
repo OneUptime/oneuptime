@@ -2,7 +2,6 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { Frontload } from 'react-frontload';
 import ReactGA from 'react-ga';
-import ErrorBoundary from './components/basic/ErrorBoundary';
 import { render } from 'react-dom';
 import store, { history, isServer } from './store';
 import App from './App';
