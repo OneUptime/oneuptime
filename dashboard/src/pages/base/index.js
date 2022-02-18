@@ -51,8 +51,6 @@ export const defaultMapDispatchToProps = dispatch => {
 };
 
 export const defaultMapStateToProps = (state) => {
-    const projectId =
-        state.project.currentProject && state.project.currentProject._id;
 
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
@@ -61,7 +59,7 @@ export const defaultMapStateToProps = (state) => {
     const tutorialStat = {
         statusPage: { show: true },
     };
-    
+
     // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
     for (const key in tutorialStat) {
         if (projectCustomTutorial && projectCustomTutorial[key]) {
@@ -70,13 +68,17 @@ export const defaultMapStateToProps = (state) => {
     }
 
     return {
-        statusPage: state.statusPage,
-        projectId,
-        tutorialStat,
-        currentProject:
-            state.project.currentProject && state.project.currentProject,
-        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-        activeProjectId: state.subProject?.activeSubProject,
+        projectId: state.project?.currentProject?._id,
+        subProjectId: state.subProject?.activeSubProject?._id,
+        project: state.project?.currentProject,
+        subproject: state.subProject?.activeSubProject,
+        currentActiveProjectId: state.project?.currentProject?._id || state.subProject?.activeSubProject?._id,
+        currentActiveProject: state.project?.currentProject || state.subProject?.activeSubProject,
+        user: PropTypes.object,
+        userId: PropTypes.string,
+        userRoleByCurrentActiveProject: PropTypes.string,
+        userRoleByProject: PropTypes.string,
+        userRoleBySubProject: PropTypes.string,
     };
 }
 
