@@ -87,7 +87,7 @@ class BaseAction {
                 throw "This request is not allowed";
             }
 
-            return function (dispatch) {
+            return async function (dispatch) {
 
                 let path = `${this.ApiName}`;
 

@@ -1,8 +1,19 @@
-import BaseAction from "./base";
+import BaseAction from './base';
 
 class UpdateActionBase extends BaseAction {
-    constructor({ friendlyName, apiPath, isResourceInProject,isRequestAllowed }) {
-        super({ friendlyName, apiPath, isResourceInProject, isRequestAllowed, actionType: "update" });
+    constructor({
+        friendlyName,
+        apiPath,
+        isResourceInProject,
+        isRequestAllowed,
+    }) {
+        super({
+            friendlyName,
+            apiPath,
+            isResourceInProject,
+            isRequestAllowed,
+            actionType: 'update',
+        });
     }
 }
 

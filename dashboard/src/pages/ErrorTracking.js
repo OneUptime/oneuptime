@@ -65,7 +65,6 @@ class ErrorTracking extends Component {
     };
 
     componentDidMount() {
-
         this.ready();
     }
     componentWillUnmount() {

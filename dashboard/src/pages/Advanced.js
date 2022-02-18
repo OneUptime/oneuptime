@@ -11,7 +11,6 @@ import { logEvent } from '../analytics';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Advanced extends Component {
-
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':

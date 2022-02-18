@@ -57,7 +57,6 @@ class MonitorView extends React.Component {
     }
 
     componentDidMount() {
-
         const { currentProject } = this.props;
 
         this.ready();

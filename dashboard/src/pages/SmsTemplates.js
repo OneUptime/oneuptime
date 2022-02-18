@@ -24,7 +24,6 @@ class SmsTemplates extends Component {
     };
 
     componentDidMount() {
-
         this.ready();
     }
 

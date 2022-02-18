@@ -1,5 +1,4 @@
-export const getErrorMessageFromResponse = (error) => {
-    
+export const getErrorMessageFromResponse = error => {
     if (error && error.response && error.response.data)
         error = error.response.data;
     if (error && error.data) {
@@ -12,9 +11,8 @@ export const getErrorMessageFromResponse = (error) => {
     }
 
     if (error.toString() === 'Error: Network Error') {
-        return 'Check your network connection.'
+        return 'Check your network connection.';
     }
 
-
     return error;
-}
+};

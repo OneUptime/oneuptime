@@ -3,7 +3,6 @@ import * as types from '../constants/statusPage';
 import FormData from 'form-data';
 import errors from '../errors';
 
-
 // handle whether to show domain input field
 export function addMoreDomain() {
     return {
@@ -1944,8 +1943,6 @@ export function resetFaviconCache() {
         type: types.FAVICON_CACHE_RESET,
     };
 }
-
-
 
 export function switchStatusPage(statusPage) {
     return {

@@ -11,7 +11,6 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class StatusPages extends Component {
-
     render() {
         const {
             projectId,

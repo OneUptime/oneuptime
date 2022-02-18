@@ -7,14 +7,13 @@ export default class Button extends Component {
         super(props);
     }
 
-    componentDidMount(){
+    componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount(){
+    componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
-
 
     handleKeyboard(event) {
         const { shortcutKey, onClick } = this.props;
@@ -29,7 +28,7 @@ export default class Button extends Component {
                     return false;
             }
         }
-    };
+    }
 
     getElement() {
         const { title, shortcutKey, id, onClick, disabled } = this.props;
@@ -38,8 +37,9 @@ export default class Button extends Component {
             <button
                 id={id}
                 onClick={onClick}
-                className={`${'Button bs-ButtonLegacy ActionIconParent'} ${disabled ? 'Is--disabled' : ''
-                    }`}
+                className={`${'Button bs-ButtonLegacy ActionIconParent'} ${
+                    disabled ? 'Is--disabled' : ''
+                }`}
                 type="button"
                 disabled={disabled}
             >

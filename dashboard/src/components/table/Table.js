@@ -14,7 +14,7 @@ class Table extends Component {
 
     render() {
         const {
-            id
+            id,
             title,
             description,
             columns = [], // this contains props like [{name, id, onClick, itemPropertyKey, itemPropertyNullText, itemPropertyDescriptionKey, itemPropertyDescriptionNullText, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }]
@@ -73,7 +73,9 @@ class Table extends Component {
                             nextButtonText={nextButtonText}
                             previousButtonText={previousButtonText}
                             forceDisableNextButton={forceDisableNextButton}
-                            forceDisablePreviousButton={forceDisablePreviousButton}
+                            forceDisablePreviousButton={
+                                forceDisablePreviousButton
+                            }
                             totalItemsCount={totalItemsCount}
                             friendlyName={friendlyName}
                             friendlyNamePlural={friendlyNamePlural}

@@ -1,29 +1,26 @@
 import Actions from './base/index';
 
-export class StatusPageActions extends Actions{
-    constructor(){
+export class StatusPageActions extends Actions {
+    constructor() {
         super({
             createActionProps: {
-                isRequestAllowed: true
+                isRequestAllowed: true,
             },
             deleteActionProps: {
-                isRequestAllowed: true
+                isRequestAllowed: true,
             },
             getActionProps: {
-                isRequestAllowed: true
+                isRequestAllowed: true,
             },
             updateActionProps: {
-                isRequestAllowed: true
+                isRequestAllowed: true,
             },
             listActionProps: {
-                isRequestAllowed: true
+                isRequestAllowed: true,
             },
-            apiPath: "status-page",
-            friendlyName: "Status Page",
-            isResourceInProject: true
-        })
+            apiPath: 'status-page',
+            friendlyName: 'Status Page',
+            isResourceInProject: true,
+        });
     }
 }
-
-
-

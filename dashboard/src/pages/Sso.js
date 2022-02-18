@@ -11,7 +11,6 @@ import { history } from '../store';
 
 class SsoPage extends Component {
     componentDidMount() {
-
         const currentProject = JSON.parse(User.getProject());
         const isScalePlan = currentProject?.stripePlanId
             ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===

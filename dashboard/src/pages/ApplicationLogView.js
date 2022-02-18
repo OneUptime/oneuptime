@@ -28,7 +28,6 @@ class ApplicationLogView extends Component {
         };
     }
     componentDidMount() {
-
         this.ready();
     }
 

@@ -11,7 +11,6 @@ import { logEvent } from '../analytics';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Settings extends Component {
-
     render() {
         const {
             location: { pathname },

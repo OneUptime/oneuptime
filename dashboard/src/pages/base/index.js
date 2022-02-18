@@ -5,25 +5,46 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import { history } from '../../store';
 
 class Page extends Component {
+    constructor({
+        pageName,
+        friendlyPageName,
+        pagePath,
+        breadCrumbsProps,
+        showTutorial,
+        ...props
+    }) {
+        super({
+            history,
+            pageName,
+            friendlyPageName,
+            pagePath,
+            breadCrumbsProps,
+            showTutorial,
+            ...props,
+        });
+    }
 
-    constructor({ pageName, pageFriendlyName, pagePath, breadCrumbsProps, showTutorial, ...props }) {
-        super({ pageName, pageFriendlyName, pagePath, breadCrumbsProps, showTutorial, ...props });
+    goToPageInProject(pathName) {
+        const { projectId } = this.props;
+
+        this.goToPage(`/dashboard/${projectId}/${pathName}`);
+    }
+
+    goToPage(pathName) {
+        this.props.history.push(pathName);
     }
 
     renderCommon(children) {
-        const {
-            projectId,
-            project,
-        } = this.props;
+        const { projectId, project } = this.props;
 
         const projectName = project ? project.name : '';
         const projectSlug = project ? project.slug : '';
 
         return (
             <Fade>
-
                 <BreadCrumbItem
                     route="/"
                     name={projectName}
@@ -31,13 +52,10 @@ class Page extends Component {
                     slug={projectSlug}
                 />
 
-                <BreadCrumbItem route={pagePath} name={pageFriendlyName} />
+                <BreadCrumbItem route={pagePath} name={friendlyPageName} />
 
                 <ShouldRender if={showTutorial}>
-                    <TutorialBox
-                        type={pageName}
-                        currentProjectId={projectId}
-                    />
+                    <TutorialBox type={pageName} currentProjectId={projectId} />
                 </ShouldRender>
                 {/** Render Children */}
                 {children}
@@ -46,12 +64,11 @@ class Page extends Component {
     }
 }
 
-export const defaultMapDispatchToProps = dispatch => {
-    return bindActionCreators({}, dispatch);
+export const defaultMapDispatchToProps = () => {
+    return {};
 };
 
-export const defaultMapStateToProps = (state) => {
-
+export const defaultMapStateToProps = state => {
     // try to get custom project tutorial by project ID
     const projectCustomTutorial = state.tutorial[projectId];
 
@@ -72,15 +89,18 @@ export const defaultMapStateToProps = (state) => {
         subProjectId: state.subProject?.activeSubProject?._id,
         project: state.project?.currentProject,
         subproject: state.subProject?.activeSubProject,
-        currentActiveProjectId: state.project?.currentProject?._id || state.subProject?.activeSubProject?._id,
-        currentActiveProject: state.project?.currentProject || state.subProject?.activeSubProject,
-        user: PropTypes.object,
-        userId: PropTypes.string,
-        userRoleByCurrentActiveProject: PropTypes.string,
-        userRoleByProject: PropTypes.string,
-        userRoleBySubProject: PropTypes.string,
+        currentActiveProjectId:
+            state.project?.currentProject?._id ||
+            state.subProject?.activeSubProject?._id,
+        currentActiveProject:
+            state.project?.currentProject || state.subProject?.activeSubProject,
+        user: state.user.user,
+        userId: state.user.user._id,
+        userRoleByCurrentActiveProject: null,
+        userRoleByProject: null,
+        userRoleBySubProject: null,
     };
-}
+};
 
 Page.defaultPropTypes = {
     projectId: PropTypes.string,
@@ -92,6 +112,9 @@ Page.defaultPropTypes = {
     user: PropTypes.object,
     userId: PropTypes.string,
     userRoleByCurrentActiveProject: PropTypes.string,
+    location: PropTypes.shape({
+        pathname: PropTypes.string,
+    }),
 };
 
 Page.displayName = 'Page';
