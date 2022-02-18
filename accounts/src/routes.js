@@ -26,6 +26,7 @@ export const groups = [
                 visible: true,
                 index: 1,
             },
+
             {
                 title: 'SSO Login',
                 path: '/ssologin',
@@ -95,6 +96,16 @@ export const groups = [
                 isPublic: true,
                 visible: true,
                 index: 8,
+            },
+            {
+                title: 'Login',
+                path: '/sso/:domain',
+                icon: 'home',
+                component: Login,
+                subRoutes: [],
+                isPublic: true,
+                visible: true,
+                index: 9,
             },
         ],
     },

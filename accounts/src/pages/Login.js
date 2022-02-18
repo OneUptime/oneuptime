@@ -12,6 +12,7 @@ import { SHOULD_LOG_ANALYTICS, DISABLE_SIGNUP } from '../config';
 import { history } from '../store';
 import { resendTokenReset, resendToken } from '../actions/resendToken';
 import { ButtonSpinner } from '../components/basic/Loader';
+import { changeLogin } from '../actions/login';
 
 class LoginPage extends React.Component {
     constructor(props) {
@@ -24,6 +25,10 @@ class LoginPage extends React.Component {
         document.body.style.overflow = 'auto';
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: LOG IN');
+        }
+
+        if (this.props.location?.pathname?.includes('/sso/')) {
+            this.props.changeLogin('sso');
         }
     }
 
@@ -176,7 +181,14 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
-        { loginUser, loginUserSso, loginError, resendTokenReset, resendToken },
+        {
+            loginUser,
+            loginUserSso,
+            loginError,
+            resendTokenReset,
+            resendToken,
+            changeLogin,
+        },
         dispatch
     );
 
@@ -193,6 +205,7 @@ LoginPage.propTypes = {
     resendToken: PropTypes.func,
     resendTokenRequest: PropTypes.object,
     resendTokenReset: PropTypes.func,
+    changeLogin: PropTypes.func,
 };
 
 LoginPage.displayName = 'LoginPage';
