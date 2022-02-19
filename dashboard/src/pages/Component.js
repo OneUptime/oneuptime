@@ -20,7 +20,6 @@ import { loadPage } from '../actions/page';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
 
-import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -76,7 +75,6 @@ class ComponentDashboardView extends Component {
 
     componentDidMount() {
         this.props.loadPage('Components');
-        
 
         this.ready();
     }

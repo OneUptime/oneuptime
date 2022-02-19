@@ -10,8 +10,6 @@ import { withRouter } from 'react-router-dom';
 import { openModal } from '../actions/modal';
 import DeleteComponent from '../components/modals/DeleteComponent';
 import { deleteComponent } from '../actions/component';
-
-import { IS_SAAS_SERVICE } from '../config';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,7 +32,7 @@ class ComponentSettingsAdvanced extends Component {
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(`/dashboard/project/${this.props.slug}/components`);
-        
+
         return promise;
     };
 
