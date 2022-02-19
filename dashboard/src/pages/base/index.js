@@ -43,7 +43,7 @@ class Page extends Component {
             friendlyPageName,
             pagePath,
             showTutorial,
-            pageName
+            pageName,
         } = this.props;
 
         const projectName = project ? project.name : '';
@@ -75,7 +75,6 @@ export const defaultMapDispatchToProps = () => {
 };
 
 export const defaultMapStateToProps = state => {
-
     return {
         projectId: state.project?.currentProject?._id,
         subProjectId: state.subProject?.activeSubProject?._id,
