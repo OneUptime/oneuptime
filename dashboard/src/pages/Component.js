@@ -498,18 +498,9 @@ const mapStateToProps = state => {
 };
 
 ComponentDashboardView.propTypes = {
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    component: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    components: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
+    component:  PropTypes.object,
+    components: PropTypes.array,
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
     fetchMonitors: PropTypes.func.isRequired,
