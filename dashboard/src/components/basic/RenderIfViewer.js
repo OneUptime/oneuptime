@@ -11,9 +11,7 @@ export function RenderIfViewer(props) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user =>
-                user.userId === userId &&
-                (user.role === 'Viewer')
+            user => user.userId === userId && user.role === 'Viewer'
         ).length > 0
     ) {
         renderItems = children;

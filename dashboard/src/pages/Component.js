@@ -499,7 +499,7 @@ const mapStateToProps = state => {
 
 ComponentDashboardView.propTypes = {
     currentProject: PropTypes.object,
-    component:  PropTypes.object,
+    component: PropTypes.object,
     components: PropTypes.array,
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,

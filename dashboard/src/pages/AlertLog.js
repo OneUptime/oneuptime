@@ -210,7 +210,7 @@ AlertLog.propTypes = {
     fetchProjectAlert: PropTypes.func,
     currentProject: PropTypes.object.isRequired,
     alerts: PropTypes.object,
-    error:  PropTypes.object,
+    error: PropTypes.object,
     isRequesting: PropTypes.bool,
     subProjects: PropTypes.array.isRequired,
     location: PropTypes.shape({
