@@ -27,7 +27,6 @@ import StatusIndicator from './StatusIndicator';
 import ProbeBar from './ProbeBar';
 import { getMonitorStatus, filterProbeData } from '../../config';
 
-
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 export class MonitorDetail extends Component {
@@ -134,8 +133,6 @@ export class MonitorDetail extends Component {
                         this.state[this.props.monitor._id] - 1,
                 });
             });
-
-        
     };
 
     nextClicked = () => {
@@ -160,13 +157,10 @@ export class MonitorDetail extends Component {
                         : 2,
                 });
             });
-
-        
     };
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-       
     };
 
     handleKeyBoard = e => {

@@ -17,7 +17,6 @@ import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 
-
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
 export class PrivateStatusPage extends Component {

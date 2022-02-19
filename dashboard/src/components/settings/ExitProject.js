@@ -10,7 +10,6 @@ import ShouldRender from '../basic/ShouldRender';
 import ExitProjectModal from './ExitProjectModal';
 import { openModal, closeModal } from '../../actions/modal';
 
-
 import { history } from '../../store';
 
 export class ExitProjectBox extends Component {
@@ -34,8 +33,6 @@ export class ExitProjectBox extends Component {
                     }
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
                     getProjects(false);
-
-                    
                 });
             },
             content: ExitProjectModal,

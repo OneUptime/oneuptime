@@ -29,9 +29,9 @@ export class APISettings extends Component {
             onClose: () => '',
             content: ResetAPIKey,
             onConfirm: () => {
-                return this.props
-                    .resetProjectToken(this.props.currentProject._id)
-                    
+                return this.props.resetProjectToken(
+                    this.props.currentProject._id
+                );
             },
         });
     };

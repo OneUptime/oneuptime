@@ -13,8 +13,6 @@ import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 
-
-
 class SmsTemplatesBox extends React.Component {
     submitForm = values => {
         const { currentProject } = this.props;

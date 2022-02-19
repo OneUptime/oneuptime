@@ -10,7 +10,6 @@ import { fetchCustomFields } from '../../actions/monitorCustomField';
 import DeleteMonitorCustomField from '../modals/DeleteMonitorCustomField';
 import CreateMonitorCustomField from '../modals/CreateMonitorCustomField';
 
-
 import DataPathHoC from '../DataPathHoC';
 import EditMonitorCustomField from '../modals/EditMonitorCustomField';
 
@@ -24,7 +23,6 @@ class MonitorCustomFields extends Component {
         const { fetchCustomFields, currentProject } = this.props;
         const projectId = currentProject._id;
         fetchCustomFields(projectId, 0, this.limit);
-       
     }
 
     prevClicked = (projectId, skip) => {

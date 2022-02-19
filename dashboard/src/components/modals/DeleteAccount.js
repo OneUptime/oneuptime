@@ -5,7 +5,7 @@ import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import {  Validate } from '../../config';
+import { Validate } from '../../config';
 
 import { bindActionCreators } from 'redux';
 import { deleteAccount } from '../../actions/profile';
@@ -88,7 +88,7 @@ class DeleteAccount extends Component {
         const userId = this.props.profileSettings.data.id;
         values.deleteMyAccount = values.deleteMyAccount.toUpperCase();
         const promise = this.props.deleteAccount(userId, values);
-       
+
         return promise;
     };
 

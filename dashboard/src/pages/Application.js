@@ -67,7 +67,6 @@ class Application extends Component {
     };
 
     componentDidMount() {
-       
         const {
             projectId,
             componentId,

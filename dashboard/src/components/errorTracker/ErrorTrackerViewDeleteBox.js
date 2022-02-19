@@ -7,7 +7,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { deleteErrorTracker } from '../../actions/errorTracker';
 
-
 import { history } from '../../store';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 
@@ -30,7 +29,7 @@ class ErrorTrackerViewDeleteBox extends Component {
             `/dashboard/project/${currentProject.slug}/component/${this.props
                 .component && this.props.component.slug}/error-tracker`
         );
-       
+
         return promise;
     };
     render() {

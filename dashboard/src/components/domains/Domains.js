@@ -7,7 +7,6 @@ import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 
-
 import { fetchProjectDomains } from '../../actions/project';
 import CreateDomain from './CreateDomain';
 import EditDomain from './EditDomain';
@@ -26,8 +25,6 @@ class Domains extends Component {
             const projectId = currentProject._id;
             fetchProjectDomains(projectId, 0, this.limit);
         }
-
-        
     }
 
     componentDidUpdate(prevProps) {

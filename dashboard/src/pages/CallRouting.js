@@ -51,7 +51,6 @@ class CallRouting extends Component {
         this.props.getCallRoutingNumbers(projectId);
         this.props.getTeamAndSchedules(projectId);
         this.props.getCallRoutingLogs(projectId, 0, 10);
-        
     };
 
     tabSelected = index => {

@@ -65,8 +65,6 @@ class CreateDomain extends React.Component {
                 closeModal({
                     id: projectId,
                 });
-
-               
             }
         });
     };

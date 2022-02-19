@@ -106,7 +106,6 @@ export class FormModal extends Component {
                 }
             );
         }
-       
     };
 
     handleKeyBoard = e => {

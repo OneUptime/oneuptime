@@ -54,7 +54,6 @@ export class CustomerBalance extends Component {
         if (isOwnerOrAdmin(userId, currentProject)) {
             const { createTopUpModalId } = this.state;
             const { rechargeBalanceAmount } = values;
-           
 
             if (rechargeBalanceAmount) {
                 openModal({

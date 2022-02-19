@@ -10,8 +10,6 @@ import { RenderField } from '../basic/RenderField';
 import { editMonitor, resetEditMonitor } from '../../actions/monitor';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
 
-
-
 class ThirdPartyVariables extends Component {
     componentDidMount() {
         const {
@@ -42,8 +40,6 @@ class ThirdPartyVariables extends Component {
         }));
 
         this.props.editMonitor(currentProject._id, postObj);
-
-       
     };
 
     render() {

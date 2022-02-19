@@ -28,7 +28,6 @@ import Colors from './Colors';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
-
 import ConfirmResetBrandColors from '../modals/ConfirmResetBrandColors';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
@@ -109,7 +108,6 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-
     };
 
     changefavicon = e => {

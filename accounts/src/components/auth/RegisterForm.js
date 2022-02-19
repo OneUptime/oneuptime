@@ -31,13 +31,11 @@ export class RegisterForm extends Component {
         this.props.isUserInvited(values).then(
             function(value) {
                 if (value.data) {
-                    thisObj.props
-                        .signupUser({
-                            ...values,
-                            planId: thisObj.props.planId,
-                            token,
-                        })
-                        
+                    thisObj.props.signupUser({
+                        ...values,
+                        planId: thisObj.props.planId,
+                        token,
+                    });
                 } else {
                     if (!IS_SAAS_SERVICE) {
                         thisObj.props.signupUser(values);

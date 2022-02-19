@@ -6,7 +6,6 @@ import Fade from 'react-reveal/Fade';
 import { loadPage } from '../actions/page';
 
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
-import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -53,7 +52,7 @@ class Home extends Component {
     };
     componentDidMount() {
         this.props.loadPage('Home');
-       
+
         this.props.userScheduleRequest();
         if (this.props.currentProjectId) {
             this.props.fetchUnresolvedIncidents(

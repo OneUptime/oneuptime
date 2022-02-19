@@ -49,16 +49,13 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-
     };
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-       
     };
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        
     };
 
     handleKeyBoard = e => {

@@ -11,8 +11,6 @@ import { createMonitor, resetCreateMonitor } from '../../actions/monitor';
 import PropTypes from 'prop-types';
 import { PricingPlan } from '../../config';
 
-
-
 export class UpgradePlanModal extends Component {
     constructor(props) {
         super(props);
@@ -47,7 +45,7 @@ export class UpgradePlanModal extends Component {
         } = PricingPlan.getPlanById(values.planId);
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-        
+
         this.hideForm();
     }
 

@@ -41,7 +41,6 @@ class AlertLog extends Component {
             10
         );
         this.setState({ [projectId]: this.state[projectId] - 1 });
-        
     };
 
     nextClicked = (projectId, skip, limit) => {
@@ -49,7 +48,6 @@ class AlertLog extends Component {
         this.setState({
             [projectId]: !this.state[projectId] ? 2 : this.state[projectId] + 1,
         });
-        
     };
 
     render() {

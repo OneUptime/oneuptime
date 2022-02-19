@@ -8,8 +8,6 @@ import { getSlackTeams, paginate } from '../../actions/slack';
 import { OnCallTableHeader } from '../onCall/OnCallData';
 import { ListLoader } from '../basic/Loader';
 
-
-
 class SlackTeamList extends React.Component {
     ready() {
         const {

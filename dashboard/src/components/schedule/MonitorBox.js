@@ -12,7 +12,6 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
-
 import Tooltip from '../basic/Tooltip';
 
 function submitMonitorForm(values, dispatch, props) {
@@ -32,8 +31,6 @@ function submitMonitorForm(values, dispatch, props) {
         monitorIds: monitors,
         isDefault: values.isDefault,
     });
-
-   
 }
 
 export function MonitorBox(props) {

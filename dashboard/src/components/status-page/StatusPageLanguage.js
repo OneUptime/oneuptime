@@ -12,8 +12,6 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { openModal } from '../../actions/modal';
 
-
-
 export function StatusPageLanguage(props) {
     const [error, setError] = useState('');
     const [language] = useState([

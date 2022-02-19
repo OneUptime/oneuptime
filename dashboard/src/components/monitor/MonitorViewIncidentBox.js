@@ -12,7 +12,6 @@ import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
 
-
 import DropDownMenu from '../basic/DropDownMenu';
 
 export class MonitorViewIncidentBox extends Component {
@@ -39,7 +38,6 @@ export class MonitorViewIncidentBox extends Component {
         this.setState({
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
-        
     };
 
     nextClicked = () => {
@@ -52,7 +50,6 @@ export class MonitorViewIncidentBox extends Component {
             10
         );
         this.setState({ page: this.state.page + 1 });
-        
     };
 
     handleKeyBoard = e => {

@@ -62,8 +62,6 @@ class AddNoteModal extends Component {
         createScheduledEventNote(projectId, scheduledEventId, postObj).then(
             () => {
                 if (!createError) {
-                    
-
                     return closeModal({ id: modalId });
                 }
             }

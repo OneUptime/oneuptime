@@ -16,7 +16,6 @@ import { getVersion } from '../../actions/version';
 import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 
-
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import OnCallScheduleModal from '../OnCallScheduleModal';
@@ -113,23 +112,19 @@ class TopContent extends Component {
 
     showFeedbackModal = () => {
         this.props.openFeedbackModal();
-       
     };
 
     hideFeedbackModal = () => {
         this.props.resetCreateFeedback();
         this.props.closeFeedbackModal();
-        
     };
 
     showProfileMenu = e => {
         this.props.showProfileMenu(e.clientX);
-        
     };
 
     showNotificationsMenu = e => {
         this.props.openNotificationMenu(e.clientX);
-        
     };
 
     handleKeyBoard = e => {

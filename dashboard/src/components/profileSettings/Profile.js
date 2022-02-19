@@ -38,7 +38,6 @@ import ReactPhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
 
-
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import TwoFactorAuthModal from '../modals/TwoFactorAuth';
@@ -154,7 +153,6 @@ export class ProfileSetting extends Component {
     };
 
     async componentDidMount() {
-       
         await this.props.userSettings();
         const profilePic =
             this.props.profileSettings &&
@@ -223,7 +221,6 @@ export class ProfileSetting extends Component {
         } catch (error) {
             return;
         }
-       
     };
 
     handleChange = () => {
@@ -336,7 +333,7 @@ export class ProfileSetting extends Component {
         updateProfileSetting(values).then(function() {
             resetFile();
         });
-        
+
         User.setEmail(values.email);
         User.setName(values.name);
     };

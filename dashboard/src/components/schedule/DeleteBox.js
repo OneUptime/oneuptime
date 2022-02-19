@@ -10,8 +10,6 @@ import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal } from '../../actions/modal';
 
-
-
 export class DeleteScheduleBox extends Component {
     constructor(props) {
         super(props);
@@ -32,7 +30,6 @@ export class DeleteScheduleBox extends Component {
             id: deleteModalId,
             onConfirm: () => {
                 return deleteSchedule(subProjectId, scheduleId).then(() => {
-                    
                     this.props.fetchUserSchedule(projectId, userId);
                     history.push(
                         `/dashboard/project/${this.props.slug}/on-call`

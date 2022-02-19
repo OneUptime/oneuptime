@@ -18,7 +18,6 @@ import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
 import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
 
-
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 import DropDownMenu from '../basic/DropDownMenu';
 import ExitProjectModal from '../settings/ExitProjectModal';
@@ -80,8 +79,6 @@ export class TeamMember extends Component {
                 return exitProject(subProjectId, userId).then(function() {
                     window.location.reload();
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
-
-                   
                 });
             },
             content: ExitProjectModal,

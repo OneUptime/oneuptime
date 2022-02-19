@@ -131,6 +131,10 @@ Page.defaultPropTypes = {
     showTutorial: PropTypes.bool,
 };
 
+Page.propTypes = {
+    ...Page.defaultPropTypes
+}
+
 Page.displayName = 'Page';
 
 export default Page;

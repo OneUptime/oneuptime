@@ -7,7 +7,6 @@ import {
     deleteIncidentMessage,
 } from '../../actions/incident';
 
-
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,7 +33,6 @@ export class IncidentInvestigation extends Component {
         this.setState({
             page: this.state.page - 1,
         });
-        
     };
 
     newerInvestigationMessage = () => {
@@ -48,7 +46,6 @@ export class IncidentInvestigation extends Component {
         this.setState({
             page: this.state.page + 1,
         });
-        
     };
     deleteInvestigationMessage = incidentMessageId => {
         const promise = this.props.deleteIncidentMessage(
@@ -56,7 +53,7 @@ export class IncidentInvestigation extends Component {
             this.props.incident._id,
             incidentMessageId
         );
-       
+
         return promise;
     };
     render() {

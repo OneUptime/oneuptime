@@ -65,8 +65,6 @@ class EditDomain extends React.Component {
             if (!this.props.updateDomainError) {
                 fetchProjectDomains(currentProject._id, 0, 10);
                 this.handleCloseModal();
-
-               
             }
         });
     };

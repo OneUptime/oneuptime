@@ -7,7 +7,6 @@ import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { getCallRoutingLogs } from '../../actions/callRouting';
 
-
 import moment from 'moment';
 
 const formatNumber = phoneNumberString => {
@@ -22,9 +21,7 @@ const formatNumber = phoneNumberString => {
     return phoneNumberString;
 };
 class CallRoutingLog extends Component {
-    componentDidMount() {
-       
-    }
+    componentDidMount() {}
 
     prevClicked = (projectId, skip) => {
         const { getCallRoutingLogs, limit } = this.props;

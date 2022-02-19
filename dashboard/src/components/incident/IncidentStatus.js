@@ -19,7 +19,6 @@ import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
-
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 //import EditIncident from '../modals/EditIncident';
@@ -191,7 +190,6 @@ export class IncidentStatus extends Component {
                     'internal'
                 );
             });
-       
     };
 
     resolve = async setLoading => {
@@ -236,7 +234,6 @@ export class IncidentStatus extends Component {
                     'internal'
                 );
             });
-       
     };
 
     closeIncident = () => {

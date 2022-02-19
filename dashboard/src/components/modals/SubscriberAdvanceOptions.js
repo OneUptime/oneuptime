@@ -9,8 +9,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { updateSubscriberOption } from '../../actions/statusPage';
 
-
-
 class SubscriberAdvanceOption extends React.Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -38,7 +36,6 @@ class SubscriberAdvanceOption extends React.Component {
                     id: this.props.subscriberAdvanceOptionModalId,
                 });
             });
-        
     };
 
     handleKeyBoard = e => {

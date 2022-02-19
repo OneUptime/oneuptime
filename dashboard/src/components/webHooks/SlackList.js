@@ -90,7 +90,6 @@ class SlackList extends React.Component {
         }
 
         paginate('next');
-
     };
 
     render() {

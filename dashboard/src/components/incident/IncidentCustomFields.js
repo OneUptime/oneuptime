@@ -10,7 +10,6 @@ import { fetchCustomFields, paginate } from '../../actions/customField';
 import DeleteCustomField from '../modals/DeleteCustomField';
 import CreateCustomField from '../modals/CreateCustomField';
 
-
 import DataPathHoC from '../DataPathHoC';
 import EditCustomField from '../modals/EditCustomField';
 
@@ -19,8 +18,6 @@ class IncidentCustomFields extends Component {
         const { fetchCustomFields, currentProject, limit } = this.props;
         const projectId = currentProject._id;
         fetchCustomFields(projectId, 0, limit);
-
-        
     }
 
     prevClicked = projectId => {

@@ -79,13 +79,12 @@ class NewComponent extends Component {
             postObj._id = this.props.editComponentProp._id;
             this.props.editComponent(postObj.projectId, postObj).then(() => {
                 thisObj.props.destroy();
-                
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
                 ({ data: { slug: componentSlug } }) => {
                     thisObj.props.reset();
-                    
+
                     this.viewCreatedComponent(
                         this.props.currentProject.slug,
                         componentSlug

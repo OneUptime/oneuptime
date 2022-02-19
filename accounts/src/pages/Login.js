@@ -23,7 +23,7 @@ class LoginPage extends React.Component {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
-    
+
         if (this.props.location?.pathname?.includes('/sso/')) {
             this.props.changeLogin('sso');
         }
@@ -33,7 +33,7 @@ class LoginPage extends React.Component {
         if (this.props.loginMethod === 'sso') {
             this.props.loginUserSso(values);
         } else {
-            this.props.loginUser(values)
+            this.props.loginUser(values);
         }
     };
 

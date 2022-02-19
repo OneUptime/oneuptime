@@ -19,7 +19,6 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
-
 import { history } from '../../store';
 
 //Client side validation
@@ -65,7 +64,6 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        
     };
 
     submitForm = values => {
@@ -86,7 +84,6 @@ export class Branding extends Component {
             },
             function() {}
         );
-        
     };
 
     render() {

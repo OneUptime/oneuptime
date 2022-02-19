@@ -19,8 +19,6 @@ import CreateFooterLink from '../modals/FooterLink';
 import { openModal, closeModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 
-
-
 //Client side validation
 function validate(values) {
     const errors = {};

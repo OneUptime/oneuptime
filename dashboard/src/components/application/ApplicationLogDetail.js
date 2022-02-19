@@ -6,7 +6,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
 
-
 import { bindActionCreators } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import {
@@ -43,7 +42,7 @@ class ApplicationLogDetail extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-log`
         );
-        
+
         return promise;
     };
     resetApplicationLogKey = () => {
@@ -57,7 +56,6 @@ class ApplicationLogDetail extends Component {
                 this.props.closeModal({
                     id: this.state.openApplicationLogKeyModalId,
                 });
-              
             });
     };
     handleKeyBoard = e => {
@@ -71,7 +69,6 @@ class ApplicationLogDetail extends Component {
     editApplicationLog = () => {
         const { applicationLog } = this.props;
         this.props.editApplicationLogSwitch(applicationLog._id);
-        
     };
     viewMore = () => {
         const { currentProject, componentSlug, applicationLog } = this.props;

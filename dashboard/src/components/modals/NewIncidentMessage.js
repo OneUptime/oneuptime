@@ -84,7 +84,6 @@ class NewIncidentMessage extends Component {
                     () => {
                         thisObj.props.reset();
                         thisObj.props.closeModal();
-                       
                     },
                     error => {
                         if (error && error.message) {
@@ -110,7 +109,6 @@ class NewIncidentMessage extends Component {
                             'internal'
                         );
                         thisObj.props.reset();
-                        
                     },
                     error => {
                         if (error && error.message) {

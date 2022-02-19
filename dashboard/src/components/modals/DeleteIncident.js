@@ -8,7 +8,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteIncident } from '../../actions/incident';
 
-
 import { history } from '../../store';
 
 class DeleteIncident extends Component {
@@ -44,7 +43,6 @@ class DeleteIncident extends Component {
         promise.then(() => {
             this.props.closeModal();
 
-          
             if (componentSlug) {
                 if (monitors.length > 1) {
                     history.push(

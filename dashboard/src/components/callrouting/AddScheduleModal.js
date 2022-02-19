@@ -15,8 +15,6 @@ import ScheduleComponent from './ScheduleComponent';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
 
-
-
 export class AddScheduleModal extends Component {
     constructor(props) {
         super(props);
@@ -133,7 +131,6 @@ export class AddScheduleModal extends Component {
                 //do nothing.
             }
         );
-       
     };
     changefile = e => {
         e.preventDefault();

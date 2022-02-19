@@ -13,8 +13,6 @@ import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 
-
-
 class EmailTemplatesBox extends React.Component {
     submitForm = values => {
         const { currentProject } = this.props;
@@ -30,7 +28,6 @@ class EmailTemplatesBox extends React.Component {
             }
         );
         this.props.editEmailTemplates(currentProject._id, val);
-       
     };
 
     resetTemplate = templateId => {

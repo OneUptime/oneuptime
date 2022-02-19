@@ -6,8 +6,6 @@ import ProjectForm from './ProjectForm';
 import { hideForm, createProject, switchProject } from '../../actions/project';
 import PropTypes from 'prop-types';
 
-
-
 export class CreateProjectModal extends Component {
     constructor(props) {
         super(props);
@@ -15,7 +13,6 @@ export class CreateProjectModal extends Component {
     }
 
     createProject(values) {
-        
         const { switchProject, dispatch } = this.props;
         return this.props.createProject(values).then(res => {
             if (

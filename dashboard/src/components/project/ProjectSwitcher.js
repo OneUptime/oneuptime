@@ -43,7 +43,6 @@ export class ProjectSwitcher extends Component {
                     project
                 );
             });
-           
         }
 
         hideProjectSwitcher();

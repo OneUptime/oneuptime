@@ -64,7 +64,6 @@ class EditNoteModal extends Component {
             postObj
         ).then(() => {
             if (!updateInternalError) {
-                
                 return closeModal({ id: modalId });
             }
         });

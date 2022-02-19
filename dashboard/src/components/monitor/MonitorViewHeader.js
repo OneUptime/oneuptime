@@ -25,7 +25,6 @@ import { history } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 
-
 import CreateManualIncident from '../modals/CreateManualIncident';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import DisabledMessage from '../modals/DisabledMessage';
@@ -110,7 +109,6 @@ export class MonitorViewHeader extends Component {
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
         this.props.toggleEdit(true);
-        
     };
 
     deleteMonitor = () => {
@@ -121,7 +119,7 @@ export class MonitorViewHeader extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
         );
-       
+
         return promise;
     };
 

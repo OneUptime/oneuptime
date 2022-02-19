@@ -13,7 +13,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 
-
 import { history } from '../../store';
 import UploadFileForm from '../modals/UploadFile';
 
@@ -37,7 +36,6 @@ export class MonitorViewSubscriberBox extends Component {
                 : 5,
             5
         );
-        
     };
 
     nextClicked = () => {
@@ -51,7 +49,6 @@ export class MonitorViewSubscriberBox extends Component {
                 : 5,
             5
         );
-       
     };
 
     render() {

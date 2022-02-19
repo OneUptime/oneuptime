@@ -12,8 +12,6 @@ import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
 
-
-
 function submitUserForm(values, dispatch, props) {
     const scheduleId = props && props.scheduleId;
     const users = [];
@@ -24,7 +22,6 @@ function submitUserForm(values, dispatch, props) {
         }
     }
     props.addUsers(props.projectId, scheduleId, { users });
-    
 }
 
 export class UserBox extends Component {

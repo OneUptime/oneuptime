@@ -11,8 +11,6 @@ import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 
-
-
 export class MonitorViewDeleteBox extends Component {
     constructor(props) {
         super(props);
@@ -29,7 +27,6 @@ export class MonitorViewDeleteBox extends Component {
                 history.push(
                     `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
                 );
-               
             });
         return promise; // onConfirm function is expecting a promise(async call).
     };

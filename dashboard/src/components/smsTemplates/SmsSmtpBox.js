@@ -17,8 +17,6 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
-
-
 const validate = (values, props) => {
     const errors = {};
     if (props.showSmsSmtpConfiguration) {
@@ -84,7 +82,6 @@ export class SmsSmtpBox extends Component {
                 smtpConfigurations.config._id
             );
         }
-       
     };
 
     changeValue = e => {

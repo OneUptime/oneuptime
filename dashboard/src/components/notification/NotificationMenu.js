@@ -22,13 +22,11 @@ class NotificationMenu extends Component {
 
     markAllAsRead(projectId) {
         this.props.markAllAsRead(projectId);
-        
     }
 
     markAsRead(notification) {
         const notificationIds = [{ notificationId: notification._id }];
         this.props.markAsRead(notification.projectId._id, notificationIds);
-       
     }
 
     handlePaymentIntent = notification => {

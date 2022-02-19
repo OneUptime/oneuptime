@@ -8,7 +8,6 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
-
 import { bindActionCreators } from 'redux';
 import {
     createApplicationLog,
@@ -68,7 +67,6 @@ class NewApplicationLog extends Component {
                     () => {
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
-                       
                     },
                     error => {
                         if (error && error.message) {
@@ -91,7 +89,6 @@ class NewApplicationLog extends Component {
                         );
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
-                       
                     },
                     error => {
                         if (error && error.message) {

@@ -10,7 +10,7 @@ import {
     getInvoiceReset,
 } from '../../actions/invoice';
 import PropTypes from 'prop-types';
-import {  User } from '../../config';
+import { User } from '../../config';
 
 class Invoice extends Component {
     constructor(props) {
@@ -19,7 +19,6 @@ class Invoice extends Component {
     }
 
     componentDidMount() {
-       
         this.resetAndFetchInvoices();
     }
 

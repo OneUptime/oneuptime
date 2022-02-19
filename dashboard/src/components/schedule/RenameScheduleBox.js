@@ -13,8 +13,6 @@ import PropTypes from 'prop-types';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 
-
-
 function validate(value) {
     const errors = {};
 
@@ -26,8 +24,6 @@ function validate(value) {
 }
 
 export class RenameScheduleBox extends Component {
-    
-
     submitForm = values => {
         const { scheduleId, renameSchedule, subProjectId } = this.props;
 
@@ -41,7 +37,6 @@ export class RenameScheduleBox extends Component {
                     );
                 }
             );
-            
         }
     };
 

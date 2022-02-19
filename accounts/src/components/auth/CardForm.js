@@ -31,7 +31,6 @@ import {
     signupUser,
 } from '../../actions/register';
 
-
 const createOptions = () => {
     return {
         style: {
@@ -117,7 +116,6 @@ class CardForm extends Component {
                             companyName,
                         });
                     } else {
-                        
                         throw new Error('Your card details are incorrect.');
                     }
                 })

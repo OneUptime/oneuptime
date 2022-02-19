@@ -19,7 +19,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-
 import { RenderMonitors } from './RenderMonitors';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';

@@ -12,7 +12,6 @@ import ComponentSelector from '../basic/ComponentSelector';
 import { ValidateField } from '../../config';
 import { history } from '../../store';
 
-
 import MessageBox from '../modals/MessageBox';
 import DataPathHoC from '../DataPathHoC';
 import { v4 as uuidv4 } from 'uuid';
@@ -84,8 +83,6 @@ class ChangeMonitorComponent extends React.Component {
             slug,
             componentId: newComponent,
         } = monitor;
-
-        
 
         const redirectTo = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
 

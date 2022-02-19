@@ -29,8 +29,6 @@ export class FeedbackModal extends Component {
                     function() {}
                 );
 
-           
-
             reset();
         }
     };

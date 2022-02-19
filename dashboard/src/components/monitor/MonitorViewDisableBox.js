@@ -10,8 +10,6 @@ import DisableMonitor from '../modals/DisableMonitor';
 import { disableMonitor } from '../../actions/monitor';
 import DataPathHoC from '../DataPathHoC';
 
-
-
 export class MonitorViewDisableBox extends Component {
     constructor(props) {
         super(props);
@@ -26,7 +24,7 @@ export class MonitorViewDisableBox extends Component {
             projectId
         );
         this.props.tabSelected(0);
-        
+
         return promise;
     };
 

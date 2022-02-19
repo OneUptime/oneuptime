@@ -10,8 +10,6 @@ import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from '../../actions/modal';
 
-
-
 export class DeleteStatusPageBox extends Component {
     constructor(props) {
         super(props);
@@ -31,7 +29,6 @@ export class DeleteStatusPageBox extends Component {
             onConfirm: () => {
                 return deleteStatusPage(subProjectId, statusPageSlug).then(
                     () => {
-                       
                         history.push(
                             `/dashboard/project/${this.props.slug}/status-pages`
                         );

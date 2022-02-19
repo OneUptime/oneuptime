@@ -9,7 +9,6 @@ import ShouldRender from './ShouldRender';
 import { changePlan } from '../../actions/project';
 import { closeModal } from '../../actions/modal';
 
-
 import RadioInput from '../project/RadioInput';
 
 function validate(values) {
@@ -67,8 +66,6 @@ class PricingPlanModal extends Component {
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
 
         changePlan(id, values.planId, name, oldPlan, newPlan).then(() => {
-           
-
             if (!error) {
                 return closeModal({
                     id: modalId,

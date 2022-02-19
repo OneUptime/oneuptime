@@ -56,7 +56,6 @@ export class ProfileMenu extends Component {
     logout() {
         const { logoutUser } = this.props;
         logoutUser();
-       
     }
 
     handleKeyBoard = e => {

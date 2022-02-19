@@ -14,8 +14,6 @@ import {
 } from '../../actions/project';
 import { history } from '../../store';
 
-
-
 export class DeleteProjectModal extends Component {
     constructor(props) {
         super(props);
@@ -34,7 +32,6 @@ export class DeleteProjectModal extends Component {
             this.setState({ deleted: true });
             this.closeNotice();
         });
-       
     }
 
     closeNotice() {

@@ -45,7 +45,6 @@ export class ProjectSettings extends Component {
                         `/dashboard/project/${val.data.slug}/settings`
                     );
                 });
-               
             }
         } else {
             openModal({

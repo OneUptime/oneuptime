@@ -8,7 +8,6 @@ import { history } from '../../store';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
-
 import { bindActionCreators } from 'redux';
 import {
     createErrorTracker,
@@ -55,7 +54,6 @@ class NewErrorTracker extends Component {
                 .then(
                     () => {
                         thisObj.props.reset();
-                       
                     },
                     error => {
                         if (error && error.message) {
@@ -81,7 +79,6 @@ class NewErrorTracker extends Component {
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/error-trackers/${data.data.slug}`
                     );
                     thisObj.props.reset();
-                   
                 },
                 error => {
                     if (error && error.message) {

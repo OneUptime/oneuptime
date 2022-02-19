@@ -7,7 +7,6 @@ import {
     deleteIncidentMessage,
 } from '../../actions/incident';
 
-
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
@@ -57,7 +56,6 @@ export class IncidentInternal extends Component {
             parseInt(this.props.incidentMessages.limit, 10),
             'internal'
         );
-        
     };
 
     newerInternalMessage = () => {
@@ -69,7 +67,6 @@ export class IncidentInternal extends Component {
             parseInt(this.props.incidentMessages.limit, 10),
             'internal'
         );
-       
     };
     deleteInvestigationMessage = incidentMessageId => {
         const promise = this.props.deleteIncidentMessage(
@@ -77,7 +74,7 @@ export class IncidentInternal extends Component {
             this.props.incident._id,
             incidentMessageId
         );
-        
+
         return promise;
     };
     render() {

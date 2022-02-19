@@ -8,8 +8,6 @@ import { downloadAlertCharges } from '../../actions/alert';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-
-
 class AlertCharge extends Component {
     csvLink = React.createRef();
 
@@ -18,7 +16,6 @@ class AlertCharge extends Component {
         this.props = props;
     }
 
-   
     fetchData = () => {
         const { projectId, downloadAlertCharges } = this.props;
         downloadAlertCharges(projectId).then(() => {

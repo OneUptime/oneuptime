@@ -5,7 +5,6 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-
 import {
     fetchAllIncomingRequest,
     setActiveIncomingRequest,
@@ -45,8 +44,6 @@ class IncomingRequestList extends React.Component {
         fetchAllIncomingRequest(projectId, 0, 10);
         fetchIncidentPriorities(projectId);
         fetchDefaultTemplate({ projectId });
-
-        
     }
 
     componentDidMount() {

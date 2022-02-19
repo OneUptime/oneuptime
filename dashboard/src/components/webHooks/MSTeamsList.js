@@ -70,7 +70,6 @@ class MSTeamsList extends React.Component {
             );
         }
         paginate('prev');
-        
     };
 
     nextClicked = () => {
@@ -89,7 +88,6 @@ class MSTeamsList extends React.Component {
             getMsTeams(projectId, skip + limit, 10);
         }
         paginate('next');
-        
     };
 
     render() {

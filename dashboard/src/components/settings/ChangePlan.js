@@ -87,8 +87,6 @@ export class Plans extends Component {
             } = PricingPlan.getPlanById(values.planId);
             const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
             this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-
-            
         } else {
             openModal({ id: userId, content: Unauthorised });
         }

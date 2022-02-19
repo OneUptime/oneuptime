@@ -72,7 +72,7 @@ export class ComponentDetail extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/components`
         );
-        
+
         return promise;
     };
     componentDidMount() {

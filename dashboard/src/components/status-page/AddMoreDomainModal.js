@@ -18,7 +18,6 @@ import {
 import { createDomain } from '../../actions/domain';
 import { Validate } from '../../config';
 
-
 // eslint-disable-next-line no-unused-vars
 function validate(_values) {
     const error = undefined;

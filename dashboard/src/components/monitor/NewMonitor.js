@@ -630,7 +630,7 @@ class NewMonitor extends Component {
                             3
                         );
                     }
-                   
+
                     thisObj.setState({ processingMonitor: false });
                     history.replace(
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
@@ -643,7 +643,7 @@ class NewMonitor extends Component {
                 .then(
                     data => {
                         thisObj.props.reset();
-                       
+
                         thisObj.setState({ processingMonitor: false });
                         history.push(
                             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring/${data.data.slug}`

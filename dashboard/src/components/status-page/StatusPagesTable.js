@@ -12,8 +12,6 @@ import {
 } from '../../actions/statusPage';
 import { openModal, closeModal } from '../../actions/modal';
 
-
-
 class StatusPagesTable extends Component {
     constructor(props) {
         super(props);
@@ -35,8 +33,6 @@ class StatusPagesTable extends Component {
     };
 
     componentDidMount() {
-        
-
         this.ready();
     }
 
@@ -68,7 +64,6 @@ class StatusPagesTable extends Component {
         );
         this.setState({ [projectId]: this.state[projectId] - 1 });
         paginate('prev');
-        
     };
 
     nextClicked = (projectId, skip, limit) => {
@@ -76,7 +71,6 @@ class StatusPagesTable extends Component {
         fetchProjectStatusPage(projectId, false, skip + limit, 10);
         this.setState({ [projectId]: this.state[projectId] + 1 });
         paginate('next');
-        
     };
 
     render() {
@@ -89,7 +83,7 @@ class StatusPagesTable extends Component {
         const currentProjectId = this.props.projectId;
 
         // Add Project Statuspages to All Statuspages List
-        let projectStatusPage = subProjectStatusPages.find(
+        const projectStatusPage = subProjectStatusPages.find(
             subProjectStatusPage =>
                 subProjectStatusPage._id === currentProjectId
         );
