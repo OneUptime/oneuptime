@@ -6,8 +6,7 @@ import DeleteProject from '../components/settings/DeleteProject';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import { hideDeleteModal } from '../actions/project';
 import PropTypes from 'prop-types';
-import { SHOULD_LOG_ANALYTICS } from '../config';
-import { logEvent } from '../analytics';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Advanced extends Component {

@@ -12,8 +12,8 @@ import TemplatesFormBox from './TemplatesFormBox';
 import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 class EmailTemplatesBox extends React.Component {
     submitForm = values => {
@@ -30,11 +30,7 @@ class EmailTemplatesBox extends React.Component {
             }
         );
         this.props.editEmailTemplates(currentProject._id, val);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > SETTINGS > EMAIL TEMPLATE UPDATED'
-            );
-        }
+       
     };
 
     resetTemplate = templateId => {

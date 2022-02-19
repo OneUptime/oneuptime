@@ -10,8 +10,8 @@ import DeleteMonitor from '../modals/DeleteMonitor';
 import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export class MonitorViewDeleteBox extends Component {
     constructor(props) {
@@ -29,15 +29,7 @@ export class MonitorViewDeleteBox extends Component {
                 history.push(
                     `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
                 );
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
-                        {
-                            ProjectId: this.props.currentProject._id,
-                            monitorId: this.props.monitor._id,
-                        }
-                    );
-                }
+               
             });
         return promise; // onConfirm function is expecting a promise(async call).
     };

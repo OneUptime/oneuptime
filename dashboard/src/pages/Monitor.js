@@ -25,8 +25,7 @@ import { loadPage } from '../actions/page';
 import { fetchTutorial } from '../actions/tutorial';
 import { getProbes } from '../actions/probe';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import {

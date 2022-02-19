@@ -11,8 +11,8 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { openModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export function StatusPageLanguage(props) {
     const [error, setError] = useState('');
@@ -64,11 +64,6 @@ export function StatusPageLanguage(props) {
             .then(() => {
                 props.fetchProjectStatusPage(projectId._id || projectId, true);
             });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > PRIVATE STATUS PAGE UPDATED'
-            );
-        }
     };
 
     const renderLanguage = ({ fields }) => {

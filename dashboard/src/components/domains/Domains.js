@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import { fetchProjectDomains } from '../../actions/project';
 import CreateDomain from './CreateDomain';
 import EditDomain from './EditDomain';
@@ -27,11 +27,7 @@ class Domains extends Component {
             fetchProjectDomains(projectId, 0, this.limit);
         }
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT SETTINGS > DOMAINS > DOMAIN SETTINGS'
-            );
-        }
+        
     }
 
     componentDidUpdate(prevProps) {

@@ -18,8 +18,8 @@ import {
     uploadPrivateKeySuccess,
 } from '../../actions/statusPage';
 import { updateDomain } from '../../actions/domain';
-import { Validate, SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+import { Validate } from '../../config';
+
 
 // eslint-disable-next-line no-unused-vars
 function validate(_values) {
@@ -89,11 +89,7 @@ class EditMoreDomainModal extends React.Component {
                     id: statusPageId,
                 });
 
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > DOMAIN UPDATED'
-                    );
-                }
+                
             }
         });
     };

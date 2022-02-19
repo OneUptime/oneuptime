@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -38,7 +37,13 @@ class Page extends Component {
     }
 
     renderCommon(children) {
-        const { projectId, project } = this.props;
+        const {
+            projectId,
+            project,
+            friendlyPageName,
+            pagePath,
+            showTutorial,
+        } = this.props;
 
         const projectName = project ? project.name : '';
         const projectSlug = project ? project.slug : '';
@@ -105,7 +110,10 @@ export const defaultMapStateToProps = state => {
 Page.defaultPropTypes = {
     projectId: PropTypes.string,
     subProjectId: PropTypes.string,
-    project: PropTypes.object,
+    project: PropTypes.shape({
+        name: PropTypes.string,
+        slug: PropTypes.string,
+    }),
     subproject: PropTypes.object,
     currentActiveProjectId: PropTypes.string,
     currentActiveProject: PropTypes.object,
@@ -115,6 +123,12 @@ Page.defaultPropTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+
+    pageName: PropTypes.string,
+    friendlyPageName: PropTypes.string,
+    pagePath: PropTypes.string,
+    breadCrumbsProps: PropTypes.object,
+    showTutorial: PropTypes.bool,
 };
 
 Page.displayName = 'Page';

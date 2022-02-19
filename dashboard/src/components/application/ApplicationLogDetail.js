@@ -5,8 +5,8 @@ import { history } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from 'amplitude-js';
+
+
 import { bindActionCreators } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import {
@@ -43,16 +43,7 @@ class ApplicationLogDetail extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-log`
         );
-        // crashing the application
-        // if (SHOULD_LOG_ANALYTICS) {
-        //     logEvent(
-        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
-        //         {
-        //             ProjectId: this.props.currentProject._id,
-        //             applicationLogId: this.props.index,
-        //         }
-        //     );
-        // }
+        
         return promise;
     };
     resetApplicationLogKey = () => {
@@ -66,14 +57,7 @@ class ApplicationLogDetail extends Component {
                 this.props.closeModal({
                     id: this.state.openApplicationLogKeyModalId,
                 });
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > COMPONENTS > LOG CONTAINER > LOG CONTAINER DETAILS > RESET LOG CONTAINER KEY',
-                        {
-                            applicationLogId: this.props.index,
-                        }
-                    );
-                }
+              
             });
     };
     handleKeyBoard = e => {
@@ -87,13 +71,7 @@ class ApplicationLogDetail extends Component {
     editApplicationLog = () => {
         const { applicationLog } = this.props;
         this.props.editApplicationLogSwitch(applicationLog._id);
-        // This is crashing
-        // if (SHOULD_LOG_ANALYTICS) {
-        //     logEvent(
-        //         'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > EDIT LOG CONTAINER CLICKED',
-        //         {}
-        //     );
-        // }
+        
     };
     viewMore = () => {
         const { currentProject, componentSlug, applicationLog } = this.props;

@@ -24,8 +24,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import CreateManualIncident from '../modals/CreateManualIncident';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import DisabledMessage from '../modals/DisabledMessage';
@@ -110,12 +110,7 @@ export class MonitorViewHeader extends Component {
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
         this.props.toggleEdit(true);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR CLICKED',
-                {}
-            );
-        }
+        
     };
 
     deleteMonitor = () => {
@@ -126,15 +121,7 @@ export class MonitorViewHeader extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
-                {
-                    ProjectId: this.props.currentProject._id,
-                    monitorId: this.props.monitor._id,
-                }
-            );
-        }
+       
         return promise;
     };
 

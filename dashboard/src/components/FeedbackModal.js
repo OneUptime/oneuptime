@@ -12,8 +12,6 @@ import ClickOutside from 'react-click-outside';
 import { RenderTextArea } from './basic/RenderTextArea';
 import { reset } from 'redux-form';
 import PropTypes from 'prop-types';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
 
 export class FeedbackModal extends Component {
     submitForm = values => {
@@ -31,9 +29,7 @@ export class FeedbackModal extends Component {
                     function() {}
                 );
 
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('EVENT: DASHBOARD > FEEDBACK FORM SUBMIT', values);
-            }
+           
 
             reset();
         }

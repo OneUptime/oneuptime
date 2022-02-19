@@ -5,8 +5,8 @@ import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
-import { logEvent } from '../../analytics';
+import {  Validate } from '../../config';
+
 import { bindActionCreators } from 'redux';
 import { deleteAccount } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
@@ -88,11 +88,7 @@ class DeleteAccount extends Component {
         const userId = this.props.profileSettings.data.id;
         values.deleteMyAccount = values.deleteMyAccount.toUpperCase();
         const promise = this.props.deleteAccount(userId, values);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROFILE > ACCOUNT DELETED', {
-                userId,
-            });
-        }
+       
         return promise;
     };
 

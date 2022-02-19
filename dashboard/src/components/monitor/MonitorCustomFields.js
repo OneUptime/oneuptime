@@ -9,8 +9,8 @@ import { openModal } from '../../actions/modal';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
 import DeleteMonitorCustomField from '../modals/DeleteMonitorCustomField';
 import CreateMonitorCustomField from '../modals/CreateMonitorCustomField';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import DataPathHoC from '../DataPathHoC';
 import EditMonitorCustomField from '../modals/EditMonitorCustomField';
 
@@ -24,11 +24,7 @@ class MonitorCustomFields extends Component {
         const { fetchCustomFields, currentProject } = this.props;
         const projectId = currentProject._id;
         fetchCustomFields(projectId, 0, this.limit);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT SETTINGS > MONITOR > CUSTOM FIELDS'
-            );
-        }
+       
     }
 
     prevClicked = (projectId, skip) => {

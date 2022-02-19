@@ -18,8 +18,8 @@ import {
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 //import EditIncident from '../modals/EditIncident';
@@ -191,16 +191,7 @@ export class IncidentStatus extends Component {
                     'internal'
                 );
             });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT ACKNOWLEDGED',
-                {
-                    ProjectId: projectId,
-                    incidentId: this.props.incident._id,
-                    userId: userId,
-                }
-            );
-        }
+       
     };
 
     resolve = async setLoading => {
@@ -245,16 +236,7 @@ export class IncidentStatus extends Component {
                     'internal'
                 );
             });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > INCIDENT RESOLVED',
-                {
-                    ProjectId: projectId,
-                    incidentId: this.props.incident._id,
-                    userId: userId,
-                }
-            );
-        }
+       
     };
 
     closeIncident = () => {

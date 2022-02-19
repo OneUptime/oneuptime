@@ -10,8 +10,7 @@ import {
     getInvoiceReset,
 } from '../../actions/invoice';
 import PropTypes from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import {  User } from '../../config';
 
 class Invoice extends Component {
     constructor(props) {
@@ -20,9 +19,7 @@ class Invoice extends Component {
     }
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROFILE > BILLING > INVOICES');
-        }
+       
         this.resetAndFetchInvoices();
     }
 

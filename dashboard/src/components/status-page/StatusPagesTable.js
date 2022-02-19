@@ -11,8 +11,8 @@ import {
     paginate,
 } from '../../actions/statusPage';
 import { openModal, closeModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 class StatusPagesTable extends Component {
     constructor(props) {
@@ -35,11 +35,7 @@ class StatusPagesTable extends Component {
     };
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE'
-            );
-        }
+        
 
         this.ready();
     }
@@ -72,11 +68,7 @@ class StatusPagesTable extends Component {
         );
         this.setState({ [projectId]: this.state[projectId] - 1 });
         paginate('prev');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > FETCH PREV STATUS PAGE'
-            );
-        }
+        
     };
 
     nextClicked = (projectId, skip, limit) => {
@@ -84,11 +76,7 @@ class StatusPagesTable extends Component {
         fetchProjectStatusPage(projectId, false, skip + limit, 10);
         this.setState({ [projectId]: this.state[projectId] + 1 });
         paginate('next');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > FETCH NEXT STATUS PAGE'
-            );
-        }
+        
     };
 
     render() {
@@ -118,57 +106,6 @@ class StatusPagesTable extends Component {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-
-        const subProjectName =
-            subProjects.find(obj => obj._id === currentProjectId)?.name ||
-            currentProject.name;
-        projectStatusPage =
-            projectStatusPage && projectStatusPage.statusPages ? (
-                <RenderIfUserInSubProject
-                    subProjectId={projectStatusPage._id}
-                    key={() => uuidv4()}
-                >
-                    <div id="statusPageTable" className="bs-BIM">
-                        <div className="Box-root Margin-bottom--12">
-                            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                <StatuspageProjectBox
-                                    switchStatusPages={this.switchStatusPages}
-                                    subProjectStatusPage={projectStatusPage}
-                                    statusPages={statusPages}
-                                    canPaginateBackward={canPaginateBackward}
-                                    canPaginateForward={canPaginateForward}
-                                    skip={skip}
-                                    limit={limit}
-                                    subProjectName={subProjectName}
-                                    showProjectName={
-                                        currentProject?._id !== currentProjectId
-                                    }
-                                    currentProjectId={currentProjectId}
-                                    statusPageModalId={
-                                        this.state.statusPageModalId
-                                    }
-                                    openModal={this.props.openModal}
-                                    statusPage={this.props.statusPage}
-                                    prevClicked={this.prevClicked}
-                                    nextClicked={this.nextClicked}
-                                    subProjects={subProjects}
-                                    allStatusPageLength={
-                                        subProjectStatusPages.length
-                                    }
-                                    modalList={this.props.modalList}
-                                    project={currentProject}
-                                    pages={this.state[projectStatusPage._id]}
-                                    switchToProjectViewerNav={
-                                        this.props.switchToProjectViewerNav
-                                    }
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </RenderIfUserInSubProject>
-            ) : (
-                false
-            );
 
         const allStatusPages = projectStatusPage && [projectStatusPage];
 

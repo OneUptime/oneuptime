@@ -4,13 +4,13 @@ import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { User, SHOULD_LOG_ANALYTICS, IS_SAAS_SERVICE } from '../../config';
+import { User, IS_SAAS_SERVICE } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
 import { v4 as uuidv4 } from 'uuid';
-import { logEvent } from '../../analytics';
+
 import ShouldRender from '../basic/ShouldRender';
 
 export class ProfileMenu extends Component {
@@ -56,9 +56,7 @@ export class ProfileMenu extends Component {
     logout() {
         const { logoutUser } = this.props;
         logoutUser();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > USER LOG OUT');
-        }
+       
     }
 
     handleKeyBoard = e => {

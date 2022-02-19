@@ -16,8 +16,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
 export class PrivateStatusPage extends Component {
@@ -67,11 +67,6 @@ export class PrivateStatusPage extends Component {
                     true
                 );
             });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > PRIVATE STATUS PAGE UPDATED'
-            );
-        }
     };
 
     showMoreOptionsToggle = () => {

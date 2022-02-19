@@ -11,8 +11,8 @@ import {
     getSlackMonitor,
 } from '../../actions/slackWebhook';
 import { ListLoader } from '../basic/Loader';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+
+import { User } from '../../config';
 
 class SlackList extends React.Component {
     ready() {
@@ -71,11 +71,6 @@ class SlackList extends React.Component {
         }
 
         paginate('prev');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > WEBHOOKS > PREVIOUS CLICKED'
-            );
-        }
     };
 
     nextClicked = () => {
@@ -95,9 +90,7 @@ class SlackList extends React.Component {
         }
 
         paginate('next');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > WEBHOOKS > NEXT CLICKED');
-        }
+
     };
 
     render() {

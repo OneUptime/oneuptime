@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import StatusPageForm from './StatusPageForm';
 import ShouldRender from '../basic/ShouldRender';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';

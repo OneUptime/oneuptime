@@ -11,8 +11,8 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 //Client side validation
 function validate(values) {
@@ -151,9 +151,7 @@ export class OnCallAlertBox extends Component {
         const { subProjectId, scheduleId } = this.props;
         await this.props.addEscalation(subProjectId, scheduleId, values);
         if (this.props.afterSave) this.props.afterSave();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > SCHEDULE > ADD ESCALATION', values);
-        }
+       
     };
 
     renderAddEscalationPolicyButton = () => (

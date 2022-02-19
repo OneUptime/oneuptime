@@ -9,8 +9,8 @@ import { openModal } from '../../actions/modal';
 import { fetchCustomFields, paginate } from '../../actions/customField';
 import DeleteCustomField from '../modals/DeleteCustomField';
 import CreateCustomField from '../modals/CreateCustomField';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import DataPathHoC from '../DataPathHoC';
 import EditCustomField from '../modals/EditCustomField';
 
@@ -20,11 +20,7 @@ class IncidentCustomFields extends Component {
         const projectId = currentProject._id;
         fetchCustomFields(projectId, 0, limit);
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT SETTINGS > INCIDENT > CUSTOM FIELDS'
-            );
-        }
+        
     }
 
     prevClicked = projectId => {

@@ -10,7 +10,7 @@ import { withRouter } from 'react-router-dom';
 import { openModal } from '../actions/modal';
 import DeleteComponent from '../components/modals/DeleteComponent';
 import { deleteComponent } from '../actions/component';
-import { logEvent } from '../analytics';
+
 import { IS_SAAS_SERVICE } from '../config';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';
@@ -34,12 +34,7 @@ class ComponentSettingsAdvanced extends Component {
             this.props.component.projectId;
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(`/dashboard/project/${this.props.slug}/components`);
-        if (IS_SAAS_SERVICE) {
-            logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
-                ProjectId: this.props.component.projectId._id,
-                componentId,
-            });
-        }
+        
         return promise;
     };
 

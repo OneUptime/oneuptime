@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { ValidateField, SHOULD_LOG_ANALYTICS } from '../../config';
+import { ValidateField } from '../../config';
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
@@ -14,7 +14,7 @@ import {
 } from '../../actions/incident';
 import { closeModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
-import { logEvent } from '../../analytics';
+
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
@@ -84,12 +84,7 @@ class NewIncidentMessage extends Component {
                     () => {
                         thisObj.props.reset();
                         thisObj.props.closeModal();
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                `EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > ${mode} INVESTIGATION MESSAGE`,
-                                values
-                            );
-                        }
+                       
                     },
                     error => {
                         if (error && error.message) {
@@ -115,12 +110,7 @@ class NewIncidentMessage extends Component {
                             'internal'
                         );
                         thisObj.props.reset();
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                `EVENT: DASHBOARD > PROJECT > MONITOR > INCIDENT > ${mode} INVESTIGATION MESSAGE`,
-                                values
-                            );
-                        }
+                        
                     },
                     error => {
                         if (error && error.message) {

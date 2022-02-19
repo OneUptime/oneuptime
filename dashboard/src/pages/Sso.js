@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { PropTypes } from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User, PricingPlan } from '../config';
+
+import { User, PricingPlan } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import Sso from '../components/settings/Sso';

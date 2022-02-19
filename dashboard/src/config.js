@@ -52,8 +52,6 @@ export const ACCOUNTS_URL = accountsUrl;
 
 export const DOMAIN_URL = window.location.origin;
 
-export const SHOULD_LOG_ANALYTICS = !!env('AMPLITUDE_PUBLIC_KEY');
-
 export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
 
 export const IS_LOCALHOST = isLocalhost;

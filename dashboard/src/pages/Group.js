@@ -4,8 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import GroupList from '../components/settings/GroupList';
 import PropTypes from 'prop-types';
-import { SHOULD_LOG_ANALYTICS } from '../config';
-import { logEvent } from '../analytics';
+
 import getParentRoute from '../utils/getParentRoute';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { getGroups } from '../actions/group';

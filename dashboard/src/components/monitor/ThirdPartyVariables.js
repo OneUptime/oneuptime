@@ -9,8 +9,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
 import { editMonitor, resetEditMonitor } from '../../actions/monitor';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 
 class ThirdPartyVariables extends Component {
     componentDidMount() {
@@ -43,11 +43,7 @@ class ThirdPartyVariables extends Component {
 
         this.props.editMonitor(currentProject._id, postObj);
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > MONITOR > ADVANCED OPTIONS > CUSTOM FIELDS'
-            );
-        }
+       
     };
 
     render() {

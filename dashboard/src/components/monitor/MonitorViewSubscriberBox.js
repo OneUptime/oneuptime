@@ -12,8 +12,8 @@ import { FormLoader } from '../basic/Loader';
 import { v4 as uuidv4 } from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { history } from '../../store';
 import UploadFileForm from '../modals/UploadFile';
 
@@ -37,14 +37,7 @@ export class MonitorViewSubscriberBox extends Component {
                 : 5,
             5
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS SUBSCRIBER CLICKED',
-                {
-                    projectId: subProjectId,
-                }
-            );
-        }
+        
     };
 
     nextClicked = () => {
@@ -58,14 +51,7 @@ export class MonitorViewSubscriberBox extends Component {
                 : 5,
             5
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT SUBSCRIBER CLICKED',
-                {
-                    projectId: this.props.currentProject._id,
-                }
-            );
-        }
+       
     };
 
     render() {

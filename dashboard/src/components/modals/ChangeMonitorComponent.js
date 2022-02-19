@@ -11,8 +11,8 @@ import { changeMonitorComponent } from '../../actions/monitor';
 import ComponentSelector from '../basic/ComponentSelector';
 import { ValidateField } from '../../config';
 import { history } from '../../store';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import MessageBox from '../modals/MessageBox';
 import DataPathHoC from '../DataPathHoC';
 import { v4 as uuidv4 } from 'uuid';
@@ -85,17 +85,7 @@ class ChangeMonitorComponent extends React.Component {
             componentId: newComponent,
         } = monitor;
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR COMPONENT CHANGED',
-                {
-                    projectId,
-                    monitorId,
-                    oldComponentId,
-                    newComponentId: newComponent.id,
-                }
-            );
-        }
+        
 
         const redirectTo = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
 

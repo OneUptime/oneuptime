@@ -9,8 +9,7 @@ import { renameProject } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 import { history } from '../../store';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { openModal, closeModal } from '../../actions/modal';
 import Unauthorised from '../modals/Unauthorised';
@@ -46,12 +45,7 @@ export class ProjectSettings extends Component {
                         `/dashboard/project/${val.data.slug}/settings`
                     );
                 });
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT > RENAME PROJECT',
-                        values
-                    );
-                }
+               
             }
         } else {
             openModal({

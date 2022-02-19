@@ -7,8 +7,8 @@ import { changePlan, fetchTrial } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader, ListLoader } from '../basic/Loader';
 import { PricingPlan } from '../../config';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+
+import { User } from '../../config';
 import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
@@ -88,12 +88,7 @@ export class Plans extends Component {
             const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
             this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
 
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
-                    oldPlan,
-                    newPlan,
-                });
-            }
+            
         } else {
             openModal({ id: userId, content: Unauthorised });
         }

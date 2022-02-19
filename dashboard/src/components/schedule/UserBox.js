@@ -11,8 +11,8 @@ import { teamLoading } from '../../actions/team';
 import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 function submitUserForm(values, dispatch, props) {
     const scheduleId = props && props.scheduleId;
@@ -24,12 +24,7 @@ function submitUserForm(values, dispatch, props) {
         }
     }
     props.addUsers(props.projectId, scheduleId, { users });
-    if (SHOULD_LOG_ANALYTICS) {
-        logEvent(
-            'EVENT: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE > ADD USER TO SCHEDULE',
-            { projectId: props.projectId, scheduleId, users }
-        );
-    }
+    
 }
 
 export class UserBox extends Component {

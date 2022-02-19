@@ -18,8 +18,8 @@ import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { history } from '../../store';
 
 //Client side validation
@@ -49,11 +49,6 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LOGO UPDATED'
-            );
-        }
     };
 
     changefavicon = e => {
@@ -70,11 +65,7 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > FAVICON UPDATED'
-            );
-        }
+        
     };
 
     submitForm = values => {
@@ -95,11 +86,7 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BRANDING UPDATED'
-            );
-        }
+        
     };
 
     render() {

@@ -24,8 +24,7 @@ import { mapCriteria, User } from '../config';
 import { fetchSchedules } from '../actions/schedule';
 
 import WebHookBox from '../components/webHooks/WebHookBox';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import moment from 'moment';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';

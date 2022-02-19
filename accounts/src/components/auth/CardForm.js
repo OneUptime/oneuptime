@@ -30,13 +30,8 @@ import {
     signupSuccess,
     signupUser,
 } from '../../actions/register';
-import {
-    setUserId,
-    setUserProperties,
-    identify,
-    logEvent,
-} from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 const createOptions = () => {
     return {
         style: {
@@ -90,11 +85,6 @@ class CardForm extends Component {
         }
     };
 
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: CARD FORM');
-        }
-    }
     handleClick = () => {
         const { registerModal } = this.state;
         this.props.openModal({
@@ -127,9 +117,7 @@ class CardForm extends Component {
                             companyName,
                         });
                     } else {
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent('EVENT: INVALID CARD DETAILS');
-                        }
+                        
                         throw new Error('Your card details are incorrect.');
                     }
                 })
@@ -147,25 +135,12 @@ class CardForm extends Component {
                     else throw new Error(data.error.message);
                 })
                 .then(({ data }) => {
-                    if (SHOULD_LOG_ANALYTICS) {
-                        setUserId(data.id);
-                        identify(data.id);
-                        setUserProperties({
-                            Name: data.name,
-                            Created: new Date(),
-                            Email: data.email,
-                        });
-                        logEvent('EVENT: SIGN UP COMPLETE');
-                    }
                     signupSuccess(data);
                 })
                 .catch(error => {
                     signupError(error.message);
                 });
         } else {
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('EVENT: PROBLEM CONNECTING TO PAYMENT GATEWAY');
-            }
             signupError(
                 'Problem connnecting to payment gateway, please try again later'
             );

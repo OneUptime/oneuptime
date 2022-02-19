@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { deleteErrorTracker } from '../../actions/errorTracker';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import { history } from '../../store';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 
@@ -30,15 +30,7 @@ class ErrorTrackerViewDeleteBox extends Component {
             `/dashboard/project/${currentProject.slug}/component/${this.props
                 .component && this.props.component.slug}/error-tracker`
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKER > ERROR TRACKER DELETED',
-                {
-                    ProjectId: currentProject._id,
-                    errorTrackerId: errorTracker._id,
-                }
-            );
-        }
+       
         return promise;
     };
     render() {

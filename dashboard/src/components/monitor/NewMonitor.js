@@ -51,8 +51,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, PricingPlan as PlanListing } from '../../config';
+import { PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 import { history } from '../../store';
@@ -631,12 +630,7 @@ class NewMonitor extends Component {
                             3
                         );
                     }
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR',
-                            values
-                        );
-                    }
+                   
                     thisObj.setState({ processingMonitor: false });
                     history.replace(
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
@@ -649,12 +643,7 @@ class NewMonitor extends Component {
                 .then(
                     data => {
                         thisObj.props.reset();
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEW MONITOR',
-                                values
-                            );
-                        }
+                       
                         thisObj.setState({ processingMonitor: false });
                         history.push(
                             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring/${data.data.slug}`

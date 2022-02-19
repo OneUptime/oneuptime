@@ -17,8 +17,8 @@ import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
 import { closeNotificationMenu } from '../actions/notification';
 import UnVerifiedEmailBox from '../components/auth/UnVerifiedEmail';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../config';
+
+import { User } from '../config';
 import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
@@ -49,22 +49,16 @@ export class DashboardApp extends Component {
 
     showProjectForm = () => {
         this.props.showForm();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > SHOW PROJECT FORM');
-        }
+
     };
 
     hideProfileMenu = () => {
         this.props.hideProfileMenu();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROFILE MENU CLOSED');
-        }
+       
     };
     closeNotificationMenu = () => {
         this.props.closeNotificationMenu();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > NOTIFICATIONS MENU CLOSED');
-        }
+        
     };
 
     handleKeyBoard = e => {

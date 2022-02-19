@@ -11,8 +11,8 @@ import {
     paginate,
 } from '../../actions/msteamsWebhook';
 import { ListLoader } from '../basic/Loader';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+
+import { User } from '../../config';
 
 class MSTeamsList extends React.Component {
     ready() {
@@ -23,9 +23,6 @@ class MSTeamsList extends React.Component {
             getMsTeamsMonitor(projectId, monitorId);
         } else {
             getMsTeams(projectId);
-        }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > WEBHOOKS');
         }
     }
 
@@ -73,11 +70,7 @@ class MSTeamsList extends React.Component {
             );
         }
         paginate('prev');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > WEBHOOKS > PREVIOUS CLICKED'
-            );
-        }
+        
     };
 
     nextClicked = () => {
@@ -96,9 +89,7 @@ class MSTeamsList extends React.Component {
             getMsTeams(projectId, skip + limit, 10);
         }
         paginate('next');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > WEBHOOKS > NEXT CLICKED');
-        }
+        
     };
 
     render() {

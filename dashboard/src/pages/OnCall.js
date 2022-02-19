@@ -15,8 +15,7 @@ import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { LoadingState } from '../components/basic/Loader';
 

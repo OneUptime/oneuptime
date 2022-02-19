@@ -132,7 +132,7 @@ class BaseAction {
                     );
                 }
 
-                return promise;
+                return response;
             };
         };
 

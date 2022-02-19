@@ -3,8 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import { getGitCredentials } from '../actions/credential';
 import GitCredentialList from '../components/credential/GitCredentialList';
 import GitSshList from '../components/credential/GitSshList';

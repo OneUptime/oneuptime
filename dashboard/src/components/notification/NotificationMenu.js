@@ -13,8 +13,7 @@ import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import { v4 as uuidv4 } from 'uuid';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, env } from '../../config';
+import { env } from '../../config';
 
 class NotificationMenu extends Component {
     state = {
@@ -23,19 +22,13 @@ class NotificationMenu extends Component {
 
     markAllAsRead(projectId) {
         this.props.markAllAsRead(projectId);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED ALL AS READ', {
-                projectId: projectId,
-            });
-        }
+        
     }
 
     markAsRead(notification) {
         const notificationIds = [{ notificationId: notification._id }];
         this.props.markAsRead(notification.projectId._id, notificationIds);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
-        }
+       
     }
 
     handlePaymentIntent = notification => {

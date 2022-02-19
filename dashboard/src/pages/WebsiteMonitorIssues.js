@@ -5,8 +5,7 @@ import Fade from 'react-reveal/Fade';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
 import { fetchComponent } from '../actions/component';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import WebsiteIssuesList from '../components/monitor/WebsiteIssuesList';
@@ -54,12 +53,6 @@ class WebsiteMonitorIssues extends React.Component {
         this.props = props;
     }
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR > WEBSITE ISSUES > URL'
-            );
-        }
-
         this.ready();
     }
     componentDidUpdate(prevProps) {

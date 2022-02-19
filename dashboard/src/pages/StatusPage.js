@@ -18,8 +18,7 @@ import StatusPageLanguage from '../components/status-page/StatusPageLanguage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { FormLoader, LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import { history } from '../store';
 
 import {
@@ -212,11 +211,6 @@ class StatusPage extends Component {
                         10
                     );
                 });
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
-                );
-            }
         }
     };
 

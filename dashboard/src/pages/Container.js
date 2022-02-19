@@ -5,8 +5,7 @@ import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import {
     getContainerSecurities,
     getContainerSecurityLogs,

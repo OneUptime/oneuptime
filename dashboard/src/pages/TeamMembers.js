@@ -14,8 +14,7 @@ import { openModal, closeModal } from '../actions/modal';
 import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
 import PropTypes from 'prop-types';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 const LoadingState = () => (
@@ -173,9 +172,6 @@ class TeamApp extends Component {
     componentDidMount() {
         if (this.props.activeProjectId) {
             this.props.subProjectTeamLoading(this.props.activeProjectId);
-        }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > TEAM MEMBERS');
         }
     }
 

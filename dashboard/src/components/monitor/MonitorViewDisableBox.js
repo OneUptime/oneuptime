@@ -9,8 +9,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import DisableMonitor from '../modals/DisableMonitor';
 import { disableMonitor } from '../../actions/monitor';
 import DataPathHoC from '../DataPathHoC';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export class MonitorViewDisableBox extends Component {
     constructor(props) {
@@ -26,15 +26,7 @@ export class MonitorViewDisableBox extends Component {
             projectId
         );
         this.props.tabSelected(0);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DISABLED',
-                {
-                    ProjectId: this.props.currentProject._id,
-                    monitorId: this.props.monitor._id,
-                }
-            );
-        }
+        
         return promise;
     };
 

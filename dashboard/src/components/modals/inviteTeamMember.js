@@ -16,8 +16,8 @@ import PropTypes from 'prop-types';
 import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, Validate } from '../../config';
+
+import { Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import MessageBox from './MessageBox';
 import formatEmails from '../../utils/formatEmails';
@@ -106,12 +106,7 @@ export class FormModal extends Component {
                 }
             );
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > TEAM MEMBER > INVITED',
-                values
-            );
-        }
+       
     };
 
     handleKeyBoard = e => {

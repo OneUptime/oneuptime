@@ -9,8 +9,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export class DeleteStatusPageBox extends Component {
     constructor(props) {
@@ -31,11 +31,7 @@ export class DeleteStatusPageBox extends Component {
             onConfirm: () => {
                 return deleteStatusPage(subProjectId, statusPageSlug).then(
                     () => {
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DELETED'
-                            );
-                        }
+                       
                         history.push(
                             `/dashboard/project/${this.props.slug}/status-pages`
                         );

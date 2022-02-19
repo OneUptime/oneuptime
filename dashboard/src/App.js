@@ -13,8 +13,6 @@ import { User, ACCOUNTS_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
 import { loadPage } from './actions/page';
-import { setUserId, setUserProperties, identify, logEvent } from './analytics';
-import { SHOULD_LOG_ANALYTICS } from './config';
 import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 import 'react-big-calendar/lib/sass/styles.scss';
@@ -36,16 +34,6 @@ if (userData !== undefined) {
     User.setEmail(userData.email);
     User.setName(userData.name);
     User.setCardRegistered(userData.cardRegistered);
-    if (SHOULD_LOG_ANALYTICS) {
-        setUserId(userData.id);
-        identify(userData.id);
-        setUserProperties({
-            Name: userData.name,
-            Created: new Date(),
-            Email: userData.email,
-        });
-        logEvent('PAGE VIEW: DASHBOARD');
-    }
 } else {
     // store original destination url
     const redirectTo = window.location.href;
@@ -55,9 +43,6 @@ if (userData !== undefined) {
 
 if (User.isLoggedIn()) {
     const id = User.getUserId();
-    if (SHOULD_LOG_ANALYTICS) {
-        setUserId(id);
-    }
 }
 
 const App = props => {

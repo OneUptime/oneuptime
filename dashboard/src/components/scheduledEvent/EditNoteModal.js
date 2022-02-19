@@ -2,13 +2,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { ValidateField, SHOULD_LOG_ANALYTICS } from '../../config';
+import { ValidateField } from '../../config';
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
-import { logEvent } from '../../analytics';
+
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import {
@@ -64,13 +64,7 @@ class EditNoteModal extends Component {
             postObj
         ).then(() => {
             if (!updateInternalError) {
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        `EVENT: DASHBOARD > PROJECT > SCHEDULED EVENT > INCIDENT > ${type} INVESTIGATION MESSAGE`,
-                        values
-                    );
-                }
-
+                
                 return closeModal({ id: modalId });
             }
         });

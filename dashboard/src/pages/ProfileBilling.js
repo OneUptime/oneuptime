@@ -3,8 +3,7 @@ import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { PropTypes } from 'prop-types';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';

@@ -9,8 +9,8 @@ import { FormLoader } from '../basic/Loader';
 import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 import ResetAPIKey from '../modals/ResetAPIKey';
 import { openModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { API_URL, SHOULD_LOG_ANALYTICS } from '../../config';
+
+import { API_URL } from '../../config';
 import TooltipMini from '../basic/TooltipMini';
 
 export class APISettings extends Component {
@@ -31,16 +31,7 @@ export class APISettings extends Component {
             onConfirm: () => {
                 return this.props
                     .resetProjectToken(this.props.currentProject._id)
-                    .then(() => {
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > SETTINGS > RESET API TOKEN',
-                                {
-                                    projectId: this.props.currentProject._id,
-                                }
-                            );
-                        }
-                    });
+                    
             },
         });
     };

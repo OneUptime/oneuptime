@@ -13,8 +13,7 @@ import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
-import { SHOULD_LOG_ANALYTICS } from '../config';
-import { logEvent } from '../analytics';
+
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 

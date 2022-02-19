@@ -11,7 +11,7 @@ import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
 import { history } from '../../store';
-import { logEvent } from '../../analytics';
+
 import { IS_SAAS_SERVICE } from '../../config';
 import ResourceTabularList from './ResourceTabularList';
 import { animateSidebar } from '../../actions/animateSidebar';
@@ -30,18 +30,6 @@ export class ComponentDetail extends Component {
             component.skip ? parseInt(component.skip, 5) - 5 : 5,
             5
         );
-        if (IS_SAAS_SERVICE) {
-            logEvent(
-                'EVENT: DASHBOARD > COMPONENT > MONITOR PREVIOUS BUTTON CLICKED',
-                {
-                    ProjectId: this.props.component.projectId._id,
-                    componentId: this.props.component._id,
-                    skip: this.props.component.skip
-                        ? parseInt(this.props.component.skip, 10) - 3
-                        : 3,
-                }
-            );
-        }
     };
 
     nextClicked = () => {
@@ -52,18 +40,6 @@ export class ComponentDetail extends Component {
             component.skip ? parseInt(component.skip, 5) + 5 : 5,
             5
         );
-        if (IS_SAAS_SERVICE) {
-            logEvent(
-                'EVENT: DASHBOARD > COMPONENT > MONITOR PREVIOUS BUTTON CLICKED',
-                {
-                    ProjectId: this.props.component.projectId._id,
-                    componentId: this.props.component._id,
-                    skip: this.props.component.skip
-                        ? parseInt(this.props.component.skip, 10) + 3
-                        : 3,
-                }
-            );
-        }
     };
 
     handleKeyBoard = e => {
@@ -96,12 +72,7 @@ export class ComponentDetail extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/components`
         );
-        if (IS_SAAS_SERVICE) {
-            logEvent('EVENT: DASHBOARD > COMPONENT > COMPONENT DELETED', {
-                ProjectId: this.props.currentProject._id,
-                componentId,
-            });
-        }
+        
         return promise;
     };
     componentDidMount() {

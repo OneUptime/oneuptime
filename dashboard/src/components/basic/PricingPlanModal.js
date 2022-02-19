@@ -8,8 +8,8 @@ import { FormLoader } from './Loader';
 import ShouldRender from './ShouldRender';
 import { changePlan } from '../../actions/project';
 import { closeModal } from '../../actions/modal';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import RadioInput from '../project/RadioInput';
 
 function validate(values) {
@@ -67,12 +67,7 @@ class PricingPlanModal extends Component {
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
 
         changePlan(id, values.planId, name, oldPlan, newPlan).then(() => {
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('EVENT: DAHBOARD > PROJECT PLAN CHANGED', {
-                    oldPlan,
-                    newPlan,
-                });
-            }
+           
 
             if (!error) {
                 return closeModal({

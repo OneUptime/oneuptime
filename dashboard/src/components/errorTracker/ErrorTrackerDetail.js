@@ -20,8 +20,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import NewErrorTracker from './NewErrorTracker';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from 'amplitude-js';
+
+
 import moment from 'moment';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import { socket } from '../basic/Socket';
@@ -63,14 +63,7 @@ class ErrorTrackerDetail extends Component {
             closeModal({
                 id: this.state.trackerKeyModalId,
             });
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > COMPONENTS > ERROR TRACKER > ERROR TRACKER DETAILS > RESET ERROR TRACKER KEY',
-                    {
-                        errorTrackerId: errorTracker._id,
-                    }
-                );
-            }
+            
         });
     };
     deleteErrorTracker = () => {

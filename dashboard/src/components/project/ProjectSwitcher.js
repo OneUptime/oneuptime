@@ -9,8 +9,8 @@ import {
     showForm,
     switchToProjectViewerNav,
 } from '../../actions/project';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, User } from '../../config';
+
+import { User } from '../../config';
 import { getSubProjects } from '../../actions/subProject';
 
 export class ProjectSwitcher extends Component {
@@ -43,9 +43,7 @@ export class ProjectSwitcher extends Component {
                     project
                 );
             });
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent('EVENT: DASHBOARD > PROJECT > SWITCH PROJECT');
-            }
+           
         }
 
         hideProjectSwitcher();

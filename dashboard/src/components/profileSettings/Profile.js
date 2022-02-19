@@ -37,8 +37,8 @@ import PropTypes from 'prop-types';
 import ReactPhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import TwoFactorAuthModal from '../modals/TwoFactorAuth';
@@ -154,9 +154,7 @@ export class ProfileSetting extends Component {
     };
 
     async componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROFILE');
-        }
+       
         await this.props.userSettings();
         const profilePic =
             this.props.profileSettings &&
@@ -225,11 +223,7 @@ export class ProfileSetting extends Component {
         } catch (error) {
             return;
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROFILE > NEW PROFILE PICTURE UPLOADED'
-            );
-        }
+       
     };
 
     handleChange = () => {
@@ -342,9 +336,7 @@ export class ProfileSetting extends Component {
         updateProfileSetting(values).then(function() {
             resetFile();
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROFILE > UPDATE PROFILE');
-        }
+        
         User.setEmail(values.email);
         User.setName(values.name);
     };

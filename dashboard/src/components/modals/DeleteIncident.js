@@ -7,8 +7,8 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
 import { deleteIncident } from '../../actions/incident';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import { history } from '../../store';
 
 class DeleteIncident extends Component {
@@ -44,15 +44,7 @@ class DeleteIncident extends Component {
         promise.then(() => {
             this.props.closeModal();
 
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > INCIDENT > DELETE INCIDENT',
-                    {
-                        projectId,
-                        incidentId,
-                    }
-                );
-            }
+          
             if (componentSlug) {
                 if (monitors.length > 1) {
                     history.push(

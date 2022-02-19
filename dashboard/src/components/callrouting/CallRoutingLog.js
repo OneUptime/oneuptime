@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { getCallRoutingLogs } from '../../actions/callRouting';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import moment from 'moment';
 
 const formatNumber = phoneNumberString => {
@@ -23,11 +23,7 @@ const formatNumber = phoneNumberString => {
 };
 class CallRoutingLog extends Component {
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT SETTINGS > CALL ROUTING > CALL ROUTING LOGS'
-            );
-        }
+       
     }
 
     prevClicked = (projectId, skip) => {

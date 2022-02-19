@@ -8,8 +8,8 @@ import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
-import { Validate, SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+import { Validate } from '../../config';
+
 import {
     createProjectDomain,
     fetchProjectDomains,
@@ -66,11 +66,7 @@ class CreateDomain extends React.Component {
                     id: projectId,
                 });
 
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT SETTINGS > DOMAINS > CREATE DOMAIN'
-                    );
-                }
+               
             }
         });
     };

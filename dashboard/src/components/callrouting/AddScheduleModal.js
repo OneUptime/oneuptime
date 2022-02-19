@@ -14,8 +14,8 @@ import ShouldRender from '../basic/ShouldRender';
 import ScheduleComponent from './ScheduleComponent';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export class AddScheduleModal extends Component {
     constructor(props) {
@@ -133,12 +133,7 @@ export class AddScheduleModal extends Component {
                 //do nothing.
             }
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > CALL ROUTING > ADD SCHEDULE',
-                values
-            );
-        }
+       
     };
     changefile = e => {
         e.preventDefault();

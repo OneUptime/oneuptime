@@ -17,8 +17,8 @@ import IsOwner from '../basic/IsOwner';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 const validate = (values, props) => {
     const errors = {};
@@ -108,9 +108,7 @@ export class EmailSmtpBox extends Component {
                 );
             }
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > SETTINGS > SMTP CONFIG CHANGED');
-        }
+        
     };
 
     changeValue = e => {

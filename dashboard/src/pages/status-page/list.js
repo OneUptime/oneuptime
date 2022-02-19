@@ -1,3 +1,4 @@
+import React from 'react';
 import Page, {
     defaultMapDispatchToProps,
     defaultMapStateToProps,
@@ -5,7 +6,9 @@ import Page, {
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Table from '../components/basic/table';
-import StatusPageActions from '../actions/Application';
+import StatusPageActions from '../../actions/status-page';
+
+const listActions = new StatusPageActions().getListActions();
 
 class StatusPages extends Page {
     constructor(props) {
@@ -21,10 +24,6 @@ class StatusPages extends Page {
     componentDidMount() {}
 
     render() {
-        const {
-            location: { pathname },
-        } = this.props;
-
         return this.renderCommon(
             <>
                 <Table
@@ -95,6 +94,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             ...defaultMapDispatchToProps(),
+            ...listActions,
         },
         dispatch
     );

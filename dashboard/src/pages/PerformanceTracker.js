@@ -5,9 +5,8 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import getParentRoute from '../utils/getParentRoute';
-import { SHOULD_LOG_ANALYTICS } from '../config';
 import { bindActionCreators } from 'redux';
-import { logEvent } from '../analytics';
+
 import { loadPage } from '../actions/page';
 import { ListLoader, LoadingState } from '../components/basic/Loader';
 import { fetchPerformanceTrackers } from '../actions/performanceTracker';

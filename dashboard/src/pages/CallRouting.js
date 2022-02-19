@@ -5,8 +5,7 @@ import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import RoutingNumberBox from '../components/callrouting/RoutingNumberBox';
 import CallRoutingLog from '../components/callrouting/CallRoutingLog';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -52,9 +51,7 @@ class CallRouting extends Component {
         this.props.getCallRoutingNumbers(projectId);
         this.props.getTeamAndSchedules(projectId);
         this.props.getCallRoutingLogs(projectId, 0, 10);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > CALLROUTING');
-        }
+        
     };
 
     tabSelected = index => {

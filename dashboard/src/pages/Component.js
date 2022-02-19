@@ -19,7 +19,7 @@ import {
 import { loadPage } from '../actions/page';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
-import { logEvent } from '../analytics';
+
 import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
@@ -76,9 +76,7 @@ class ComponentDashboardView extends Component {
 
     componentDidMount() {
         this.props.loadPage('Components');
-        if (IS_SAAS_SERVICE) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > COMPONENT');
-        }
+        
 
         this.ready();
     }

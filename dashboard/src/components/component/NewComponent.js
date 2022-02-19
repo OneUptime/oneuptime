@@ -23,7 +23,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
-import { logEvent } from '../../analytics';
+
 import { IS_SAAS_SERVICE } from '../../config';
 import { history } from '../../store';
 
@@ -79,23 +79,13 @@ class NewComponent extends Component {
             postObj._id = this.props.editComponentProp._id;
             this.props.editComponent(postObj.projectId, postObj).then(() => {
                 thisObj.props.destroy();
-                if (IS_SAAS_SERVICE) {
-                    logEvent(
-                        'EVENT: DASHBOARD > COMPONENT > EDIT COMPONENT',
-                        values
-                    );
-                }
+                
             });
         } else {
             this.props.createComponent(postObj.projectId, postObj).then(
                 ({ data: { slug: componentSlug } }) => {
                     thisObj.props.reset();
-                    if (IS_SAAS_SERVICE) {
-                        logEvent(
-                            'EVENT: DASHBOARD > COMPONENT > NEW COMPONENT',
-                            values
-                        );
-                    }
+                    
                     this.viewCreatedComponent(
                         this.props.currentProject.slug,
                         componentSlug

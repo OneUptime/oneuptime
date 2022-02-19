@@ -5,8 +5,7 @@ import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import {
     getApplicationSecurities,
     getApplicationSecurityLogs,
@@ -68,9 +67,7 @@ class Application extends Component {
     };
 
     componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('Application Security page Loaded');
-        }
+       
         const {
             projectId,
             componentId,

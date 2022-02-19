@@ -8,8 +8,8 @@ import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { updateSubscriberOption } from '../../actions/statusPage';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 class SubscriberAdvanceOption extends React.Component {
     componentDidMount() {
@@ -38,12 +38,7 @@ class SubscriberAdvanceOption extends React.Component {
                     id: this.props.subscriberAdvanceOptionModalId,
                 });
             });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGE > SUBSCRIBER ADVANCED OPTIONS SUBMIT',
-                values
-            );
-        }
+        
     };
 
     handleKeyBoard = e => {

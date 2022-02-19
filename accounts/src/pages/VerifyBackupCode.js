@@ -7,8 +7,7 @@ import { verifyBackupCode } from '../actions/login';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 import { Link } from 'react-router-dom';
-import { logEvent, setUserId, identify } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, ACCOUNTS_URL } from '../config';
+import { ACCOUNTS_URL } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
@@ -21,22 +20,11 @@ export class VerifyBackupCode extends Component {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: VERIFY BACKUP CODE');
-        }
     }
 
     submitForm = values => {
         const email = this.props.login.user.email;
-        this.props.verifyBackupCode({ ...values, email }).then(user => {
-            if (user && user.data && user.data.id) {
-                if (SHOULD_LOG_ANALYTICS) {
-                    setUserId(user.data.id);
-                    identify(user.data.id);
-                    logEvent('EVENT: USER LOG IN');
-                }
-            }
-        });
+        this.props.verifyBackupCode({ ...values, email });
     };
 
     render() {

@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import moment from 'moment';
 import { PropTypes } from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { bindActionCreators } from 'redux';
 import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
@@ -24,9 +24,7 @@ class IncidentCreated extends Component {
 
         const notifications = [{ notificationId }];
         this.props.markAsRead(project_Id, notifications);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
-        }
+     
         history.push(
             `/dashboard/project/${this.props.slug}/component/${slug}/incidents/${incidentSlug}`
         );
@@ -37,9 +35,7 @@ class IncidentCreated extends Component {
         const project_Id =
             typeof projectId === 'object' ? projectId._id : projectId;
         this.props.closeNotification(project_Id, notificationId);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
-        }
+        
     };
 
     render() {

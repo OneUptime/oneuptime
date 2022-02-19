@@ -4,8 +4,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import {
     fetchAllIncomingRequest,
     setActiveIncomingRequest,
@@ -46,9 +46,7 @@ class IncomingRequestList extends React.Component {
         fetchIncidentPriorities(projectId);
         fetchDefaultTemplate({ projectId });
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCOMING REQUEST');
-        }
+        
     }
 
     componentDidMount() {

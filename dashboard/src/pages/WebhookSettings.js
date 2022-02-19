@@ -4,8 +4,7 @@ import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import { bindActionCreators } from 'redux';
 import { getSmsTemplates, getSmtpConfig } from '../actions/smsTemplates';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
@@ -14,12 +13,6 @@ class WebhookSettings extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-    }
-
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > WEBHOOKS');
-        }
     }
 
     render() {

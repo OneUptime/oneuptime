@@ -27,8 +27,8 @@ import { FormLoader } from '../basic/Loader';
 import Colors from './Colors';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import ConfirmResetBrandColors from '../modals/ConfirmResetBrandColors';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
@@ -94,11 +94,6 @@ export class Branding extends Component {
         } catch (error) {
             return;
         }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LOGO UPDATED'
-            );
-        }
     };
 
     updloadBannerHandler = e => {
@@ -115,11 +110,6 @@ export class Branding extends Component {
             return;
         }
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BANNER UPDATED'
-            );
-        }
     };
 
     changefavicon = e => {
@@ -135,11 +125,6 @@ export class Branding extends Component {
             reader.readAsDataURL(file);
         } catch (error) {
             return;
-        }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > FAVICON SELECTED'
-            );
         }
     };
     removeImageHandler = e => {
@@ -173,10 +158,6 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (SHOULD_LOG_ANALYTICS)
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BRANDING UPDATED'
-            );
     };
 
     submitForm = values => {
@@ -202,11 +183,6 @@ export class Branding extends Component {
             },
             function() {}
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > BRANDING UPDATED'
-            );
-        }
     };
 
     handleKeyBoard = e => {

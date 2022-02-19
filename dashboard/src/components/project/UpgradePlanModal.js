@@ -10,8 +10,8 @@ import {
 import { createMonitor, resetCreateMonitor } from '../../actions/monitor';
 import PropTypes from 'prop-types';
 import { PricingPlan } from '../../config';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export class UpgradePlanModal extends Component {
     constructor(props) {
@@ -47,12 +47,7 @@ export class UpgradePlanModal extends Component {
         } = PricingPlan.getPlanById(values.planId);
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > PLAN CHANGED', {
-                oldPlan,
-                newPlan,
-            });
-        }
+        
         this.hideForm();
     }
 

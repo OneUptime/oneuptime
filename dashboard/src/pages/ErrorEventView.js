@@ -4,8 +4,7 @@ import getParentRoute from '../utils/getParentRoute';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import PropsType from 'prop-types';
-import { SHOULD_LOG_ANALYTICS } from '../config';
-import { logEvent } from '../analytics';
+
 import {
     fetchErrorTrackers,
     fetchErrorEvent,

@@ -16,8 +16,8 @@ import {
     removePrivateKeyFile,
 } from '../../actions/statusPage';
 import { createDomain } from '../../actions/domain';
-import { Validate, SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+import { Validate } from '../../config';
+
 
 // eslint-disable-next-line no-unused-vars
 function validate(_values) {
@@ -75,12 +75,6 @@ class AddMoreDomainModal extends React.Component {
                 closeModal({
                     id: statusPageId,
                 });
-
-                if (SHOULD_LOG_ANALYTICS) {
-                    logEvent(
-                        'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > DOMAIN CREATED'
-                    );
-                }
             }
         });
     };

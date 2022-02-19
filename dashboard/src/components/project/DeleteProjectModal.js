@@ -13,8 +13,8 @@ import {
     hideDeleteModalSaasMode,
 } from '../../actions/project';
 import { history } from '../../store';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 export class DeleteProjectModal extends Component {
     constructor(props) {
@@ -34,9 +34,7 @@ export class DeleteProjectModal extends Component {
             this.setState({ deleted: true });
             this.closeNotice();
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROJECT > PROJECT DELETED', values);
-        }
+       
     }
 
     closeNotice() {

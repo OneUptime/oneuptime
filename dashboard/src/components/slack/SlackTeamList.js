@@ -7,8 +7,8 @@ import SlackTeamItem from './SlackTeamItem';
 import { getSlackTeams, paginate } from '../../actions/slack';
 import { OnCallTableHeader } from '../onCall/OnCallData';
 import { ListLoader } from '../basic/Loader';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 class SlackTeamList extends React.Component {
     ready() {
@@ -19,9 +19,6 @@ class SlackTeamList extends React.Component {
         } = this.props;
         if (teams.length === 0 && projectId) {
             getSlackTeams(projectId);
-        }
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > SLACK');
         }
     }
 
@@ -47,11 +44,6 @@ class SlackTeamList extends React.Component {
             10
         );
         paginate('prev');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > SLACK > PREV BUTTON CLICKED'
-            );
-        }
     };
 
     nextClicked = () => {
@@ -64,11 +56,6 @@ class SlackTeamList extends React.Component {
 
         getSlackTeams(projectId, skip + limit, 10);
         paginate('next');
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > SLACK > NEXT BUTTON CLICKED'
-            );
-        }
     };
 
     render() {

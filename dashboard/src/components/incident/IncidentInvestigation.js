@@ -6,8 +6,8 @@ import {
     fetchIncidentMessages,
     deleteIncidentMessage,
 } from '../../actions/incident';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { logEvent } from '../../analytics';
+
+
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,15 +34,7 @@ export class IncidentInvestigation extends Component {
         this.setState({
             page: this.state.page - 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > OLDER INVESTIGATION MESSAGES CLICKED',
-                {
-                    projectId: this.props.currentProject._id,
-                    incidentId: this.props.incident._id,
-                }
-            );
-        }
+        
     };
 
     newerInvestigationMessage = () => {
@@ -56,15 +48,7 @@ export class IncidentInvestigation extends Component {
         this.setState({
             page: this.state.page + 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > NEWER INVESTIGATION MESSAGES CLICKED',
-                {
-                    projectId: this.props.currentProject._id,
-                    incidentId: this.props.incident._id,
-                }
-            );
-        }
+        
     };
     deleteInvestigationMessage = incidentMessageId => {
         const promise = this.props.deleteIncidentMessage(
@@ -72,15 +56,7 @@ export class IncidentInvestigation extends Component {
             this.props.incident._id,
             incidentMessageId
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > INCIDENT > INVESTIGATION MESSAGE DELETED',
-                {
-                    ProjectId: this.props.currentProject._id,
-                    incidentMessageId: incidentMessageId,
-                }
-            );
-        }
+       
         return promise;
     };
     render() {

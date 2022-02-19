@@ -7,8 +7,8 @@ import { CSVLink } from 'react-csv';
 import { downloadAlertCharges } from '../../actions/alert';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 class AlertCharge extends Component {
     csvLink = React.createRef();
@@ -18,13 +18,7 @@ class AlertCharge extends Component {
         this.props = props;
     }
 
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > ALERT CHARGES'
-            );
-        }
-    }
+   
     fetchData = () => {
         const { projectId, downloadAlertCharges } = this.props;
         downloadAlertCharges(projectId).then(() => {

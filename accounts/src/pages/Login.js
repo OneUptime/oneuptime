@@ -7,8 +7,8 @@ import Fade from 'react-reveal/Fade';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginUserSso, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
-import { identify, setUserId, logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, DISABLE_SIGNUP } from '../config';
+
+import { DISABLE_SIGNUP } from '../config';
 import { history } from '../store';
 import { resendTokenReset, resendToken } from '../actions/resendToken';
 import { ButtonSpinner } from '../components/basic/Loader';
@@ -23,10 +23,7 @@ class LoginPage extends React.Component {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: LOG IN');
-        }
-
+    
         if (this.props.location?.pathname?.includes('/sso/')) {
             this.props.changeLogin('sso');
         }
@@ -36,15 +33,7 @@ class LoginPage extends React.Component {
         if (this.props.loginMethod === 'sso') {
             this.props.loginUserSso(values);
         } else {
-            this.props.loginUser(values).then(user => {
-                if (user && user.data && user.data.id) {
-                    if (SHOULD_LOG_ANALYTICS) {
-                        identify(user.data.id);
-                        setUserId(user.data.id);
-                        logEvent('EVENT: USER LOG IN');
-                    }
-                }
-            });
+            this.props.loginUser(values)
         }
     };
 

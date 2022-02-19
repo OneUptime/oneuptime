@@ -16,8 +16,7 @@ import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 import { v4 as uuidv4 } from 'uuid';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS, env, User } from '../../config';
+import { env, User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
@@ -55,12 +54,7 @@ export class CustomerBalance extends Component {
         if (isOwnerOrAdmin(userId, currentProject)) {
             const { createTopUpModalId } = this.state;
             const { rechargeBalanceAmount } = values;
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > BILLING > ADD BALANCE',
-                    values
-                );
-            }
+           
 
             if (rechargeBalanceAmount) {
                 openModal({

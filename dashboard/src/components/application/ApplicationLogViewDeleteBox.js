@@ -8,8 +8,8 @@ import { openModal, closeModal } from '../../actions/modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 
 class ApplicationLogViewDeleteBox extends Component {
@@ -29,15 +29,7 @@ class ApplicationLogViewDeleteBox extends Component {
         history.push(
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-log`
         );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > LOG CONTAINER DELETED',
-                {
-                    ProjectId: this.props.currentProject._id,
-                    applicationLogId: this.props.applicationLog._id,
-                }
-            );
-        }
+        
         return promise;
     };
 

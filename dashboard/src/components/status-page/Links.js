@@ -18,8 +18,8 @@ import DataPathHoC from '../DataPathHoC';
 import CreateFooterLink from '../modals/FooterLink';
 import { openModal, closeModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 //Client side validation
 function validate(values) {
@@ -73,11 +73,6 @@ export class Links extends Component {
                     id: this.state.createFooterLinkModalId,
                 });
             });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > LINKS UPDATED'
-            );
-        }
     };
 
     handleRemoveFooterLink = index => {

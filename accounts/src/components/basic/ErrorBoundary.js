@@ -1,18 +1,10 @@
 import React, { Component } from 'react';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
 import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component {
     constructor(props) {
         super(props);
         this.state = { error: null, hasError: false };
-    }
-
-    componentDidCatch(error, info) {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('ERROR: ACCOUNTS', { error, info });
-        }
     }
 
     static getDerivedStateFromError(error) {

@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import { loadPage } from '../actions/page';
-import { logEvent } from '../analytics';
+
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
 import { IS_SAAS_SERVICE } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -53,9 +53,7 @@ class Home extends Component {
     };
     componentDidMount() {
         this.props.loadPage('Home');
-        if (IS_SAAS_SERVICE) {
-            logEvent('PAGE VIEW: DASHBOARD > PROJECT > HOME');
-        }
+       
         this.props.userScheduleRequest();
         if (this.props.currentProjectId) {
             this.props.fetchUnresolvedIncidents(

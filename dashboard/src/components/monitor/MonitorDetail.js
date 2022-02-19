@@ -26,8 +26,8 @@ import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
 import ProbeBar from './ProbeBar';
 import { getMonitorStatus, filterProbeData } from '../../config';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
 export class MonitorDetail extends Component {
@@ -135,18 +135,7 @@ export class MonitorDetail extends Component {
                 });
             });
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
-                {
-                    ProjectId: this.props.monitor.projectId._id,
-                    monitorId: this.props.monitor._id,
-                    skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 10) - 10
-                        : 10,
-                }
-            );
-        }
+        
     };
 
     nextClicked = () => {
@@ -172,28 +161,12 @@ export class MonitorDetail extends Component {
                 });
             });
 
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
-                {
-                    ProjectId: this.props.monitor.projectId._id,
-                    monitorId: this.props.monitor._id,
-                    skip: this.props.monitor.skip
-                        ? parseInt(this.props.monitor.skip, 3) + 3
-                        : 3,
-                }
-            );
-        }
+        
     };
 
     editMonitor = () => {
         this.props.editMonitorSwitch(this.props.index);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > EDIT MONITOR CLICKED',
-                {}
-            );
-        }
+       
     };
 
     handleKeyBoard = e => {

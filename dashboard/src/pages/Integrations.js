@@ -4,8 +4,7 @@ import { PropTypes } from 'prop-types';
 import Fade from 'react-reveal/Fade';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';

@@ -7,8 +7,8 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { bindActionCreators } from 'redux';
 import {
     createApplicationLog,
@@ -68,12 +68,7 @@ class NewApplicationLog extends Component {
                     () => {
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > NEW LOG CONTAINER',
-                                values
-                            );
-                        }
+                       
                     },
                     error => {
                         if (error && error.message) {
@@ -96,12 +91,7 @@ class NewApplicationLog extends Component {
                         );
                         thisObj.props.reset();
                         thisObj.props.closeCreateApplicationLogModal();
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER > EDIT LOG CONTAINER',
-                                values
-                            );
-                        }
+                       
                     },
                     error => {
                         if (error && error.message) {

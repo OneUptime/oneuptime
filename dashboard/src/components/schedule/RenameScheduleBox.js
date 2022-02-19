@@ -12,8 +12,8 @@ import { renameSchedule } from '../../actions/schedule';
 import PropTypes from 'prop-types';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 
 function validate(value) {
     const errors = {};
@@ -26,13 +26,7 @@ function validate(value) {
 }
 
 export class RenameScheduleBox extends Component {
-    componentDidMount() {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'PAGE VIEW: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE'
-            );
-        }
-    }
+    
 
     submitForm = values => {
         const { scheduleId, renameSchedule, subProjectId } = this.props;
@@ -47,12 +41,7 @@ export class RenameScheduleBox extends Component {
                     );
                 }
             );
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > SCHEDULE LIST > SCHEUDLE > RENAME SCHEDULE',
-                    values
-                );
-            }
+            
         }
     };
 

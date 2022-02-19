@@ -7,8 +7,7 @@ import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import { v4 as uuidv4 } from 'uuid';
-import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../config';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { LoadingState } from '../components/basic/Loader';
@@ -42,11 +41,7 @@ class AlertLog extends Component {
             10
         );
         this.setState({ [projectId]: this.state[projectId] - 1 });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > ALERT LOG > PREVIOUS BUTTON CLICKED'
-            );
-        }
+        
     };
 
     nextClicked = (projectId, skip, limit) => {
@@ -54,11 +49,7 @@ class AlertLog extends Component {
         this.setState({
             [projectId]: !this.state[projectId] ? 2 : this.state[projectId] + 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > ALERT LOG > NEXT BUTTON CLICKED'
-            );
-        }
+        
     };
 
     render() {

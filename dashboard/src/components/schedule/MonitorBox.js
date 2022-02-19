@@ -11,8 +11,8 @@ import { Field, reduxForm } from 'redux-form';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import Tooltip from '../basic/Tooltip';
 
 function submitMonitorForm(values, dispatch, props) {
@@ -33,16 +33,7 @@ function submitMonitorForm(values, dispatch, props) {
         isDefault: values.isDefault,
     });
 
-    if (SHOULD_LOG_ANALYTICS) {
-        logEvent(
-            'EVENT: DASHBOARD > PROJECT > SCHEDULE > MONITOR ADDED TO SCHEDULE',
-            {
-                subProjectId,
-                scheduleId,
-                monitors,
-            }
-        );
-    }
+   
 }
 
 export function MonitorBox(props) {

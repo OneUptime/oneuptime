@@ -15,8 +15,8 @@ import { userScheduleRequest, fetchUserSchedule } from '../../actions/schedule';
 import { getVersion } from '../../actions/version';
 import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import OnCallScheduleModal from '../OnCallScheduleModal';
@@ -113,31 +113,23 @@ class TopContent extends Component {
 
     showFeedbackModal = () => {
         this.props.openFeedbackModal();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > FEEDBACK MODAL OPENED', {});
-        }
+       
     };
 
     hideFeedbackModal = () => {
         this.props.resetCreateFeedback();
         this.props.closeFeedbackModal();
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > FEEDBACK MODAL CLOSED', {});
-        }
+        
     };
 
     showProfileMenu = e => {
         this.props.showProfileMenu(e.clientX);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > PROFILE MENU OPENED', {});
-        }
+        
     };
 
     showNotificationsMenu = e => {
         this.props.openNotificationMenu(e.clientX);
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('EVENT: DASHBOARD > NOTIFICATION MENU OPENED', {});
-        }
+        
     };
 
     handleKeyBoard = e => {

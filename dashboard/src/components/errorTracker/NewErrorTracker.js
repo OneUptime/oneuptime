@@ -7,8 +7,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { history } from '../../store';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import { bindActionCreators } from 'redux';
 import {
     createErrorTracker,
@@ -55,12 +55,7 @@ class NewErrorTracker extends Component {
                 .then(
                     () => {
                         thisObj.props.reset();
-                        if (SHOULD_LOG_ANALYTICS) {
-                            logEvent(
-                                'EVENT: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING > NEW ERROR TRACKING',
-                                values
-                            );
-                        }
+                       
                     },
                     error => {
                         if (error && error.message) {
@@ -86,12 +81,7 @@ class NewErrorTracker extends Component {
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/error-trackers/${data.data.slug}`
                     );
                     thisObj.props.reset();
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            'EVENT: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING > EDIT ERROR TRACKING',
-                            values
-                        );
-                    }
+                   
                 },
                 error => {
                     if (error && error.message) {

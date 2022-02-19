@@ -17,8 +17,8 @@ import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
 import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 import DropDownMenu from '../basic/DropDownMenu';
 import ExitProjectModal from '../settings/ExitProjectModal';
@@ -50,15 +50,6 @@ export class TeamMember extends Component {
                 });
             } else return null;
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > TEAM MEMBERS > TEAM MEMBER REMOVED',
-                {
-                    projectId: this.props.subProjectId,
-                    userId: values.userId,
-                }
-            );
-        }
     }
 
     updateTeamMemberRole(values, to) {
@@ -73,15 +64,6 @@ export class TeamMember extends Component {
         this.props
             .teamUpdateRole(this.props.subProjectId, data)
             .then(team => changeProjectRoles(team.data));
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > TEAM MEMBERS > ROLE CHANGED',
-                {
-                    projectId: this.props.subProjectId,
-                    role: data.role,
-                }
-            );
-        }
     }
 
     exitProject = () => {
@@ -99,15 +81,7 @@ export class TeamMember extends Component {
                     window.location.reload();
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
 
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            'EVENT: DASHBOARD > PROJECT > USER EXITED PROJECT',
-                            {
-                                subProjectId,
-                                userId,
-                            }
-                        );
-                    }
+                   
                 });
             },
             content: ExitProjectModal,

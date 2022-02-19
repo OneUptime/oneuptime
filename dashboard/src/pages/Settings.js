@@ -6,8 +6,7 @@ import SubProjects from '../components/settings/SubProjects';
 import RenderIfMember from '../components/basic/RenderIfMember';
 import ExitProject from '../components/settings/ExitProject';
 import PropTypes from 'prop-types';
-import { SHOULD_LOG_ANALYTICS } from '../config';
-import { logEvent } from '../analytics';
+
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
 class Settings extends Component {

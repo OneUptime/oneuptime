@@ -11,8 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import DropDownMenu from '../basic/DropDownMenu';
 
 export class MonitorViewIncidentBox extends Component {
@@ -39,16 +39,7 @@ export class MonitorViewIncidentBox extends Component {
         this.setState({
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
-                {
-                    projectId:
-                        this.props.monitor.projectId._id ||
-                        this.props.monitor.projectId,
-                }
-            );
-        }
+        
     };
 
     nextClicked = () => {
@@ -61,16 +52,7 @@ export class MonitorViewIncidentBox extends Component {
             10
         );
         this.setState({ page: this.state.page + 1 });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
-                {
-                    projectId:
-                        this.props.monitor.projectId._id ||
-                        this.props.monitor.projectId,
-                }
-            );
-        }
+        
     };
 
     handleKeyBoard = e => {

@@ -8,8 +8,7 @@ import { RenderField } from '../basic/RenderField';
 import { ButtonSpinner } from '../basic/Loader.js';
 import { removeQuery } from '../../store';
 import queryString from 'query-string';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
 import { getEmailFromToken } from '../../actions/register';
 
 class UserForm extends Component {
@@ -28,10 +27,6 @@ class UserForm extends Component {
 
         removeQuery();
         this.props.getEmailFromToken(query.token);
-
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('PAGE VIEW: SIGN UP FORM');
-        }
     }
 
     render() {

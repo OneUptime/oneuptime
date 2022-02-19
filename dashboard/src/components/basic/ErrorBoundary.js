@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
+
+
 import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component {
@@ -9,13 +9,8 @@ class ErrorBoundary extends Component {
         this.state = { error: null, hasError: false };
     }
 
-    componentDidCatch(error, info) {
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent('ERROR: DASHBOARD', { error, info });
-        }
-    }
 
-    static getDerivedStateFromError() {
+    static getDerivedStateFromError(error) {
         // Update state so the next render will show the fallback UI.
         return { hasError: true, error };
     }
