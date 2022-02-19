@@ -56,29 +56,32 @@ class StatusPages extends Page {
                     friendlyName="Status Page"
                     friendlyNamePlural="Status Pages"
                     noOfItemsInPage={10}
-                    actionButtons={[{
-                        id: 'edit-status-page-btn',
-                        title: 'Edit',
-                        onClick: (id) => {
-                            this.goToPageInProject(`/status-page/${id}`)
+                    actionButtons={[
+                        {
+                            id: 'edit-status-page-btn',
+                            title: 'Edit',
+                            onClick: id => {
+                                this.goToPageInProject(`/status-page/${id}`);
+                            },
+                            visibleForOwner: true,
+                            visibleForAdmin: true,
+                            visibleForViewer: false,
+                            visibleForMember: true,
+                            visibleForAll: false,
                         },
-                        visibleForOwner: true,
-                        visibleForAdmin: true,
-                        visibleForViewer: false,
-                        visibleForMember: true,
-                        visibleForAll: false,
-                    },{
-                        id: 'view-status-page-btn',
-                        title: 'View Status Page',
-                        onClick: (id) => {
-                            this.goToPageInProject(`/status-page/${id}`)
+                        {
+                            id: 'view-status-page-btn',
+                            title: 'View Status Page',
+                            onClick: id => {
+                                this.goToPageInProject(`/status-page/${id}`);
+                            },
+                            visibleForOwner: true,
+                            visibleForAdmin: true,
+                            visibleForViewer: true,
+                            visibleForMember: true,
+                            visibleForAll: true,
                         },
-                        visibleForOwner: true,
-                        visibleForAdmin: true,
-                        visibleForViewer: true,
-                        visibleForMember: true,
-                        visibleForAll: true,
-                    }]}
+                    ]}
                     onClickTableRow={id =>
                         this.goToPageInProject(`/status-page/${id}`)
                     }
