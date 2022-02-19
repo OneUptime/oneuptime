@@ -506,18 +506,7 @@ IncidentTemplates.propTypes = {
     templates: PropTypes.array,
     fetchIncidentTemplates: PropTypes.func,
     setDefaultTemplate: PropTypes.func,
-    activeTemplate: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
-    fetchTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
-    setDefaultTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    activeTemplate: PropTypes.string,
     setActiveTemplate: PropTypes.func,
 };
 

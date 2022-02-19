@@ -439,10 +439,7 @@ Component.propTypes = {
     addingSso: PropTypes.bool,
     updatingSso: PropTypes.bool,
     currentProject: PropTypes.object,
-    formError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    formError: PropTypes.string,
 };
 
 const ReduxFormComponent = reduxForm({

@@ -504,10 +504,7 @@ CreateIncidentTemplate.propTypes = {
     settingsVariables: PropTypes.array.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
     creatingIncidentTemplate: PropTypes.bool,
-    createIncidentTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    createIncidentTemplateError: PropTypes.string,
     createIncidentTemplate: PropTypes.func,
     closeModal: PropTypes.func,
     fetchIncidentTemplates: PropTypes.func,

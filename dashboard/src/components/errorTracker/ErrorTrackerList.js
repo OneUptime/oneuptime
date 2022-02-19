@@ -151,10 +151,7 @@ ErrorTrackerList.propTypes = {
     componentId: PropTypes.string,
     prevClicked: PropTypes.func,
     nextClicked: PropTypes.func,
-    error: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    error: PropTypes.string,
     skip: PropTypes.number,
     limit: PropTypes.number,
     page: PropTypes.number,

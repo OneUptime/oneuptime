@@ -173,10 +173,7 @@ ComponentList.propTypes = {
     page: PropTypes.number,
     nextClicked: PropTypes.func,
     prevClicked: PropTypes.func,
-    requestErrorObject: PropTypes.oneOf([
-        PropTypes.object,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    requestErrorObject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);

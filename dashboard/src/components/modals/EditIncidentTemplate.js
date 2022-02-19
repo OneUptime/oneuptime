@@ -493,10 +493,7 @@ EditIncidentTemplate.propTypes = {
     settingsVariables: PropTypes.array.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
     updatingIncidentTemplate: PropTypes.bool,
-    updateIncidentTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    updateIncidentTemplateError: PropTypes.string,
     updateIncidentTemplate: PropTypes.func,
     closeModal: PropTypes.func,
     updateIncidentTemplateFailure: PropTypes.func,

@@ -490,10 +490,7 @@ Container.propTypes = {
     count: PropTypes.number,
     fetchingPage: PropTypes.bool,
     numberOfPage: PropTypes.number,
-    error: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    error: PropTypes.string,
 };
 
 const mapStateToProps = (state, ownProps) => {

@@ -457,10 +457,7 @@ EditIncidentNoteTemplate.propTypes = {
     closeModal: PropTypes.func,
     data: PropTypes.object,
     updatingNoteTemplate: PropTypes.bool,
-    updatingNoteTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    updatingNoteTemplateError: PropTypes.string,
     updateIncidentNoteTemplate: PropTypes.func,
     updateIncidentNoteTemplateFailure: PropTypes.func,
     formValues: PropTypes.object,

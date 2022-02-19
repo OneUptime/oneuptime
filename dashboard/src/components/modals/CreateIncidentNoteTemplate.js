@@ -463,10 +463,7 @@ CreateIncidentNoteTemplate.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     creatingNoteTemplate: PropTypes.bool,
-    creatingNoteTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    creatingNoteTemplateError: PropTypes.string,
     closeModal: PropTypes.func,
     createIncidentNoteTemplate: PropTypes.func,
     fetchIncidentNoteTemplates: PropTypes.func,

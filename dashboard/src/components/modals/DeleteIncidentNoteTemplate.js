@@ -161,10 +161,7 @@ DeleteIncidentNoteTemplate.propTypes = {
     closeModal: PropTypes.func.isRequired,
     templateId: PropTypes.string,
     deletingTemplate: PropTypes.bool,
-    deleteError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     skip: PropTypes.number,
     limit: PropTypes.number,
     deleteIncidentNoteTemplate: PropTypes.func,

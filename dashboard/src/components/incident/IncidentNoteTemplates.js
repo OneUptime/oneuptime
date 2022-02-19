@@ -403,10 +403,7 @@ IncidentNoteTemplates.propTypes = {
     currentProject: PropTypes.object,
     fetchingTemplates: PropTypes.bool,
     templates: PropTypes.array,
-    fetchTemplateError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    fetchTemplateError: PropTypes.string,
     fetchIncidentNoteTemplates: PropTypes.func,
 };
 

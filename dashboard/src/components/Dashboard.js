@@ -376,7 +376,7 @@ const mapStateToProps = state => ({
     currentModal:
         state.modal.modals && state.modal.modals.length > 0
             ? state.modal.modals[state.modal.modals.length - 1]
-            : '',
+            : null,
     switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     pageName: state.page.title,
 });

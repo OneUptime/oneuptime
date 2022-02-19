@@ -177,10 +177,7 @@ MonitorList.propTypes = {
     nextClicked: PropTypes.func,
     prevClicked: PropTypes.func,
     requestingNextPage: PropTypes.bool,
-    error: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    error: PropTypes.string,
     componentId: PropTypes.string,
     // updateprobebysocket: PropTypes.func,
 };

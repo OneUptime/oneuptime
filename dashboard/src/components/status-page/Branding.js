@@ -802,6 +802,8 @@ Branding.propTypes = {
     fetchProjectStatusPage: PropTypes.func.isRequired,
     resetBrandingColors: PropTypes.func.isRequired,
     openModal: PropTypes.func,
+    faviconurl: PropTypes.string,
+    bannerUrl: PropTypes.string,
 };
 
 const BrandingForm = reduxForm({

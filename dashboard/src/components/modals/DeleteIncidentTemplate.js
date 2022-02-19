@@ -162,10 +162,7 @@ DeleteIncidentTemplate.propTypes = {
     deleteIncidentTemplate: PropTypes.func,
     templateId: PropTypes.string,
     deletingTemplate: PropTypes.bool,
-    deleteError: PropTypes.oneOf([
-        PropTypes.string,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     deleteIncidentTemplateFailure: PropTypes.func,
     fetchIncidentTemplates: PropTypes.func,
     skip: PropTypes.number,
