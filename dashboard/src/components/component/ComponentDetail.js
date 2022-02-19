@@ -11,8 +11,6 @@ import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
 import { history } from '../../store';
-
-import { IS_SAAS_SERVICE } from '../../config';
 import ResourceTabularList from './ResourceTabularList';
 import { animateSidebar } from '../../actions/animateSidebar';
 

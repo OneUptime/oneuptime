@@ -41,9 +41,6 @@ if (userData !== undefined) {
     store.dispatch(loadPage('Home'));
 }
 
-if (User.isLoggedIn()) {
-    const id = User.getUserId();
-}
 
 const App = props => {
     const hideProjectNav =

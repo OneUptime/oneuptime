@@ -43,6 +43,7 @@ class Page extends Component {
             friendlyPageName,
             pagePath,
             showTutorial,
+            pageName
         } = this.props;
 
         const projectName = project ? project.name : '';
@@ -74,20 +75,6 @@ export const defaultMapDispatchToProps = () => {
 };
 
 export const defaultMapStateToProps = state => {
-    // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
-
-    // set a default show to true for the tutorials to display
-    const tutorialStat = {
-        statusPage: { show: true },
-    };
-
-    // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
-    for (const key in tutorialStat) {
-        if (projectCustomTutorial && projectCustomTutorial[key]) {
-            tutorialStat[key].show = projectCustomTutorial[key].show;
-        }
-    }
 
     return {
         projectId: state.project?.currentProject?._id,

@@ -130,7 +130,6 @@ const mapStateToProps = state => {
 };
 
 MonitorViewDisableBox.propTypes = {
-    currentProject: PropTypes.object.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     monitorState: PropTypes.object.isRequired,

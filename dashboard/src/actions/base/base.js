@@ -97,9 +97,9 @@ class BaseAction {
                 }
 
                 dispatch(actions[this.actionKeys.request]());
-
+                let response = null;
                 try {
-                    let response = null;
+                    
 
                     if (this.actionType === 'create') {
                         response = await postApi(path, data);

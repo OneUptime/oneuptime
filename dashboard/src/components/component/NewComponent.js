@@ -23,8 +23,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
-
-import { IS_SAAS_SERVICE } from '../../config';
 import { history } from '../../store';
 
 const selector = formValueSelector('NewComponent');

@@ -44,7 +44,7 @@ class ChangeMonitorComponent extends React.Component {
         });
     };
 
-    handleMonitorComponentChanged = async (monitor, oldComponentId) => {
+    handleMonitorComponentChanged = async (monitor) => {
         this.props.closeModal({
             id: this.state.changeMonitorComponentModalId,
         });
@@ -78,8 +78,6 @@ class ChangeMonitorComponent extends React.Component {
     handleRedirectOnSuccess = async monitor => {
         const { currentProject } = this.props;
         const {
-            projectId,
-            _id: monitorId,
             slug,
             componentId: newComponent,
         } = monitor;
@@ -100,8 +98,6 @@ class ChangeMonitorComponent extends React.Component {
                 if (!this.props.changeMonitorComponentError) {
                     this.handleMonitorComponentChanged(
                         response.data,
-                        oldComponentId,
-                        newComponentId
                     );
                 }
             }
