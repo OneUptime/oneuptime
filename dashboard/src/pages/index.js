@@ -9,7 +9,7 @@ const IncidentSettings = lazy(() => import('./IncidentSettings'));
 const MonitorSettings = lazy(() => import('./MonitorSettings'));
 
 const StatusPage = lazy(() => import('./StatusPage'));
-const StatusPages = lazy(() => import('./StatusPages'));
+const StatusPagesList = lazy(() => import('./status-page/list'));
 
 const OnCall = lazy(() => import('./OnCall'));
 const AlertLog = lazy(() => import('./AlertLog'));
@@ -76,7 +76,7 @@ export default {
     TeamMembers,
     TeamMemberProfile,
     StatusPage,
-    StatusPages,
+    StatusPagesList,
     Profile,
     AlertLog,
     IncidentLog,
