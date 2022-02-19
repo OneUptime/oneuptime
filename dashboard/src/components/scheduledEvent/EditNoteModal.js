@@ -45,7 +45,7 @@ class EditNoteModal extends Component {
 
     submitForm = values => {
         const {
-            data: { projectId, scheduledEventId, scheduledEventNoteId, type },
+            data: { projectId, scheduledEventId, scheduledEventNoteId },
             modalId,
             closeModal,
             updateScheduledEventNoteInternal,

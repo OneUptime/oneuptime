@@ -70,12 +70,12 @@ class ChangeMonitorComponent extends React.Component {
         this.props.addCurrentComponent(componentWithProjects);
 
         this.showSuccessMessageBox(newComponent);
-        this.handleRedirectOnSuccess(monitor, oldComponentId);
+        this.handleRedirectOnSuccess(monitor);
 
         return;
     };
 
-    handleRedirectOnSuccess = async (monitor, oldComponentId) => {
+    handleRedirectOnSuccess = async monitor => {
         const { currentProject } = this.props;
         const {
             projectId,

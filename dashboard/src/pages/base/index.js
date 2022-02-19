@@ -132,8 +132,8 @@ Page.defaultPropTypes = {
 };
 
 Page.propTypes = {
-    ...Page.defaultPropTypes
-}
+    ...Page.defaultPropTypes,
+};
 
 Page.displayName = 'Page';
 
