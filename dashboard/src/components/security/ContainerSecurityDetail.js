@@ -328,8 +328,7 @@ ContainerSecurityDetail.propTypes = {
     getDockerCredentials: PropTypes.func,
     getContainerSecurityBySlug: PropTypes.func,
     gettingCredentials: PropTypes.bool,
-    fetchLogError: PropTypes.string,PropTypes.string  PropTypes.oneOf([null, undefined]),
-    ]),
+    fetchLogError: PropTypes.string,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

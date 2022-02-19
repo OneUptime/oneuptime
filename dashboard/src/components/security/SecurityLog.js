@@ -467,8 +467,7 @@ SecurityLog.displayName = 'SecurityLog';
 
 SecurityLog.propTypes = {
     type: PropTypes.string,
-    applicationSecurityLog: PropTypes.object,PropTypes.object  PropTypes.oneOf([null, undefined]),
-    ]),
+    applicationSecurityLog: PropTypes.object,
     levelToFilter: PropTypes.string,
 };
 

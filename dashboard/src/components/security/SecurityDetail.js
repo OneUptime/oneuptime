@@ -153,8 +153,7 @@ const SecurityDetail = ({
 SecurityDetail.displayName = 'SecurityDetail';
 
 SecurityDetail.propTypes = {
-    applicationSecurityLog: PropTypes.object,PropTypes.object  PropTypes.oneOf([null, undefined]),
-    ]),
+    applicationSecurityLog: PropTypes.object,
     type: PropTypes.string.isRequired,
     more: PropTypes.func,
 };

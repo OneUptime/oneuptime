@@ -115,9 +115,7 @@ UpgradePlanModal.propTypes = {
     hideUpgradeForm: PropTypes.func.isRequired,
     changePlan: PropTypes.func.isRequired,
     resetCreateMonitor: PropTypes.func.isRequired,
-    projects: PropTypes.object,PropTypes.object  PropTypes.oneOf([nuPropTypes.object  PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    projects: PropTypes.object,
     visible: PropTypes.bool,
 };
 

@@ -337,8 +337,7 @@ ApplicationSecurityDetail.propTypes = {
     applicationSecurityLog: PropTypes.object,
     getGitCredentials: PropTypes.func,
     gettingCredentials: PropTypes.bool,
-    fetchLogError: PropTypes.string,PropTypes.string  PropTypes.oneOf([null, undefined]),
-    ]),
+    fetchLogError: PropTypes.string,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
