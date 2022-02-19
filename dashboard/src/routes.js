@@ -404,7 +404,7 @@ export const groups = [
                         shortcut: 'g+s',
                     },
                 ],
-                component: StatusPages,
+                component: StatusPagesList,
                 index: 3,
             },
             {

@@ -10,10 +10,10 @@ import startOfWeek from 'date-fns/startOfWeek';
 import isWithinInterval from 'date-fns/isWithinInterval';
 import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import { createStyles } from '@material-ui/styles';
-import { createMuiTheme, MuiThemeProvider } from '@material-ui/core/styles';
+import { createTheme, MuiThemeProvider } from '@material-ui/core/styles';
 import { IconButton, withStyles } from '@material-ui/core';
 
-const theme = createMuiTheme({
+const theme = createTheme({
     palette: {
         primary: {
             main: '#0080a8',

@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
 import PropTypes from 'prop-types';
-import ShouldRender from '../components/basic/ShouldRender';
-import TutorialBox from '../components/tutorial/TutorialBox';
-import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
+import ShouldRender from '../../components/basic/ShouldRender';
+import TutorialBox from '../../components/tutorial/TutorialBox';
+import BreadCrumbItem from '../../components/breadCrumb/BreadCrumbItem';
 import { history } from '../../store';
 
 class Page extends Component {

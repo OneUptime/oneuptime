@@ -1,6 +1,6 @@
 import Actions from './base/index';
 
-export class StatusPageActions extends Actions {
+export default class StatusPageActions extends Actions {
     constructor() {
         super({
             createActionProps: {

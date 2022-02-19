@@ -2,10 +2,10 @@ import React from 'react';
 import Page, {
     defaultMapDispatchToProps,
     defaultMapStateToProps,
-} from './base/index';
+} from '../base/index';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Table from '../components/basic/table';
+import Table from '../../components/table/Table';
 import StatusPageActions from '../../actions/status-page';
 
 const listActions = new StatusPageActions().getListActions();

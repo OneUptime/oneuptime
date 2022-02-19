@@ -1,4 +1,4 @@
-import { postApi, getApi, putApi, deleteApi } from '../api';
+import { postApi, getApi, putApi, deleteApi } from '../../api';
 import { getErrorMessageFromResponse } from '../../utils/error';
 
 class BaseAction {
