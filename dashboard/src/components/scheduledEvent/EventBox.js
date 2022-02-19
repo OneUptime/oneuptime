@@ -656,27 +656,15 @@ EventBox.propTypes = {
     projectId: PropTypes.string,
     fetchingMonitors: PropTypes.bool,
     monitors: PropTypes.array,
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    currentSubProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
+    currentProject: PropTypes.object,PropTypes.object  PropTypes.oneOf([null, undefined]),
     ]),
     subProjects: PropTypes.array,
     prevClicked: PropTypes.func,
     nextClicked: PropTypes.func,
-    parentProjectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    parentProjectId: PropTypes.string,
     modalList: PropTypes.array,
     allScheduleEventLength: PropTypes.number,
-    pages: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    pages: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>

@@ -401,10 +401,7 @@ DockerCredentialList.propTypes = {
     error: PropTypes.string,
     isRequesting: PropTypes.bool.isRequired,
     dockerCredentials: PropTypes.array,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     projectId: PropTypes.string,
     openModal: PropTypes.func,
     deleteDockerCredential: PropTypes.func,

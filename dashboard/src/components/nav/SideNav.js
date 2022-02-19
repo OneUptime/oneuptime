@@ -447,10 +447,7 @@ SideNav.propTypes = {
     allIndividualComponents: PropTypes.array,
     location: PropTypes.object,
     match: PropTypes.object,
-    profilePic: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    profilePic: PropTypes.string,
     userName: PropTypes.string,
     animateSidebar: PropTypes.bool,
     currentProject: PropTypes.object,

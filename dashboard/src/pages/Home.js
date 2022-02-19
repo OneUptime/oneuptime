@@ -637,10 +637,7 @@ Home.propTypes = {
     escalation: PropTypes.object,
     escalations: PropTypes.array,
     slug: PropTypes.string,
-    incidents: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    incidents: PropTypes.array,
     projectTeamMembers: PropTypes.array,
     subProjectTeamLoading: PropTypes.func,
     monitors: PropTypes.array,

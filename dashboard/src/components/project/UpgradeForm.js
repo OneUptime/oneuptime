@@ -113,10 +113,7 @@ UpgradeForm.propTypes = {
     submitFailed: PropTypes.bool,
     submitting: PropTypes.bool,
     canUpgrade: PropTypes.bool,
-    projects: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    projects: PropTypes.object,
 };
 
 export default reduxForm({

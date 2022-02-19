@@ -875,10 +875,7 @@ IncidentCommunicationSlaModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    slaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    slaError: PropTypes.string,
     createCommunicationSla: PropTypes.func,
     fetchCommunicationSlas: PropTypes.func,
     createIncidentSlaModalId: PropTypes.string,

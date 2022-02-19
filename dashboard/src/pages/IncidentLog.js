@@ -418,10 +418,7 @@ IncidentLog.propTypes = {
     getComponentIncidents: PropTypes.func,
     getProjectComponentIncidents: PropTypes.func,
     fetchComponent: PropTypes.func,
-    componentSlug: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    componentSlug: PropTypes.string,
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
     activeProjectId: PropTypes.string,

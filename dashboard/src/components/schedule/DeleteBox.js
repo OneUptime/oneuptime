@@ -130,16 +130,7 @@ DeleteScheduleBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
     slug: PropTypes.string,
-    subProjectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    scheduleId: PropTypes.oneOfType([
-        PropTypes.string,
+    subProjectId: PropTypes.string,PropTypes.string  PropTypes.oneOf(PropTypes.string  PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     deleteSchedule: PropTypes.func.isRequired,

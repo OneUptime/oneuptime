@@ -417,10 +417,7 @@ PerformanceTracker.propTypes = {
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     loadPage: PropTypes.func,
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
     fetchPerformanceTrackers: PropTypes.func,
     performanceTrackerList: PropTypes.object,
     fetchComponent: PropTypes.func,

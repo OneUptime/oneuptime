@@ -246,10 +246,7 @@ ChangePasswordSetting.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     reset: PropTypes.func.isRequired,
     updateChangePasswordSetting: PropTypes.func.isRequired,
-    profileSettings: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    profileSettings: PropTypes.object,
     openModal: PropTypes.func.isRequired,
 };
 

@@ -153,10 +153,7 @@ DeleteSchedule.displayName = 'DeleteSchedule';
 DeleteSchedule.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     closeModal: PropTypes.func,
     deleteScheduledEvent: PropTypes.func,
     modalId: PropTypes.string,

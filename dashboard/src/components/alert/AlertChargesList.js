@@ -451,15 +451,9 @@ const mapStateToProps = state => {
 };
 
 AlertChargesList.propTypes = {
-    alertCharges: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    alertCharges: PropTypes.array,
     isRequesting: PropTypes.bool,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     projectId: PropTypes.string,
     slug: PropTypes.string,
     skip: PropTypes.number,

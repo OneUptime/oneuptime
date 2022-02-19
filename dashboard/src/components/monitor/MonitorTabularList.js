@@ -481,10 +481,7 @@ MonitorTabularList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
     componentSlug: PropTypes.string.isRequired,
-    monitors: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    monitors: PropTypes.object,
     monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
     activeProbe: PropTypes.number,

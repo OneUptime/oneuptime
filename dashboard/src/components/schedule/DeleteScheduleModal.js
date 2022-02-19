@@ -142,16 +142,10 @@ const mapStateToProps = state => {
 };
 
 DeleteScheduleModal.propTypes = {
-    isRequesting: PropTypes.oneOfType([
-        PropTypes.bool,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    isRequesting: PropTypes.bool,
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
 };
 
 export default connect(mapStateToProps)(DeleteScheduleModal);

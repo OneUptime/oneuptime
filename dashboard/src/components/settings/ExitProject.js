@@ -124,10 +124,7 @@ ExitProjectBox.propTypes = {
     dispatch: PropTypes.func.isRequired,
     userId: PropTypes.string,
     projectId: PropTypes.string,
-    nextProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    nextProject: PropTypes.object,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
 };
 

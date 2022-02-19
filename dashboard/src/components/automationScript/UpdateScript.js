@@ -831,10 +831,7 @@ const mapStateToProps = (state, ownProps) => {
 UpdateScript.propTypes = {
     updateAutomatedScript: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
-    addScriptsError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addScriptsError: PropTypes.string,
     requesting: PropTypes.bool,
     resetScripts: PropTypes.func,
     script: PropTypes.array,

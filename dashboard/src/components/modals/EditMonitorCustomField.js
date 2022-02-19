@@ -320,10 +320,7 @@ UpdateMonitorCustomField.propTypes = {
     updateCustomFieldModalId: PropTypes.string,
     initialValues: PropTypes.object,
     requesting: PropTypes.bool,
-    updateFieldError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateFieldError: PropTypes.string,
     projectId: PropTypes.string,
 };
 

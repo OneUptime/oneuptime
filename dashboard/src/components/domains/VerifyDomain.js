@@ -302,10 +302,7 @@ VerifyDomain.displayName = 'Domain verification';
 VerifyDomain.propTypes = {
     requesting: PropTypes.bool,
     verificationToken: PropTypes.string,
-    verifyError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    verifyError: PropTypes.string,
     domainId: PropTypes.string,
     projectId: PropTypes.string,
     domain: PropTypes.string,

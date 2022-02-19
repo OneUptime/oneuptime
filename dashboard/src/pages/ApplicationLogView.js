@@ -339,10 +339,7 @@ ApplicationLogView.propTypes = {
     fetchComponent: PropTypes.func,
     componentSlug: PropTypes.string,
     fetchApplicationLogs: PropTypes.func,
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
     applicationLog: PropTypes.arrayOf(
         PropTypes.shape({
             _id: PropTypes.string,

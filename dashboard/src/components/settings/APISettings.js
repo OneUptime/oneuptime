@@ -225,10 +225,7 @@ const mapDispatchToProps = dispatch =>
 
 APISettings.propTypes = {
     resetProjectToken: PropTypes.func.isRequired,
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     openModal: PropTypes.func.isRequired,
 };

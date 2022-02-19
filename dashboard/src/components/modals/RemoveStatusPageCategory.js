@@ -133,10 +133,7 @@ RemoveResourceCategory.propTypes = {
     closeModal: PropTypes.func.isRequired,
     deleteStatusPageCategory: PropTypes.func,
     deletingCategory: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     data: PropTypes.object,
     skip: PropTypes.number,
     limit: PropTypes.number,

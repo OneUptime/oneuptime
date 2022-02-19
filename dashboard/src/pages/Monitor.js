@@ -695,19 +695,10 @@ const mapStateToProps = (state, ownProps) => {
 };
 
 MonitorDashboardView.propTypes = {
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
     componentId: PropTypes.string,
-    monitor: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    monitors: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    monitor: PropTypes.object,
+    monitors: PropTypes.array,
     loadPage: PropTypes.func,
     destroy: PropTypes.func.isRequired,
     fetchMonitorLogs: PropTypes.func,

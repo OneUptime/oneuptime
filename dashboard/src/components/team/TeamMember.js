@@ -360,10 +360,7 @@ TeamMember.propTypes = {
     email: PropTypes.string.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     lastActive: PropTypes.string.isRequired,
-    name: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    name: PropTypes.string,
     openModal: PropTypes.func,
     resetTeamDelete: PropTypes.func.isRequired,
     role: PropTypes.string.isRequired,
@@ -375,10 +372,7 @@ TeamMember.propTypes = {
     userId: PropTypes.string.isRequired,
     exitingProject: PropTypes.bool,
     exitProject: PropTypes.func,
-    nextProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    nextProject: PropTypes.object,
     dispatch: PropTypes.func.isRequired,
     currentProject: PropTypes.object,
 };

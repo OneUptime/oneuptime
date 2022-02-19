@@ -532,10 +532,7 @@ ResourceTabularList.propTypes = {
     monitors: PropTypes.array,
     animateSidebar: PropTypes.func,
     addCurrentComponent: PropTypes.func,
-    componentName: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    componentName: PropTypes.string,
 };
 
 ResourceTabularList.defaultProps = {

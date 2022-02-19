@@ -3131,10 +3131,7 @@ EditIncomingRequest.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     editIncomingRequest: PropTypes.func,
     requesting: PropTypes.bool,
-    requestError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    requestError: PropTypes.string,
     formValues: PropTypes.object,
     initialValues: PropTypes.object,
     projectId: PropTypes.string,

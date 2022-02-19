@@ -623,10 +623,7 @@ SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     route: PropTypes.object.isRequired,
-    schedule: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    schedule: PropTypes.object,
     currentProject: PropTypes.object,
     component: PropTypes.object, // eslint-disable-line
     loadPage: PropTypes.func.isRequired,

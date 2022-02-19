@@ -153,13 +153,7 @@ const SecurityDetail = ({
 SecurityDetail.displayName = 'SecurityDetail';
 
 SecurityDetail.propTypes = {
-    applicationSecurityLog: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    containerSecurityLog: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
+    applicationSecurityLog: PropTypes.object,PropTypes.object  PropTypes.oneOf([null, undefined]),
     ]),
     type: PropTypes.string.isRequired,
     more: PropTypes.func,

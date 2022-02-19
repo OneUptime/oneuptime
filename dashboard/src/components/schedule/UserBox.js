@@ -193,14 +193,8 @@ UserBox.displayName = 'UserBox';
 UserBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     teamLoading: PropTypes.func.isRequired,
-    projectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    projectId: PropTypes.string,
+    currentProject: PropTypes.object,
     users: PropTypes.array.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     addUserRequesting: PropTypes.oneOf([null, undefined, true, false]),

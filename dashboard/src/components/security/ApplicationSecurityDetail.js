@@ -332,21 +332,12 @@ ApplicationSecurityDetail.propTypes = {
     getApplicationSecurityBySlug: PropTypes.func,
     applicationSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
-    getApplicationError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    getApplicationError: PropTypes.string,
     gettingSecurityLog: PropTypes.bool,
     applicationSecurityLog: PropTypes.object,
     getGitCredentials: PropTypes.func,
     gettingCredentials: PropTypes.bool,
-    fetchLogError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    fetchCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
+    fetchLogError: PropTypes.string,PropTypes.string  PropTypes.oneOf([null, undefined]),
     ]),
     location: PropTypes.shape({
         pathname: PropTypes.string,

@@ -861,10 +861,7 @@ MonitorSlaModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    slaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    slaError: PropTypes.string,
     createMonitorSla: PropTypes.func,
     fetchMonitorSlas: PropTypes.func,
     createMonitorSlaModalId: PropTypes.string,

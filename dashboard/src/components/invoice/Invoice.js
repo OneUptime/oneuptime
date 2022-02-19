@@ -127,10 +127,7 @@ const mapDispatchToProps = dispatch => {
 Invoice.propTypes = {
     getInvoice: PropTypes.func.isRequired,
     userId: PropTypes.string,
-    invoices: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    invoices: PropTypes.array,
     getInvoiceReset: PropTypes.func.isRequired,
 };
 

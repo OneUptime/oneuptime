@@ -313,10 +313,7 @@ ChangeMonitorComponent.propTypes = {
     changeMonitorComponentModalId: PropTypes.string,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    changeMonitorComponentError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    changeMonitorComponentError: PropTypes.string,
     components: PropTypes.array,
     currentProject: PropTypes.object,
     addCurrentComponent: PropTypes.func,

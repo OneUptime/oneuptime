@@ -263,10 +263,7 @@ ThirdPartyVariables.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     monitor: PropTypes.object,
     editingMonitor: PropTypes.bool,
-    editError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    editError: PropTypes.string,
     fetchCustomFields: PropTypes.func,
     resetEditMonitor: PropTypes.func,
     customFields: PropTypes.array,

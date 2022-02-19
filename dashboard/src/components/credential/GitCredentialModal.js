@@ -402,20 +402,14 @@ GitCredentialModal.displayName = 'GitCredentialModal';
 
 GitCredentialModal.propTypes = {
     isRequesting: PropTypes.bool,
-    addCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addCredentialError: PropTypes.string,
     propArr: PropTypes.array,
     projectId: PropTypes.string,
     addGitCredential: PropTypes.func,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
     updateGitCredential: PropTypes.func,
-    updateCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateCredentialError: PropTypes.string,
     updatingCredential: PropTypes.bool,
 };
 

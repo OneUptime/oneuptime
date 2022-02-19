@@ -331,10 +331,7 @@ CreateCustomField.propTypes = {
     createCustomFieldModalId: PropTypes.string,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    createFieldError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    createFieldError: PropTypes.string,
 };
 
 const CreateCustomFieldForm = reduxForm({

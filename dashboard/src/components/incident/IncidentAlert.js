@@ -258,10 +258,7 @@ IncidentAlert.propTypes = {
     ]),
     incidents: PropTypes.array,
     next: PropTypes.func.isRequired,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentAlert);

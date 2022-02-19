@@ -349,10 +349,7 @@ NotificationMenu.propTypes = {
     markAsRead: PropTypes.func,
     markAllAsRead: PropTypes.func,
     billingActionTaken: PropTypes.func,
-    notifications: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    notifications: PropTypes.object,
     length: PropTypes.number,
     map: PropTypes.func,
     stripe: PropTypes.object,

@@ -343,10 +343,7 @@ ContainerSecurityForm.propTypes = {
     componentId: PropTypes.string,
     projectId: PropTypes.string,
     addingContainer: PropTypes.bool,
-    addContainerError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addContainerError: PropTypes.string,
     dockerCredentials: PropTypes.array,
     getDockerCredentials: PropTypes.func,
     requestingDockerCredentials: PropTypes.bool,

@@ -512,10 +512,7 @@ class SocketApp extends Component {
 SocketApp.displayName = 'SocketApp';
 
 SocketApp.propTypes = {
-    project: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    project: PropTypes.object,
     activeProjectId: PropTypes.string,
 };
 

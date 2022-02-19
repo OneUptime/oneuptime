@@ -479,10 +479,7 @@ ApplicationSecurityForm.propTypes = {
     componentId: PropTypes.string,
     addApplicationSecurity: PropTypes.func,
     isRequesting: PropTypes.bool,
-    addApplicationError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addApplicationError: PropTypes.string,
     handleSubmit: PropTypes.func, // provided by redux form
     getGitCredentials: PropTypes.func,
     gitCredentials: PropTypes.array,

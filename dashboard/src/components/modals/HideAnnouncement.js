@@ -197,10 +197,7 @@ HideAnnouncement.propTypes = {
     data: PropTypes.object,
     updateAnnouncement: PropTypes.func,
     requesting: PropTypes.bool,
-    updateError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateError: PropTypes.string,
     modalId: PropTypes.string,
     statusPage: PropTypes.object,
     resetDeleteAnnouncement: PropTypes.func,

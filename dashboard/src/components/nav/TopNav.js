@@ -732,14 +732,8 @@ TopContent.propTypes = {
     showSearchBar: PropTypes.func.isRequired,
     closeSearchBar: PropTypes.func.isRequired,
     searchFieldVisible: PropTypes.bool,
-    profilePic: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    notifications: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    profilePic: PropTypes.string,
+    notifications: PropTypes.object,
     incidents: PropTypes.shape({ incidents: PropTypes.array }),
     length: PropTypes.number,
     map: PropTypes.func,

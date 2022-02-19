@@ -3045,10 +3045,7 @@ CreateIncomingRequest.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     createIncomingRequest: PropTypes.func,
     requesting: PropTypes.bool,
-    requestError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    requestError: PropTypes.string,
     formValues: PropTypes.object,
     data: PropTypes.object,
     incidentPriorities: PropTypes.array,

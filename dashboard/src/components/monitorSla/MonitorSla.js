@@ -552,10 +552,7 @@ MonitorSla.propTypes = {
     fetchMonitorSlas: PropTypes.func,
     currentProject: PropTypes.object,
     monitorSlas: PropTypes.array,
-    fetchSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    fetchSlaError: PropTypes.string,
     updateMonitorSla: PropTypes.func,
     setActiveMonitorSla: PropTypes.func,
     activeSla: PropTypes.string,

@@ -300,10 +300,7 @@ ContainerSecurityView.propTypes = {
     scanning: PropTypes.bool,
     securityLog: PropTypes.object,
     containerSecurity: PropTypes.object,
-    scanError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    scanError: PropTypes.string,
     activeContainerSecurity: PropTypes.string,
     scannedStatus: PropTypes.string,
 };

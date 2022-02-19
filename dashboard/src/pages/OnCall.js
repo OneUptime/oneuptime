@@ -329,10 +329,7 @@ OnCall.propTypes = {
     fetchSubProjectSchedules: PropTypes.func.isRequired,
     history: PropTypes.object.isRequired,
     currentProjectId: PropTypes.string.isRequired,
-    isRequesting: PropTypes.oneOfType([
-        PropTypes.bool,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    isRequesting: PropTypes.bool,
     paginate: PropTypes.func.isRequired,
     createSchedule: PropTypes.func.isRequired,
     pages: PropTypes.object.isRequired,

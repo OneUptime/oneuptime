@@ -158,10 +158,7 @@ DeleteCustomField.displayName = 'DeleteCustomField';
 
 DeleteCustomField.propTypes = {
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     closeModal: PropTypes.func,
     deleteCustomField: PropTypes.func,
     modalId: PropTypes.string,

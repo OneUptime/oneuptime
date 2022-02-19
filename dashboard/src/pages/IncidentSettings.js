@@ -434,10 +434,7 @@ IncidentSettings.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
     fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
-    modalId: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    modalId: PropTypes.object,
     fetchCustomFields: PropTypes.func,
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,

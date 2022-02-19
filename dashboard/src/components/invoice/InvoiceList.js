@@ -395,15 +395,9 @@ const mapStateToProps = state => {
 
 InvoiceList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
-    invoices: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    invoices: PropTypes.array,
     isRequesting: PropTypes.bool,
-    error: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.object,
     has_more: PropTypes.bool,
     nextCount: PropTypes.number.isRequired,
     prevClicked: PropTypes.func.isRequired,

@@ -205,16 +205,10 @@ DeleteCredentialModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
-    deleteCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteCredentialError: PropTypes.string,
     propArr: PropTypes.array.isRequired,
     getSecurities: PropTypes.bool,
-    getSecuritiesError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    getSecuritiesError: PropTypes.string,
     securities: PropTypes.array,
     slug: PropTypes.string,
 };

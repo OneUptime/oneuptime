@@ -209,18 +209,9 @@ AlertLog.propTypes = {
     fetchAlert: PropTypes.func,
     fetchProjectAlert: PropTypes.func,
     currentProject: PropTypes.object.isRequired,
-    alerts: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    error: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    isRequesting: PropTypes.oneOfType([
-        PropTypes.bool,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    alerts: PropTypes.object,
+    error:  PropTypes.object,
+    isRequesting: PropTypes.bool,
     subProjects: PropTypes.array.isRequired,
     location: PropTypes.shape({
         pathname: PropTypes.string,

@@ -122,10 +122,7 @@ DeleteNoteModal.propTypes = {
     data: PropTypes.object,
     deletingNote: PropTypes.bool,
     deleteScheduledEventNote: PropTypes.func,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     closeModal: PropTypes.func,
     modalId: PropTypes.string,
 };

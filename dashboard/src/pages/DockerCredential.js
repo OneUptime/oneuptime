@@ -89,10 +89,7 @@ DockerCredential.propTypes = {
     projectId: PropTypes.string,
     getDockerCredentials: PropTypes.func,
     dockerCredentials: PropTypes.array,
-    getError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    getError: PropTypes.string,
     isRequesting: PropTypes.bool,
     location: PropTypes.shape({
         pathname: PropTypes.string,

@@ -548,10 +548,7 @@ CreateAnnouncement.propTypes = {
     createAnnouncement: PropTypes.func,
     fetchAnnouncements: PropTypes.func,
     requesting: PropTypes.bool,
-    createError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    createError: PropTypes.string,
     data: PropTypes.object,
     change: PropTypes.func,
 };

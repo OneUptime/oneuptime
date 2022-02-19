@@ -322,10 +322,7 @@ ApplicationLog.propTypes = {
     loadPage: PropTypes.func,
     fetchComponent: PropTypes.func,
     fetchApplicationLogs: PropTypes.func,
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
     activeProjectId: PropTypes.string,
 };

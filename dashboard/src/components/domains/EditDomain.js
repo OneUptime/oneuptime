@@ -240,10 +240,7 @@ EditDomain.propTypes = {
     requesting: PropTypes.bool,
     projectId: PropTypes.string,
     domainId: PropTypes.string,
-    updateDomainError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateDomainError: PropTypes.string,
     updateProjectDomain: PropTypes.func,
     fetchProjectDomains: PropTypes.func,
     resetUpdateProjectDomain: PropTypes.func,

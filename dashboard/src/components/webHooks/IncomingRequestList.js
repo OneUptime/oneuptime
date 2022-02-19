@@ -470,10 +470,7 @@ IncomingRequestList.propTypes = {
     count: PropTypes.number,
     skip: PropTypes.number,
     limit: PropTypes.number,
-    fetchError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    fetchError: PropTypes.string,
     activeIncomingRequest: PropTypes.string,
     fetchIncidentPriorities: PropTypes.func,
     fetchDefaultTemplate: PropTypes.func,

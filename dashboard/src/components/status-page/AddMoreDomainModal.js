@@ -631,10 +631,7 @@ AddMoreDomainModal.propTypes = {
     requesting: PropTypes.bool,
     statusPageId: PropTypes.string,
     projectId: PropTypes.string,
-    addDomainError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addDomainError: PropTypes.string,
     uploadCertFile: PropTypes.func,
     uploadPrivateKey: PropTypes.func,
     certFile: PropTypes.object,

@@ -273,10 +273,7 @@ SubscriberAlert.propTypes = {
     incidents: PropTypes.array,
     incident: PropTypes.object,
     next: PropTypes.func.isRequired,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     page: PropTypes.number,
 };
 

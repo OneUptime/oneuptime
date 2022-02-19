@@ -127,10 +127,7 @@ BreadCrumbs.propTypes = {
     styles: PropTypes.string.isRequired,
     name: PropTypes.string,
     closeIncidentRequest: PropTypes.object,
-    incidents: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    incidents: PropTypes.array,
     closeIncident: PropTypes.func,
     currentProjectId: PropTypes.string,
 };

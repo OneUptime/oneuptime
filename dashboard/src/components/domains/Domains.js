@@ -419,10 +419,7 @@ Domains.displayName = 'Domains';
 
 Domains.propTypes = {
     currentProject: PropTypes.object,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     requesting: PropTypes.bool,
     projectDomains: PropTypes.array,
     count: PropTypes.number,

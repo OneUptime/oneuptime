@@ -322,22 +322,13 @@ ContainerSecurityDetail.propTypes = {
     containerSecuritySlug: PropTypes.string,
     containerSecurity: PropTypes.object,
     isRequesting: PropTypes.bool,
-    getContainerError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    getContainerError: PropTypes.string,
     containerSecurityLog: PropTypes.object,
     gettingSecurityLog: PropTypes.bool,
     getDockerCredentials: PropTypes.func,
     getContainerSecurityBySlug: PropTypes.func,
     gettingCredentials: PropTypes.bool,
-    fetchLogError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    fetchCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
+    fetchLogError: PropTypes.string,PropTypes.string  PropTypes.oneOf([null, undefined]),
     ]),
     location: PropTypes.shape({
         pathname: PropTypes.string,

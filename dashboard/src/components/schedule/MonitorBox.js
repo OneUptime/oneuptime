@@ -381,14 +381,8 @@ MonitorBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     monitors: PropTypes.array.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    currentProject: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    subProjectId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    currentProject: PropTypes.object,
+    subProjectId: PropTypes.string,
     subProjects: PropTypes.array.isRequired,
     schedule: PropTypes.objectOf(PropTypes.any),
 };

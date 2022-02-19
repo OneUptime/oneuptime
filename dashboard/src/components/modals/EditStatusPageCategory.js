@@ -191,10 +191,7 @@ EditStatusPageCategory.propTypes = {
     updateStatusPageCategory: PropTypes.func.isRequired,
     data: PropTypes.object,
     updatingCategory: PropTypes.bool,
-    updateError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateError: PropTypes.string,
 };
 
 export default connect(

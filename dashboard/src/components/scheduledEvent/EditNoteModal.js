@@ -442,13 +442,7 @@ EditNoteModal.propTypes = {
     event_state: PropTypes.string,
     updatingInternalNote: PropTypes.bool,
     updatingInvestigationNote: PropTypes.bool,
-    updateInternalError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    updateInvestigationError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
+    updateInternalError: PropTypes.string,PropTypes.string  PropTypes.oneOf([null, undefined]),
     ]),
     modalId: PropTypes.string,
     closeModal: PropTypes.func,

@@ -388,10 +388,7 @@ AddNoteModal.propTypes = {
     createScheduledEventNote: PropTypes.func,
     event_state: PropTypes.string,
     creatingNote: PropTypes.bool,
-    createError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    createError: PropTypes.string,
     modalId: PropTypes.string,
     closeModal: PropTypes.func,
     change: PropTypes.func,

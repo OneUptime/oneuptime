@@ -107,14 +107,8 @@ UnVerifiedEmailBox.displayName = 'UnVerifiedEmailBox';
 UnVerifiedEmailBox.propTypes = {
     initialValues: PropTypes.object,
     emailVerificationRequesting: PropTypes.bool,
-    emailVerificationError: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    emailVerificationData: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    emailVerificationError: PropTypes.object,
+    emailVerificationData: PropTypes.object,
     sendEmailVerificationLink: PropTypes.func.isRequired,
 };
 

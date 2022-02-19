@@ -1613,10 +1613,7 @@ ProfileSetting.propTypes = {
     ]),
     emailVerificationRequesting: PropTypes.bool,
     emailVerificationSuccess: PropTypes.bool,
-    fileUrl: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    fileUrl: PropTypes.string,
     handleSubmit: PropTypes.func.isRequired,
     initAlertEmail: PropTypes.string,
     initPhoneVerification: PropTypes.bool,
@@ -1626,15 +1623,9 @@ ProfileSetting.propTypes = {
     isVerified: PropTypes.bool,
     logFile: PropTypes.func.isRequired,
     otp: PropTypes.string,
-    profilePic: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    profilePic: PropTypes.object,
     profileSettingState: PropTypes.object,
-    profileSettings: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    profileSettings: PropTypes.object,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     removedPic: PropTypes.bool,
     resendTimer: PropTypes.oneOfType([
@@ -1659,10 +1650,7 @@ ProfileSetting.propTypes = {
     openModal: PropTypes.func.isRequired,
     setTwoFactorAuth: PropTypes.func.isRequired,
     updateTwoFactorAuthToken: PropTypes.func.isRequired,
-    twoFactorAuthSetting: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    twoFactorAuthSetting: PropTypes.object,
     setIsVerified: PropTypes.func.isRequired,
     setProfilePic: PropTypes.func.isRequired,
     setRemovedPic: PropTypes.func.isRequired,

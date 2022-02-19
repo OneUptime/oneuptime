@@ -1169,10 +1169,7 @@ IncidentList.displayName = 'IncidentList';
 IncidentList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
-    incidents: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    incidents: PropTypes.object,
     monitorState: PropTypes.object.isRequired,
     currentProject: PropTypes.object,
     filteredIncidents: PropTypes.array,

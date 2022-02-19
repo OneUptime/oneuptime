@@ -387,10 +387,7 @@ AnnouncementLog.propTypes = {
     statusPage: PropTypes.object,
     logs: PropTypes.object,
     requesting: PropTypes.bool,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     openModal: PropTypes.func,
 };
 

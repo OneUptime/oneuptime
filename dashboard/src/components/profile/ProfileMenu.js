@@ -293,14 +293,8 @@ ProfileMenu.propTypes = {
     openModal: PropTypes.func.isRequired,
     logoutUser: PropTypes.func.isRequired,
     profileSettings: PropTypes.object,
-    data: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    email: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    data: PropTypes.object,
+    email: PropTypes.string,
     position: PropTypes.number,
     history: PropTypes.object,
 };

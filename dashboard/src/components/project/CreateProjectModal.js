@@ -74,10 +74,7 @@ CreateProjectModal.propTypes = {
     hideForm: PropTypes.func.isRequired,
     switchProject: PropTypes.func.isRequired,
     createProject: PropTypes.func.isRequired,
-    projects: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    projects: PropTypes.object,
     visible: PropTypes.bool,
 };
 

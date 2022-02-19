@@ -157,10 +157,7 @@ DeleteIncomingRequest.displayName = 'DeleteIncomingRequest';
 
 DeleteIncomingRequest.propTypes = {
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     closeModal: PropTypes.func,
     deleteIncomingRequest: PropTypes.func,
     projectId: PropTypes.string,

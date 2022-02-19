@@ -467,18 +467,9 @@ SecurityLog.displayName = 'SecurityLog';
 
 SecurityLog.propTypes = {
     type: PropTypes.string,
-    applicationSecurityLog: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
+    applicationSecurityLog: PropTypes.object,PropTypes.object  PropTypes.oneOf([null, undefined]),
     ]),
-    containerSecurityLog: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    levelToFilter: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    levelToFilter: PropTypes.string,
 };
 
 const mapStateToProps = state => {

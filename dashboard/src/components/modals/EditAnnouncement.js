@@ -526,10 +526,7 @@ EditAnnouncement.propTypes = {
     updateAnnouncement: PropTypes.func,
     fetchAnnouncements: PropTypes.func,
     requesting: PropTypes.bool,
-    updateError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateError: PropTypes.string,
     data: PropTypes.object,
     change: PropTypes.func,
 };

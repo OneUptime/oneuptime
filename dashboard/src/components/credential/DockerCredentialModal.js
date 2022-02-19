@@ -419,20 +419,14 @@ DockerCredentialModal.displayName = 'DockerCredentialModal';
 
 DockerCredentialModal.propTypes = {
     isRequesting: PropTypes.bool,
-    addCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addCredentialError: PropTypes.string,
     propArr: PropTypes.array,
     projectId: PropTypes.string,
     addDockerCredential: PropTypes.func,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,
     updateDockerCredential: PropTypes.func,
-    updateCredentialError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    updateCredentialError: PropTypes.string,
     updatingCredential: PropTypes.bool,
 };
 

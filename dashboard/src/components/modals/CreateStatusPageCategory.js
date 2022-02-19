@@ -190,10 +190,7 @@ CreateStatusPageCategory.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
     creatingCategory: PropTypes.bool,
-    createError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    createError: PropTypes.string,
     createStatusPageCategory: PropTypes.func,
     data: PropTypes.object,
     fetchStatusPageCategories: PropTypes.func,

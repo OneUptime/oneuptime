@@ -371,10 +371,7 @@ EditContainerSecurity.displayName = 'EditContainerSecurity';
 
 EditContainerSecurity.propTypes = {
     isRequesting: PropTypes.bool,
-    editError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    editError: PropTypes.string,
     propArr: PropTypes.array,
     closeModal: PropTypes.func,
     handleSubmit: PropTypes.func,

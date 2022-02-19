@@ -163,10 +163,7 @@ DeleteAnnouncement.propTypes = {
     data: PropTypes.object,
     deleteAnnouncement: PropTypes.func,
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     modalId: PropTypes.string,
     statusPage: PropTypes.object,
     resetDeleteAnnouncement: PropTypes.func,

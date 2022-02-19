@@ -846,10 +846,6 @@ Incident.propTypes = {
     fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
     fetchDefaultCommunicationSla: PropTypes.func,
-    // defaultIncidentSla: PropTypes.oneOfType([
-    //     PropTypes.object,
-    //     PropTypes.oneOf([null, undefined]),
-    // ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,

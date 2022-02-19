@@ -279,10 +279,7 @@ PricingPlanModal.propTypes = {
     propArr: PropTypes.array,
     handleSubmit: PropTypes.func,
     isRequesting: PropTypes.bool,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     closeModal: PropTypes.func,
     currentProject: PropTypes.object,
     currentPlanId: PropTypes.string,

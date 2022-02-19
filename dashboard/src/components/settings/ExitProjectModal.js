@@ -125,10 +125,7 @@ ExitProjectModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
 };
 
 const mapStateToProps = state => ({

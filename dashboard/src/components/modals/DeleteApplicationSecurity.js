@@ -171,10 +171,7 @@ DeleteApplicationSecurity.displayName = 'Delete Application Security';
 DeleteApplicationSecurity.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
-    deleteApplicationError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteApplicationError: PropTypes.string,
     deleteApplicationSecurity: PropTypes.func,
     closeModal: PropTypes.func,
     modalId: PropTypes.string,

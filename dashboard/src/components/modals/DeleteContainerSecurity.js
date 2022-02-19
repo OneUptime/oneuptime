@@ -170,10 +170,7 @@ DeleteContainerSecurity.displayName = 'Delete Container Security';
 DeleteContainerSecurity.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
-    deleteContainerError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteContainerError: PropTypes.string,
     closeModal: PropTypes.func,
     deleteContainerSecurity: PropTypes.func,
     modalId: PropTypes.string,

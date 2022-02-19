@@ -258,10 +258,7 @@ Plans.propTypes = {
     trialEndDate: PropTypes.oneOf([PropTypes.string, PropTypes.bool]),
     isRequestingTrial: PropTypes.oneOf([null, undefined, true, false]),
     activeForm: PropTypes.string,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     openModal: PropTypes.func,
 };
 

@@ -369,10 +369,7 @@ IncidentCustomFields.displayName = 'IncidentCustomFields';
 
 IncidentCustomFields.propTypes = {
     currentProject: PropTypes.object,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     requesting: PropTypes.bool,
     customFields: PropTypes.array,
     count: PropTypes.number,

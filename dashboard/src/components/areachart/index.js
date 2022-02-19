@@ -268,10 +268,7 @@ AreaChart.propTypes = {
     name: PropTypes.string,
     symbol: PropTypes.string,
     requesting: PropTypes.bool,
-    initMonitorScanning: PropTypes.oneOf([
-        PropTypes.bool,
-        PropTypes.oneOfType([null, undefined]),
-    ]),
+    initMonitorScanning: PropTypes.bool,
 };
 
 function mapStateToProps(state) {

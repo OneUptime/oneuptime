@@ -239,13 +239,7 @@ Branding.propTypes = {
     resetFaviconCache: PropTypes.func.isRequired,
     updateStatusPageName: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
-    logourl: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    faviconurl: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
+    logourl: PropTypes.string,PropTypes.string  PropTypes.oneOf([null, undefined]),
     ]),
     reset: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,

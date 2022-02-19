@@ -712,10 +712,7 @@ EditIncidentCommunicationSlaModal.propTypes = {
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     requesting: PropTypes.bool,
-    slaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    slaError: PropTypes.string,
     updateCommunicationSla: PropTypes.func,
     currentProject: PropTypes.object,
     initialValues: PropTypes.object,

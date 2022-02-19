@@ -155,10 +155,7 @@ DeleteAnnouncementLog.propTypes = {
     closeThisDialog: PropTypes.func,
     deleteAnnouncementLog: PropTypes.func,
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     fetchAnnouncementLogs: PropTypes.func,
     data: PropTypes.object,
     resetDeleteAnnouncement: PropTypes.func,

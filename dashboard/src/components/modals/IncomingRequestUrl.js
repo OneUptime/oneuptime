@@ -140,10 +140,7 @@ IncomingRequestUrl.displayName = 'IncomingRequestUrl';
 
 IncomingRequestUrl.propTypes = {
     closeModal: PropTypes.func,
-    incomingRequest: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    incomingRequest: PropTypes.object,
     currentProject: PropTypes.object,
 };
 

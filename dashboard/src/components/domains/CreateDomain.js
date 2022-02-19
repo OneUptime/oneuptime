@@ -249,10 +249,7 @@ CreateDomain.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     requesting: PropTypes.bool,
     projectId: PropTypes.string,
-    addDomainError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    addDomainError: PropTypes.string,
     createProjectDomain: PropTypes.func,
     fetchProjectDomains: PropTypes.func,
     resetCreateProjectDomain: PropTypes.func,

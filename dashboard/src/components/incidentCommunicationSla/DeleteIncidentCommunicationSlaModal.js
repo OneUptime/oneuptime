@@ -151,10 +151,7 @@ DeleteIncidentCommunicationSlaModal.displayName =
 DeleteIncidentCommunicationSlaModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     closeModal: PropTypes.func,
     deleteCommunicationSla: PropTypes.func,
     modalId: PropTypes.string,

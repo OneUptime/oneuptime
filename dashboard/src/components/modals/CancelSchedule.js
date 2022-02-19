@@ -146,10 +146,7 @@ CancelSchedule.displayName = 'CancelSchedule';
 CancelSchedule.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
-    cancelError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    cancelError: PropTypes.string,
     closeModal: PropTypes.func,
     cancelScheduledEvent: PropTypes.func,
     modalId: PropTypes.string,

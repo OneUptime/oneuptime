@@ -734,10 +734,7 @@ ScheduledEventNote.propTypes = {
     limit: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     prevPage: PropTypes.func,
     nextPage: PropTypes.func,
-    pages: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    pages: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>

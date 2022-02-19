@@ -1345,10 +1345,7 @@ RenderOption.propTypes = {
     type: PropTypes.string,
     change: PropTypes.func.isRequired,
     criterionType: PropTypes.string,
-    formCriteria: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    formCriteria: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>

@@ -336,10 +336,7 @@ CallRoutingLog.displayName = 'CallRoutingLog';
 CallRoutingLog.propTypes = {
     count: PropTypes.number,
     currentProject: PropTypes.object,
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    error: PropTypes.string,
     getCallRoutingLogs: PropTypes.func,
     limit: PropTypes.number,
     logs: PropTypes.shape({

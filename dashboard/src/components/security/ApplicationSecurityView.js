@@ -303,10 +303,7 @@ ApplicationSecurityView.propTypes = {
     securityLog: PropTypes.object,
     scanning: PropTypes.bool,
     applicationSecurity: PropTypes.object,
-    scanError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    scanError: PropTypes.string,
     activeApplicationSecurity: PropTypes.string,
     scannedStatus: PropTypes.string,
 };

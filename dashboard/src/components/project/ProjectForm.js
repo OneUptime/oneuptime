@@ -328,10 +328,7 @@ _ProjectForm.propTypes = {
     email: PropTypes.string,
     companyName: PropTypes.string,
     elementFontSize: PropTypes.string,
-    activePlan: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    activePlan: PropTypes.string,
 };
 
 const ProjectForm = new reduxForm({

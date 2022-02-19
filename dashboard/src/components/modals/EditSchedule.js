@@ -1175,10 +1175,7 @@ UpdateSchedule.propTypes = {
     updateScheduledEvent: PropTypes.func.isRequired,
     updateScheduledEventModalId: PropTypes.string,
     requesting: PropTypes.bool,
-    scheduledEventError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    scheduledEventError: PropTypes.string,
     initialValues: PropTypes.object,
     startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     formValues: PropTypes.object,

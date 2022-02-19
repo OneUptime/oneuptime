@@ -369,10 +369,7 @@ GitSshList.propTypes = {
     projectId: PropTypes.string,
     deleteGitCredential: PropTypes.func,
     openModal: PropTypes.func,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    deleteError: PropTypes.string,
     getGitSecurities: PropTypes.func,
     modalId: PropTypes.string,
 };

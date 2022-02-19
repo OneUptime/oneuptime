@@ -533,10 +533,7 @@ IncidentCommunicationSla.propTypes = {
     fetchCommunicationSlas: PropTypes.func,
     currentProject: PropTypes.object,
     incidentSlas: PropTypes.array,
-    fetchSlaError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    fetchSlaError: PropTypes.string,
     updateCommunicationSla: PropTypes.func,
     setActiveSla: PropTypes.func,
     activeSla: PropTypes.string,

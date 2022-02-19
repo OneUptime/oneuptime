@@ -795,24 +795,12 @@ Branding.propTypes = {
     setStatusPageColors: PropTypes.func.isRequired,
     updateStatusPageBranding: PropTypes.func.isRequired,
     createLogoCache: PropTypes.func.isRequired,
-    logourl: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    faviconurl: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    bannerurl: PropTypes.oneOfType([
-        PropTypes.string,
+    logourl: PropTypes.string,PropTypes.string  PropTypes.oneOfPropTypes.string  PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
     colors: PropTypes.object,
     reset: PropTypes.func.isRequired,
-    copyright: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    copyright: PropTypes.string,
     fetchProjectStatusPage: PropTypes.func.isRequired,
     resetBrandingColors: PropTypes.func.isRequired,
     openModal: PropTypes.func,

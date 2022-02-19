@@ -1221,10 +1221,7 @@ CreateSchedule.propTypes = {
     createScheduledEventModalId: PropTypes.string,
     data: PropTypes.object,
     requesting: PropTypes.bool,
-    scheduledEventError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    scheduledEventError: PropTypes.string,
     minStartDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     monitors: PropTypes.array,
     formValues: PropTypes.object,
