@@ -1,14 +1,91 @@
-const ModelUtil = require('../utils/model');
-const StatusPageModel = require('../models/statusPage');
+const ServiceBase = require('./base');
+const {
+    schema: StatusPageModel,
+    requiredFields,
+} = require('../models/statusPage');
 
-const StatusPageModelUtil = new ModelUtil({
+const publicListProps = {
+    populate: [],
+    select: ['_id', 'projectId', 'name', 'slug', 'title', 'description'],
+};
+
+const publicItemProps = {
+    populate: [
+        { path: 'projectId', select: 'parentProjectId' },
+        { path: 'monitorIds', select: 'name' },
+        { path: 'monitors.monitor', select: 'name' },
+        {
+            path: 'domains.domainVerificationToken',
+            select: 'domain verificationToken verified ',
+        },
+    ],
+
+    select: [
+        'multipleNotificationTypes',
+        'domains',
+        'projectId',
+        'monitors',
+        'links',
+        'slug',
+        'title',
+        'name',
+        'isPrivate',
+        'isSubscriberEnabled',
+        'isGroupedByMonitorCategory',
+        'showScheduledEvents',
+        'moveIncidentToTheTop',
+        'hideProbeBar',
+        'hideUptime',
+        'multipleNotifications',
+        'hideResolvedIncident',
+        'description',
+        'copyright',
+        'faviconPath',
+        'logoPath',
+        'bannerPath',
+        'colors',
+        'layout',
+        'headerHTML',
+        'footerHTML',
+        'customCSS',
+        'customJS',
+        'statusBubbleId',
+        'embeddedCss',
+        'createdAt',
+        'enableRSSFeed',
+        'emailNotification',
+        'smsNotification',
+        'webhookNotification',
+        'selectIndividualMonitors',
+        'enableIpWhitelist',
+        'ipWhitelist',
+        'incidentHistoryDays',
+        'scheduleHistoryDays',
+        'announcementLogsHistory',
+        'theme',
+        'enableMultipleLanguage',
+        'multipleLanguages',
+        'twitterHandle',
+    ],
+};
+
+const StatusPageServiceBase = new ServiceBase({
     model: StatusPageModel,
+    requiredFields,
     friendlyName: 'Status Page',
+    publicListProps: publicListProps,
+    adminListProps: publicListProps,
+    memberListProps: publicListProps,
+    viewerListProps: publicListProps,
+    publicItemProps: publicItemProps,
+    adminItemProps: publicItemProps,
+    memberItemProps: publicItemProps,
+    viewerItemProps: publicItemProps,
 });
 
 module.exports = {
     findBy: async function({ query, skip, limit, populate, select, sort }) {
-        return await StatusPageModelUtil.findBy({
+        return await StatusPageServiceBase.findBy({
             query,
             skip,
             limit,
@@ -19,7 +96,7 @@ module.exports = {
     },
 
     findOneBy: async function({ query, select, populate, skip, limit, sort }) {
-        return await StatusPageModelUtil.findOneBy({
+        return await StatusPageServiceBase.findOneBy({
             query,
             skip,
             limit,
@@ -30,7 +107,7 @@ module.exports = {
     },
 
     countBy: async function(query) {
-        return await StatusPageModelUtil.countBy({ query });
+        return await StatusPageServiceBase.countBy({ query });
     },
 
     create: async function({ data }) {
@@ -40,11 +117,11 @@ module.exports = {
 
         data.statusBubbleId = data.statusBubbleId || uuid.v4();
 
-        const statusPage = await StatusPageModelUtil.create({
+        const statusPage = await StatusPageServiceBase.create({
             data,
             checkDuplicatesValuesIn: ['name'],
             checkDuplicatesValuesInProject: true,
-            slugify: 'name',
+            slugifyField: 'name',
         });
 
         const populateStatusPage = [

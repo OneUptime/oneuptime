@@ -144,4 +144,13 @@ const statusSchema = new Schema({
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     theme: { type: String, default: 'Clean Theme' },
 });
-module.exports = mongoose.model('StatusPage', statusSchema);
+
+const requiredFields = {
+    name: true,
+    projectId: true,
+};
+
+module.exports = {
+    schema: mongoose.model('StatusPage', statusSchema),
+    requiredFields,
+};
