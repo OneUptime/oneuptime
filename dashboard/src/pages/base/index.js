@@ -85,8 +85,8 @@ export const defaultMapStateToProps = state => {
             state.subProject?.activeSubProject?._id,
         currentActiveProject:
             state.project?.currentProject || state.subProject?.activeSubProject,
-        user: state.user.user,
-        userId: state.user.user._id,
+        user: state.user?.user,
+        userId: state.user?.user?._id,
         userRoleByCurrentActiveProject: null,
         userRoleByProject: null,
         userRoleBySubProject: null,

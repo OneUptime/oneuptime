@@ -53,7 +53,7 @@ export default class Actions {
                 friendlyName,
                 apiPath,
                 isResourceInProject,
-                isRequestAllowed: this.getActionProps.isRequestAllowed,
+                isRequestAllowed: getActionProps.isRequestAllowed,
             });
         }
 

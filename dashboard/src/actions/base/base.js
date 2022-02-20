@@ -17,10 +17,10 @@ class BaseAction {
             throw new Error('actionType is required.');
         }
 
-        this.FriendlyName = friendlyName;
+        this.friendlyName = friendlyName;
 
         if (!apiPath) {
-            this.ApiName = friendlyName.toLowerCase().replace(' ', '-');
+            this.apiName = friendlyName.toLowerCase().replace(' ', '-');
         }
 
         this.isResourceInProject = isResourceInProject;
@@ -90,7 +90,7 @@ class BaseAction {
             }
 
             return async function(dispatch) {
-                let path = `${this.ApiName}`;
+                let path = `${this.apiName}`;
 
                 if (this.isResourceInProject) {
                     path += `/${data.projectId}`;
