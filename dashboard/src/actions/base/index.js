@@ -86,4 +86,25 @@ export default class Actions {
     getDeleteActions() {
         return this.deleteAction.getActions();
     }
+
+
+    getCreateConstants() {
+        return this.createAction.getConstants();
+    }
+
+    getListConstants() {
+        return this.listAction.getConstants();
+    }
+
+    getGetConstants() {
+        return this.getAction.getConstants();
+    }
+
+    getUpdateConstants() {
+        return this.updateAction.getConstants();
+    }
+
+    getDeleteConstants() {
+        return this.deleteAction.getConstants();
+    }
 }

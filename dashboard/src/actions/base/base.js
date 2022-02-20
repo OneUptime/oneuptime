@@ -27,13 +27,6 @@ class BaseAction {
         this.actionType = actionType;
         this.isRequestAllowed = isRequestAllowed;
 
-        this.constantKeys = {
-            request: actionType.toUpperCase() + '_REQUEST',
-            success: actionType.toUpperCase() + '_SUCCESS',
-            failure: actionType.toUpperCase() + '_FAILURE',
-            reset: actionType.toUpperCase() + '_RESET',
-        };
-
         this.actionKeys = {
             request: actionType.toLowerCase() + 'Request',
             success: actionType.toLowerCase() + 'Success',
@@ -43,18 +36,25 @@ class BaseAction {
     }
 
     getConstants() {
-        const friendlyName = this.friendlyName.replace(' ', '_');
-        const request = this.actionType + '_' + friendlyName + '_REQUEST';
-        const success = this.actionType + '_' + friendlyName + '_SUCCESS';
-        const failure = this.actionType + '_' + friendlyName + '_FAILURE';
-        const reset = this.actionType + '_' + friendlyName + '_RESET';
+        const friendlyName = this.friendlyName.replace(' ', '_').toUpperCase();
+        const request = this.actionType.toUpperCase() + '_' + friendlyName + '_REQUEST';
+        const success = this.actionType.toUpperCase() + '_' + friendlyName + '_SUCCESS';
+        const failure = this.actionType.toUpperCase() + '_' + friendlyName + '_FAILURE';
+        const reset = this.actionType.toUpperCase() + '_' + friendlyName + '_RESET';
 
         const constants = {
-            [this.constantKeys.request]: request,
-            [this.constantKeys.success]: success,
-            [this.constantKeys.failure]: failure,
-            [this.constantKeys.reset]: reset,
+            request: request,
+            success: success,
+            failure: failure,
+            reset: reset,
         };
+
+        if(this.actionType === "list"){
+            //add pagination actions. 
+            constants.paginateNext = this.actionType.toUpperCase() + '_' + friendlyName + '_PAGINATE_NEXT';
+            constants.paginatePrevious = this.actionType.toUpperCase() + '_' + friendlyName + '_PAGINATE_PREVIOUS';
+            constants.paginateToPage = this.actionType.toUpperCase() + '_' + friendlyName + '_PAGINATE_TO_PAGE';
+        }
 
         return constants;
     }
@@ -64,32 +64,32 @@ class BaseAction {
 
         const actions = {};
 
-        actions[this.actionKeys.request] = function() {
+        actions[this.actionKeys.request] = function () {
             return {
                 type: constants[this.constantKeys.request],
             };
         };
 
-        actions[this.actionKeys.success] = function(data) {
+        actions[this.actionKeys.success] = function (data) {
             return {
                 type: constants[this.constantKeys.success],
                 payload: data,
             };
         };
 
-        actions[this.actionKeys.failure] = function(error) {
+        actions[this.actionKeys.failure] = function (error) {
             return {
                 type: constants[this.constantKeys.failure],
                 payload: error,
             };
         };
 
-        actions[this.actionKeys.apiCall] = async function(data) {
+        actions[this.actionKeys.apiCall] = async function (data) {
             if (this.isRequestAllowed) {
                 throw 'This request is not allowed';
             }
 
-            return async function(dispatch) {
+            return async function (dispatch) {
                 let path = `${this.apiName}`;
 
                 if (this.isResourceInProject) {
