@@ -341,6 +341,7 @@ ContainerSecurityDetail.propTypes = {
     getContainerSecuritySuccess: PropTypes.func,
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
+    fetchCredentialError: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>

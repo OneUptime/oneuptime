@@ -242,6 +242,7 @@ Branding.propTypes = {
     logourl: PropTypes.string,
     reset: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
+    faviconurl: PropTypes.string,
 };
 
 const BasicForm = reduxForm({

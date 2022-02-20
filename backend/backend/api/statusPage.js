@@ -29,31 +29,35 @@ const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
 const cheerio = require('cheerio');
-// Route Description: Adding a status page to the project.
-// req.params->{projectId}; req.body -> {[monitorIds]}
-// Returns: response status page, error message
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        data.projectId = req.params.projectId;
+const ApiBase = require('./base');
 
-        if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Status Page name is empty',
-            });
-        }
-
-        // Call the StatusPageService.
-        const statusPage = await StatusPageService.create(data);
-        return sendItemResponse(req, res, statusPage);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
+ApiBase({
+    router,
+    deleteApiProps: {
+        enabled: true,
+        authorizedByRole: ['admin'],
+    },
+    listApiProps: {
+        enabled: true,
+        authorizedByRole: ['member', 'admin'],
+    },
+    getApiProps: {
+        enabled: true,
+        authorizedByRole: ['member', 'admin'],
+    },
+    updateApiProps: {
+        enabled: true,
+        authorizedByRole: ['admin'],
+    },
+    createApiProps: {
+        enabled: true,
+        authorizedByRole: ['admin'],
+    },
+    isResourceByProject: true,
+    service: StatusPageService,
+    friendlyResourceName: 'Status Page',
+    resourceName: 'status-page',
 });
 
 //fetch tweets from user twitter handle

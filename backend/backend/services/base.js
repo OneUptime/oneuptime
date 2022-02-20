@@ -3,7 +3,6 @@ const handlePopulate = require('../utils/populate');
 const getSlug = require('../utils/getSlug');
 
 class ServiceBase {
-
     constructor({
         model,
         requiredFields,
@@ -32,9 +31,6 @@ class ServiceBase {
         this.viewerListProps = viewerListProps;
         this.publicItemProps = publicItemProps;
         this.viewerItemProps = viewerItemProps;
-
-
-
     }
 
     async create({
@@ -66,7 +62,7 @@ class ServiceBase {
             if (existingItemCount > 0) {
                 const error = new Error(
                     `${this.friendlyName ||
-                    `Item`} with the same ${valuesIn.join(
+                        `Item`} with the same ${valuesIn.join(
                         ','
                     )} already exists.`
                 );
@@ -90,6 +86,10 @@ class ServiceBase {
         query.deleted = false;
         const count = await this.model.countDocuments(query);
         return count;
+    }
+
+    async deleteOneBy({ query = {}, deletedByUserId }) {
+        return await this.deleteBy({ query, multiple: false, deletedByUserId });
     }
 
     async deleteBy({ query = {}, multiple = false, deletedByUserId }) {
@@ -118,7 +118,6 @@ class ServiceBase {
         );
     }
 
-
     async getListForViewer({
         query = {},
         skip = 0,
@@ -129,12 +128,11 @@ class ServiceBase {
             query,
             skip,
             limit,
-            populate: viewerListProps.populate,
-            select: viewerListProps.select,
-            sort
-        })
+            populate: this.viewerListProps.populate,
+            select: this.viewerListProps.select,
+            sort,
+        });
     }
-
 
     async getListForAdmin({
         query = {},
@@ -146,10 +144,10 @@ class ServiceBase {
             query,
             skip,
             limit,
-            populate: adminListProps.populate,
-            select: adminListProps.select,
-            sort
-        })
+            populate: this.adminListProps.populate,
+            select: this.adminListProps.select,
+            sort,
+        });
     }
 
     async getListForMember({
@@ -162,10 +160,10 @@ class ServiceBase {
             query,
             skip,
             limit,
-            populate: memberListProps.populate,
-            select: memberListProps.select,
-            sort
-        })
+            populate: this.memberListProps.populate,
+            select: this.memberListProps.select,
+            sort,
+        });
     }
 
     async getListForPublic({
@@ -178,70 +176,51 @@ class ServiceBase {
             query,
             skip,
             limit,
-            populate: publicListProps.populate,
-            select: publicListProps.select,
-            sort
-        })
+            populate: this.publicListProps.populate,
+            select: this.publicListProps.select,
+            sort,
+        });
     }
 
-
-    async getItemForViewer({
-        query = {},
-        skip = 0,
-        sort,
-    }) {
+    async getItemForViewer({ query = {}, skip = 0, sort }) {
         return await this.findOneBy({
             query,
             skip,
-            populate: viewerItemProps.populate,
-            select: viewerItemProps.select,
-            sort
-        })
+            populate: this.viewerItemProps.populate,
+            select: this.viewerItemProps.select,
+            sort,
+        });
     }
 
-    async getItemForAdmin({
-        query = {},
-        skip = 0,
-        sort,
-    }) {
+    async getItemForAdmin({ query = {}, skip = 0, sort }) {
         return await this.findOneBy({
             query,
             skip,
-            populate: adminItemProps.populate,
-            select: adminItemProps.select,
-            sort
-        })
+            populate: this.adminItemProps.populate,
+            select: this.adminItemProps.select,
+            sort,
+        });
     }
 
-    async getItemForMember({
-        query = {},
-        skip = 0,
-        sort,
-    }) {
+    async getItemForMember({ query = {}, skip = 0, sort }) {
         return await this.findOneBy({
             query,
             skip,
-            populate: memberItemProps.populate,
-            select: memberItemProps.select,
-            sort
-        })
+            populate: this.memberItemProps.populate,
+            select: this.memberItemProps.select,
+            sort,
+        });
     }
 
-    async getItemForPublic({
-        query = {},
-        skip = 0,
-        sort,
-    }) {
+    async getItemForPublic({ query = {}, skip = 0, sort }) {
         return await this.findOneBy({
             query,
             skip,
-            populate: publicItemProps.populate,
-            select: publicItemProps.select,
-            sort
-        })
+            populate: this.publicItemProps.populate,
+            select: this.publicItemProps.select,
+            sort,
+        });
     }
-
-
 
     async findBy({
         query = {},

@@ -135,6 +135,8 @@ DeleteScheduleBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     fetchUserSchedule: PropTypes.func.isRequired,
     userId: PropTypes.object.isRequired,
+    projectId: PropTypes.string,
+    scheduleId: PropTypes.string,
 };
 
 export default withRouter(

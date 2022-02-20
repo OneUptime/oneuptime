@@ -803,7 +803,7 @@ Branding.propTypes = {
     resetBrandingColors: PropTypes.func.isRequired,
     openModal: PropTypes.func,
     faviconurl: PropTypes.string,
-    bannerUrl: PropTypes.string,
+    bannerurl: PropTypes.string,
 };
 
 const BrandingForm = reduxForm({

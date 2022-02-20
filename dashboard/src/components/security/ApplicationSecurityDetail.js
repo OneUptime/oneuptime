@@ -350,6 +350,7 @@ ApplicationSecurityDetail.propTypes = {
     getApplicationSecuritySuccess: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
     currentProject: PropTypes.object,
+    fetchCredentialError: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>

@@ -211,4 +211,36 @@ module.exports = {
             });
         }
     },
+
+    getUserRole: async function(req, res, next) {
+        try {
+            const UserId = req.user ? req.user.id : null;
+            const project = await ProjectService.findOneBy({
+                query: {
+                    'users.userId': UserId,
+                    _id: req.params.projectId,
+                },
+                select: 'users',
+            });
+            if (project) {
+                let role;
+
+                for (const user of project.users) {
+                    if (user.userId === UserId) {
+                        role = user.role;
+                        break;
+                    }
+                }
+
+                req.project = project;
+                req.role = role;
+            }
+        } catch (error) {
+            ErrorService.log('project.getUserRole', error);
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Bad request to server',
+            });
+        }
+    },
 };

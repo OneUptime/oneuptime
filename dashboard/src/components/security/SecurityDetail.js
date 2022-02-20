@@ -156,6 +156,7 @@ SecurityDetail.propTypes = {
     applicationSecurityLog: PropTypes.object,
     type: PropTypes.string.isRequired,
     more: PropTypes.func,
+    containerSecurityLog: PropTypes.object
 };
 
 export default connect(null)(SecurityDetail);
