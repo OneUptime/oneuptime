@@ -447,6 +447,7 @@ EditNoteModal.propTypes = {
     closeModal: PropTypes.func,
     change: PropTypes.func,
     updateScheduledEventNoteInternal: PropTypes.func,
+    updateInvestigationError: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EditNoteModalForm);

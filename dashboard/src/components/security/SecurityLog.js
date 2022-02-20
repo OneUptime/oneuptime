@@ -469,6 +469,7 @@ SecurityLog.propTypes = {
     type: PropTypes.string,
     applicationSecurityLog: PropTypes.object,
     levelToFilter: PropTypes.string,
+    containerSecurityLog: PropTypes.object,
 };
 
 const mapStateToProps = state => {

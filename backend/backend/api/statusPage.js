@@ -54,7 +54,7 @@ ApiBase({
         enabled: true,
         authorizedByRole: ['admin'],
     },
-    isResourceByProject: true,
+    isResourceInProject: true,
     service: StatusPageService,
     friendlyResourceName: 'Status Page',
     resourceName: 'status-page',

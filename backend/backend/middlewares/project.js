@@ -235,6 +235,8 @@ module.exports = {
                 req.project = project;
                 req.role = role;
             }
+
+            return next();
         } catch (error) {
             ErrorService.log('project.getUserRole', error);
             return sendErrorResponse(req, res, {

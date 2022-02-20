@@ -13,9 +13,8 @@ module.exports = ({
     updateApiProps,
     getApiProps,
     listApiProps,
-    isResourceByProject,
+    isResourceInProject,
     friendlyResourceName,
-    resourceName,
     service,
 }) => {
     const getItemMiddleware = async function(req, res) {
@@ -175,7 +174,7 @@ module.exports = ({
         }
     };
 
-    const updateItemMiddleware = async function(req, res) {
+    const updateItemMiddleware = async function(req, res, next) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
@@ -227,7 +226,7 @@ module.exports = ({
     if (createApiProps && createApiProps.enabled) {
         let createApiPath = '/create';
 
-        if (isResourceByProject) {
+        if (isResourceInProject) {
             createApiPath = '/:projectId/create';
         }
 
@@ -241,7 +240,7 @@ module.exports = ({
     if (getApiProps && getApiProps.enabled) {
         let getApiProps = '/:id';
 
-        if (isResourceByProject) {
+        if (isResourceInProject) {
             getApiProps = '/:projectId/:id';
         }
 
@@ -255,7 +254,7 @@ module.exports = ({
     if (listApiProps && listApiProps.enabled) {
         let listApiProps = '/list';
 
-        if (isResourceByProject) {
+        if (isResourceInProject) {
             listApiProps = '/:projectId/list';
         }
 
@@ -269,7 +268,7 @@ module.exports = ({
     if (updateApiProps && updateApiProps.enabled) {
         let updateApiProps = '/:id';
 
-        if (isResourceByProject) {
+        if (isResourceInProject) {
             updateApiProps = '/:projectId/:id';
         }
 
@@ -284,7 +283,7 @@ module.exports = ({
     if (deleteApiProps && deleteApiProps.enabled) {
         let deleteApiProps = '/:id';
 
-        if (isResourceByProject) {
+        if (isResourceInProject) {
             deleteApiProps = '/:projectId/:id';
         }
 

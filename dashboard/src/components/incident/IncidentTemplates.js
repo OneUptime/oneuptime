@@ -508,6 +508,8 @@ IncidentTemplates.propTypes = {
     setDefaultTemplate: PropTypes.func,
     activeTemplate: PropTypes.string,
     setActiveTemplate: PropTypes.func,
+    fetchTemplateError: PropTypes.string,
+    setDefaultTemplateError: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>

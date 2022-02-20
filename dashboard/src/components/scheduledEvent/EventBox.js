@@ -664,6 +664,7 @@ EventBox.propTypes = {
     modalList: PropTypes.array,
     allScheduleEventLength: PropTypes.number,
     pages: PropTypes.object,
+    currentSubProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>

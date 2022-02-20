@@ -117,6 +117,8 @@ UpgradePlanModal.propTypes = {
     resetCreateMonitor: PropTypes.func.isRequired,
     projects: PropTypes.object,
     visible: PropTypes.bool,
+    currentProject: PropTypes.object,
+    initialValues: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(UpgradePlanModal);
