@@ -321,7 +321,7 @@ module.exports = {
 const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,

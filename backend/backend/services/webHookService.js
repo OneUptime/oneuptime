@@ -362,7 +362,7 @@ const IntegrationService = require('./integrationService');
 const axios = require('axios');
 const ProjectService = require('./projectService');
 const MonitorStatusService = require('./monitorStatusService');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const {
     PROJECT_WEBHOOK,
     EXTERNAL_SUBSCRIBER_WEBHOOK,

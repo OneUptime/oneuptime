@@ -1,5 +1,5 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 module.exports = {
     isAuthorizedLighthouse: async function(req, res, next) {
         try {

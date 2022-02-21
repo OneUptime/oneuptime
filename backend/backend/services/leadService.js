@@ -63,5 +63,5 @@ module.exports = {
 
 const LeadsModel = require('../models/lead');
 const MailService = require('./mailService');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const AirtableService = require('./airtableService');

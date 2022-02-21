@@ -88,7 +88,8 @@
         "universal-cookie": "^4.0.4",
         "uuid": "^8.3.2",
         "valid-url": "^1.0.9",
-        "workbox-build": "6.1.5"
+        "workbox-build": "6.1.5",
+        "common-ui": "file:./../common-ui"
     },
     "scripts": {
         "lint": "eslint .",

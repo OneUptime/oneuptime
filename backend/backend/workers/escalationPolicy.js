@@ -1,4 +1,4 @@
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const OnCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const AlertService = require('../services/alertService');
 const DateTime = require('../utils/DateTime');

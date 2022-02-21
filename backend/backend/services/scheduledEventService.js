@@ -1,6 +1,6 @@
 const ScheduledEventModel = require('../models/scheduledEvent');
 const UserModel = require('../models/user');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const RealTimeService = require('./realTimeService');
 const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const AlertService = require('./alertService');

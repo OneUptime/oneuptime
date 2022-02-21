@@ -1,5 +1,5 @@
 const PerformanceTrackerModel = require('../models/performanceTracker');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const ComponentService = require('./componentService');
 const generate = require('nanoid/generate');
 const slugify = require('slugify');

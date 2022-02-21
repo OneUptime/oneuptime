@@ -10,7 +10,7 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 
 // Route
 // Description: Getting details of team members of the project.

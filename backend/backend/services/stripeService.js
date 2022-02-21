@@ -476,7 +476,7 @@ const PaymentService = require('../services/paymentService');
 const ProjectService = require('../services/projectService');
 const ProjectModel = require('../models/project');
 const MailService = require('../services/mailService');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const { sendSlackAlert } = require('../utils/stripeHandlers');
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up

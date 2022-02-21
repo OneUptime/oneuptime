@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const NotificationService = require('../services/notificationService');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const PerformanceTrackerService = require('../services/performanceTrackerService');
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
 const { decode } = require('js-base64');

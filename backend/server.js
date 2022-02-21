@@ -48,7 +48,7 @@ const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
 const Gl = require('greenlock');
-const ErrorService = require('../common-server/utils/errorService');
+const ErrorService = require('../common-server/utils/error');
 const { getUser } = require('./backend/middlewares/user');
 const { getProjectId } = require('./backend/middlewares/api');
 

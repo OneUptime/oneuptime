@@ -1,4 +1,4 @@
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const PerformanceTrackerService = require('../services/performanceTrackerService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 

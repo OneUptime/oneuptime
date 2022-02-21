@@ -3,7 +3,7 @@ const MonitorService = require('../services/monitorService'),
     MonitorLogService = require('../services/monitorLogService'),
     MonitorStatusService = require('../services/monitorStatusService'),
     ProbeService = require('../services/probeService'),
-    ErrorService = require('../../../common-server/utils/errorService');
+    ErrorService = require('../../../common-server/utils/error');
 
 module.exports = {
     checkAllServerMonitors: async () => {

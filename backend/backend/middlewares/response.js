@@ -1,7 +1,7 @@
 const Mongoose = require('mongoose');
 const mongoose = require('../config/db');
 const JsonToCsv = require('./jsonToCsv');
-const ErrorService = require('../../../common-server/utils/errorService');
+const ErrorService = require('../../../common-server/utils/error');
 const logger = require('../../../common-server/utils/logger');
 
 function logResponse(req, res, responsebody) {

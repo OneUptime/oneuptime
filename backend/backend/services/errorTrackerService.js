@@ -235,4 +235,4 @@ const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
-const errorService = require('../../../common-server/utils/errorService');
+const errorService = require('../../../common-server/utils/error');
