@@ -1,8 +1,8 @@
 const Mongoose = require('mongoose');
 const mongoose = require('../config/db');
 const JsonToCsv = require('./jsonToCsv');
-const ErrorService = require('../services/errorService');
-const logger = require('../config/logger');
+const ErrorService = require('../../../common-server/utils/errorService');
+const logger = require('../../../common-server/utils/logger');
 
 function logResponse(req, res, responsebody) {
     const requestEndedAt = Date.now();

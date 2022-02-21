@@ -10,6 +10,7 @@ import project from './project';
 import schedule from './schedule';
 import changePassword from './changePassword';
 import statusPage from './statusPage';
+import StatusPage from './status-page';
 import incident from './incident';
 import report from './report';
 import invoice from './invoice';
@@ -53,6 +54,7 @@ import automatedScripts from './automatedScript';
 import incidentNoteTemplate from './incidentNoteTemplate';
 import statusPageCategory from './statusPageCategory';
 import sso from './sso';
+
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -108,7 +110,11 @@ const appReducer = combineReducers({
     incidentNoteTemplate,
     statusPageCategory,
     sso,
+    StatusPage
 });
+
+
+// Global Actions. 
 
 export default (state, action) => {
     if (action.type === 'CLEAR_STORE') {

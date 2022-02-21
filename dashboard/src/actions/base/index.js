@@ -49,7 +49,7 @@ export default class Actions {
         }
 
         if (getActionProps) {
-            this.deleteAction = new GetActionBase({
+            this.getAction = new GetActionBase({
                 friendlyName,
                 apiPath,
                 isResourceInProject,

@@ -1,12 +1,11 @@
 const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /backend/.env
     require('custom-env').env();
 }
 
 const express = require('express');
-const logger = require('./backend/config/logger');
+const logger = require('../common-server/utils/logger');
 const expressRequestId = require('express-request-id')();
 
 const app = express();
@@ -49,7 +48,7 @@ const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
 const Gl = require('greenlock');
-const ErrorService = require('./backend/services/errorService');
+const ErrorService = require('../common-server/utils/errorService');
 const { getUser } = require('./backend/middlewares/user');
 const { getProjectId } = require('./backend/middlewares/api');
 

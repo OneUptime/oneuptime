@@ -25,13 +25,13 @@ export const INITIAL_STATE = {
 };
 
 
-export default getReducer = ({ actionBase }) => {
+const getReducer = ({ actionBase }) => {
 
-    const createConstants = actionBase.getCreateconstants();
-    const listConstants = actionBase.getCreateconstants();
-    const getConstants = actionBase.getCreateconstants();
-    const deleteConstants = actionBase.getCreateconstants();
-    const updateConstants = actionBase.getCreateconstants();
+    const createConstants = actionBase.getCreateConstants();
+    const listConstants = actionBase.getListConstants();
+    const getConstants = actionBase.getGetConstants();
+    const deleteConstants = actionBase.getDeleteConstants();
+    const updateConstants = actionBase.getUpdateConstants();
 
     return (state = INITIAL_STATE, action) => {
         switch (action.type) {
@@ -273,3 +273,6 @@ export default getReducer = ({ actionBase }) => {
         }
     }
 }
+
+
+export default getReducer;

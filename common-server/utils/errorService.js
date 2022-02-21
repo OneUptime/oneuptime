@@ -1,4 +1,4 @@
-const logger = require('../config/logger');
+const logger = require('./logger');
 
 module.exports = {
     // logdata would be undefined for some logs
