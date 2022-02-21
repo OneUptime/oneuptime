@@ -877,7 +877,7 @@ module.exports = {
 
 const axios = require('axios');
 const ProjectService = require('./projectService');
-const ErrorService = require('./errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const MonitorService = require('./monitorService');

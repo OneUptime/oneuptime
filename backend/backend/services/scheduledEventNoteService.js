@@ -1,5 +1,5 @@
 const ScheduledEventNoteModel = require('../models/scheduledEventNote');
-const ErrorService = require('./errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const RealTimeService = require('./realTimeService');
 const AlertService = require('./alertService');
 const handlePopulate = require('../utils/populate');

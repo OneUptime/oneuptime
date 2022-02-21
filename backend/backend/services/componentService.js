@@ -503,4 +503,4 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const getSlug = require('../utils/getSlug');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
-const errorService = require('./errorService');
+const errorService = require('../../../common-server/utils/errorService');

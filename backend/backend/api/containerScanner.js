@@ -10,7 +10,7 @@ const RealTimeService = require('../services/realTimeService');
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 
 router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,

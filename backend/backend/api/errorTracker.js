@@ -23,7 +23,7 @@ const IssueService = require('../services/issueService');
 const TeamService = require('../services/teamService');
 const IssueMemberService = require('../services/issueMemberService');
 const IssueTimelineService = require('../services/issueTimelineService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:

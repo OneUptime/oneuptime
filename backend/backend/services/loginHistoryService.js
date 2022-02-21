@@ -58,7 +58,7 @@ module.exports = {
 };
 
 const LoginHistoryModel = require('../models/loginIPLog');
-const ErrorService = require('./errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const DeviceDetector = require('node-device-detector');
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');

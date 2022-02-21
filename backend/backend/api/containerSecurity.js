@@ -7,7 +7,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 
 const router = express.Router();
 

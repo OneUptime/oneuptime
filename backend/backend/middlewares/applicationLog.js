@@ -1,4 +1,4 @@
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const ApplicationLogService = require('../services/applicationLogService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 

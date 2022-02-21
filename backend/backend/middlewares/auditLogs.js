@@ -3,7 +3,7 @@ const _ = require('lodash');
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
 const AuditLogsService = require('../services/auditLogsService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const sendErrorResponse = require('./response').sendErrorResponse;
 const { getProjectId } = require('./api');
 const GlobalConfigService = require('../services/globalConfigService');

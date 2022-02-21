@@ -1,4 +1,4 @@
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const StatusPageService = require('../services/statusPageService');
 const CertificateStoreService = require('../services/certificateStoreService');
 

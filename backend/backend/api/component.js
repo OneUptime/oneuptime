@@ -14,7 +14,7 @@ const ErrorTrackerService = require('../services/errorTrackerService');
 const IssueService = require('../services/issueService');
 const PerformanceTrackerService = require('../services/performanceTrackerService');
 const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;

@@ -1,4 +1,4 @@
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 module.exports = (select, query) => {
     /**
      * select is an array of column(s) to show

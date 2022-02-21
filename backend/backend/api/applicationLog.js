@@ -4,7 +4,7 @@ const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
 const RealTimeService = require('../services/realTimeService');
 const LogService = require('../services/logService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const NotificationService = require('../services/notificationService');
 
 const router = express.Router();

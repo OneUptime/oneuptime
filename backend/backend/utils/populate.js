@@ -1,4 +1,4 @@
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 module.exports = (populateArray, query) => {
     /**
      * populate should be an array of object, no matter the depth it exist in

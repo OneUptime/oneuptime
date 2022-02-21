@@ -12,7 +12,7 @@ const {
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');
 const ProjectService = require('../services/projectService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 
 // Route
 // Description: Updating profile setting.

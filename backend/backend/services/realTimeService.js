@@ -1296,7 +1296,7 @@ module.exports = {
     },
 };
 
-const ErrorService = require('./errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const ProjectService = require('./projectService');
 const MonitorService = require('./monitorService');
 const IncidentService = require('./incidentService');

@@ -1,5 +1,5 @@
 const ProjectService = require('../services/projectService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const url = require('url');
 

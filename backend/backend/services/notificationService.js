@@ -179,6 +179,6 @@ module.exports = {
 
 const NotificationModel = require('../models/notification');
 const RealTimeService = require('../services/realTimeService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');

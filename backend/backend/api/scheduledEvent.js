@@ -11,7 +11,7 @@ const { getSubProjects } = require('../middlewares/subProject');
 const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
 const moment = require('moment');
 const MonitorService = require('../services/monitorService');
-const ErrorService = require('../services/errorService');
+const ErrorService = require('../../../common-server/utils/errorService');
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
