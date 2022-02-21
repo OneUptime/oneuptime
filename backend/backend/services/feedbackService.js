@@ -60,4 +60,4 @@ const MailService = require('./mailService');
 const UserService = require('./userService');
 const ProjectService = require('./projectService');
 const AirtableService = require('./airtableService');
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');

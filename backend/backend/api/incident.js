@@ -13,7 +13,7 @@ const MonitorService = require('../services/monitorService');
 const router = express.Router();
 
 const { isAuthorized } = require('../middlewares/authorization');
-const errorService = require('../../../common-server/utils/error');
+const errorService = require('common-server/utils/error');
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 
@@ -27,7 +27,7 @@ const onCallScheduleStatusService = require('../services/onCallScheduleStatusSer
 const Services = require('../utils/services');
 const joinNames = require('../utils/joinNames');
 const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 
 // data-ingestor will consume this api
 // create an incident and return the created incident

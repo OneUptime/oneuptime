@@ -9,7 +9,7 @@ const RealTimeService = require('../services/realTimeService');
 const ScheduleService = require('../services/scheduleService');
 const ProbeService = require('../services/probeService');
 const ComponentService = require('../services/componentService');
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const Api = require('../utils/api');
 
 const router = express.Router();

@@ -353,7 +353,7 @@ module.exports = {
 };
 
 const SubscriberModel = require('../models/subscriber');
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const StatusPageService = require('./statusPageService');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');

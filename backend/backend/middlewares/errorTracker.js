@@ -1,5 +1,5 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const ErrorTrackerService = require('../services/errorTrackerService');
 
 const _this = {

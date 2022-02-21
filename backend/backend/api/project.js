@@ -17,7 +17,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const isAuthorizedService = require('../middlewares/serviceAuthorization')
     .isAuthorizedService;
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 
 // Route
 // Description: Creating new Porject by Admin.

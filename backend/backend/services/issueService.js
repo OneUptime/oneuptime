@@ -191,4 +191,4 @@ const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
-const errorService = require('../../../common-server/utils/error');
+const errorService = require('common-server/utils/error');

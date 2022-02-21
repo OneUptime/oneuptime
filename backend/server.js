@@ -5,7 +5,7 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 const express = require('express');
-const logger = require('../common-server/utils/logger');
+const logger = require('common-server/utils/logger');
 const expressRequestId = require('express-request-id')();
 
 const app = express();
@@ -48,7 +48,7 @@ const cors = require('cors');
 // const redis = require('redis');
 const mongoose = require('./backend/config/db');
 const Gl = require('greenlock');
-const ErrorService = require('../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const { getUser } = require('./backend/middlewares/user');
 const { getProjectId } = require('./backend/middlewares/api');
 

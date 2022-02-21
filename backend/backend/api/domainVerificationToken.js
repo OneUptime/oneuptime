@@ -8,7 +8,7 @@ const DomainVerificationService = require('../services/domainVerificationService
 const { sendListResponse } = require('../middlewares/response');
 const StatusPageService = require('../services/statusPageService');
 const ProjectService = require('../services/projectService');
-const errorService = require('../../../common-server/utils/error');
+const errorService = require('common-server/utils/error');
 
 const router = express.Router();
 

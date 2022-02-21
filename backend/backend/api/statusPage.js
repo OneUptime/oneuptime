@@ -10,7 +10,7 @@ const IncidentService = require('../services/incidentService');
 const router = express.Router();
 const validUrl = require('valid-url');
 const multer = require('multer');
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const { toXML } = require('jstoxml');
 const moment = require('moment');
 

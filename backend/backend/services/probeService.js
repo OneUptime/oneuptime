@@ -6330,7 +6330,7 @@ const formatBytes = (a, b, c, d, e) => {
 
 const ProbeModel = require('../models/probe');
 const RealTimeService = require('./realTimeService');
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const { v1: uuidv1 } = require('uuid');
 const MonitorService = require('./monitorService');
 const MonitorStatusService = require('./monitorStatusService');

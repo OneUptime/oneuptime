@@ -8,7 +8,7 @@ const ProjectService = require('../services/projectService');
 const dnsPromises = dns.promises;
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
-const errorService = require('../../../common-server/utils/error');
+const errorService = require('common-server/utils/error');
 
 module.exports = {
     create: async function({ domain, projectId }) {

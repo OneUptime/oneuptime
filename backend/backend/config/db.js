@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const logger = require('../../../common-server/utils/logger');
+const logger = require('common-server/utils/logger');
 const mongoUrl =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
 

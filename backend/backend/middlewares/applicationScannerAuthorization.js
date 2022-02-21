@@ -1,6 +1,6 @@
 const ApplicationScannerService = require('../services/applicationScannerService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('../../../common-server/utils/error');
+const ErrorService = require('common-server/utils/error');
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 module.exports = {
     isAuthorizedApplicationScanner: async function(req, res, next) {
