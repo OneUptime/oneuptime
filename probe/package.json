@@ -23,6 +23,7 @@
     "homepage": "https://gitlab.com/oneuptime/probe#readme",
     "dependencies": {
         "await-sleep": "^0.0.1",
+        "common-server": "file:../common-server",
         "axios": "^0.25.0",
         "chrome-launcher": "^0.15.0",
         "cors": "^2.8.5",

@@ -13,6 +13,7 @@
     "author": "HackerBay, Inc.",
     "license": "MIT",
     "dependencies": {
+        "common-server": "file:../common-server",
         "axios": "^0.24.0",
         "cors": "^2.8.5",
         "custom-env": "^2.0.1",

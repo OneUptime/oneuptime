@@ -23,7 +23,8 @@
         "mongodb": "^4.3.0",
         "uuid": "^8.3.2",
         "winston": "^3.4.0",
-        "winston-slack-webhook-transport": "^2.1.0"
+        "winston-slack-webhook-transport": "^2.1.0",
+        "common-server": "file:../common-server"
     },
     "devDependencies": {
         "nodemon": "^2.0.15"

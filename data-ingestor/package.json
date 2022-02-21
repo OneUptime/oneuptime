@@ -13,6 +13,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "common-server": "file:../common-server",
         "axios": "^0.24.0",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
