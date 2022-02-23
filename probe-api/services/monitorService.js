@@ -15,11 +15,7 @@ module.exports = {
             type: {
                 $in: [
                     'url',
-                    'api',
-                    'incomingHttpRequest',
-                    'kubernetes',
-                    'ip',
-                    'server-monitor',
+                    'api'
                 ],
             },
             [key]: { $exists: false },
