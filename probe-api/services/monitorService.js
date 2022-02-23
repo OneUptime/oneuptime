@@ -13,10 +13,7 @@ module.exports = {
             deleted: false,
             disabled: false,
             type: {
-                $in: [
-                    'url',
-                    'api'
-                ],
+                $in: ['url', 'api'],
             },
             [key]: { $exists: false },
         };
