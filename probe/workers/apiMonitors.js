@@ -73,7 +73,7 @@ const pingfetch = async (url, method, body, headers) => {
         const urlObject = new URL(url);
         const payload = {
             method: method,
-            timeout: 500000,
+            timeout: 30000,
         };
         if (headers && Object.keys(headers).length) {
             payload.headers = headers;

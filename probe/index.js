@@ -30,15 +30,13 @@ const logger = require('../common-server/utils/logger');
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 
-const monitorStore = {};
-
 setTimeout(async () => {
     // keep monitoring in an infinate loop.
 
     //eslint-disable-next-line
     while (true) {
         try {
-            await Main.runJob(monitorStore);
+            await Main.runJob();
         } catch (error) {
             logger.error(error);
             logger.info('Sleeping for 30 seconds...');

@@ -11,9 +11,7 @@ const limit = process.env.RESOURCES_LIMIT;
 const asyncSleep = require('await-sleep');
 
 const _this = {
-    runJob: async function(monitorStore) {
-        monitorStore = {};
-
+    runJob: async function() {
         try {
             logger.info(`Getting a list of ${limit} monitors`);
 
@@ -30,17 +28,12 @@ const _this = {
                 await asyncSleep(30 * 1000);
             }
 
-            // add monitor to store
-            monitors.forEach(monitor => {
-                if (!monitorStore[monitor._id]) {
-                    monitorStore[monitor._id] = monitor;
-                }
-            });
-
             // loop over the monitor
-            for (const [key, monitor] of Object.entries(monitorStore)) {
+            for (const monitor of monitors) {
                 try {
-                    logger.info(`Currently monitoring: Monitor ID ${key}`);
+                    logger.info(
+                        `Currently monitoring: Monitor ID ${monitor._id}`
+                    );
                     if (monitor.type === 'api') {
                         await ApiMonitors.ping({ monitor });
                     } else if (monitor.type === 'url') {
@@ -57,9 +50,6 @@ const _this = {
                     } else if (monitor.type === 'kubernetes') {
                         await KubernetesMonitors.run({ monitor });
                     }
-
-                    // delete the monitor from store
-                    delete monitorStore[key];
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
                 }
