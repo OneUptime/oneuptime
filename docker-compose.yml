@@ -169,8 +169,6 @@ services:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
     probe1:
-        ports:
-            - '3024:3024'
         build:
             context: .
             dockerfile: ./probe/Dockerfile
@@ -189,8 +187,6 @@ services:
             - backend
             - data-ingestor
     probe2:
-        ports:
-            - '3025:3025'
         build:
             context: .
             dockerfile: ./probe/Dockerfile

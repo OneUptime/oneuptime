@@ -68,15 +68,11 @@ httpTestServer:
 
 probes:
   probe1: 
-    port: 3024
     name: Probe 1
     key: sample-key
-    servicePort: 80
   probe2: 
     name: Probe 2
-    port: 3025
     key: sample-key
-    servicePort: 80
 
 ##################################################################################  
 ## Important: RateLimitter Values. More information in the Readme.md 

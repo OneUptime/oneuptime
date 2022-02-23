@@ -54,8 +54,6 @@ spec:
                         value: {{ template "oneuptime.serverUrl" $ }}
                       - name: DATA_INGESTOR_URL
                         value: {{ template "oneuptime.dataIngestorUrl" $ }}
-                      - name: PORT
-                        value: {{ $value.port | quote }}
                       - name: PROBE_NAME
                         value: {{ $value.name }}
                       - name: PROBE_KEY
@@ -77,29 +75,8 @@ spec:
                       {{- end }}
                       - name: NODE_ENV
                         value: {{ $.Values.nodeEnv }}
-                  ports:
-                      - containerPort: {{ $value.port }}
-                        hostPort: {{ $value.port }}
-                        name: {{ printf "%s-%s" $.Release.Name $key  }}
             restartPolicy: {{ $.Values.image.restartPolicy }}
 
----
-apiVersion: v1
-kind: Service
-metadata:
-    labels:
-        app: {{ printf "%s-%s" $.Release.Name $key  }}
-        app.kubernetes.io/part-of: oneuptime
-        app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.Release.Name $key  }}
-    namespace: {{ $.Release.Namespace }}
-spec:
-    ports:
-        - port: {{ $value.servicePort }}
-          targetPort: {{ $value.port }}
-    selector:
-        app: {{ printf "%s-%s" $.Release.Name $key }}
-    type: ClusterIP
 ---
 ###########################
 {{- end }}

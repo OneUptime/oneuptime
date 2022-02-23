@@ -47,7 +47,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
-                url: `${config.fetchResourcesUrl}/${url}?limit=${limit}`,
+                url: `${config.probeApiUrl}/${url}?limit=${limit}`,
                 headers,
             })
                 .then(function(response) {
