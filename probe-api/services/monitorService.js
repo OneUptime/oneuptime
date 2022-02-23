@@ -9,6 +9,22 @@ module.exports = {
 
         const key = `${probeId}_pingtime`;
 
+        const emptyQuery = {
+            deleted: false,
+            disabled: false,
+            type: {
+                $in: [
+                    'url',
+                    'api',
+                    'incomingHttpRequest',
+                    'kubernetes',
+                    'ip',
+                    'server-monitor',
+                ],
+            },
+            [key]: { $exists: false }
+        };
+
         const query = {
             deleted: false,
             disabled: false,
@@ -22,24 +38,25 @@ module.exports = {
                     'server-monitor',
                 ],
             },
-            $or: [
-                {
-                    // regions does not include the probeId yet
-                    [key]: { $exists: false },
-                },
-                {
-                    // regions does not include the probeId yet
-                    [key]: { $lt: date },
-                },
-            ],
+            [key]: { $lt: date }
         };
+
         try {
-            const monitors = await monitorCollection.find(query).limit(limit).toArray();
+
+            let monitors = []; 
+
+            const monitorsThatHaveNeverBeenPinged = await monitorCollection.find(emptyQuery).limit(limit).toArray();
+            monitors = monitors.concat(monitorsThatHaveNeverBeenPinged)
+
+            if(monitorsThatHaveNeverBeenPinged.length < limit){
+                const monitorsThatHaveBeenPingedBeforeOneMinute = await monitorCollection.find(query).sort({[key]: 1}).limit(limit).toArray();
+                monitors = monitors.concat(monitorsThatHaveBeenPingedBeforeOneMinute);
+            }
 
             if (monitors && monitors.length > 0) {
                 await monitorCollection.updateMany(
                     { _id: { $in: monitors.map((monitor) => monitor._id) } },
-                    { $set: { key: new Date(moment().format()) } }
+                    { $set: { [key]: new Date(moment().format()) } }
                 );
 
                 return monitors;
