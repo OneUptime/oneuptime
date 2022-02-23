@@ -60,6 +60,8 @@ spec:
                         value: {{ $value.key }}
                       - name: PROBE_API_URL
                         value: {{ template "oneuptime.probeApiUrl" $ }}
+                      - name: RESOURCES_LIMIT
+                        value: '10'
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:

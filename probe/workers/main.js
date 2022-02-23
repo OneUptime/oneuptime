@@ -7,7 +7,12 @@ const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
-const limit = process.env.RESOURCES_LIMIT;
+let limit = process.env.RESOURCES_LIMIT;
+
+if(limit && typeof limit === "string"){
+    limit = parseInt(limit);
+}
+
 const asyncSleep = require('await-sleep');
 
 const _this = {
