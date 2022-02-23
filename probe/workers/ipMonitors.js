@@ -11,7 +11,7 @@ module.exports = {
                 if (monitor.data.IPAddress) {
                     let retry = true;
                     let retryCount = 0;
-                    while (retry) {
+                    while (retry || retryCount > 2) {
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.IPAddress
                         );

@@ -32,7 +32,7 @@ module.exports = {
 
                     let retry = true;
                     let retryCount = 0;
-                    while (retry) {
+                    while (retry || retryCount > 2) {
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url,
                             monitor.method,
