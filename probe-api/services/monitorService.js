@@ -22,7 +22,7 @@ module.exports = {
                     'server-monitor',
                 ],
             },
-            [key]: { $exists: false }
+            [key]: { $exists: false },
         };
 
         const query = {
@@ -38,24 +38,32 @@ module.exports = {
                     'server-monitor',
                 ],
             },
-            [key]: { $lt: date }
+            [key]: { $lt: date },
         };
 
         try {
+            let monitors = [];
 
-            let monitors = []; 
+            const monitorsThatHaveNeverBeenPinged = await monitorCollection
+                .find(emptyQuery)
+                .limit(limit)
+                .toArray();
+            monitors = monitors.concat(monitorsThatHaveNeverBeenPinged);
 
-            const monitorsThatHaveNeverBeenPinged = await monitorCollection.find(emptyQuery).limit(limit).toArray();
-            monitors = monitors.concat(monitorsThatHaveNeverBeenPinged)
-
-            if(monitorsThatHaveNeverBeenPinged.length < limit){
-                const monitorsThatHaveBeenPingedBeforeOneMinute = await monitorCollection.find(query).sort({[key]: 1}).limit(limit).toArray();
-                monitors = monitors.concat(monitorsThatHaveBeenPingedBeforeOneMinute);
+            if (monitorsThatHaveNeverBeenPinged.length < limit) {
+                const monitorsThatHaveBeenPingedBeforeOneMinute = await monitorCollection
+                    .find(query)
+                    .sort({ [key]: 1 })
+                    .limit(limit)
+                    .toArray();
+                monitors = monitors.concat(
+                    monitorsThatHaveBeenPingedBeforeOneMinute
+                );
             }
 
             if (monitors && monitors.length > 0) {
                 await monitorCollection.updateMany(
-                    { _id: { $in: monitors.map((monitor) => monitor._id) } },
+                    { _id: { $in: monitors.map(monitor => monitor._id) } },
                     { $set: { [key]: new Date(moment().format()) } }
                 );
 
