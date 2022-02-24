@@ -14,7 +14,7 @@ const pingfetch = async (url, method, body, headers) => {
     const now = new Date().getTime();
     let resp, res, response;
 
-    if(!method){
+    if (!method) {
         method = 'GET';
     }
 
