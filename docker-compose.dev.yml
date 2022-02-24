@@ -127,7 +127,6 @@ services:
     # There can only be one probe in developer docker compose.
     probe:
         ports:
-            - '3008:3008'
             - '9238:9229' # Debugging port.
         build:
             context: .

@@ -7,13 +7,16 @@ const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
-const limit = process.env.RESOURCES_LIMIT;
+let limit = process.env.RESOURCES_LIMIT;
+
+if (limit && typeof limit === 'string') {
+    limit = parseInt(limit);
+}
+
 const asyncSleep = require('await-sleep');
 
 const _this = {
-    runJob: async function(monitorStore) {
-        monitorStore = {};
-
+    runJob: async function() {
         try {
             logger.info(`Getting a list of ${limit} monitors`);
 
@@ -30,36 +33,64 @@ const _this = {
                 await asyncSleep(30 * 1000);
             }
 
-            // add monitor to store
-            monitors.forEach(monitor => {
-                if (!monitorStore[monitor._id]) {
-                    monitorStore[monitor._id] = monitor;
-                }
-            });
-
             // loop over the monitor
-            for (const [key, monitor] of Object.entries(monitorStore)) {
+            for (const monitor of monitors) {
                 try {
-                    logger.info(`Currently monitoring: Monitor ID ${key}`);
+                    logger.info(
+                        `Monitor ID ${monitor._id}: Currently monitoring`
+                    );
                     if (monitor.type === 'api') {
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start monitoring API monitor`
+                        );
                         await ApiMonitors.ping({ monitor });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End monitoring API monitor`
+                        );
                     } else if (monitor.type === 'url') {
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start monitoring URL monitor`
+                        );
                         await UrlMonitors.ping({ monitor });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End monitoring URL monitor`
+                        );
                     } else if (monitor.type === 'ip') {
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start monitoring IP monitor`
+                        );
                         await IPMonitors.ping({ monitor });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End monitoring IP monitor`
+                        );
                     } else if (
                         monitor.type === 'server-monitor' &&
                         monitor.agentlessConfig
                     ) {
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start monitoring Server monitor`
+                        );
                         await ServerMonitors.run({ monitor });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End monitoring Server monitor`
+                        );
                     } else if (monitor.type === 'incomingHttpRequest') {
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start monitoring Incoming HTTP Request monitor`
+                        );
                         await IncomingHttpRequestMonitors.run({ monitor });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End monitoring Incoming HTTP Request monitor`
+                        );
                     } else if (monitor.type === 'kubernetes') {
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start monitoring Kubernetes monitor`
+                        );
                         await KubernetesMonitors.run({ monitor });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End monitoring Kubernetes monitor`
+                        );
                     }
-
-                    // delete the monitor from store
-                    delete monitorStore[key];
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
                 }

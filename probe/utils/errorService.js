@@ -3,6 +3,7 @@ const winston = require('winston');
 module.exports = {
     log: (functionName, error) => {
         error = error && error.message ? error.message : error;
+        console.error(error);
         winston.error(
             JSON.stringify(
                 {

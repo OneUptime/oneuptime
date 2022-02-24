@@ -1,7 +1,7 @@
 const { NODE_ENV } = process.env;
+const asyncSleep = require('await-sleep');
 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /backend/.env
     require('custom-env').env();
 }
 
@@ -24,88 +24,28 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const cors = require('cors');
 const Main = require('./workers/main');
 const config = require('./utils/config');
+const logger = require('../common-server/utils/logger');
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
-
-app.use(cors());
-app.set('port', process.env.PORT || 3008);
-
-const monitorStore = {};
-
-// handle probe1 status
-app.get(['/probe1/status', '/status'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'oneuptime-probe',
-        })
-    );
-});
-
-// handle probe2 status
-app.get(['/probe2/status', '/status'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'oneuptime-probe',
-        })
-    );
-});
-
-app.get(['/probe1/monitorCount', '/monitorCount'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            monitorCount: Object.keys(monitorStore).length,
-            monitors: monitorStore,
-        })
-    );
-});
-
-app.get(['/probe2/monitorCount', '/monitorCount'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            monitorCount: Object.keys(monitorStore).length,
-            monitors: monitorStore,
-        })
-    );
-});
-
-//App Version
-app.get(['/probe/version', '/version'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send({ probeVersion: process.env.npm_package_version });
-});
 
 setTimeout(async () => {
     // keep monitoring in an infinate loop.
 
     //eslint-disable-next-line
     while (true) {
-        await Main.runJob(monitorStore);
+        try {
+            await Main.runJob();
+        } catch (error) {
+            logger.error(error);
+            logger.info('Sleeping for 30 seconds...');
+            await asyncSleep(30 * 1000);
+        }
     }
 }, cronMinuteStartTime * 1000);
 
-http.listen(app.get('port'), function() {
-    // eslint-disable-next-line
-    console.log(
-        `Probe with Probe Name ${config.probeName} and Probe Key ${
-            config.probeKey
-        } Started on port ${app.get('port')}. OneUptime API URL: ${
-            config.serverUrl
-        }`
-    );
-});
-
-module.exports = app;
+// eslint-disable-next-line no-console
+console.log(
+    `Probe with Probe Name ${config.probeName} and Probe Key ${config.probeKey}. OneUptime Probe API URL: ${config.probeApiUrl}`
+);

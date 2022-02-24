@@ -13,14 +13,7 @@ module.exports = {
             deleted: false,
             disabled: false,
             type: {
-                $in: [
-                    'url',
-                    'api',
-                    'incomingHttpRequest',
-                    'kubernetes',
-                    'ip',
-                    'server-monitor',
-                ],
+                $in: ['url', 'api'],
             },
             [key]: { $exists: false },
         };
@@ -81,4 +74,3 @@ module.exports = {
 const ErrorService = require('./errorService');
 const moment = require('moment');
 const monitorCollection = global.db.collection('monitors');
-const { ObjectId } = require('mongodb');
