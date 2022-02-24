@@ -51,6 +51,7 @@ const pingfetch = async IPAddress => {
             timeout: 120,
             extra: ['-i', '2'],
         });
+        
 
         const isAlive = response ? response.alive : false;
 
