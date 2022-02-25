@@ -7,27 +7,9 @@ const isAuthorizedProbe = require('../middlewares/probeAuthorization')
     .isAuthorizedProbe;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const { ObjectId } = require('mongodb');
 
-router.get('/monitors', isAuthorizedProbe, async function(req, res) {
-    try {
-        const monitors = await MonitorService.getProbeMonitors(
-            req.probe.id,
-            new Date(new Date().getTime() - 60 * 1000)
-        );
-
-        return sendListResponse(
-            req,
-            res,
-            JSON.stringify(monitors),
-            monitors.length
-        );
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
 
 router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,

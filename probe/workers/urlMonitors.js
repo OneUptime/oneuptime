@@ -19,7 +19,9 @@ module.exports = {
                             monitor.data.url
                         );
 
-                        logger.info(`Monitor ID ${monitor._id}: Start saving data to ingestor.`);
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start saving data to ingestor.`
+                        );
                         const response = await ApiService.ping(monitor._id, {
                             monitor,
                             res,
@@ -28,7 +30,9 @@ module.exports = {
                             type: monitor.type,
                             retryCount,
                         });
-                        logger.info(`Monitor ID ${monitor._id}: End saving data to ingestor.`);
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End saving data to ingestor.`
+                        );
                         if (response && !response.retry) {
                             retry = false;
                         } else {
