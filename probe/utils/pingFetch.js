@@ -1,4 +1,4 @@
-const logger = require('../../common-server/utils/logger');
+const logger = require('common-server/utils/logger');
 const fetch = require('node-fetch-commonjs');
 const sslCert = require('get-ssl-certificate');
 const https = require('https');

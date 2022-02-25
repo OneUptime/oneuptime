@@ -1,6 +1,6 @@
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
-const logger = require('../../common-server/utils/logger');
+const logger = require('common-server/utils/logger');
 const pingfetch = require('../utils/pingFetch');
 
 // it collects all monitors then ping them one by one to store their response
