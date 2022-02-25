@@ -3,6 +3,7 @@
     "version": "3.0.0",
     "private": true,
     "homepage": "/",
+    "type": "module",
     "dependencies": {
         "amplitude-js": "^8.3.1",
         "axios": "^0.21.1",

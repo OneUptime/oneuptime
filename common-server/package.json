@@ -8,6 +8,7 @@
     },
     "author": "",
     "license": "ISC",
+    "type": "module",
     "dependencies": {
         "winston": "^3.4.0",
         "winston-logstash-transport": "^2.0.0",

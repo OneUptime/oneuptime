@@ -3,6 +3,7 @@
     "version": "3.0.2",
     "description": "One Complete SRE and DevOps platform.",
     "main": "index.js",
+    "type": "module",
     "dependencies": {
         "eslint-plugin-progress": "^0.0.1"
     },

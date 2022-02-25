@@ -2,6 +2,7 @@
     "name": "oneuptime-admin-dashboard",
     "version": "3.0.0",
     "private": true,
+    "type": "module",
     "dependencies": {
         "axios": "^0.21.1",
         "card-validator": "^8.1.1",

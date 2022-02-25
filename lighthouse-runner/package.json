@@ -12,6 +12,7 @@
     },
     "author": "HackerBay, Inc.",
     "license": "MIT",
+    "type": "module",
     "dependencies": {
         "axios": "^0.25.0",
         "chrome-launcher": "^0.15.0",

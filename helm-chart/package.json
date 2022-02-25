@@ -13,6 +13,7 @@
     },
     "author": "",
     "license": "ISC",
+    "type": "module",
     "dependencies": {
         "chai": "^4.3.4",
         "chai-http": "^4.3.0",

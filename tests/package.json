@@ -26,6 +26,7 @@
             "<rootDir>/**/**/**/*.test.js"
         ]
     },
+    "type": "module",
     "dependencies": {
         "axios": "^0.25.0",
         "speakeasy": "^2.0.0"

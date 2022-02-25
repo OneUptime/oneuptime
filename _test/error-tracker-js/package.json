@@ -9,6 +9,7 @@
     },
     "author": "",
     "license": "ISC",
+    "type": "module",
     "dependencies": {
         "oneuptime-staging": "^3.0.9531"
     }

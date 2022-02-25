@@ -17,6 +17,7 @@
         "npm": ">=3.10.10"
     },
     "resolutions": {},
+    "type": "module",
     "dependencies": {
         "zapier-platform-core": "^11.2.0"
     },

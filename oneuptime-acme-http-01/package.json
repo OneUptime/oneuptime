@@ -29,6 +29,7 @@
         "acme-challenge-test": "^3.3.2",
         "dotenv": "^14.2.0"
     },
+    "type": "module",
     "dependencies": {
         "axios": "^0.25.0"
     }

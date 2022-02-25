@@ -12,6 +12,7 @@
     "keywords": [],
     "author": "",
     "license": "ISC",
+    "type": "module",
     "dependencies": {
         "axios": "^0.25.0",
         "cors": "^2.8.5",

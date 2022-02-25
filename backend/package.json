@@ -2,6 +2,7 @@
     "name": "oneuptime-backend",
     "version": "3.0.0",
     "private": true,
+    "type": "module",
     "dependencies": {
         "airtable": "^0.11.1",
         "async-mutex": "^0.3.1",

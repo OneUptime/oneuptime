@@ -44,6 +44,7 @@
         "webpack-cli": "^4.9.1"
     },
     "resolutions": {},
+    "type": "module",
     "dependencies": {
         "@babel/polyfill": "^7.10.1",
         "axios": "^0.25.0",

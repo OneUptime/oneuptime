@@ -2,6 +2,7 @@
     "name": "status-page",
     "version": "3.0.0",
     "private": true,
+    "type": "module",
     "dependencies": {
         "axios": "^0.21.1",
         "chai": "^4.3.4",

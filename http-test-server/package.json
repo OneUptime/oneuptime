@@ -14,6 +14,7 @@
     "keywords": [],
     "author": "",
     "license": "ISC",
+    "type": "module",
     "dependencies": {
         "body-parser": "^1.19.1",
         "cross-env": "^7.0.3",

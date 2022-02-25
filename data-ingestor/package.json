@@ -12,6 +12,7 @@
     "keywords": [],
     "author": "",
     "license": "ISC",
+    "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
         "axios": "^0.24.0",

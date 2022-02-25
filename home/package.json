@@ -14,6 +14,7 @@
         "light-house-mobile": "node lighthouse.js --mobile",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
     },
+    "type": "module",
     "dependencies": {
         "axios": "^0.24.0",
         "body-parser": "^1.19.1",

@@ -15,6 +15,7 @@
     "devDependencies": {
         "depcheck": "^1.4.2"
     },
+    "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
         "axios": "^0.21.1",

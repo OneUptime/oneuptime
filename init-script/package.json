@@ -11,6 +11,7 @@
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path'"
     },
+    "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
         "axios": "^0.24.0",

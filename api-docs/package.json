@@ -13,6 +13,7 @@
         "url": "https://github.com/oneuptime/api-docs/issues"
     },
     "homepage": "https://github.com/oneuptime/api-docs#readme",
+    "type": "module",
     "dependencies": {
         "chai": "^4.3.4",
         "chai-http": "^4.3.0",

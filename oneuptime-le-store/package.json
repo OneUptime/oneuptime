@@ -16,6 +16,7 @@
         "HackerBay, Inc.  <hello@hackerbay.io>"
     ],
     "license": "MIT",
+    "type": "module",
     "dependencies": {
         "axios": "^0.25.0"
     }
