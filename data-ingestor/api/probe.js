@@ -10,7 +10,6 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const { ObjectId } = require('mongodb');
 
-
 router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,
     response
