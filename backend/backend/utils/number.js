@@ -3,6 +3,6 @@ const NumberFormatter = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
 });
 
-module.exports = {
+export default {
     formatBalance: number => parseFloat(NumberFormatter.format(number)),
 };

@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const LeadService = require('../services/leadService');
+import LeadService from '../services/leadService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
@@ -32,4 +32,4 @@ router.post('/', async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

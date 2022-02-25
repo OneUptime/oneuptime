@@ -8,9 +8,9 @@
 
 'use strict';
 
-const axios = require('axios');
-const { API_URL } = require('./config');
-const logger = require('./logger');
+import axios from 'axios'
+import { API_URL } from './config'
+import logger from './logger'
 
 /** The request headers. */
 const headers = {
@@ -78,7 +78,7 @@ const post = (apiUrl, url, data, key, success, error = defaultErrorHandler) => {
     }).then(success, error);
 };
 
-module.exports = {
+export default {
     get,
     post,
     defaultErrorHandler,

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, skip, limit, select, populate }) {
         if (!skip) skip = 0;
 
@@ -712,17 +712,17 @@ module.exports = {
     },
 };
 
-const CallRoutingModel = require('../models/callRouting');
-const CallRoutingLogService = require('../services/callRoutingLogService');
-const PaymentService = require('./paymentService');
-const TwilioService = require('./twilioService');
-const ScheduleService = require('./scheduleService');
-const AlertService = require('./alertService');
-const EscalationService = require('./escalationService');
-const UserService = require('./userService');
-const twilio = require('twilio');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const ProjectService = require('./projectService');
-const FileService = require('./fileService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import CallRoutingModel from '../models/callRouting'
+import CallRoutingLogService from '../services/callRoutingLogService'
+import PaymentService from './paymentService'
+import TwilioService from './twilioService'
+import ScheduleService from './scheduleService'
+import AlertService from './alertService'
+import EscalationService from './escalationService'
+import UserService from './userService'
+import twilio from 'twilio'
+import { IS_SAAS_SERVICE } from '../config/server'
+import ProjectService from './projectService'
+import FileService from './fileService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

@@ -2,14 +2,14 @@ process.env.NODE_ENV = 'development';
 process.env.LOG_LEVEL = 'error';
 process.env.API_URL = 'http://localhost:3002';
 
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
 
 const request = chai.request.agent(process.env.API_URL);
 
-const utils = require('./test-utils');
+import utils from './test-utils'
 const expect = require('chai').expect;
-const serverMonitor = require('../lib/api');
+import serverMonitor from '../lib/api'
 
 const user = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();

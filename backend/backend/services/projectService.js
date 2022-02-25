@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
@@ -939,25 +939,25 @@ module.exports = {
     },
 };
 
-const ProjectModel = require('../models/project');
-const { v1: uuidv1 } = require('uuid');
-const MonitorService = require('../services/monitorService');
-const PaymentService = require('./paymentService');
-const UserService = require('./userService');
-const IncidentPrioritiesService = require('./incidentPrioritiesService');
-const integrationService = require('./integrationService');
-const ScheduleService = require('./scheduleService');
-const domains = require('../config/domains'); // removal of 'moment' due to declaration but not used.
-const EscalationService = require('./escalationService');
-const StripeService = require('./stripeService');
-const TeamService = require('./teamService');
-const StatusPageService = require('./statusPageService');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const componentService = require('./componentService');
-const DomainVerificationService = require('./domainVerificationService');
-const SsoDefaultRolesService = require('./ssoDefaultRolesService');
-const getSlug = require('../utils/getSlug');
-const flattenArray = require('../utils/flattenArray');
-const IncidentSettingsService = require('./incidentSettingsService');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import ProjectModel from '../models/project'
+import { v1: uuidv1 } from 'uuid'
+import MonitorService from '../services/monitorService'
+import PaymentService from './paymentService'
+import UserService from './userService'
+import IncidentPrioritiesService from './incidentPrioritiesService'
+import integrationService from './integrationService'
+import ScheduleService from './scheduleService'
+import domains from '../config/domains' // removal of 'moment' due to declaration but not used.
+import EscalationService from './escalationService'
+import StripeService from './stripeService'
+import TeamService from './teamService'
+import StatusPageService from './statusPageService'
+import { IS_SAAS_SERVICE } from '../config/server'
+import componentService from './componentService'
+import DomainVerificationService from './domainVerificationService'
+import SsoDefaultRolesService from './ssoDefaultRolesService'
+import getSlug from '../utils/getSlug'
+import flattenArray from '../utils/flattenArray'
+import IncidentSettingsService from './incidentSettingsService'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'

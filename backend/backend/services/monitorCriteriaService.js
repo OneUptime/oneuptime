@@ -733,6 +733,6 @@ const MonitorCriteriaService = {
     },
 };
 
-const { isEmpty } = require('lodash');
+import { isEmpty } from 'lodash'
 
-module.exports = MonitorCriteriaService;
+export default MonitorCriteriaService;

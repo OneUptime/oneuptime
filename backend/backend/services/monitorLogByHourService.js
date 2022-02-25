@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const LogHour = new MonitorLogByHourModel();
 
@@ -107,6 +107,6 @@ module.exports = {
     },
 };
 
-const MonitorLogByHourModel = require('../models/monitorLogByHour');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import MonitorLogByHourModel from '../models/monitorLogByHour'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

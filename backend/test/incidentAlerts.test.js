@@ -1,13 +1,13 @@
 process.env.PORT = 3020;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 const expect = require('chai').expect;
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-const app = require('../server');
-const GlobalConfig = require('./utils/globalConfig');
+import app from '../server'
+import GlobalConfig from './utils/globalConfig'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
+import { createUser } from './utils/userSignUp'
 const {
     addEscalation,
     addSubscriberToMonitor,
@@ -24,41 +24,41 @@ const {
     verifyToken,
     getChargedAlerts,
 } = require('./utils/test-utils');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const ComponentService = require('../backend/services/componentService');
-const MonitorService = require('../backend/services/monitorService');
-const NotificationService = require('../backend/services/notificationService');
-const AirtableService = require('../backend/services/airtableService');
-const OnCallScheduleStatusService = require('../backend/services/onCallScheduleStatusService');
-const SubscriberService = require('../backend/services/subscriberService');
-const SubscriberAlertService = require('../backend/services/subscriberAlertService');
-const ScheduleService = require('../backend/services/scheduleService');
-const EscalationService = require('../backend/services/escalationService');
-const MonitorStatusModel = require('../backend/models/monitorStatus');
-const IncidentService = require('../backend/services/incidentService');
-const IncidentSMSActionModel = require('../backend/models/incidentSMSAction');
-const IncidentPriorityModel = require('../backend/models/incidentPriority');
-const IncidentMessageModel = require('../backend/models/incidentMessage');
-const IncidentTimelineModel = require('../backend/models/incidentTimeline');
-const AlertService = require('../backend/services/alertService');
-const AlertChargeModel = require('../backend/models/alertCharge');
-const TwilioModel = require('../backend/models/twilio');
-const VerificationToken = require('../backend/models/verificationToken');
-const LoginIPLog = require('../backend/models/loginIPLog');
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import ComponentService from '../backend/services/componentService'
+import MonitorService from '../backend/services/monitorService'
+import NotificationService from '../backend/services/notificationService'
+import AirtableService from '../backend/services/airtableService'
+import OnCallScheduleStatusService from '../backend/services/onCallScheduleStatusService'
+import SubscriberService from '../backend/services/subscriberService'
+import SubscriberAlertService from '../backend/services/subscriberAlertService'
+import ScheduleService from '../backend/services/scheduleService'
+import EscalationService from '../backend/services/escalationService'
+import MonitorStatusModel from '../backend/models/monitorStatus'
+import IncidentService from '../backend/services/incidentService'
+import IncidentSMSActionModel from '../backend/models/incidentSMSAction'
+import IncidentPriorityModel from '../backend/models/incidentPriority'
+import IncidentMessageModel from '../backend/models/incidentMessage'
+import IncidentTimelineModel from '../backend/models/incidentTimeline'
+import AlertService from '../backend/services/alertService'
+import AlertChargeModel from '../backend/models/alertCharge'
+import TwilioModel from '../backend/models/twilio'
+import VerificationToken from '../backend/models/verificationToken'
+import LoginIPLog from '../backend/models/loginIPLog'
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const UserModel = require('../backend/models/user');
-const GlobalConfigModel = require('../backend/models/globalConfig');
-const GlobalConfigService = require('../backend/services/globalConfigService');
-const EmailSmtpService = require('../backend/services/emailSmtpService');
-const AlertChargeService = require('../backend/services/alertChargeService');
-const { formatBalance } = require('../backend/utils/number');
-const TeamMembers = require('./utils/teamMembers');
-const MonitorCriteriaService = require('../backend/services/monitorCriteriaService');
-const { generateRandomString } = require('./utils/string');
-const uuid = require('uuid');
-const axios = require('axios');
+import VerificationTokenModel from '../backend/models/verificationToken'
+import UserModel from '../backend/models/user'
+import GlobalConfigModel from '../backend/models/globalConfig'
+import GlobalConfigService from '../backend/services/globalConfigService'
+import EmailSmtpService from '../backend/services/emailSmtpService'
+import AlertChargeService from '../backend/services/alertChargeService'
+import { formatBalance } from '../backend/utils/number'
+import TeamMembers from './utils/teamMembers'
+import MonitorCriteriaService from '../backend/services/monitorCriteriaService'
+import { generateRandomString } from './utils/string'
+import uuid from 'uuid'
+import axios from 'axios'
 
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));

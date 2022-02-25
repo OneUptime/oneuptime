@@ -1,22 +1,22 @@
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
-const chai = require('chai');
+import chai from 'chai'
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const dockerCredential = require('./data/dockerCredential');
-const app = require('../server');
+import userData from './data/user'
+import dockerCredential from './data/dockerCredential'
+import app from '../server'
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
-const GlobalConfig = require('./utils/globalConfig');
-const { createUser } = require('./utils/userSignUp');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const ComponentService = require('../backend/services/componentService');
-const DockerCredentialService = require('../backend/services/dockerCredentialService');
-const ContainerSecurityService = require('../backend/services/containerSecurityService');
-const ContainerSecurityLogService = require('../backend/services/containerSecurityLogService');
-const AirtableService = require('../backend/services/airtableService');
+import GlobalConfig from './utils/globalConfig'
+import { createUser } from './utils/userSignUp'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import ComponentService from '../backend/services/componentService'
+import DockerCredentialService from '../backend/services/dockerCredentialService'
+import ContainerSecurityService from '../backend/services/containerSecurityService'
+import ContainerSecurityLogService from '../backend/services/containerSecurityLogService'
+import AirtableService from '../backend/services/airtableService'
 
 describe('Container Security API', function() {
     const timeout = 30000;

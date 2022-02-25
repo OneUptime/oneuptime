@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const subscriberAlertModel = new SubscriberAlertModel();
         subscriberAlertModel.projectId = data.projectId || null;
@@ -143,6 +143,6 @@ module.exports = {
     },
 };
 
-const SubscriberAlertModel = require('../models/subscriberAlert');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import SubscriberAlertModel from '../models/subscriberAlert'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

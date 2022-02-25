@@ -1,20 +1,20 @@
-const authentication = require('./authentication');
+import authentication from './authentication'
 // import triggers
-const resolvedTrigger = require('./triggers/resolved');
-const incidentTrigger = require('./triggers/incident');
-const monitorTrigger = require('./triggers/monitors');
-const acknowledgeTrigger = require('./triggers/acknowledge');
-const incidentsTrigger = require('./triggers/incidents');
-const incidentNoteTrigger = require('./triggers/incidentNote');
+import resolvedTrigger from './triggers/resolved'
+import incidentTrigger from './triggers/incident'
+import monitorTrigger from './triggers/monitors'
+import acknowledgeTrigger from './triggers/acknowledge'
+import incidentsTrigger from './triggers/incidents'
+import incidentNoteTrigger from './triggers/incidentNote'
 // import actions
-const createIncidentAction = require('./actions/createIncident');
-const acknowledgeLastIncidentAction = require('./actions/acknowledgeLastIncident');
-const resolveLastIncidentAction = require('./actions/resolveLastIncident');
-const acknowledgeAllIncidentsAction = require('./actions/acknowledgeAllIncidents');
-const resolveAllIncidentsAction = require('./actions/resolveAllIncidents');
-const acknowledgeIncidentAction = require('./actions/acknowledgeIncident');
-const resolveIncidentAction = require('./actions/resolveIncident');
-const createIncidentNoteAction = require('./actions/createIncidentNote');
+import createIncidentAction from './actions/createIncident'
+import acknowledgeLastIncidentAction from './actions/acknowledgeLastIncident'
+import resolveLastIncidentAction from './actions/resolveLastIncident'
+import acknowledgeAllIncidentsAction from './actions/acknowledgeAllIncidents'
+import resolveAllIncidentsAction from './actions/resolveAllIncidents'
+import acknowledgeIncidentAction from './actions/acknowledgeIncident'
+import resolveIncidentAction from './actions/resolveIncident'
+import createIncidentNoteAction from './actions/createIncidentNote'
 
 // To include the API key on all outbound requests, simply define a function here.
 // It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot.
@@ -68,4 +68,4 @@ const App = {
 };
 
 // Finally, export the app.
-module.exports = App;
+export default App;

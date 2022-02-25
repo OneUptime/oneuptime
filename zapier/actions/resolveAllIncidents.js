@@ -11,7 +11,7 @@ const resolveAllIncidents = (z, bundle) => {
     return responsePromise.then(response => JSON.parse(response.content));
 };
 
-module.exports = {
+export default {
     key: 'resolve_all_incidents',
     noun: 'resolve',
 

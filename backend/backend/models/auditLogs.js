@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const auditLogsSchema = new Schema({
@@ -12,4 +12,4 @@ const auditLogsSchema = new Schema({
     },
 });
 
-module.exports = mongoose.model('AuditLog', auditLogsSchema);
+export default mongoose.model('AuditLog', auditLogsSchema);

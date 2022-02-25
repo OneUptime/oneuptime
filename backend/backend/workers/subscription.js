@@ -1,11 +1,11 @@
-const moment = require('moment');
-const payment = require('../config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
-const ErrorService = require('common-server/utils/error');
-const ProjectService = require('../services/projectService');
-const UserService = require('../services/userService');
-const AlertService = require('../services/alertService');
-const { IS_SAAS_SERVICE } = require('../config/server');
+import moment from 'moment'
+import payment from '../config/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey
+import ErrorService from 'common-server/utils/error'
+import ProjectService from '../services/projectService'
+import UserService from '../services/userService'
+import AlertService from '../services/alertService'
+import { IS_SAAS_SERVICE } from '../config/server'
 
 const handleFetchingUnpaidSubscriptions = async startAfter => {
     if (startAfter) {
@@ -139,4 +139,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

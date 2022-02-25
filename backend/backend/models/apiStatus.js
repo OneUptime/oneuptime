@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const apiStatusSchema = new Schema(
@@ -10,4 +10,4 @@ const apiStatusSchema = new Schema(
     },
     { timestamps: true }
 );
-module.exports = mongoose.model('ApiStatus', apiStatusSchema);
+export default mongoose.model('ApiStatus', apiStatusSchema);

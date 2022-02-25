@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express'
 
 const router = express.Router();
-const NotificationService = require('../services/notificationService');
-const { isAuthorized } = require('../middlewares/authorization');
+import NotificationService from '../services/notificationService'
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -173,4 +173,4 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,15 +1,15 @@
-const PerformanceTrackerModel = require('../models/performanceTracker');
-const ErrorService = require('common-server/utils/error');
-const ComponentService = require('./componentService');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
-// const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const uuid = require('uuid');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import PerformanceTrackerModel from '../models/performanceTracker'
+import ErrorService from 'common-server/utils/error'
+import ComponentService from './componentService'
+import generate from 'nanoid/generate'
+import slugify from 'slugify'
+// import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import uuid from 'uuid'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const _this = this;

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
         // check component exists
@@ -233,13 +233,13 @@ module.exports = {
     },
 };
 
-const ApplicationLogModel = require('../models/applicationLog');
-const ComponentService = require('./componentService');
-const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const ResourceCategoryService = require('./resourceCategoryService');
-const uuid = require('uuid');
-const getSlug = require('../utils/getSlug');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
-const errorService = require('common-server/utils/error');
+import ApplicationLogModel from '../models/applicationLog'
+import ComponentService from './componentService'
+import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import ResourceCategoryService from './resourceCategoryService'
+import uuid from 'uuid'
+import getSlug from '../utils/getSlug'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'
+import errorService from 'common-server/utils/error'

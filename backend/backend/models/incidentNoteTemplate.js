@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const IncidentNoteTemplateSchema = new Schema(
@@ -24,7 +24,7 @@ const IncidentNoteTemplateSchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model(
+export default mongoose.model(
     'IncidentNoteTemplate',
     IncidentNoteTemplateSchema
 );

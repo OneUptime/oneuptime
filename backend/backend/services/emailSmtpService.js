@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const iv = Crypto.randomBytes(16);
         data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
@@ -189,8 +189,8 @@ module.exports = {
     },
 };
 
-const Crypto = require('crypto');
-const EmailSmtpModel = require('../models/smtp');
-const EncryptDecrypt = require('../config/encryptDecrypt');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import Crypto from 'crypto'
+import EmailSmtpModel from '../models/smtp'
+import EncryptDecrypt from '../config/encryptDecrypt'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

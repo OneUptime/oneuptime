@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const customFieldSchema = new Schema(
@@ -13,4 +13,4 @@ const customFieldSchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model('CustomField', customFieldSchema);
+export default mongoose.model('CustomField', customFieldSchema);

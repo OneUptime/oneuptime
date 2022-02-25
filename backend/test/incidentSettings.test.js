@@ -1,27 +1,27 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const incidentData = require('./data/incident');
-const UserService = require('../backend/services/userService');
-const MonitorService = require('../backend/services/monitorService');
-const IncidentService = require('../backend/services/incidentService');
-const IncidentSettings = require('../backend/services/incidentSettingsService');
-const IncidentPrioritiesService = require('../backend/services/incidentPrioritiesService');
-const ComponentService = require('../backend/services/componentService');
-const ProjectService = require('../backend/services/projectService');
-const NotificationService = require('../backend/services/notificationService');
+import { createUser } from './utils/userSignUp'
+import incidentData from './data/incident'
+import UserService from '../backend/services/userService'
+import MonitorService from '../backend/services/monitorService'
+import IncidentService from '../backend/services/incidentService'
+import IncidentSettings from '../backend/services/incidentSettingsService'
+import IncidentPrioritiesService from '../backend/services/incidentPrioritiesService'
+import ComponentService from '../backend/services/componentService'
+import ProjectService from '../backend/services/projectService'
+import NotificationService from '../backend/services/notificationService'
 const {
     incidentDefaultSettings,
 } = require('../backend/config/incidentDefaultSettings');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const GlobalConfig = require('./utils/globalConfig');
-const ComponentModel = require('../backend/models/component');
-const AirtableService = require('../backend/services/airtableService');
+import VerificationTokenModel from '../backend/models/verificationToken'
+import GlobalConfig from './utils/globalConfig'
+import ComponentModel from '../backend/models/component'
+import AirtableService from '../backend/services/airtableService'
 
 let token, userId, projectId, monitorId, componentId, incidentId, templateId;
 

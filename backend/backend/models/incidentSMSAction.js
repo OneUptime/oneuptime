@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const incidentSMSActionSchema = new Schema({
@@ -30,4 +30,4 @@ const incidentSMSActionSchema = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
 });
 
-module.exports = mongoose.model('IncidentSMSAction', incidentSMSActionSchema);
+export default mongoose.model('IncidentSMSAction', incidentSMSActionSchema);

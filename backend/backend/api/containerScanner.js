@@ -1,16 +1,16 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const ContainerSecurityService = require('../services/containerSecurityService');
-const ContainerSecurityLogService = require('../services//containerSecurityLogService');
+import ContainerSecurityService from '../services/containerSecurityService'
+import ContainerSecurityLogService from '../services//containerSecurityLogService'
 const isAuthorizedContainerScanner = require('../middlewares/containerScannerAuthorization')
     .isAuthorizedContainerScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const RealTimeService = require('../services/realTimeService');
-const MailService = require('../services/mailService');
-const UserService = require('../services/userService');
-const ProjectService = require('../services/projectService');
-const ErrorService = require('common-server/utils/error');
+import RealTimeService from '../services/realTimeService'
+import MailService from '../services/mailService'
+import UserService from '../services/userService'
+import ProjectService from '../services/projectService'
+import ErrorService from 'common-server/utils/error'
 
 router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,
@@ -149,4 +149,4 @@ router.post('/time', isAuthorizedContainerScanner, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

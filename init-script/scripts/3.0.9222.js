@@ -1,4 +1,4 @@
-const { find, update, findOne } = require('../util/db');
+import { find, update, findOne } from '../util/db'
 
 const scheduledEventNoteCollection = 'scheduledeventnotes';
 const scheduledEventCollection = 'scheduledevents';
@@ -28,4 +28,4 @@ async function run() {
     return `Script ran for ${scheduledEventNotes.length} scheduled event notes`;
 }
 
-module.exports = run;
+export default run;

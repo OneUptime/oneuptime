@@ -1,14 +1,14 @@
-const incidentSMSActionModel = require('../models/incidentSMSAction');
-const twilio = require('twilio');
-const SmsSmtpService = require('./smsSmtpService');
-const Handlebars = require('handlebars');
-const defaultSmsTemplates = require('../config/smsTemplate');
-const GlobalConfigService = require('./globalConfigService');
-const UserService = require('./userService');
-const SmsCountService = require('./smsCountService');
-const CallLogsService = require('./callLogsService');
-const AlertService = require('./alertService');
-const { IS_TESTING } = require('../config/server');
+import incidentSMSActionModel from '../models/incidentSMSAction'
+import twilio from 'twilio'
+import SmsSmtpService from './smsSmtpService'
+import Handlebars from 'handlebars'
+import defaultSmsTemplates from '../config/smsTemplate'
+import GlobalConfigService from './globalConfigService'
+import UserService from './userService'
+import SmsCountService from './smsCountService'
+import CallLogsService from './callLogsService'
+import AlertService from './alertService'
+import { IS_TESTING } from '../config/server'
 
 const _this = {
     findByOne: async function({ query, select, populate }) {
@@ -1755,4 +1755,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

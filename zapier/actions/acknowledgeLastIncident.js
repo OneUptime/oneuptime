@@ -11,7 +11,7 @@ const acknowledgeLastIncident = (z, bundle) => {
     return responsePromise.then(response => JSON.parse(response.content));
 };
 
-module.exports = {
+export default {
     key: 'acknowledge_last_incident',
     noun: 'Acknowledge',
 

@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express'
 
 const router = express.Router();
-const UserService = require('../services/userService');
+import UserService from '../services/userService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
@@ -35,4 +35,4 @@ router.post('/new', async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

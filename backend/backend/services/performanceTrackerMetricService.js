@@ -1,10 +1,10 @@
-const PerformanceTrackerMetricModel = require('../models/performanceTrackerMetric');
-const moment = require('moment');
-const RealTimeService = require('./realTimeService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import PerformanceTrackerMetricModel from '../models/performanceTrackerMetric'
+import moment from 'moment'
+import RealTimeService from './realTimeService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const performanceTrackerMetric = await PerformanceTrackerMetricModel.create(
             data

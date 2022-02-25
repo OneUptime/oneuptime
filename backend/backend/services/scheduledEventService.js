@@ -1,16 +1,16 @@
-const ScheduledEventModel = require('../models/scheduledEvent');
-const UserModel = require('../models/user');
-const ErrorService = require('common-server/utils/error');
-const RealTimeService = require('./realTimeService');
-const ScheduledEventNoteService = require('./scheduledEventNoteService');
-const AlertService = require('./alertService');
-const moment = require('moment');
-const getSlug = require('../utils/getSlug');
-const MonitorService = require('./monitorService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ScheduledEventModel from '../models/scheduledEvent'
+import UserModel from '../models/user'
+import ErrorService from 'common-server/utils/error'
+import RealTimeService from './realTimeService'
+import ScheduledEventNoteService from './scheduledEventNoteService'
+import AlertService from './alertService'
+import moment from 'moment'
+import getSlug from '../utils/getSlug'
+import MonitorService from './monitorService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function({ projectId }, data, recurring) {
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(

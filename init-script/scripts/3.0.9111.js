@@ -1,4 +1,4 @@
-const { find, update } = require('../util/db');
+import { find, update } from '../util/db'
 
 const incidentSettingsCollection = 'incidentsettings';
 
@@ -23,4 +23,4 @@ async function run() {
     return `Script ran for ${templates.length} templates`;
 }
 
-module.exports = run;
+export default run;

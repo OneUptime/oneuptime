@@ -1,5 +1,5 @@
-const { join } = require("path");
-const {performance} = require('perf_hooks');
+import { join } from "path"
+import {performance} from 'perf_hooks'
 
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
@@ -169,7 +169,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
         });
     } else {
         // worker_threads code
-        const { NodeVM } = require('vm2');
+        import { NodeVM } from 'vm2'
         const vm = new NodeVM({
             eval: false,
             wasm: false,
@@ -202,7 +202,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
         const code = workerData.functionCode;
         setInterval(() => parentPort.postMessage({type: 'ping'}), 500);
         const sandboxFunction = await vm.run(
-            `module.exports = ${code}`,
+            `export default ${code}`,
             join(process.cwd(), 'node_modules')
         );
 
@@ -211,5 +211,5 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
     }
 };
 
-module.exports = runScript();
+export default runScript();
 module.exports.runScript = runScript;

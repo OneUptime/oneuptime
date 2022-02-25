@@ -61,7 +61,7 @@ import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
-const dJSON = require('dirty-json');
+import dJSON from 'dirty-json'
 import { fetchAutomatedScript } from '../../actions/automatedScript';
 
 const defaultScript =

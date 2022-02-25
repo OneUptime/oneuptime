@@ -1,17 +1,17 @@
-const url = require('url');
-const _ = require('lodash');
+import url from 'url'
+import _ from 'lodash'
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
-const AuditLogsService = require('../services/auditLogsService');
-const ErrorService = require('common-server/utils/error');
+import AuditLogsService from '../services/auditLogsService'
+import ErrorService from 'common-server/utils/error'
 const sendErrorResponse = require('./response').sendErrorResponse;
-const { getProjectId } = require('./api');
-const GlobalConfigService = require('../services/globalConfigService');
+import { getProjectId } from './api'
+import GlobalConfigService from '../services/globalConfigService'
 
 // TODO: This should be stored in a shared cache like redis.
 let shouldStoreLogs = null;
 
-module.exports = {
+export default {
     log: async function(req, res, next) {
         try {
             const blackListedRoutes = ['/audit-logs/'];

@@ -1,15 +1,15 @@
-const IncidentService = require('./incidentService');
-const ErrorService = require('./errorService');
+import IncidentService from './incidentService'
+import ErrorService from './errorService'
 const incidentTimelineCollection = global.db.collection('incidenttimelines');
-const { ObjectId } = require('mongodb');
-const { postApi } = require('../utils/api');
-const moment = require('moment');
-const { realtimeUrl } = require('../utils/config');
-const ProjectService = require('./projectService');
+import { ObjectId } from 'mongodb'
+import { postApi } from '../utils/api'
+import moment from 'moment'
+import { realtimeUrl } from '../utils/config'
+import ProjectService from './projectService'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
-module.exports = {
+export default {
     create: async function(data) {
         try {
             let incidentTimeline = {};

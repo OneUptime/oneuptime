@@ -1,4 +1,4 @@
-const packageJson = require('../package.json');
+import packageJson from '../package.json'
 
 const COMMAND = {
     linux: {
@@ -36,7 +36,7 @@ const COMMAND = {
     },
 };
 
-module.exports = {
+export default {
     COMMAND,
     serverUrl: process.env['SERVER_URL'],
     probeName: process.env['PROBE_NAME'],

@@ -1,5 +1,5 @@
-const { expect } = require("chai");
-const { runScript } = require("./scriptSandbox");
+import { expect } from "chai"
+import { runScript } from "./scriptSandbox"
 
 describe('ScriptMonitor V2', function() {
   this.timeout(10000);
@@ -8,7 +8,7 @@ describe('ScriptMonitor V2', function() {
     
     // create a quick express server
     before(function(){
-      const express = require("express");
+      import express from "express"
       const app = express();
       app.get("/test", (req, res) => res.send("yipee!"));
       server = app.listen(5050);
@@ -23,7 +23,7 @@ describe('ScriptMonitor V2', function() {
       const someFunction = async (done) => {
         // make api requests using "axios" or "request"
         const axios = require("axios").default;
-        // const request = require("request-promise");
+        // import request from "request-promise"
 
         const res = await axios.get("http://localhost:5050/test");
         // const res = await request.get("http://localhost:5050/test");

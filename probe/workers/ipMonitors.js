@@ -1,10 +1,10 @@
-const ApiService = require('../utils/apiService');
-const ErrorService = require('../utils/errorService');
-const ping = require('ping');
+import ApiService from '../utils/apiService'
+import ErrorService from '../utils/errorService'
+import ping from 'ping'
 // it collects all monitors then ping them one by one to store their response
 // checks if the IP Address of the IP monitor is up or down
 // creates incident if a IP Address is down and resolves it when they come back up
-module.exports = {
+export default {
     ping: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {

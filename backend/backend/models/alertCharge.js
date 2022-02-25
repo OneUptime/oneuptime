@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const alertChargeSchema = new Schema({
@@ -13,4 +13,4 @@ const alertChargeSchema = new Schema({
     sentTo: { type: String },
 });
 
-module.exports = mongoose.model('AlertCharge', alertChargeSchema);
+export default mongoose.model('AlertCharge', alertChargeSchema);

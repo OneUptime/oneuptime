@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     //Description: Create new project for user.
     //Params:
     //Param 1: projectName: Project name.
@@ -55,9 +55,9 @@ module.exports = {
     },
 };
 
-const FeedbackModel = require('../models/feedback');
-const MailService = require('./mailService');
-const UserService = require('./userService');
-const ProjectService = require('./projectService');
-const AirtableService = require('./airtableService');
-const ErrorService = require('common-server/utils/error');
+import FeedbackModel from '../models/feedback'
+import MailService from './mailService'
+import UserService from './userService'
+import ProjectService from './projectService'
+import AirtableService from './airtableService'
+import ErrorService from 'common-server/utils/error'

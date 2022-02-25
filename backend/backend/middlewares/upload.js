@@ -1,11 +1,11 @@
-const { GridFsStorage } = require('multer-gridfs-storage');
-const crypto = require('crypto');
+import { GridFsStorage } from 'multer-gridfs-storage'
+import crypto from 'crypto'
 
 const mongoUri = process.env['MONGO_URL'];
 
 // Description: Generating random name of files.
 // Returns: fileinfo, error.
-module.exports = new GridFsStorage({
+export default new GridFsStorage({
     url: mongoUri,
     options: {
         useNewUrlParser: true,

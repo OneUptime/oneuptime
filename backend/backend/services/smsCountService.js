@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
@@ -135,7 +135,7 @@ module.exports = {
     },
 };
 
-const SmsCountModel = require('../models/smsCount');
-const moment = require('moment');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import SmsCountModel from '../models/smsCount'
+import moment from 'moment'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

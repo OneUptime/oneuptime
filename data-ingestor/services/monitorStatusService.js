@@ -1,15 +1,15 @@
 const monitorStatusCollection = global.db.collection('monitorstatuses');
-const { ObjectId } = require('mongodb');
-const ErrorService = require('../services/errorService');
-const { postApi } = require('../utils/api');
-const MonitorService = require('./monitorService');
-const moment = require('moment');
-const ProjectService = require('./projectService');
-const { realtimeUrl } = require('../utils/config');
+import { ObjectId } from 'mongodb'
+import ErrorService from '../services/errorService'
+import { postApi } from '../utils/api'
+import MonitorService from './monitorService'
+import moment from 'moment'
+import ProjectService from './projectService'
+import { realtimeUrl } from '../utils/config'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const query = {};

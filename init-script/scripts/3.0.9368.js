@@ -1,4 +1,4 @@
-const { find, updateMany } = require('../util/db');
+import { find, updateMany } from '../util/db'
 
 const monitorCollection = 'monitors';
 
@@ -20,4 +20,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

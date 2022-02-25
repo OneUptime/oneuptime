@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     /**
      * charges a project for an alert
      * @param {(object | string)} userId owner of the project
@@ -448,19 +448,19 @@ module.exports = {
     },
 };
 
-const payment = require('../config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
-const Plans = require('../config/plans');
-const ErrorService = require('common-server/utils/error');
-const ProjectService = require('./projectService');
-const ProjectModel = require('../models/project');
-const StripeService = require('./stripeService');
-const NotificationService = require('./notificationService');
+import payment from '../config/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey
+import Plans from '../config/plans'
+import ErrorService from 'common-server/utils/error'
+import ProjectService from './projectService'
+import ProjectModel from '../models/project'
+import StripeService from './stripeService'
+import NotificationService from './notificationService'
 const {
     getAlertChargeAmount,
     getCountryType,
     Call,
 } = require('../config/alertType');
-// const getMutex = require('../constants/mutexProvider');
-const { formatBalance } = require('../utils/number');
-// const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
+// import getMutex from '../constants/mutexProvider'
+import { formatBalance } from '../utils/number'
+// import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'

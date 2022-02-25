@@ -1,25 +1,25 @@
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
-const GlobalConfig = require('./utils/globalConfig');
+import app from '../server'
+import GlobalConfig from './utils/globalConfig'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const StatusService = require('../backend/services/statusPageService');
-const MonitorService = require('../backend/services/monitorService');
-const monitorLogService = require('../backend/services/monitorLogService');
-const ScheduledEventService = require('../backend/services/scheduledEventService');
-const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
-const DomainVerificationService = require('../backend/services/domainVerificationService');
-const project = require('./data/project');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import StatusService from '../backend/services/statusPageService'
+import MonitorService from '../backend/services/monitorService'
+import monitorLogService from '../backend/services/monitorLogService'
+import ScheduledEventService from '../backend/services/scheduledEventService'
+import ProjectService from '../backend/services/projectService'
+import AirtableService from '../backend/services/airtableService'
+import DomainVerificationService from '../backend/services/domainVerificationService'
+import project from './data/project'
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const ComponentModel = require('../backend/models/component');
+import VerificationTokenModel from '../backend/models/verificationToken'
+import ComponentModel from '../backend/models/component'
 
 // eslint-disable-next-line
 let token,

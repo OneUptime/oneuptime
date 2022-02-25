@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     /**
      * @method getMostActiveMembers
      * @description get the most active member who resolved
@@ -397,7 +397,7 @@ module.exports = {
     },
 };
 
-const moment = require('moment');
-const IncidentModel = require('../models/incident');
-const UserService = require('./userService');
-const MonitorService = require('./monitorService');
+import moment from 'moment'
+import IncidentModel from '../models/incident'
+import UserService from './userService'
+import MonitorService from './monitorService'

@@ -1,8 +1,8 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('common-server/utils/error');
+import ErrorService from 'common-server/utils/error'
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 
-module.exports = {
+export default {
     isAuthorizedService: async function(req, res, next) {
         try {
             let clusterKey;

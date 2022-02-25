@@ -1,5 +1,5 @@
-const utils = require('./test-utils');
-const chai = require('chai');
+import utils from './test-utils'
+import chai from 'chai'
 chai.use(require('chai-http'));
 const request = chai.request(utils.BACKEND_URL);
 
@@ -1907,4 +1907,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

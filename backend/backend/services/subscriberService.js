@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
         const subscriberModel = new SubscriberModel();
@@ -352,8 +352,8 @@ module.exports = {
     },
 };
 
-const SubscriberModel = require('../models/subscriber');
-const ErrorService = require('common-server/utils/error');
-const StatusPageService = require('./statusPageService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import SubscriberModel from '../models/subscriber'
+import ErrorService from 'common-server/utils/error'
+import StatusPageService from './statusPageService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

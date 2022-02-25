@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
 
@@ -97,6 +97,6 @@ module.exports = {
     },
 };
 
-const IssueMemberModel = require('../models/issueMember');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import IssueMemberModel from '../models/issueMember'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

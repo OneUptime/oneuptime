@@ -1,13 +1,13 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 
-const AuditLogsService = require('../services/auditLogsService');
+import AuditLogsService from '../services/auditLogsService'
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const { sendItemResponse } = require('../middlewares/response');
+import { sendItemResponse } from '../middlewares/response'
 
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {
@@ -67,4 +67,4 @@ router.delete('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

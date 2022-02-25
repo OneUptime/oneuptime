@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const ProbeService = require('../services/probeService');
+import ProbeService from '../services/probeService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const { isValidMonitor } = require('../middlewares/api');
+import { isValidMonitor } from '../middlewares/api'
 
 const incomingHttpRequest = async function(req, res) {
     try {
@@ -27,4 +27,4 @@ router.get('/:id', isValidMonitor, incomingHttpRequest);
 
 router.post('/:id', isValidMonitor, incomingHttpRequest);
 
-module.exports = router;
+export default router;

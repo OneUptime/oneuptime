@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     //Description: Call this fuction to retrieve list of invoices for a customer.
     //Params:
     //Param 1: stripeCustomerId: Received from the frontend.
@@ -32,6 +32,6 @@ module.exports = {
     },
 };
 
-const payment = require('../config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
-const UserService = require('./userService');
+import payment from '../config/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey
+import UserService from './userService'

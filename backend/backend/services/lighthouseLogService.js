@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const Log = new LighthouseLogModel();
 
@@ -213,9 +213,9 @@ module.exports = {
     },
 };
 
-const LighthouseLogModel = require('../models/lighthouseLog');
-const MonitorService = require('./monitorService');
-const RealTimeService = require('./realTimeService');
-const probeService = require('./probeService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import LighthouseLogModel from '../models/lighthouseLog'
+import MonitorService from './monitorService'
+import RealTimeService from './realTimeService'
+import probeService from './probeService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

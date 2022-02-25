@@ -11,7 +11,7 @@ const createIncident = (z, bundle) => {
     return responsePromise.then(response => JSON.parse(response.content));
 };
 
-module.exports = {
+export default {
     key: 'incident',
     noun: 'Incident',
 

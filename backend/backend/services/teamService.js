@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     //Description: Get all team members of Project or Subproject.
     //Params:
     //Param 1: projectId: Project id.
@@ -920,16 +920,16 @@ module.exports = {
     },
 };
 
-const ProjectService = require('../services/projectService');
-const UserService = require('../services/userService');
-const MailService = require('../services/mailService');
-const PaymentService = require('../services/paymentService');
-const NotificationService = require('../services/notificationService');
-const RealTimeService = require('../services/realTimeService');
-const ErrorService = require('common-server/utils/error');
-const domains = require('../config/domains');
-const VerificationTokenModel = require('../models/verificationToken');
-const crypto = require('crypto');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const { emaildomains } = require('../config/emaildomains');
-const flatten = require('../utils/flattenArray');
+import ProjectService from '../services/projectService'
+import UserService from '../services/userService'
+import MailService from '../services/mailService'
+import PaymentService from '../services/paymentService'
+import NotificationService from '../services/notificationService'
+import RealTimeService from '../services/realTimeService'
+import ErrorService from 'common-server/utils/error'
+import domains from '../config/domains'
+import VerificationTokenModel from '../models/verificationToken'
+import crypto from 'crypto'
+import { IS_SAAS_SERVICE } from '../config/server'
+import { emaildomains } from '../config/emaildomains'
+import flatten from '../utils/flattenArray'

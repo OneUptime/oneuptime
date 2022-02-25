@@ -1,11 +1,11 @@
-const moment = require('moment');
+import moment from 'moment'
 const MonitorService = require('../services/monitorService'),
     MonitorLogService = require('../services/monitorLogService'),
     MonitorStatusService = require('../services/monitorStatusService'),
     ProbeService = require('../services/probeService'),
     ErrorService = require('common-server/utils/error');
 
-module.exports = {
+export default {
     checkAllServerMonitors: async () => {
         try {
             const newDate = new moment();

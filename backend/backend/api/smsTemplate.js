@@ -1,14 +1,14 @@
-const express = require('express');
-const SmsTemplateService = require('../services/smsTemplateService');
+import express from 'express'
+import SmsTemplateService from '../services/smsTemplateService'
 
 const router = express.Router();
 
-const createDOMPurify = require('dompurify');
+import createDOMPurify from 'dompurify'
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
 
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 
@@ -161,4 +161,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

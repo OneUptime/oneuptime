@@ -1,11 +1,11 @@
-const Crypto = require('crypto');
-const GitCredentialModel = require('../models/gitCredential');
-const { encrypt } = require('../config/encryptDecrypt');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const fs = require('fs');
+import Crypto from 'crypto'
+import GitCredentialModel from '../models/gitCredential'
+import { encrypt } from '../config/encryptDecrypt'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import fs from 'fs'
 
-module.exports = {
+export default {
     findOneBy: async function({ query, populate, select }) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;

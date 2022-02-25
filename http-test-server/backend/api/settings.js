@@ -1,5 +1,5 @@
-const express = require('express');
-const http = require('http');
+import express from 'express'
+import http from 'http'
 
 const router = express.Router();
 
@@ -43,4 +43,4 @@ router.post('/api/settings', function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

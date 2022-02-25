@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     // process messages to be sent to slack workspace channels
     sendNotification: async function(
         projectId,
@@ -281,9 +281,9 @@ module.exports = {
     },
 };
 
-const IntegrationService = require('./integrationService');
-const axios = require('axios');
-const ProjectService = require('./projectService');
+import IntegrationService from './integrationService'
+import axios from 'axios'
+import ProjectService from './projectService'
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,

@@ -1,12 +1,12 @@
-const ScriptModel = require('../models/automatedScripts');
-const ScriptModelLog = require('../models/automationScriptsLog');
-const { postApi } = require('../utils/api');
-const getSlug = require('../utils/getSlug');
+import ScriptModel from '../models/automatedScripts'
+import ScriptModelLog from '../models/automationScriptsLog'
+import { postApi } from '../utils/api'
+import getSlug from '../utils/getSlug'
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     findBy: async function({ query, skip, limit, select, populate }) {
         if (!skip) skip = 0;
 

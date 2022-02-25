@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, populate, select }) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
@@ -117,8 +117,8 @@ module.exports = {
     },
 };
 
-const IncidentSettingsService = require('./incidentSettingsService');
-const IncidentService = require('./incidentService');
-const incidentPriorityModel = require('../models/incidentPriority');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import IncidentSettingsService from './incidentSettingsService'
+import IncidentService from './incidentService'
+import incidentPriorityModel from '../models/incidentPriority'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

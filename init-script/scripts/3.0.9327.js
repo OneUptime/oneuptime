@@ -1,7 +1,7 @@
-const { find } = require('../util/db');
-const payment = require('../util/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
-const { deleteApi } = require('../util/api');
+import { find } from '../util/db'
+import payment from '../util/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey
+import { deleteApi } from '../util/api'
 
 const projectCollection = 'projects';
 
@@ -38,4 +38,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

@@ -1,24 +1,24 @@
-const express = require('express');
-const ApplicationLogService = require('../services/applicationLogService');
-const UserService = require('../services/userService');
-const ComponentService = require('../services/componentService');
-const RealTimeService = require('../services/realTimeService');
-const LogService = require('../services/logService');
-const ErrorService = require('common-server/utils/error');
-const NotificationService = require('../services/notificationService');
+import express from 'express'
+import ApplicationLogService from '../services/applicationLogService'
+import UserService from '../services/userService'
+import ComponentService from '../services/componentService'
+import RealTimeService from '../services/realTimeService'
+import LogService from '../services/logService'
+import ErrorService from 'common-server/utils/error'
+import NotificationService from '../services/notificationService'
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 const isApplicationLogValid = require('../middlewares/applicationLog')
     .isApplicationLogValid;
 
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const ResourceCategoryService = require('../services/resourceCategoryService');
-const uuid = require('uuid');
+import ResourceCategoryService from '../services/resourceCategoryService'
+import uuid from 'uuid'
 
 // Route
 // Description: Adding a new application log to a component.
@@ -464,4 +464,4 @@ router.post(
     }
 );
 
-module.exports = router;
+export default router;

@@ -17,10 +17,10 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
-const path = require('path');
+import express from 'express'
+import path from 'path'
 const app = express();
-const cors = require('cors');
+import cors from 'cors'
 
 app.use(cors());
 

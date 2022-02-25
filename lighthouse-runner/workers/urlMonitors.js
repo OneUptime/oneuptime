@@ -1,11 +1,11 @@
-const UrlService = require('../utils/urlService');
-const ErrorService = require('../utils/errorService');
-const { fork } = require('child_process');
-const moment = require('moment');
+import UrlService from '../utils/urlService'
+import ErrorService from '../utils/errorService'
+import { fork } from 'child_process'
+import moment from 'moment'
 
 // This runs the lighthouse of URL Monitors
 
-module.exports = {
+export default {
     ping: async monitor => {
         try {
             if (monitor && monitor.type) {

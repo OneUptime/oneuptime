@@ -1,6 +1,6 @@
-const winston = require('winston');
-const logstash = require('winston-logstash-transport');
-const Slack = require('winston-slack-webhook-transport');
+import winston from 'winston'
+import logstash from 'winston-logstash-transport'
+import Slack from 'winston-slack-webhook-transport'
 
 const MESSAGE = Symbol.for('message');
 const LEVEL = Symbol.for('level');
@@ -108,4 +108,4 @@ logger.stream = {
     },
 };
 
-module.exports = logger;
+export default logger;

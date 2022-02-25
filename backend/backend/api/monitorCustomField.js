@@ -1,12 +1,12 @@
-const express = require('express');
-const { isAuthorized } = require('../middlewares/authorization');
-const { getUser } = require('../middlewares/user');
+import express from 'express'
+import { isAuthorized } from '../middlewares/authorization'
+import { getUser } from '../middlewares/user'
 const {
     sendErrorResponse,
     sendItemResponse,
     sendListResponse,
 } = require('../middlewares/response');
-const MonitorCustomFieldService = require('../services/monitorCustomField');
+import MonitorCustomFieldService from '../services/monitorCustomField'
 
 const router = express.Router();
 
@@ -153,4 +153,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

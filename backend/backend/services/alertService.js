@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     /**
      * gets the schedules to use for alerts
      * @param {Object} incident the current incident
@@ -5370,53 +5370,53 @@ function calcSmsSegments(sms) {
     return Math.ceil(smsLength / 160);
 }
 
-const AlertModel = require('../models/alert');
-const ProjectService = require('./projectService');
-const PaymentService = require('./paymentService');
-const AlertType = require('../config/alertType');
-const ScheduleService = require('./scheduleService');
-const SubscriberService = require('./subscriberService');
-const SubscriberAlertService = require('./subscriberAlertService');
-const EmailTemplateService = require('./emailTemplateService');
-const SmsTemplateService = require('./smsTemplateService');
-const EscalationService = require('./escalationService');
-const MailService = require('./mailService');
-const UserService = require('./userService');
-const MonitorService = require('./monitorService');
-const TwilioService = require('./twilioService');
-const ErrorService = require('common-server/utils/error');
-const StatusPageService = require('./statusPageService');
-const AlertChargeService = require('./alertChargeService');
-const countryCode = require('../config/countryCode');
-const { getCountryType } = require('../config/alertType');
-const SmsCountService = require('./smsCountService');
-const DateTime = require('../utils/DateTime');
-const moment = require('moment-timezone');
+import AlertModel from '../models/alert'
+import ProjectService from './projectService'
+import PaymentService from './paymentService'
+import AlertType from '../config/alertType'
+import ScheduleService from './scheduleService'
+import SubscriberService from './subscriberService'
+import SubscriberAlertService from './subscriberAlertService'
+import EmailTemplateService from './emailTemplateService'
+import SmsTemplateService from './smsTemplateService'
+import EscalationService from './escalationService'
+import MailService from './mailService'
+import UserService from './userService'
+import MonitorService from './monitorService'
+import TwilioService from './twilioService'
+import ErrorService from 'common-server/utils/error'
+import StatusPageService from './statusPageService'
+import AlertChargeService from './alertChargeService'
+import countryCode from '../config/countryCode'
+import { getCountryType } from '../config/alertType'
+import SmsCountService from './smsCountService'
+import DateTime from '../utils/DateTime'
+import moment from 'moment-timezone'
 const TimeZoneNames = moment.tz.names();
-const OnCallScheduleStatusService = require('./onCallScheduleStatusService');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const ComponentService = require('./componentService');
-const GlobalConfigService = require('./globalConfigService');
-const WebHookService = require('../services/webHookService');
-const IncidentUtility = require('../utils/incident');
-const TeamService = require('./teamService');
-const secondsToHms = require('../utils/secondsToHms');
-const { getPlanById, getPlanByExtraUserId } = require('../config/plans');
+import OnCallScheduleStatusService from './onCallScheduleStatusService'
+import { IS_SAAS_SERVICE } from '../config/server'
+import ComponentService from './componentService'
+import GlobalConfigService from './globalConfigService'
+import WebHookService from '../services/webHookService'
+import IncidentUtility from '../utils/incident'
+import TeamService from './teamService'
+import secondsToHms from '../utils/secondsToHms'
+import { getPlanById, getPlanByExtraUserId } from '../config/plans'
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
-const componentService = require('./componentService');
-const webpush = require('web-push');
+import componentService from './componentService'
+import webpush from 'web-push'
 const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
-//  const IncidentService = require('./incidentService'); Declared but unused
-const IncidentMessageService = require('./incidentMessageService');
-const IncidentTimelineService = require('./incidentTimelineService');
-const Services = require('../utils/services');
-const RealTimeService = require('./realTimeService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+//  import IncidentService from './incidentService' Declared but unused
+import IncidentMessageService from './incidentMessageService'
+import IncidentTimelineService from './incidentTimelineService'
+import Services from '../utils/services'
+import RealTimeService from './realTimeService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

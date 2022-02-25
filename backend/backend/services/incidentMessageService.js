@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         let incidentMessage = new IncidentMessageModel();
 
@@ -136,8 +136,8 @@ module.exports = {
     },
 };
 
-const IncidentMessageModel = require('../models/incidentMessage');
-const RealTimeService = require('./realTimeService');
-const IncidentService = require('./incidentService');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import IncidentMessageModel from '../models/incidentMessage'
+import RealTimeService from './realTimeService'
+import IncidentService from './incidentService'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'

@@ -1,13 +1,13 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const IncidentSettingsService = require('../services/incidentSettingsService');
-const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
-const { variables } = require('../config/incidentDefaultSettings');
+import IncidentSettingsService from '../services/incidentSettingsService'
+import IncidentPrioritiesService from '../services/incidentPrioritiesService'
+import { variables } from '../config/incidentDefaultSettings'
 
 router.get('/variables', async function(req, res) {
     try {
@@ -261,4 +261,4 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

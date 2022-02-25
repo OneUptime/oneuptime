@@ -3,4 +3,4 @@ const MUTEX_RESOURCES = {
     MONITOR: 'MONITOR',
 };
 
-module.exports = Object.freeze(MUTEX_RESOURCES);
+export default Object.freeze(MUTEX_RESOURCES);

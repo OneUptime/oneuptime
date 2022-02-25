@@ -1,6 +1,6 @@
-const ErrorService = require('common-server/utils/error');
-const StatusPageService = require('../services/statusPageService');
-const CertificateStoreService = require('../services/certificateStoreService');
+import ErrorService from 'common-server/utils/error'
+import StatusPageService from '../services/statusPageService'
+import CertificateStoreService from '../services/certificateStoreService'
 
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];
@@ -38,7 +38,7 @@ async function handleFetchingDomains() {
     return domainsWithoutCert;
 }
 
-module.exports = async function() {
+export default async function() {
     try {
         const domains = await handleFetchingDomains();
         const greenlock = global.greenlock;

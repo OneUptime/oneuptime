@@ -1,11 +1,11 @@
-const ProbeService = require('../services/probeService');
+import ProbeService from '../services/probeService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('../services/errorService');
-const { clusterKey: CLUSTER_KEY } = require('../utils/config');
+import ErrorService from '../services/errorService'
+import { clusterKey: CLUSTER_KEY } from '../utils/config'
 
 global.probes = {};
 
-module.exports = {
+export default {
     isAuthorizedProbe: async function(req, res, next) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;

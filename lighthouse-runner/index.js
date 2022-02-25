@@ -24,13 +24,13 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
+import express from 'express'
 const app = express();
-const http = require('http').createServer(app);
-const cors = require('cors');
-const Main = require('./workers/main');
-const cron = require('node-cron');
-const config = require('./utils/config');
+import http from 'http').createServer(app
+import cors from 'cors'
+import Main from './workers/main'
+import cron from 'node-cron'
+import config from './utils/config'
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 
@@ -70,4 +70,4 @@ http.listen(app.get('port'), function() {
     );
 });
 
-module.exports = app;
+export default app;

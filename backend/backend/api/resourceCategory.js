@@ -1,13 +1,13 @@
-const express = require('express');
+import express from 'express'
 
 const router = express.Router();
 
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
-const ResourceCategoryService = require('../services/resourceCategoryService');
+import ResourceCategoryService from '../services/resourceCategoryService'
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -209,4 +209,4 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-const { find, update, removeField, rename } = require('../util/db');
+import { find, update, removeField, rename } from '../util/db'
 
 const monitorCategoryCollection = 'monitorcategories';
 const resourceCategoryCollection = 'resourcecategories';
@@ -33,4 +33,4 @@ async function run() {
     return `Script ran for ${monitors.length} monitors`;
 }
 
-module.exports = run;
+export default run;

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     async create(user, clientIP, userAgent, status) {
         const detector = new DeviceDetector();
         const result = detector.detect(userAgent);
@@ -57,10 +57,10 @@ module.exports = {
     },
 };
 
-const LoginHistoryModel = require('../models/loginIPLog');
-const ErrorService = require('common-server/utils/error');
-const DeviceDetector = require('node-device-detector');
-const MailService = require('../services/mailService');
-const UserService = require('../services/userService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import LoginHistoryModel from '../models/loginIPLog'
+import ErrorService from 'common-server/utils/error'
+import DeviceDetector from 'node-device-detector'
+import MailService from '../services/mailService'
+import UserService from '../services/userService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const ApiStatusService = require('../services/apiStatusService');
+import ApiStatusService from '../services/apiStatusService'
 
 const router = express.Router();
 
@@ -80,4 +80,4 @@ router.get('/', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

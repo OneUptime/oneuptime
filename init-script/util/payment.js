@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     paymentPrivateKey:
         process.env['STRIPE_PRIVATE_KEY'] || 'sk_test_YxwnzywggtAd8jDaHecNmHiN',
     paymentPublicKey:

@@ -4,9 +4,9 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
-const express = require('express');
-const logger = require('common-server/utils/logger');
-const expressRequestId = require('express-request-id')();
+import express from 'express'
+import logger from 'common-server/utils/logger'
+import expressRequestId from 'express-request-id')(
 
 const app = express();
 
@@ -26,8 +26,8 @@ process.on('uncaughtException', err => {
     logger.error(err);
 });
 
-const path = require('path');
-const http = require('http').createServer(app);
+import path from 'path'
+import http from 'http').createServer(app
 const io = require('socket.io')(http, {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session
@@ -42,15 +42,15 @@ const io = require('socket.io')(http, {
         },
     },
 });
-// const redisAdapter = require('socket.io-redis');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-// const redis = require('redis');
-const mongoose = require('./backend/config/db');
-const Gl = require('greenlock');
-const ErrorService = require('common-server/utils/error');
-const { getUser } = require('./backend/middlewares/user');
-const { getProjectId } = require('./backend/middlewares/api');
+// import redisAdapter from 'socket.io-redis'
+import bodyParser from 'body-parser'
+import cors from 'cors'
+// import redis from 'redis'
+import mongoose from './backend/config/db'
+import Gl from 'greenlock'
+import ErrorService from 'common-server/utils/error'
+import { getUser } from './backend/middlewares/user'
+import { getProjectId } from './backend/middlewares/api'
 
 // try {
 //     io.adapter(
@@ -168,7 +168,7 @@ app.use(bodyParser.json({ limit: '10mb' }));
 
 const { RATE_LIMITTER_ENABLED } = process.env;
 if (RATE_LIMITTER_ENABLED === 'true') {
-    // const rateLimiter = require('./backend/middlewares/rateLimit');
+    // import rateLimiter from './backend/middlewares/rateLimit'
     // app.use(rateLimiter);
 }
 //View engine setup
@@ -430,7 +430,7 @@ mongoose.connection.on('connected', async () => {
     }
 });
 
-module.exports = app;
+export default app;
 module.exports.close = function() {
     server.close();
 };

@@ -1,6 +1,6 @@
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const getSlug = require('../utils/getSlug');
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import getSlug from '../utils/getSlug'
 
 class ServiceBase {
     constructor({
@@ -299,4 +299,4 @@ class ServiceBase {
     }
 }
 
-module.exports = ServiceBase;
+export default ServiceBase;

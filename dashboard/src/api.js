@@ -4,7 +4,7 @@ import { API_URL, ACCOUNTS_URL } from './config';
 import { User } from './config';
 const baseURL = API_URL;
 
-const Q = require('q');
+import Q from 'q'
 
 const headers = {
     'Access-Control-Allow-Origin': '*',

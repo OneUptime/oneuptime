@@ -1,9 +1,9 @@
 'use strict';
 
-const axios = require('axios');
+import axios from 'axios'
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
-module.exports = {
+export default {
     create: function(config) {
         return {
             // init: function(opts) {

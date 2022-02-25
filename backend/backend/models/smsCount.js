@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const smsCountSchema = new Schema({
@@ -17,4 +17,4 @@ const smsCountSchema = new Schema({
     status: String,
     error: String,
 });
-module.exports = mongoose.model('SmsCount', smsCountSchema);
+export default mongoose.model('SmsCount', smsCountSchema);

@@ -1,7 +1,7 @@
-const moment = require('moment');
-const differenceInDays = require('date-fns/differenceInDays');
-const differenceInWeeks = require('date-fns/differenceInWeeks');
-const differenceInMonths = require('date-fns/differenceInMonths');
+import moment from 'moment'
+import differenceInDays from 'date-fns/differenceInDays'
+import differenceInWeeks from 'date-fns/differenceInWeeks'
+import differenceInMonths from 'date-fns/differenceInMonths'
 
 const _this = {
     // This function will strip
@@ -230,4 +230,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

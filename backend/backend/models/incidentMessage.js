@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const incidentMessageSchema = new Schema({
@@ -38,4 +38,4 @@ incidentMessageSchema.virtual('incident', {
     justOne: true,
 });
 
-module.exports = mongoose.model('IncidentMessage', incidentMessageSchema);
+export default mongoose.model('IncidentMessage', incidentMessageSchema);

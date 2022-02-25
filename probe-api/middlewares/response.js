@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     sendErrorResponse: function(req, res, error) {
         //log error to the console.
         // eslint-disable-next-line no-console

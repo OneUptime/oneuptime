@@ -1,4 +1,4 @@
-const { find, update, removeField } = require('../util/db');
+import { find, update, removeField } from '../util/db'
 
 const incomingRequestCollection = 'incomingrequests';
 
@@ -42,4 +42,4 @@ async function run() {
     return `Script ran for ${requests.length} incoming requests`;
 }
 
-module.exports = run;
+export default run;

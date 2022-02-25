@@ -1,4 +1,4 @@
-const { find, update, removeField } = require('../util/db');
+import { find, update, removeField } from '../util/db'
 
 const monitorCollection = 'monitors';
 
@@ -21,4 +21,4 @@ async function run() {
     return `Script ran for ${monitors.length} monitors`;
 }
 
-module.exports = run;
+export default run;

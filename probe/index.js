@@ -1,5 +1,5 @@
 const { NODE_ENV } = process.env;
-const asyncSleep = require('await-sleep');
+import asyncSleep from 'await-sleep'
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
@@ -24,9 +24,9 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const Main = require('./workers/main');
-const config = require('./utils/config');
-const logger = require('../common-server/utils/logger');
+import Main from './workers/main'
+import config from './utils/config'
+import logger from '../common-server/utils/logger'
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 

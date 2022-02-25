@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     CLIENT_ID: process.env['CLIENT_ID'] || '3133949145.437395941636',
     API_ROUTE: process.env['API_ROUTE'] || 'https://oneuptime.com/api',
     APP_ROUTE: process.env['APP_ROUTE'] || 'https://dashboard.oneuptime.com',

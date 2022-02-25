@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const IncidentPriority = new Schema({
@@ -27,4 +27,4 @@ const IncidentPriority = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
 });
 
-module.exports = mongoose.model('IncidentPriority', IncidentPriority);
+export default mongoose.model('IncidentPriority', IncidentPriority);

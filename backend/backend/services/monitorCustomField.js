@@ -1,8 +1,8 @@
-const MonitorCustomFieldModel = require('../models/monitorCustomField');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import MonitorCustomFieldModel from '../models/monitorCustomField'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     findOneBy: async function({ query, select, populate }) {
         if (!query) {
             query = {};

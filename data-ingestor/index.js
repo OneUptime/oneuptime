@@ -5,11 +5,11 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
-const express = require('express');
+import express from 'express'
 const app = express();
-const http = require('http').createServer(app);
-const cors = require('cors');
-const { mongoUrl, databaseName } = require('./utils/config');
+import http from 'http').createServer(app
+import cors from 'cors'
+import { mongoUrl, databaseName } from './utils/config'
 const MongoClient = require('mongodb').MongoClient;
 
 process.on('exit', () => {
@@ -123,4 +123,4 @@ http.listen(app.get('port'), function() {
     console.log('data-ingestor server started on port ' + app.get('port'));
 });
 
-module.exports = app;
+export default app;

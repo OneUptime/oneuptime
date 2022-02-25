@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     incidentDefaultSettings: {
         title: '{{monitorName}} is {{incidentType}}.',
         description:

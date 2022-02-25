@@ -1,6 +1,6 @@
-const { postApi } = require('./api');
+import { postApi } from './api'
 
-module.exports = {
+export default {
     updateContainerSecurityToScanning: async function(security) {
         return await postApi(`container/scanning`, { security });
     },

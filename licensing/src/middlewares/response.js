@@ -1,6 +1,6 @@
-const JsonToCsv = require('./jsonToCsv');
+import JsonToCsv from './jsonToCsv'
 
-module.exports = {
+export default {
     sendEmptyResponse(req, res) {
         return res.status(200).send();
     },

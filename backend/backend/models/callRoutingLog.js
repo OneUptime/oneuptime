@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const callRoutingLogSchema = new Schema({
@@ -30,4 +30,4 @@ const callRoutingLogSchema = new Schema({
     ],
 });
 
-module.exports = mongoose.model('CallRoutingLog', callRoutingLogSchema);
+export default mongoose.model('CallRoutingLog', callRoutingLogSchema);

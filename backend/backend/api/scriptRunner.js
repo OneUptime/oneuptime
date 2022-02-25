@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const MonitorService = require('../services/monitorService');
-const ProbeService = require('../services/probeService');
-const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+import MonitorService from '../services/monitorService'
+import ProbeService from '../services/probeService'
+import { isAuthorizedService } from '../middlewares/serviceAuthorization'
 
 const router = express.Router();
 
@@ -160,4 +160,4 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const ApiStatusModel = require('../models/apiStatus');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ApiStatusModel from '../models/apiStatus'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const apiStatus = await ApiStatusModel.create(data);
         return apiStatus;

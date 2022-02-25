@@ -1,24 +1,24 @@
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-const app = require('../server');
-const GlobalConfig = require('./utils/globalConfig');
+import app from '../server'
+import GlobalConfig from './utils/globalConfig'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const MonitorService = require('../backend/services/monitorService');
-const ResourceCategoryService = require('../backend/services/resourceCategoryService');
-const NotificationService = require('../backend/services/notificationService');
-const AirtableService = require('../backend/services/airtableService');
-const uuid = require('uuid');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import MonitorService from '../backend/services/monitorService'
+import ResourceCategoryService from '../backend/services/resourceCategoryService'
+import NotificationService from '../backend/services/notificationService'
+import AirtableService from '../backend/services/airtableService'
+import uuid from 'uuid'
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const ComponentModel = require('../backend/models/component');
+import VerificationTokenModel from '../backend/models/verificationToken'
+import ComponentModel from '../backend/models/component'
 
 let token, userId, projectId, monitorId, resourceCategoryId, monitor2Id;
 const httpMonitorId = uuid.v4();

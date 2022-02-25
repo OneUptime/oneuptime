@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     af: '+93',
     al: '+355',
     dz: '+213',

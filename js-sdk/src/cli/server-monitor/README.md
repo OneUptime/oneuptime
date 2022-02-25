@@ -114,7 +114,7 @@ Services created by the daemon are similar to most other services running on Win
 ## Programmatic Usage
 
 ```javascript
-const serverMonitor = require('oneuptime-server-monitor');
+import serverMonitor from 'oneuptime-server-monitor';
 
 const monitor = serverMonitor({
     projectId: '5d64d59cae46131619708309',

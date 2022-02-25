@@ -1,4 +1,4 @@
-const { find, update, findOne } = require('../util/db');
+import { find, update, findOne } from '../util/db'
 
 const monitorCollection = 'monitors';
 const componentCollection = 'components';
@@ -26,4 +26,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

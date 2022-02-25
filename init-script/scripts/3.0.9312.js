@@ -1,4 +1,4 @@
-const { updateMany } = require('../util/db');
+import { updateMany } from '../util/db'
 
 const userCollection = 'users';
 
@@ -13,4 +13,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

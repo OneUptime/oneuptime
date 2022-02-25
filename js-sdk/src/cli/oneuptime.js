@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-const { version } = require('../../package.json');
-const program = require('commander');
+import { version } from '../../package.json'
+import program from 'commander'
 program
     .name('oneuptime')
     .version(version, '-v, --version')

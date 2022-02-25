@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
@@ -21,4 +21,4 @@ const schema = new Schema({
     smtpServer: String, // which can be internal, smtp.gmail.com, etc
 });
 
-module.exports = mongoose.model('EmailSent', schema);
+export default mongoose.model('EmailSent', schema);

@@ -1,7 +1,7 @@
-const axios = require('axios');
+import axios from 'axios'
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 
-module.exports = {
+export default {
     headers: async (val, type) => {
         const header = {};
         if (type && type.length) {

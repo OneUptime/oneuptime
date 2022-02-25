@@ -1,13 +1,13 @@
-const express = require('express');
+import express from 'express'
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const ContainerSecurityService = require('../services/containerSecurityService');
-const RealTimeService = require('../services/realTimeService');
-const ResourceCategoryService = require('../services/resourceCategoryService');
-const ErrorService = require('common-server/utils/error');
+import ContainerSecurityService from '../services/containerSecurityService'
+import RealTimeService from '../services/realTimeService'
+import ResourceCategoryService from '../services/resourceCategoryService'
+import ErrorService from 'common-server/utils/error'
 
 const router = express.Router();
 
@@ -392,4 +392,4 @@ router.post(
     }
 );
 
-module.exports = router;
+export default router;

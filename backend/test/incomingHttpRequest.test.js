@@ -1,25 +1,25 @@
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
-const chai = require('chai');
+import chai from 'chai'
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const app = require('../server');
+import userData from './data/user'
+import app from '../server'
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
-const GlobalConfig = require('./utils/globalConfig');
-const { createUser } = require('./utils/userSignUp');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const AirtableService = require('../backend/services/airtableService');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const ComponentService = require('../backend/services/componentService');
-const IncidentPrioritiesService = require('../backend/services/incidentPrioritiesService');
-const MonitorService = require('../backend/services/monitorService');
-const IncomingHttpRequestService = require('../backend/services/incomingRequestService');
-const MonitorCustomFieldService = require('../backend/services/monitorCustomField');
-const IncidentCustomFieldService = require('../backend/services/customFieldService');
-const IncidentService = require('../backend/services/incidentService');
-const axios = require('axios');
+import GlobalConfig from './utils/globalConfig'
+import { createUser } from './utils/userSignUp'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import AirtableService from '../backend/services/airtableService'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import ComponentService from '../backend/services/componentService'
+import IncidentPrioritiesService from '../backend/services/incidentPrioritiesService'
+import MonitorService from '../backend/services/monitorService'
+import IncomingHttpRequestService from '../backend/services/incomingRequestService'
+import MonitorCustomFieldService from '../backend/services/monitorCustomField'
+import IncidentCustomFieldService from '../backend/services/customFieldService'
+import IncidentService from '../backend/services/incidentService'
+import axios from 'axios'
 const {
     resolveRequest,
     internalNoteRequest,

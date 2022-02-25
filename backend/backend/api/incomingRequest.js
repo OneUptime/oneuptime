@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express'
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const IncomingRequestService = require('../services/incomingRequestService');
+import IncomingRequestService from '../services/incomingRequestService'
 
 const router = express.Router();
 
@@ -269,4 +269,4 @@ router.post(
     }
 );
 
-module.exports = router;
+export default router;

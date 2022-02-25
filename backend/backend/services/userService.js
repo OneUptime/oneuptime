@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, skip, limit, select, populate }) {
         if (!skip) skip = 0;
 
@@ -1043,25 +1043,25 @@ module.exports = {
     },
 };
 
-const bcrypt = require('bcrypt');
-const constants = require('../config/constants.json');
-const UserModel = require('../models/user');
-const util = require('./utilService.js');
-const randToken = require('rand-token');
-const PaymentService = require('./paymentService');
-const crypto = require('crypto');
-const ProjectService = require('./projectService');
-const ErrorService = require('common-server/utils/error');
-const jwt = require('jsonwebtoken');
-const geoip = require('geoip-lite');
+import bcrypt from 'bcrypt'
+import constants from '../config/constants.json'
+import UserModel from '../models/user'
+import util from './utilService.js'
+import randToken from 'rand-token'
+import PaymentService from './paymentService'
+import crypto from 'crypto'
+import ProjectService from './projectService'
+import ErrorService from 'common-server/utils/error'
+import jwt from 'jsonwebtoken'
+import geoip from 'geoip-lite'
 const jwtSecretKey = process.env['JWT_SECRET'];
-const { IS_SAAS_SERVICE, IS_TESTING } = require('../config/server');
+import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server'
 const { NODE_ENV } = process.env;
-const VerificationTokenModel = require('../models/verificationToken');
-const MailService = require('../services/mailService');
-const AirtableService = require('./airtableService');
-const speakeasy = require('speakeasy');
-const { hotp } = require('otplib');
-const LoginHistoryService = require('./loginHistoryService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import VerificationTokenModel from '../models/verificationToken'
+import MailService from '../services/mailService'
+import AirtableService from './airtableService'
+import speakeasy from 'speakeasy'
+import { hotp } from 'otplib'
+import LoginHistoryService from './loginHistoryService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

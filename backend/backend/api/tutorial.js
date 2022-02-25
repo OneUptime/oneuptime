@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 
-const UserService = require('../services/userService');
+import UserService from '../services/userService'
 
 const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -58,4 +58,4 @@ router.put('/', getUser, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

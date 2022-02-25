@@ -1,11 +1,11 @@
-const ApiService = require('../utils/apiService');
-const ErrorService = require('../utils/errorService');
-const fs = require('fs');
-const { NodeSSH } = require('node-ssh');
-const fetch = require('node-fetch-commonjs');
-const { COMMAND, serverUrl } = require('../utils/config');
+import ApiService from '../utils/apiService'
+import ErrorService from '../utils/errorService'
+import fs from 'fs'
+import { NodeSSH } from 'node-ssh'
+import fetch from 'node-fetch-commonjs'
+import { COMMAND, serverUrl } from '../utils/config'
 
-module.exports = {
+export default {
     run: async ({ monitor }) => {
         try {
             if (

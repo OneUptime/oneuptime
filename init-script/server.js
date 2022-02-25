@@ -23,14 +23,14 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
-const fs = require('fs');
-const util = require('./util/db');
-const scripts = require('./scripts');
-const express = require('express');
+import fs from 'fs'
+import util from './util/db'
+import scripts from './scripts'
+import express from 'express'
 const app = express();
-const { find, save, update, removeMany } = require('./util/db');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+import { find, save, update, removeMany } from './util/db'
+import bodyParser from 'body-parser'
+import cors from 'cors'
 
 async function interactWithDB(req, res) {
     if (req.params.dbFunction === 'find') {
@@ -137,6 +137,6 @@ async function run() {
     }
 }
 
-module.exports = run;
+export default run;
 
 run();

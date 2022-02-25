@@ -1,7 +1,7 @@
-const { fork } = require('child_process');
+import { fork } from 'child_process'
 const child = fork('./lighthouseWorker');
-const Table = require('cli-table');
-const program = require('commander');
+import Table from 'cli-table'
+import program from 'commander'
 
 program
     .option('-m, --mobile', 'Run lighthouse on mobile')

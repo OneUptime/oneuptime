@@ -1,19 +1,19 @@
-const express = require('express');
-const UserService = require('../services/userService');
-const ComponentService = require('../services/componentService');
+import express from 'express'
+import UserService from '../services/userService'
+import ComponentService from '../services/componentService'
 const getUser = require('../middlewares/user').getUser;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const MonitorService = require('../services/monitorService');
-const statusPageService = require('../services/statusPageService');
-const ScheduleService = require('../services/scheduleService');
-const ProjectService = require('../services/projectService');
-const ScheduleEventService = require('../services/scheduledEventService');
-const IncidentService = require('../services/incidentService');
-const ErrorTrackerService = require('../services/errorTrackerService');
-const LogContainerService = require('../services/applicationLogService');
-const PerformanceTracker = require('../services/performanceTrackerService');
-const { getSubProjects } = require('../middlewares/subProject');
+import MonitorService from '../services/monitorService'
+import statusPageService from '../services/statusPageService'
+import ScheduleService from '../services/scheduleService'
+import ProjectService from '../services/projectService'
+import ScheduleEventService from '../services/scheduledEventService'
+import IncidentService from '../services/incidentService'
+import ErrorTrackerService from '../services/errorTrackerService'
+import LogContainerService from '../services/applicationLogService'
+import PerformanceTracker from '../services/performanceTrackerService'
+import { getSubProjects } from '../middlewares/subProject'
 
 const router = express.Router();
 
@@ -550,4 +550,4 @@ const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
 
     return null;
 };
-module.exports = router;
+export default router;

@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const CertificateStoreService = require('../services/certificateStoreService');
-const StatusPageService = require('../services/statusPageService');
-const SiteManagerService = require('../services/siteManagerService');
+import CertificateStoreService from '../services/certificateStoreService'
+import StatusPageService from '../services/statusPageService'
+import SiteManagerService from '../services/siteManagerService'
 
 const router = express.Router();
 
@@ -186,4 +186,4 @@ router.delete('/certDelete/:id', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

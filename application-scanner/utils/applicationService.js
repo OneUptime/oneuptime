@@ -1,17 +1,17 @@
-const crypto = require('crypto');
-const EncryptionKeys = require('./encryptionKeys');
+import crypto from 'crypto'
+import EncryptionKeys from './encryptionKeys'
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-const git = require('simple-git/promise');
-const { v1: uuidv1 } = require('uuid');
-const Path = require('path');
-const ErrorService = require('./errorService');
-const fs = require('fs');
-const { promisify } = require('util');
+import git from 'simple-git/promise'
+import { v1: uuidv1 } from 'uuid'
+import Path from 'path'
+import ErrorService from './errorService'
+import fs from 'fs'
+import { promisify } from 'util'
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
-const { spawn } = require('child_process');
+import { spawn } from 'child_process'
 const {
     updateApplicationSecurityToScanning,
     updateApplicationSecurityLogService,
@@ -19,8 +19,8 @@ const {
     updateApplicationSecurityToFailed,
 } = require('./applicationSecurityUpdate');
 
-const { Client } = require('ssh2');
-module.exports = {
+import { Client } from 'ssh2'
+export default {
     scan: async function(security) {
         if (
             security.gitCredential.gitUsername &&

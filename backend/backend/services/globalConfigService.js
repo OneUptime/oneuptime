@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function({ name, value }) {
         if (name === 'smtp' && value.internalSmtp && !value.customSmtp) {
             value = {
@@ -265,8 +265,8 @@ module.exports = {
     },
 };
 
-const Crypto = require('crypto');
-const GlobalConfigModel = require('../models/globalConfig');
-const EncryptDecrypt = require('../config/encryptDecrypt');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import Crypto from 'crypto'
+import GlobalConfigModel from '../models/globalConfig'
+import EncryptDecrypt from '../config/encryptDecrypt'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

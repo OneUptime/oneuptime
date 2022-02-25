@@ -1,6 +1,6 @@
 const PKG_VERSION = require('../package.json').version;
-const { find, save, deleteDatabase } = require('../util/db');
-const bcrypt = require('bcrypt');
+import { find, save, deleteDatabase } from '../util/db'
+import bcrypt from 'bcrypt'
 
 async function run() {
     await updateVersion();
@@ -85,4 +85,4 @@ async function setupTestProbes() {
     }
 }
 
-module.exports = run;
+export default run;

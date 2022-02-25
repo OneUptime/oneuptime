@@ -1,5 +1,5 @@
-const { find, update } = require('../util/db');
-const uuid = require('uuid');
+import { find, update } from '../util/db'
+import uuid from 'uuid'
 
 const statusPageCollection = 'statuspages';
 
@@ -21,4 +21,4 @@ async function run() {
     return `Script ran for ${statusPages.length} status pages.`;
 }
 
-module.exports = run;
+export default run;

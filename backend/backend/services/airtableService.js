@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     //Description: Create new user entry on airtable.
     //Params:
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
@@ -142,7 +142,7 @@ module.exports = {
     },
 };
 
-const Airtable = require('airtable');
+import Airtable from 'airtable'
 const AirtableApiKey = process.env['AIRTABLE_API_KEY'];
 const AirtableBaseId = process.env['AIRTABLE_BASE_ID'];
 let base = null;

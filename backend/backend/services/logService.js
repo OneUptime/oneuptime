@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
 
@@ -214,7 +214,7 @@ module.exports = {
     },
 };
 
-const LogModel = require('../models/log');
-const ApplicationLogService = require('./applicationLogService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import LogModel from '../models/log'
+import ApplicationLogService from './applicationLogService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

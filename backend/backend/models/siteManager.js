@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const siteManagerSchema = new Schema(
@@ -13,4 +13,4 @@ const siteManagerSchema = new Schema(
     },
     { timestamps: true }
 );
-module.exports = mongoose.model('SiteManager', siteManagerSchema);
+export default mongoose.model('SiteManager', siteManagerSchema);

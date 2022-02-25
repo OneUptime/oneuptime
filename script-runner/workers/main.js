@@ -1,8 +1,8 @@
-const errorService = require('../utils/errorService');
-const scriptMonitors = require('./scriptMonitors');
-const ApiService = require('../utils/apiService');
+import errorService from '../utils/errorService'
+import scriptMonitors from './scriptMonitors'
+import ApiService from '../utils/apiService'
 
-module.exports = {
+export default {
     runScriptMonitorsJob: async () => {
         // get all script monitors
         // run scripts

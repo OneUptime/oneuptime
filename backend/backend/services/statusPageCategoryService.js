@@ -1,9 +1,9 @@
-const StatusPageCategoryModel = require('../models/statusPageCategory');
-const MonitorModel = require('../models/monitor');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import StatusPageCategoryModel from '../models/statusPageCategory'
+import MonitorModel from '../models/monitor'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const existingStatusPageCategory = await this.countBy({
             name: data.name,

@@ -1,11 +1,11 @@
-const ScheduledEventNoteModel = require('../models/scheduledEventNote');
-const ErrorService = require('common-server/utils/error');
-const RealTimeService = require('./realTimeService');
-const AlertService = require('./alertService');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import ScheduledEventNoteModel from '../models/scheduledEventNote'
+import ErrorService from 'common-server/utils/error'
+import RealTimeService from './realTimeService'
+import AlertService from './alertService'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'
 
-module.exports = {
+export default {
     create: async function(data, projectId) {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 

@@ -1,10 +1,10 @@
-const ProjectService = require('../services/projectService');
-const ErrorService = require('common-server/utils/error');
-const url = require('url');
+import ProjectService from '../services/projectService'
+import ErrorService from 'common-server/utils/error'
+import url from 'url'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const apiMiddleware = require('../middlewares/api');
+import apiMiddleware from '../middlewares/api'
 
-module.exports = {
+export default {
     // Description: Checks if user belongs to the project.
     //
     // Params:

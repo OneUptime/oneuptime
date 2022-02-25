@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     sendSuccessResponse: function(req, res, data) {
         return res.status(200).send(data);
     },

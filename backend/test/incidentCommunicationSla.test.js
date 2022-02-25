@@ -1,17 +1,17 @@
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
-const chai = require('chai');
+import chai from 'chai'
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const app = require('../server');
+import userData from './data/user'
+import app from '../server'
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
-const GlobalConfig = require('./utils/globalConfig');
-const { createUser } = require('./utils/userSignUp');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const IncidentCommunicationSlaService = require('../backend/services/incidentCommunicationSlaService');
+import GlobalConfig from './utils/globalConfig'
+import { createUser } from './utils/userSignUp'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import IncidentCommunicationSlaService from '../backend/services/incidentCommunicationSlaService'
 
 const incidentSlaPayload = {
     name: 'fxPro',

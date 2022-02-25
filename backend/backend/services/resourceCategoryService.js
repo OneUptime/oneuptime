@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const existingResourceCategory = await this.countBy({
             name: data.name,
@@ -176,11 +176,11 @@ module.exports = {
     },
 };
 
-const ResourceCategoryModel = require('../models/resourceCategory');
-const MonitorModel = require('../models/monitor');
-const ApplicationLogModel = require('../models/applicationLog');
-const ErrorTrackerModel = require('../models/errorTracker');
-const ApplicationSecurityModel = require('../models/applicationSecurity');
-const ContainerSecurityModel = require('../models/containerSecurity');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ResourceCategoryModel from '../models/resourceCategory'
+import MonitorModel from '../models/monitor'
+import ApplicationLogModel from '../models/applicationLog'
+import ErrorTrackerModel from '../models/errorTracker'
+import ApplicationSecurityModel from '../models/applicationSecurity'
+import ContainerSecurityModel from '../models/containerSecurity'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

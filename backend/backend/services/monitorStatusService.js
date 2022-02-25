@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const query = {};
         if (data.monitorId) query.monitorId = data.monitorId;
@@ -247,8 +247,8 @@ module.exports = {
     },
 };
 
-const MonitorStatusModel = require('../models/monitorStatus');
-const MonitorService = require('../services/monitorService');
-const RealTimeService = require('./realTimeService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import MonitorStatusModel from '../models/monitorStatus'
+import MonitorService from '../services/monitorService'
+import RealTimeService from './realTimeService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

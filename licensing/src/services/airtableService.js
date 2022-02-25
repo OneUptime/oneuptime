@@ -1,9 +1,9 @@
-const Airtable = require('airtable');
-const { airtableApiKey, airtableBaseId } = require('../config/airtable');
+import Airtable from 'airtable'
+import { airtableApiKey, airtableBaseId } from '../config/airtable'
 
 const base = new Airtable({ apiKey: airtableApiKey }).base(airtableBaseId);
 
-module.exports = {
+export default {
     find: async function({ tableName, view, limit }) {
         return base(tableName)
             .select({ view, pageSize: limit })

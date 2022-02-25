@@ -1,6 +1,6 @@
-const express = require('express');
-const request = require('request');
-const IntegrationService = require('../services/integrationService');
+import express from 'express'
+import request from 'request'
+import IntegrationService from '../services/integrationService'
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const {
@@ -190,4 +190,4 @@ router.get('/:projectId/teams', getUser, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

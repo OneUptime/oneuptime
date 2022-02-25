@@ -1,4 +1,4 @@
-const { updateMany, removeFieldsFromMany } = require('../util/db');
+import { updateMany, removeFieldsFromMany } from '../util/db'
 
 const statusPageCollection = 'statuspages';
 
@@ -49,4 +49,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
@@ -199,4 +199,4 @@ monitorSchema.virtual('project', {
     justOne: true,
 });
 
-module.exports = mongoose.model('Monitor', monitorSchema);
+export default mongoose.model('Monitor', monitorSchema);

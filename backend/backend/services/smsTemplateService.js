@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const smsTemplateModel = new SmsTemplateModel();
         smsTemplateModel.projectId = data.projectId || null;
@@ -179,8 +179,8 @@ module.exports = {
     },
 };
 
-const SmsTemplateModel = require('../models/smsTemplate');
-const smsTemplateVariables = require('../config/smsTemplateVariables');
-const defaultSmsTemplate = require('../config/smsTemplate');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import SmsTemplateModel from '../models/smsTemplate'
+import smsTemplateVariables from '../config/smsTemplateVariables'
+import defaultSmsTemplate from '../config/smsTemplate'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

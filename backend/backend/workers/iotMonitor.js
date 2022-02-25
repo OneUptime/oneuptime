@@ -1,10 +1,10 @@
-const moment = require('moment');
+import moment from 'moment'
 const MonitorService = require('../services/monitorService'),
     IncidentService = require('../services/incidentService'),
     ZapierService = require('../services/zapierService'),
     ErrorService = require('../services/errorService');
 
-module.exports = {
+export default {
     checkAllDeviceMonitor: async () => {
         try {
             const newDate = new moment();

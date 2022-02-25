@@ -1,12 +1,12 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 
-const AutomatedScriptService = require('../services/automatedScriptService');
+import AutomatedScriptService from '../services/automatedScriptService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const { sendItemResponse } = require('../middlewares/response');
-const { isAuthorized } = require('../middlewares/authorization');
-const { getUser } = require('../middlewares/user');
+import { sendItemResponse } from '../middlewares/response'
+import { isAuthorized } from '../middlewares/authorization'
+import { getUser } from '../middlewares/user'
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -284,4 +284,4 @@ const formatEvent = (arr, type) => {
     return result;
 };
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const resourceCategorySchema = new Schema({
@@ -32,4 +32,4 @@ const resourceCategorySchema = new Schema({
     },
 });
 
-module.exports = mongoose.model('ResourceCategory', resourceCategorySchema);
+export default mongoose.model('ResourceCategory', resourceCategorySchema);

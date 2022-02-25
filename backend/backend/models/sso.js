@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const ssoSchema = new Schema({
@@ -51,4 +51,4 @@ const ssoSchema = new Schema({
     },
 });
 
-module.exports = mongoose.model('Sso', ssoSchema);
+export default mongoose.model('Sso', ssoSchema);

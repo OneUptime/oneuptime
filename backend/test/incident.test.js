@@ -2,34 +2,34 @@ process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
-const { createUser } = require('./utils/userSignUp');
+import { createUser } from './utils/userSignUp'
 
-const incidentData = require('./data/incident');
-const UserService = require('../backend/services/userService');
-const UserModel = require('../backend/models/user');
-const ProjectService = require('../backend/services/projectService');
-const ProjectModel = require('../backend/models/project');
-const IncidentService = require('../backend/services/incidentService');
-const MonitorService = require('../backend/services/monitorService');
-const NotificationService = require('../backend/services/notificationService');
-const IntegrationService = require('../backend/services/integrationService');
-const EmailStatusService = require('../backend/services/emailStatusService');
-const AirtableService = require('../backend/services/airtableService');
-const Config = require('./utils/config');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const AlertModel = require('../backend/models/alert');
-const GlobalConfig = require('./utils/globalConfig');
-const ComponentModel = require('../backend/models/component');
-const moment = require('moment');
-const SubscriberService = require('../backend/services/subscriberService');
-const AlertVia = require('../backend/config/alertType');
+import incidentData from './data/incident'
+import UserService from '../backend/services/userService'
+import UserModel from '../backend/models/user'
+import ProjectService from '../backend/services/projectService'
+import ProjectModel from '../backend/models/project'
+import IncidentService from '../backend/services/incidentService'
+import MonitorService from '../backend/services/monitorService'
+import NotificationService from '../backend/services/notificationService'
+import IntegrationService from '../backend/services/integrationService'
+import EmailStatusService from '../backend/services/emailStatusService'
+import AirtableService from '../backend/services/airtableService'
+import Config from './utils/config'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import AlertModel from '../backend/models/alert'
+import GlobalConfig from './utils/globalConfig'
+import ComponentModel from '../backend/models/component'
+import moment from 'moment'
+import SubscriberService from '../backend/services/subscriberService'
+import AlertVia from '../backend/config/alertType'
 const {
     markIncidentAsResolved,
     markIncidentAsAcknowledged,

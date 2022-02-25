@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const LogWeek = new MonitorLogByWeekModel();
 
@@ -107,6 +107,6 @@ module.exports = {
     },
 };
 
-const MonitorLogByWeekModel = require('../models/monitorLogByWeek');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import MonitorLogByWeekModel from '../models/monitorLogByWeek'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

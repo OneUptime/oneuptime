@@ -1,6 +1,6 @@
-const GlobalConfigService = require('../../backend/services/globalConfigService');
+import GlobalConfigService from '../../backend/services/globalConfigService'
 
-module.exports = {
+export default {
     initTestConfig: async function() {
         await GlobalConfigService.create({
             name: 'smtp',

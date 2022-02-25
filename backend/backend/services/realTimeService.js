@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     sendCreatedIncident: async incident => {
         try {
             if (!global || !global.io) {
@@ -1296,10 +1296,10 @@ module.exports = {
     },
 };
 
-const ErrorService = require('common-server/utils/error');
-const ProjectService = require('./projectService');
-const MonitorService = require('./monitorService');
-const IncidentService = require('./incidentService');
-const { postApi } = require('../utils/api');
-const { REALTIME_URL } = require('../config/realtime');
+import ErrorService from 'common-server/utils/error'
+import ProjectService from './projectService'
+import MonitorService from './monitorService'
+import IncidentService from './incidentService'
+import { postApi } from '../utils/api'
+import { REALTIME_URL } from '../config/realtime'
 const realtimeBaseUrl = `${REALTIME_URL}/realtime`;

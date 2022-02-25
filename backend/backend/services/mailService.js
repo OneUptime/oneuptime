@@ -1,22 +1,22 @@
-const nodemailer = require('nodemailer');
-const hbs = require('nodemailer-express-handlebars');
-const Handlebars = require('handlebars');
-const Whitepapers = require('../config/whitepaper');
-const ErrorService = require('common-server/utils/error');
-const defaultEmailTemplates = require('../config/emailTemplate');
-const GlobalConfigService = require('./globalConfigService');
-const EmailSmtpService = require('./emailSmtpService');
-const EmailStatusService = require('./emailStatusService');
-const DateTime = require('../utils/DateTime');
-const Path = require('path');
-const fsp = require('fs/promises');
-const moment = require('moment');
-const { isEmpty } = require('lodash');
+import nodemailer from 'nodemailer'
+import hbs from 'nodemailer-express-handlebars'
+import Handlebars from 'handlebars'
+import Whitepapers from '../config/whitepaper'
+import ErrorService from 'common-server/utils/error'
+import defaultEmailTemplates from '../config/emailTemplate'
+import GlobalConfigService from './globalConfigService'
+import EmailSmtpService from './emailSmtpService'
+import EmailStatusService from './emailStatusService'
+import DateTime from '../utils/DateTime'
+import Path from 'path'
+import fsp from 'fs/promises'
+import moment from 'moment'
+import { isEmpty } from 'lodash'
 const helpers = {
     year: DateTime.getCurrentYear,
 };
 
-const UppercaseFirstLetter = require('../utils/UppercaseFirstLetter');
+import UppercaseFirstLetter from '../utils/UppercaseFirstLetter'
 
 const options = {
     viewEngine: {
@@ -7210,4 +7210,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

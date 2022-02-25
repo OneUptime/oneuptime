@@ -17,16 +17,16 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
+import express from 'express'
 const app = express();
-const bodyParser = require('body-parser');
-const path = require('path');
-const compression = require('compression');
-const minify = require('minify');
-const tryToCatch = require('try-to-catch');
-const productCompare = require('./config/product-compare');
-const axios = require('axios');
-const builder = require('xmlbuilder2');
+import bodyParser from 'body-parser'
+import path from 'path'
+import compression from 'compression'
+import minify from 'minify'
+import tryToCatch from 'try-to-catch'
+import productCompare from './config/product-compare'
+import axios from 'axios'
+import builder from 'xmlbuilder2'
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

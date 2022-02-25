@@ -1,8 +1,8 @@
 process.env.PORT = 3424;
 const expect = require('chai').expect;
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
 
 describe('Version API', function() {

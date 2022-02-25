@@ -1,6 +1,6 @@
 /*eslint-disable no-unused-vars*/
 import Module from 'module';
-const semver = require('semver');
+import semver from 'semver'
 import MongooseListener from './listeners/mongoose';
 import IncomingListener from './listeners/incomingListener';
 import OutgoingListener from './listeners/outgoingListener';

@@ -1,11 +1,11 @@
-const EscalationModel = require('../models/escalation');
-const moment = require('moment');
-const DateTime = require('../utils/DateTime');
-const ScheduleService = require('./scheduleService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import EscalationModel from '../models/escalation'
+import moment from 'moment'
+import DateTime from '../utils/DateTime'
+import ScheduleService from './scheduleService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, sort, select, populate }) {
         if (!skip) skip = 0;
 

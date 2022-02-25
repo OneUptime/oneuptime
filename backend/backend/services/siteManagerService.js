@@ -1,8 +1,8 @@
-const SiteManagerModel = require('../models/siteManager');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import SiteManagerModel from '../models/siteManager'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const siteManager = await SiteManagerModel.create(data);
         return siteManager;

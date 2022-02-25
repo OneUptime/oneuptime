@@ -1,36 +1,36 @@
-const express = require('express');
-const StatusPageService = require('../services/statusPageService');
-const MonitorService = require('../services/monitorService');
-const ProbeService = require('../services/probeService');
-const UtilService = require('../services/utilService');
-const RealTimeService = require('../services/realTimeService');
-const DomainVerificationService = require('../services/domainVerificationService');
-const IncidentService = require('../services/incidentService');
+import express from 'express'
+import StatusPageService from '../services/statusPageService'
+import MonitorService from '../services/monitorService'
+import ProbeService from '../services/probeService'
+import UtilService from '../services/utilService'
+import RealTimeService from '../services/realTimeService'
+import DomainVerificationService from '../services/domainVerificationService'
+import IncidentService from '../services/incidentService'
 
 const router = express.Router();
-const validUrl = require('valid-url');
-const multer = require('multer');
-const ErrorService = require('common-server/utils/error');
-const { toXML } = require('jstoxml');
-const moment = require('moment');
+import validUrl from 'valid-url'
+import multer from 'multer'
+import ErrorService from 'common-server/utils/error'
+import { toXML } from 'jstoxml'
+import moment from 'moment'
 
-const { getUser, checkUser } = require('../middlewares/user');
-const { isUserAdmin } = require('../middlewares/project');
-const storage = require('../middlewares/upload');
-const { isAuthorized } = require('../middlewares/authorization');
-const IncidentTimelineService = require('../services/incidentTimelineService');
-const { ipWhitelist } = require('../middlewares/ipHandler');
+import { getUser, checkUser } from '../middlewares/user'
+import { isUserAdmin } from '../middlewares/project'
+import storage from '../middlewares/upload'
+import { isAuthorized } from '../middlewares/authorization'
+import IncidentTimelineService from '../services/incidentTimelineService'
+import { ipWhitelist } from '../middlewares/ipHandler'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const uuid = require('uuid');
-const defaultStatusPageColors = require('../config/statusPageColors');
-const SubscriberService = require('../services/subscriberService');
-const ScheduledEventService = require('../services/scheduledEventService');
-const axios = require('axios');
-const cheerio = require('cheerio');
+import uuid from 'uuid'
+import defaultStatusPageColors from '../config/statusPageColors'
+import SubscriberService from '../services/subscriberService'
+import ScheduledEventService from '../services/scheduledEventService'
+import axios from 'axios'
+import cheerio from 'cheerio'
 
-const ApiBase = require('./base');
+import ApiBase from './base'
 
 ApiBase({
     router,
@@ -2849,4 +2849,4 @@ const filterProbeData = (monitor, probe, backupStatus) => {
 
     return statuses;
 };
-module.exports = router;
+export default router;

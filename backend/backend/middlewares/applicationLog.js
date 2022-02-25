@@ -1,5 +1,5 @@
-const ErrorService = require('common-server/utils/error');
-const ApplicationLogService = require('../services/applicationLogService');
+import ErrorService from 'common-server/utils/error'
+import ApplicationLogService from '../services/applicationLogService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
@@ -70,4 +70,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

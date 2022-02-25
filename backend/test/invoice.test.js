@@ -1,19 +1,19 @@
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
-const UserService = require('../backend/services/userService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
-const GlobalConfig = require('./utils/globalConfig');
-const payment = require('../backend/config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
+import UserService from '../backend/services/userService'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import ProjectService from '../backend/services/projectService'
+import AirtableService from '../backend/services/airtableService'
+import GlobalConfig from './utils/globalConfig'
+import payment from '../backend/config/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey
 
 let token, userId, projectId, stripeCustomerId, testPlan;
 

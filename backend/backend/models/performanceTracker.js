@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const performanceTrackerSchema = new Schema(
@@ -25,4 +25,4 @@ const performanceTrackerSchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model('PerformanceTracker', performanceTrackerSchema);
+export default mongoose.model('PerformanceTracker', performanceTrackerSchema);

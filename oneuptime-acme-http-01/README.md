@@ -9,7 +9,7 @@ This module handles acme-http-01 challenge and also the api call to OneUptime ba
 ## Usage
 
     // make sure greenlock is already installed
-    const Greenlock = require('greenlock');
+    import Greenlock from 'greenlock'
 
     Greenlock.create({
         challenges: {

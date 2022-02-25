@@ -1,4 +1,4 @@
-const moment = require('moment');
+import moment from 'moment'
 
 const validDate = new Date(moment(new Date()).add(10, 'days'))
     .toISOString()
@@ -18,7 +18,7 @@ const expiredLicense = {
     Expires: expiredDate,
 };
 
-module.exports = {
+export default {
     validLicense,
     invalidLicense,
     expiredLicense,

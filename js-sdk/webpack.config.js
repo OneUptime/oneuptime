@@ -1,4 +1,4 @@
-const path = require('path');
+import path from 'path'
 
 const serverBuild = {
     mode: 'production',
@@ -35,4 +35,4 @@ const serverBuild = {
     target: 'web',
     output: { ...serverBuild.output, filename: 'oneuptime.min.js' },
 };*/
-module.exports = serverBuild;
+export default serverBuild;

@@ -1,28 +1,28 @@
-const express = require('express');
-const axios = require('axios');
-const UserService = require('../services/userService');
-const MonitorService = require('../services/monitorService');
-const MonitorLogService = require('../services/monitorLogService');
-const LighthouseLogService = require('../services/lighthouseLogService');
-const NotificationService = require('../services/notificationService');
-const RealTimeService = require('../services/realTimeService');
-const ScheduleService = require('../services/scheduleService');
-const ProbeService = require('../services/probeService');
-const ComponentService = require('../services/componentService');
-const ErrorService = require('common-server/utils/error');
-const Api = require('../utils/api');
+import express from 'express'
+import axios from 'axios'
+import UserService from '../services/userService'
+import MonitorService from '../services/monitorService'
+import MonitorLogService from '../services/monitorLogService'
+import LighthouseLogService from '../services/lighthouseLogService'
+import NotificationService from '../services/notificationService'
+import RealTimeService from '../services/realTimeService'
+import ScheduleService from '../services/scheduleService'
+import ProbeService from '../services/probeService'
+import ComponentService from '../services/componentService'
+import ErrorService from 'common-server/utils/error'
+import Api from '../utils/api'
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const multer = require('multer');
-const storage = require('../middlewares/upload');
-const https = require('https');
+import multer from 'multer'
+import storage from '../middlewares/upload'
+import https from 'https'
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
@@ -1078,4 +1078,4 @@ router.post('/:monitorId/calculate-time', async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

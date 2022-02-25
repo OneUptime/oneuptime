@@ -1,23 +1,23 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const incidentData = require('./data/incident');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const IncidentService = require('../backend/services/incidentService');
-const MonitorService = require('../backend/services/monitorService');
-const NotificationService = require('../backend/services/notificationService');
-const AirtableService = require('../backend/services/airtableService');
-const GlobalConfigService = require('../backend/services/globalConfigService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const { testphoneNumber } = require('./utils/config');
-const GlobalConfig = require('./utils/globalConfig');
+import { createUser } from './utils/userSignUp'
+import incidentData from './data/incident'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import IncidentService from '../backend/services/incidentService'
+import MonitorService from '../backend/services/monitorService'
+import NotificationService from '../backend/services/notificationService'
+import AirtableService from '../backend/services/airtableService'
+import GlobalConfigService from '../backend/services/globalConfigService'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import { testphoneNumber } from './utils/config'
+import GlobalConfig from './utils/globalConfig'
 
 let token, userId, projectId, monitorId;
 const monitor = {

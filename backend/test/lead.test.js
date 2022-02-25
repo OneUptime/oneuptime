@@ -1,12 +1,12 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
-const GlobalConfig = require('./utils/globalConfig');
-const leadService = require('../backend/services/leadService');
-const EmailStatusService = require('../backend/services/emailStatusService');
+import GlobalConfig from './utils/globalConfig'
+import leadService from '../backend/services/leadService'
+import EmailStatusService from '../backend/services/emailStatusService'
 
 const leadData = {
     'csrf-token': '1',

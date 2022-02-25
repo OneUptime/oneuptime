@@ -1,19 +1,19 @@
-const logger = require('common-server/utils/logger');
+import logger from 'common-server/utils/logger'
 const getApi = require('../utils/api').getApi;
-const ApiMonitors = require('./apiMonitors');
-const UrlMonitors = require('./urlMonitors');
-const IPMonitors = require('./ipMonitors');
-const ServerMonitors = require('./serverMonitors');
-const ErrorService = require('../utils/errorService');
-const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
-const KubernetesMonitors = require('./kubernetesMonitors');
+import ApiMonitors from './apiMonitors'
+import UrlMonitors from './urlMonitors'
+import IPMonitors from './ipMonitors'
+import ServerMonitors from './serverMonitors'
+import ErrorService from '../utils/errorService'
+import IncomingHttpRequestMonitors from './incomingHttpRequestMonitors'
+import KubernetesMonitors from './kubernetesMonitors'
 let limit = process.env.RESOURCES_LIMIT;
 
 if (limit && typeof limit === 'string') {
     limit = parseInt(limit);
 }
 
-const asyncSleep = require('await-sleep');
+import asyncSleep from 'await-sleep'
 
 const _this = {
     runJob: async function() {
@@ -101,4 +101,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

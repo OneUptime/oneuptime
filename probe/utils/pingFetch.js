@@ -1,8 +1,8 @@
-const logger = require('common-server/utils/logger');
-const fetch = require('node-fetch-commonjs');
-const sslCert = require('get-ssl-certificate');
-const https = require('https');
-const http = require('http');
+import logger from 'common-server/utils/logger'
+import fetch from 'node-fetch-commonjs'
+import sslCert from 'get-ssl-certificate'
+import https from 'https'
+import http from 'http'
 
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
@@ -133,4 +133,4 @@ const pingfetch = async (url, method, body, headers) => {
     };
 };
 
-module.exports = pingfetch;
+export default pingfetch;

@@ -1,4 +1,4 @@
-const { find, update } = require('../util/db');
+import { find, update } from '../util/db'
 const usersCollection = 'users';
 
 async function run() {
@@ -17,4 +17,4 @@ async function run() {
     return `Script ran for ${items.length} users.`;
 }
 
-module.exports = run;
+export default run;

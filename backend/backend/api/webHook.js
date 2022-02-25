@@ -1,5 +1,5 @@
-const express = require('express');
-const IntegrationService = require('../services/integrationService');
+import express from 'express'
+import IntegrationService from '../services/integrationService'
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -334,4 +334,4 @@ router.get('/:projectId/hooks/:monitorId', getUser, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

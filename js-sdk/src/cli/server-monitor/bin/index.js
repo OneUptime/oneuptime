@@ -9,17 +9,17 @@
 
 'use strict';
 
-const dotenv = require('dotenv');
+import dotenv from 'dotenv'
 dotenv.config();
 
-const program = require('commander');
-const Promise = require('promise');
-const { version } = require('../../../../package.json');
-const { prompt } = require('inquirer');
-const fs = require('fs');
-const logger = require('../lib/logger');
-const { API_URL, LOG_PATH } = require('../lib/config');
-const serverMonitor = require('../lib/api');
+import program from 'commander'
+import Promise from 'promise'
+import { version } from '../../../../package.json'
+import { prompt } from 'inquirer'
+import fs from 'fs'
+import logger from '../lib/logger'
+import { API_URL, LOG_PATH } from '../lib/config'
+import serverMonitor from '../lib/api'
 
 program
     .version(version, '-v, --version')
@@ -138,7 +138,7 @@ checkParams(questions).then(values => {
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
     if (daemon) {
-        const os = require('os').platform();
+        import os from 'os').platform(
 
         let Service;
         switch (os) {
@@ -272,7 +272,7 @@ checkParams(questions).then(values => {
     }
 });
 
-module.exports = {
+export default {
     checkParams,
     getParamValue,
 };

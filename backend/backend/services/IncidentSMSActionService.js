@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     get: async function(query) {
         const alerts = await incidentSMSActionModel
             .find(query)
@@ -26,4 +26,4 @@ module.exports = {
     },
 };
 
-const incidentSMSActionModel = require('../models/incidentSMSAction');
+import incidentSMSActionModel from '../models/incidentSMSAction'

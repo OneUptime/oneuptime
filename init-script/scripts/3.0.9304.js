@@ -1,4 +1,4 @@
-const { updateMany } = require('../util/db');
+import { updateMany } from '../util/db'
 
 const statusPageCollection = 'statuspages';
 
@@ -24,4 +24,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

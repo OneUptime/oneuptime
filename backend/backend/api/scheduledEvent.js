@@ -1,17 +1,17 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const { isAuthorized } = require('../middlewares/authorization');
-const { getUser, checkUserBelongToProject } = require('../middlewares/user');
-const ScheduledEventService = require('../services/scheduledEventService');
-const AlertService = require('../services/alertService');
+import { isAuthorized } from '../middlewares/authorization'
+import { getUser, checkUserBelongToProject } from '../middlewares/user'
+import ScheduledEventService from '../services/scheduledEventService'
+import AlertService from '../services/alertService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const { getSubProjects } = require('../middlewares/subProject');
-const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
-const moment = require('moment');
-const MonitorService = require('../services/monitorService');
-const ErrorService = require('common-server/utils/error');
+import { getSubProjects } from '../middlewares/subProject'
+import ScheduledEventNoteService from '../services/scheduledEventNoteService'
+import moment from 'moment'
+import MonitorService from '../services/monitorService'
+import ErrorService from 'common-server/utils/error'
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -925,4 +925,4 @@ router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
     }
 });
 
-module.exports = router;
+export default router;

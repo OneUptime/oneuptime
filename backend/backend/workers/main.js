@@ -1,10 +1,10 @@
-const cron = require('node-cron');
-//const iotMonitorCron = require('./iotMonitor');
-const escalationPolicy = require('./escalationPolicy');
-const serverMonitorCron = require('./serverMonitor');
-const subscription = require('./subscription');
-const scheduledEventService = require('../services/scheduledEventService');
-const certOrder = require('./certOrder');
+import cron from 'node-cron'
+//import iotMonitorCron from './iotMonitor'
+import escalationPolicy from './escalationPolicy'
+import serverMonitorCron from './serverMonitor'
+import subscription from './subscription'
+import scheduledEventService from '../services/scheduledEventService'
+import certOrder from './certOrder'
 
 // Generate a random number between 1 and 50 and use that to run cron jobs.
 // This is done because there will be many instances of backend in production, and one instance of backend

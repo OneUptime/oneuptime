@@ -1,11 +1,11 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const IncidentNoteTemplateService = require('../services/incidentNoteTemplateService');
+import IncidentNoteTemplateService from '../services/incidentNoteTemplateService'
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -156,4 +156,4 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
     }
 });
 
-module.exports = router;
+export default router;

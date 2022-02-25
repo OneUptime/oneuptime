@@ -1,7 +1,7 @@
-const { Mutex } = require('async-mutex');
-const mongoose = require('mongoose');
-const errorService = require('../services/errorService');
-const MUTEX_RESOURCES = require('./MUTEX_RESOURCES');
+import { Mutex } from 'async-mutex'
+import mongoose from 'mongoose'
+import errorService from '../services/errorService'
+import MUTEX_RESOURCES from './MUTEX_RESOURCES'
 
 // this is a single mutex storage
 // it contains one mutex per project
@@ -49,4 +49,4 @@ const getMutex = (mutexResource, resourceId) => {
     }
 };
 
-module.exports = getMutex;
+export default getMutex;

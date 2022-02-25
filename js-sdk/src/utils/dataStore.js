@@ -2,7 +2,7 @@
 
 /*eslint-disable no-unused-vars*/
 import axios from 'axios';
-const cron = require('node-cron');
+import cron from 'node-cron'
 class DataStore {
     #store;
     #incoming;

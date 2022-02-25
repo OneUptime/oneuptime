@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 
@@ -18,4 +18,4 @@ const dockerCredentialSchema = Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model('DockerCredential', dockerCredentialSchema);
+export default mongoose.model('DockerCredential', dockerCredentialSchema);

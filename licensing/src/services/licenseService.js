@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     confirm: async ({ license, email, limit }) => {
         try {
             if (!limit) limit = 9999;
@@ -60,5 +60,5 @@ module.exports = {
 };
 
 const generateWebToken = require('../utils/WebToken').generateWebToken;
-const AirtableService = require('./airtableService');
-const ErrorService = require('./errorService');
+import AirtableService from './airtableService'
+import ErrorService from './errorService'

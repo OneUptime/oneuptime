@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, populate, select }) {
         if (!skip) skip = 0;
 
@@ -1697,33 +1697,33 @@ function isArrayUnique(myArray) {
 
 let intervals = [];
 
-const IncidentModel = require('../models/incident');
-const IncidentTimelineService = require('./incidentTimelineService');
-const MonitorService = require('./monitorService');
-const AlertService = require('./alertService');
-const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const WebHookService = require('./webHookService');
-const MsTeamsService = require('./msTeamsService');
-const SlackService = require('./slackService');
-const ZapierService = require('./zapierService');
-const ProjectService = require('./projectService');
-const ErrorService = require('common-server/utils/error');
-const MonitorStatusService = require('./monitorStatusService');
-const ComponentService = require('./componentService');
-const IncidentSettingsService = require('./incidentSettingsService');
-const Handlebars = require('handlebars');
-const Moment = require('moment');
-const IncidentMessageService = require('./incidentMessageService');
+import IncidentModel from '../models/incident'
+import IncidentTimelineService from './incidentTimelineService'
+import MonitorService from './monitorService'
+import AlertService from './alertService'
+import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import WebHookService from './webHookService'
+import MsTeamsService from './msTeamsService'
+import SlackService from './slackService'
+import ZapierService from './zapierService'
+import ProjectService from './projectService'
+import ErrorService from 'common-server/utils/error'
+import MonitorStatusService from './monitorStatusService'
+import ComponentService from './componentService'
+import IncidentSettingsService from './incidentSettingsService'
+import Handlebars from 'handlebars'
+import Moment from 'moment'
+import IncidentMessageService from './incidentMessageService'
 const {
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_RESOLVED,
 } = require('../constants/incidentEvents');
-const IncidentUtilitiy = require('../utils/incident');
-const IncidentCommunicationSlaService = require('./incidentCommunicationSlaService');
-const { isEmpty } = require('lodash');
-const joinNames = require('../utils/joinNames');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const getSlug = require('../utils/getSlug');
+import IncidentUtilitiy from '../utils/incident'
+import IncidentCommunicationSlaService from './incidentCommunicationSlaService'
+import { isEmpty } from 'lodash'
+import joinNames from '../utils/joinNames'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import getSlug from '../utils/getSlug'

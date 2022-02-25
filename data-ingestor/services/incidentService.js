@@ -1,13 +1,13 @@
-const ErrorService = require('./errorService');
+import ErrorService from './errorService'
 const incidentCollection = global.db.collection('incidents');
-const { ObjectId } = require('mongodb');
-const { postApi } = require('../utils/api');
-const { realtimeUrl } = require('../utils/config');
-const ProjectService = require('./projectService');
+import { ObjectId } from 'mongodb'
+import { postApi } from '../utils/api'
+import { realtimeUrl } from '../utils/config'
+import ProjectService from './projectService'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip }) {
         try {
             if (!skip) skip = 0;

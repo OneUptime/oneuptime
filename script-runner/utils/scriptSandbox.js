@@ -1,5 +1,5 @@
-const { join } = require('path');
-const { performance } = require('perf_hooks');
+import { join } from 'path'
+import { performance } from 'perf_hooks'
 
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
@@ -180,7 +180,7 @@ const run = async (
         });
     } else {
         // worker_threads code
-        const { NodeVM } = require('vm2');
+        import { NodeVM } from 'vm2'
         const vm = new NodeVM({
             eval: false,
             wasm: false,
@@ -232,7 +232,7 @@ const run = async (
         const code = workerData.functionCode;
         setInterval(() => parentPort.postMessage({ type: 'ping' }), 500);
         const sandboxFunction = await vm.run(
-            `module.exports = ${code}`,
+            `export default ${code}`,
             join(process.cwd(), 'node_modules')
         );
 
@@ -241,5 +241,5 @@ const run = async (
     }
 };
 
-module.exports = run(); // DO NOT call default export directly (used by worker thread)
+export default run(); // DO NOT call default export directly (used by worker thread)
 module.exports.run = run; // call named export only

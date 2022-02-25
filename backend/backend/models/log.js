@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const logSchema = new Schema({
@@ -41,4 +41,4 @@ logSchema.virtual('applicationLog', {
     justOne: true,
 });
 
-module.exports = mongoose.model('Log', logSchema);
+export default mongoose.model('Log', logSchema);

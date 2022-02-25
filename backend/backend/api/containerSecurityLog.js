@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express'
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const ContainerSecurityLogService = require('../services/containerSecurityLogService');
+import ContainerSecurityLogService from '../services/containerSecurityLogService'
 
 const router = express.Router();
 
@@ -99,4 +99,4 @@ router.get(
     }
 );
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const AccountModel = require('../models/account');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import AccountModel from '../models/account'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const account = await AccountModel.create(data);
         return account;

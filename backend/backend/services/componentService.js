@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     //Description: Upsert function for component.
     //Params:
     //Param 1: data: ComponentModal.
@@ -477,30 +477,30 @@ module.exports = {
     },
 };
 
-const ComponentModel = require('../models/component');
-// const ComponentModel = require('../models/component');
-// const ProbeService = require('./probeService');
-// const ComponentStatusService = require('./componentStatusService');
-// const ComponentLogService = require('./componentLogService');
-// const ComponentLogByHourService = require('./componentLogByHourService');
-// const ComponentLogByDayService = require('./componentLogByDayService');
-// const ComponentLogByWeekService = require('./componentLogByWeekService');
-// const ComponentCategoryService = require('./componentCategoryService');
-// const ComponentCriteriaService = require('./componentCriteriaService');
-const Plans = require('../config/plans');
-const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const ProjectService = require('./projectService');
-const PaymentService = require('./paymentService');
-const MonitorService = require('./monitorService');
-// const StatusPageService = require('./statusPageService');
-// const ScheduleService = require('./scheduleService');
-// const IntegrationService = require('./integrationService');
-const TeamService = require('./teamService');
-// const moment = require('moment');
-// const _ = require('lodash');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const getSlug = require('../utils/getSlug');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const errorService = require('common-server/utils/error');
+import ComponentModel from '../models/component'
+// import ComponentModel from '../models/component'
+// import ProbeService from './probeService'
+// import ComponentStatusService from './componentStatusService'
+// import ComponentLogService from './componentLogService'
+// import ComponentLogByHourService from './componentLogByHourService'
+// import ComponentLogByDayService from './componentLogByDayService'
+// import ComponentLogByWeekService from './componentLogByWeekService'
+// import ComponentCategoryService from './componentCategoryService'
+// import ComponentCriteriaService from './componentCriteriaService'
+import Plans from '../config/plans'
+import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import ProjectService from './projectService'
+import PaymentService from './paymentService'
+import MonitorService from './monitorService'
+// import StatusPageService from './statusPageService'
+// import ScheduleService from './scheduleService'
+// import IntegrationService from './integrationService'
+import TeamService from './teamService'
+// import moment from 'moment'
+// import _ from 'lodash'
+import { IS_SAAS_SERVICE } from '../config/server'
+import getSlug from '../utils/getSlug'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import errorService from 'common-server/utils/error'

@@ -1,12 +1,12 @@
-const express = require('express');
+import express from 'express'
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const GroupService = require('../services/groupService');
+import GroupService from '../services/groupService'
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-const EscalationService = require('../services/escalationService');
+import EscalationService from '../services/escalationService'
 
 const router = express.Router();
 
@@ -136,4 +136,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

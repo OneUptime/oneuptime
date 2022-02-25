@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     createUser: function(request, userData, callback) {
         return new Promise((resolve, reject) => {
             request
@@ -58,5 +58,5 @@ module.exports = {
     },
 };
 
-const payment = require('../../backend/config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
+import payment from '../../backend/config/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey

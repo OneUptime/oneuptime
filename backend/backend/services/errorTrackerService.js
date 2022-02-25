@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
         // check if component exist
@@ -226,13 +226,13 @@ module.exports = {
     },
 };
 
-const ErrorTrackerModel = require('../models/errorTracker');
-const ComponentService = require('./componentService');
-const ResourceCategoryService = require('./resourceCategoryService');
-const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const uuid = require('uuid');
-const getSlug = require('../utils/getSlug');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const errorService = require('common-server/utils/error');
+import ErrorTrackerModel from '../models/errorTracker'
+import ComponentService from './componentService'
+import ResourceCategoryService from './resourceCategoryService'
+import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import uuid from 'uuid'
+import getSlug from '../utils/getSlug'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import errorService from 'common-server/utils/error'

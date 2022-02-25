@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
         let applicationScannerKey;
@@ -81,7 +81,7 @@ module.exports = {
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-const ApplicationScannerModel = require('../models/applicationScanner');
-const { v1: uuidv1 } = require('uuid');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ApplicationScannerModel from '../models/applicationScanner'
+import { v1: uuidv1 } from 'uuid'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

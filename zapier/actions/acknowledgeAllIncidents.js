@@ -11,7 +11,7 @@ const acknowledgeAllIncidents = (z, bundle) => {
     return responsePromise.then(response => JSON.parse(response.content));
 };
 
-module.exports = {
+export default {
     key: 'acknowledge_all_incidents',
     noun: 'Acknowledge',
 

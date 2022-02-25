@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const issueTimelineSchema = new Schema({
@@ -20,4 +20,4 @@ const issueTimelineSchema = new Schema({
     deletedAt: { type: Date },
     deletedById: { type: String, ref: 'User' },
 });
-module.exports = mongoose.model('IssueTimeline', issueTimelineSchema);
+export default mongoose.model('IssueTimeline', issueTimelineSchema);

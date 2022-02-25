@@ -1,14 +1,14 @@
-const express = require('express');
-const SubscriberAlertService = require('../services/subscriberAlertService');
-const path = require('path');
-const fs = require('fs');
+import express from 'express'
+import SubscriberAlertService from '../services/subscriberAlertService'
+import path from 'path'
+import fs from 'fs'
 
 const router = express.Router();
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const IncidentService = require('../services/incidentService');
+import IncidentService from '../services/incidentService'
 
 router.post('/:projectId/:subscriberId', async (req, res) => {
     try {
@@ -152,4 +152,4 @@ router.get('/:projectId/incident/:incidentSlug', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

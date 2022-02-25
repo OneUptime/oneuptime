@@ -1,16 +1,16 @@
-const express = require('express');
-const ApplicationSecurityService = require('../services/applicationSecurityService');
-const ApplicationSecurityLogService = require('../services//applicationSecurityLogService');
+import express from 'express'
+import ApplicationSecurityService from '../services/applicationSecurityService'
+import ApplicationSecurityLogService from '../services//applicationSecurityLogService'
 const router = express.Router();
 const isAuthorizedApplicationScanner = require('../middlewares/applicationScannerAuthorization')
     .isAuthorizedApplicationScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const RealtimeService = require('../services/realTimeService');
-const MailService = require('../services/mailService');
-const UserService = require('../services/userService');
-const ProjectService = require('../services/projectService');
-const ErrorService = require('common-server/utils/error');
+import RealtimeService from '../services/realTimeService'
+import MailService from '../services/mailService'
+import UserService from '../services/userService'
+import ProjectService from '../services/projectService'
+import ErrorService from 'common-server/utils/error'
 
 // Route
 // Description: Updating profile setting.
@@ -262,4 +262,4 @@ router.post('/time', isAuthorizedApplicationScanner, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

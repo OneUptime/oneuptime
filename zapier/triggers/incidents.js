@@ -6,7 +6,7 @@ const fetchList = (z, bundle) => {
     return z.request(options).then(response => JSON.parse(response.content));
 };
 
-module.exports = {
+export default {
     key: 'incidents',
     noun: 'incidents',
     display: {

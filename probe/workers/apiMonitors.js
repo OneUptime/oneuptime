@@ -1,12 +1,12 @@
-const ApiService = require('../utils/apiService');
-const ErrorService = require('../utils/errorService');
-const pingfetch = require('../utils/pingFetch');
-const logger = require('common-server/utils/logger');
+import ApiService from '../utils/apiService'
+import ErrorService from '../utils/errorService'
+import pingfetch from '../utils/pingFetch'
+import logger from 'common-server/utils/logger'
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
-module.exports = {
+export default {
     ping: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {

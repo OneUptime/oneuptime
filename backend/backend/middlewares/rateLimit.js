@@ -1,5 +1,5 @@
-const rateLimit = require('express-rate-limit');
-const redisStore = require('rate-limit-redis');
+import rateLimit from 'express-rate-limit'
+import redisStore from 'rate-limit-redis'
 const {
     RATE_LIMITTER_TIME_PERIOD_IN_MS,
     RATE_LIMITTER_REQUEST_LIMIT,
@@ -26,4 +26,4 @@ const limiter = rateLimit({
         return req.ip;
     },
 });
-module.exports = limiter;
+export default limiter;

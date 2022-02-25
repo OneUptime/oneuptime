@@ -1,16 +1,16 @@
-const dns = require('dns');
-const psl = require('psl');
-const DomainVerificationTokenModel = require('../models/domainVerificationToken');
-const flatten = require('../utils/flattenArray');
-const randomChar = require('../utils/randomChar');
-const StatusPageService = require('../services/statusPageService');
-const ProjectService = require('../services/projectService');
+import dns from 'dns'
+import psl from 'psl'
+import DomainVerificationTokenModel from '../models/domainVerificationToken'
+import flatten from '../utils/flattenArray'
+import randomChar from '../utils/randomChar'
+import StatusPageService from '../services/statusPageService'
+import ProjectService from '../services/projectService'
 const dnsPromises = dns.promises;
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const errorService = require('common-server/utils/error');
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import errorService from 'common-server/utils/error'
 
-module.exports = {
+export default {
     create: async function({ domain, projectId }) {
         const parsed = psl.parse(domain);
         const token = 'oneuptime=' + randomChar();

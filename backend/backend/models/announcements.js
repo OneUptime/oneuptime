@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const announcementSchema = new Schema(
@@ -47,4 +47,4 @@ const announcementSchema = new Schema(
     },
     { timestamps: true }
 );
-module.exports = mongoose.model('Announcement', announcementSchema);
+export default mongoose.model('Announcement', announcementSchema);

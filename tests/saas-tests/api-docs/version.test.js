@@ -1,6 +1,6 @@
-const utils = require('../../test-utils');
-const axios = require('axios');
-const init = require('../../test-init');
+import utils from '../../test-utils'
+import axios from 'axios'
+import init from '../../test-init'
 
 describe('Version API', function() {
     beforeAll(async done => {

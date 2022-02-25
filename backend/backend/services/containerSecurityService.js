@@ -1,15 +1,15 @@
-const ContainerSecurityModel = require('../models/containerSecurity');
-const moment = require('moment');
-const { decrypt } = require('../config/encryptDecrypt');
-const ContainerSecurityLogService = require('./containerSecurityLogService');
-const DockerCredentialService = require('./dockerCredentialService');
-const ResourceCategoryService = require('./resourceCategoryService');
-const getSlug = require('../utils/getSlug');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const RealTimeService = require('./realTimeService');
+import ContainerSecurityModel from '../models/containerSecurity'
+import moment from 'moment'
+import { decrypt } from '../config/encryptDecrypt'
+import ContainerSecurityLogService from './containerSecurityLogService'
+import DockerCredentialService from './dockerCredentialService'
+import ResourceCategoryService from './resourceCategoryService'
+import getSlug from '../utils/getSlug'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import RealTimeService from './realTimeService'
 
-module.exports = {
+export default {
     create: async function(data) {
         const [
             containerNameExist,

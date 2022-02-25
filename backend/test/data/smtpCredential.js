@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     user: process.env.TEST_EMAIL,
     pass: process.env.TEST_EMAIL_PASSWORD,
     host: process.env.TEST_EMAIL_SMTP_SERVER,

@@ -1,12 +1,12 @@
 const jwtSecretKey = process.env['JWT_SECRET'];
-const jwt = require('jsonwebtoken');
-const url = require('url');
-const UserService = require('../services/userService');
-const ErrorService = require('common-server/utils/error');
-const ProjectService = require('../services/projectService');
+import jwt from 'jsonwebtoken'
+import url from 'url'
+import UserService from '../services/userService'
+import ErrorService from 'common-server/utils/error'
+import ProjectService from '../services/projectService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const apiMiddleware = require('../middlewares/api');
-const { getPlanById } = require('../config/plans');
+import apiMiddleware from '../middlewares/api'
+import { getPlanById } from '../config/plans'
 
 const _this = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
@@ -330,4 +330,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

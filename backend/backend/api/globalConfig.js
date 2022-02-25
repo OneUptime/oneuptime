@@ -1,13 +1,13 @@
-const express = require('express');
+import express from 'express'
 
 const router = express.Router();
-const GlobalConfigService = require('../services/globalConfigService');
+import GlobalConfigService from '../services/globalConfigService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const twilioService = require('../services/twilioService');
+import twilioService from '../services/twilioService'
 
 // Route Description: Creating global config(s).
 // Body: [{name, value}] | {name, value}
@@ -185,4 +185,4 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

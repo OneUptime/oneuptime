@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     incidentRequest: {
         name: 'pyInt',
         selectAllMonitors: true,

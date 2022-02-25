@@ -5,12 +5,12 @@ const {
     invalidLicense,
     expiredLicense,
 } = require('./data/license');
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
-const AirtableService = require('../src/services/airtableService');
+import AirtableService from '../src/services/airtableService'
 
 const tableName = 'License';
 const email = 'license@hackerbay.io';

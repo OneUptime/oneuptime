@@ -1,21 +1,21 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
 
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
-const GlobalConfig = require('./utils/globalConfig');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const SsoService = require('../backend/services/ssoService');
-const SsoDefaultRolesService = require('../backend/services/ssoDefaultRolesService');
-const queryString = require('query-string');
-const testUtils = require('./utils/test-utils');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import AirtableService from '../backend/services/airtableService'
+import GlobalConfig from './utils/globalConfig'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import SsoService from '../backend/services/ssoService'
+import SsoDefaultRolesService from '../backend/services/ssoDefaultRolesService'
+import queryString from 'query-string'
+import testUtils from './utils/test-utils'
 
 testUtils.setShared({ request });
 let adminId,

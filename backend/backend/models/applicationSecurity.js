@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 
@@ -34,7 +34,7 @@ const applicationSecuritySchema = new Schema(
     { timestamps: true } //automatically adds createdAt and updatedAt to the schema
 );
 
-module.exports = mongoose.model(
+export default mongoose.model(
     'ApplicationSecurity',
     applicationSecuritySchema
 );

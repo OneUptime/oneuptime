@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findOneBy: async function({ query }) {
         try {
             if (!query) {
@@ -50,4 +50,4 @@ module.exports = {
 };
 
 const projectCollection = global.db.collection('projects');
-const ErrorService = require('./errorService');
+import ErrorService from './errorService'

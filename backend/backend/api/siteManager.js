@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const SiteManagerService = require('../services/siteManagerService');
+import SiteManagerService from '../services/siteManagerService'
 
 const router = express.Router();
 
@@ -140,4 +140,4 @@ router.delete('/site', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

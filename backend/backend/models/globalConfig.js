@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 
@@ -9,4 +9,4 @@ const globalConfigSchema = new Schema({
     createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('GlobalConfig', globalConfigSchema);
+export default mongoose.model('GlobalConfig', globalConfigSchema);

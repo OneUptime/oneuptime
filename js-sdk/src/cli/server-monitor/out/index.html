@@ -110,7 +110,7 @@ $ oneuptime-server-monitor --daemon errors
 <p>Services created by the daemon are similar to most other services running on Windows. It can be started/stopped from the windows service utility, via NET START or NET STOP commands, or even managed using the sc utility. A directory called daemon is created and populated with oneuptimeservermonitor.exe and oneuptimeservermonitor.xml. The XML file is a configuration for the executable. Additionally, logs are created in this directory (which are viewable in the Event log).</p>
 <p><a name="module_api"></a></p>
 <h2>Programmatic Usage</h2>
-<pre class="prettyprint source lang-javascript"><code>const serverMonitor = require('oneuptime-server-monitor');
+<pre class="prettyprint source lang-javascript"><code>import serverMonitor from 'oneuptime-server-monitor'
 
 const monitor = serverMonitor({
     projectId: '5d64d59cae46131619708309',

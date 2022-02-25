@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const { tokenSecret } = require('../config/token');
+import jwt from 'jsonwebtoken'
+import { tokenSecret } from '../config/token'
 
 const _this = {
     generateWebToken: ({ licenseKey, presentTime, expiryTime }) => {
@@ -11,4 +11,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

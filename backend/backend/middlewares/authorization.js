@@ -1,9 +1,9 @@
-const apiMiddleware = require('./api');
+import apiMiddleware from './api'
 const SendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const doesUserBelongToProject = require('./project').doesUserBelongToProject;
 
-module.exports = {
+export default {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
     // Param 1: req.headers -> {token}

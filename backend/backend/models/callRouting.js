@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const callRoutingSchema = new Schema({
@@ -40,4 +40,4 @@ const callRoutingSchema = new Schema({
     stripeSubscriptionId: String,
 });
 
-module.exports = mongoose.model('CallRouting', callRoutingSchema);
+export default mongoose.model('CallRouting', callRoutingSchema);

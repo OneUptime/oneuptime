@@ -1,15 +1,15 @@
-const puppeteer = require('puppeteer');
-const utils = require('../../test-utils');
-const init = require('../../test-init');
+import puppeteer from 'puppeteer'
+import utils from '../../test-utils'
+import init from '../../test-init'
 let browser, page;
-const axios = require('axios');
+import axios from 'axios'
 axios.defaults.adapter = require('axios/lib/adapters/http');
 let serverMonitor;
 try {
     // try to use local package (with recent changes)
     serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
 } catch (error) {
-    const oneuptime = require('oneuptime');
+    import oneuptime from 'oneuptime'
     serverMonitor = oneuptime.ServerMonitor;
 }
 

@@ -1,11 +1,11 @@
 'use strict';
 
 /*eslint-disable no-unused-vars*/
-const Http = require('http');
-const Https = require('https');
-const { v4: uuidv4 } = require('uuid');
-const { getRoutes } = require('get-routes');
-const UrlPattern = require('url-pattern');
+import Http from 'http'
+import Https from 'https'
+import { v4: uuidv4 } from 'uuid'
+import { getRoutes } from 'get-routes'
+import UrlPattern from 'url-pattern'
 
 class IncomingListener {
     #start;

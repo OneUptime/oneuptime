@@ -1,4 +1,4 @@
-const { find, update } = require('../util/db');
+import { find, update } from '../util/db'
 
 // TODO:
 //  -   fetch all monitors and monitor statuses (deleted: false)
@@ -44,4 +44,4 @@ async function run() {
     return `Script ran for ${monitors.length} monitors`;
 }
 
-module.exports = run;
+export default run;

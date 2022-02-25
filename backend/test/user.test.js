@@ -1,24 +1,24 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const data = require('./data/user');
+import data from './data/user'
 const profile = require('./data/user').profile;
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
-// const decode = require('urldecode'); unused
-const queryString = require('query-string');
-const app = require('../server');
-const GlobalConfig = require('./utils/globalConfig');
+// import decode from 'urldecode' unused
+import queryString from 'query-string'
+import app from '../server'
+import GlobalConfig from './utils/globalConfig'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const UserModel = require('../backend/models/user');
-const SsoModel = require('../backend/models/sso');
-const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import UserModel from '../backend/models/user'
+import SsoModel from '../backend/models/sso'
+import ProjectService from '../backend/services/projectService'
+import AirtableService from '../backend/services/airtableService'
 
-const LoginIPLog = require('../backend/models/loginIPLog');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const { fetchIdpSAMLResponse } = require('./utils/test-utils');
+import LoginIPLog from '../backend/models/loginIPLog'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import { fetchIdpSAMLResponse } from './utils/test-utils'
 
 let projectId, userId, token;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };

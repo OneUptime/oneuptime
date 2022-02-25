@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     getPlans() {
         //if in testing.
         if (

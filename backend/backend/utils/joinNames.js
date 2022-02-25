@@ -4,7 +4,7 @@
  * @returns a string
  */
 
-module.exports = (arr = []) => {
+export default (arr = []) => {
     if (!Array.isArray(arr)) return '';
     return arr.join(', ').replace(/, ([^,]*)$/, ' and $1');
 };

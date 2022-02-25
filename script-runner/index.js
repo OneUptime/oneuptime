@@ -24,13 +24,13 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
+import express from 'express'
 const app = express();
-const http = require('http').createServer(app);
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const cron = require('node-cron');
-const main = require('./workers/main');
+import http from 'http').createServer(app
+import cors from 'cors'
+import bodyParser from 'body-parser'
+import cron from 'node-cron'
+import main from './workers/main'
 
 app.use(cors());
 

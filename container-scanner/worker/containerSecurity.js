@@ -1,7 +1,7 @@
-const ErrorService = require('../utils/errorService');
-const ContainerService = require('../utils/containerService');
+import ErrorService from '../utils/errorService'
+import ContainerService from '../utils/containerService'
 
-module.exports = {
+export default {
     scan: async security => {
         try {
             await ContainerService.scan(security);

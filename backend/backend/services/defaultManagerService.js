@@ -1,8 +1,8 @@
-const DefaultManagerModel = require('../models/defaultManager');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import DefaultManagerModel from '../models/defaultManager'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const defaultManager = await DefaultManagerModel.create(data);
         return defaultManager;

@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const AccountStoreService = require('../services/accountStoreService');
+import AccountStoreService from '../services/accountStoreService'
 
 const router = express.Router();
 
@@ -57,4 +57,4 @@ router.delete('/store/:id', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

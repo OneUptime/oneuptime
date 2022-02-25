@@ -1,6 +1,6 @@
-const IncidentNoteTemplateModel = require('../models/incidentNoteTemplate');
+import IncidentNoteTemplateModel from '../models/incidentNoteTemplate'
 
-module.exports = {
+export default {
     findBy: async function({ query = {}, limit, skip }) {
         if (!skip) skip = 0;
 

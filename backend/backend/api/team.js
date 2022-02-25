@@ -1,16 +1,16 @@
-const express = require('express');
+import express from 'express'
 
 const router = express.Router();
-const TeamService = require('../services/teamService');
+import TeamService from '../services/teamService'
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const RealTimeService = require('../services/realTimeService');
-const NotificationService = require('../services/notificationService');
+import RealTimeService from '../services/realTimeService'
+import NotificationService from '../services/notificationService'
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const ErrorService = require('common-server/utils/error');
+import ErrorService from 'common-server/utils/error'
 
 // Route
 // Description: Getting details of team members of the project.
@@ -344,4 +344,4 @@ router.put(
     }
 );
 
-module.exports = router;
+export default router;

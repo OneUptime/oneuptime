@@ -1,6 +1,6 @@
-const { find, save, update, removeField } = require('../util/db');
-const getDomain = require('../util/getDomain');
-const randomChar = require('../util/randomChar');
+import { find, save, update, removeField } from '../util/db'
+import getDomain from '../util/getDomain'
+import randomChar from '../util/randomChar'
 
 const statusPageCollection = 'statuspages';
 const domainVerificationTokenCollection = 'domainverificationtokens';
@@ -48,4 +48,4 @@ async function run() {
     return `Script ran for ${statusPages.length} status pages.`;
 }
 
-module.exports = run;
+export default run;

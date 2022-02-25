@@ -1,6 +1,6 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
-module.exports = {
+export default {
     isAuthorizedAdmin: async function(req, res, next) {
         let masterAdmin = false;
 

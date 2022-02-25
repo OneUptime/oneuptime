@@ -1,18 +1,18 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
-const EmailStatusService = require('../backend/services/emailStatusService');
+import app from '../server'
+import EmailStatusService from '../backend/services/emailStatusService'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const FeedbackService = require('../backend/services/feedbackService');
-const ProjectService = require('../backend/services/projectService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const AirtableService = require('../backend/services/airtableService');
-const GlobalConfig = require('./utils/globalConfig');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import FeedbackService from '../backend/services/feedbackService'
+import ProjectService from '../backend/services/projectService'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import AirtableService from '../backend/services/airtableService'
+import GlobalConfig from './utils/globalConfig'
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 

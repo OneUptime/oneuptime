@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-const LicenseService = require('../services/licenseService');
+import LicenseService from '../services/licenseService'
 
 router.post('/', async (req, res) => {
     try {
@@ -49,4 +49,4 @@ router.post('/', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

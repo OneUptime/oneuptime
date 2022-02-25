@@ -1,5 +1,5 @@
-const axios = require('axios');
-const config = require('./config');
+import axios from 'axios'
+import config from './config'
 
 const _this = {
     getHeaders: () => {
@@ -106,4 +106,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

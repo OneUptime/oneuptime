@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const _this = this;
@@ -110,11 +110,11 @@ module.exports = {
     },
 };
 
-const ErrorService = require('./errorService');
-const moment = require('moment');
-const { ObjectId } = require('mongodb');
+import ErrorService from './errorService'
+import moment from 'moment'
+import { ObjectId } from 'mongodb'
 const probeCollection = global.db.collection('probes');
-const { v1: uuidv1 } = require('uuid');
-const { postApi } = require('../utils/api');
-const { realtimeUrl } = require('../utils/config');
+import { v1: uuidv1 } from 'uuid'
+import { postApi } from '../utils/api'
+import { realtimeUrl } from '../utils/config'
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

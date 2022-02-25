@@ -1,7 +1,7 @@
-const puppeteer = require('puppeteer');
-const utils = require('../../test-utils');
-const init = require('../../test-init');
-const axios = require('axios');
+import puppeteer from 'puppeteer'
+import utils from '../../test-utils'
+import init from '../../test-init'
+import axios from 'axios'
 
 let page, browser;
 

@@ -2,11 +2,11 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-const { getUser } = require('../middlewares/user');
-const { getUserRole } = require('../middlewares/project');
-const { isAuthorized } = require('../middlewares/authorization');
+import { getUser } from '../middlewares/user'
+import { getUserRole } from '../middlewares/project'
+import { isAuthorized } from '../middlewares/authorization'
 
-module.exports = ({
+export default ({
     router,
     deleteApiProps,
     createApiProps,

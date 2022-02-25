@@ -4,4 +4,4 @@ const INCIDENT_MAIL_TEMPLATE_TYPES = {
     RESOLVED_MAIL_TEMPLATE: 'Subscriber Incident Resolved',
 };
 
-module.exports = Object.freeze(INCIDENT_MAIL_TEMPLATE_TYPES);
+export default Object.freeze(INCIDENT_MAIL_TEMPLATE_TYPES);

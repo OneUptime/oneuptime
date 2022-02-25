@@ -1,14 +1,14 @@
-const express = require('express');
-const ProbeService = require('../services/probeService');
-const MonitorService = require('../services/monitorService');
-const LighthouseLogService = require('../services/lighthouseLogService');
+import express from 'express'
+import ProbeService from '../services/probeService'
+import MonitorService from '../services/monitorService'
+import LighthouseLogService from '../services/lighthouseLogService'
 const router = express.Router();
 const isAuthorizedProbe = require('../middlewares/probeAuthorization')
     .isAuthorizedProbe;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
-const { ObjectId } = require('mongodb');
+import { ObjectId } from 'mongodb'
 
 router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,
@@ -634,4 +634,4 @@ router.post('/remove-probe-scan', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

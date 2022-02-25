@@ -1,11 +1,11 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 const {
     sendErrorResponse,
     sendEmptyResponse,
 } = require('../middlewares/response');
-const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
-const RealtimeService = require('../services/realtimeService');
+import { isAuthorizedService } from '../middlewares/serviceAuthorization'
+import RealtimeService from '../services/realtimeService'
 
 router.post('/send-created-incident', isAuthorizedService, async function(
     req,
@@ -828,4 +828,4 @@ router.post('/status-page-update-tweets', isAuthorizedService, async function(
     }
 });
 
-module.exports = router;
+export default router;

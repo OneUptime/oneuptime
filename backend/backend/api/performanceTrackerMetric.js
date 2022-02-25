@@ -1,14 +1,14 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
-const moment = require('moment');
-const { decode } = require('js-base64');
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService'
+import moment from 'moment'
+import { decode } from 'js-base64'
 
 const {
     sendErrorResponse,
     sendItemResponse,
 } = require('../middlewares/response');
-const { isValidAPIKey } = require('../middlewares/performanceTracker');
+import { isValidAPIKey } from '../middlewares/performanceTracker'
 
 // Route
 // Description: Receiving Performance metric data from sdk.
@@ -305,4 +305,4 @@ router.delete('/:appId/key/:key/:metricId', isValidAPIKey, async function(
     }
 });
 
-module.exports = router;
+export default router;

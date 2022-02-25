@@ -1,6 +1,6 @@
-const lighthouse = require('lighthouse');
-const chromeLauncher = require('chrome-launcher');
-const ErrorService = require('./errorService');
+import lighthouse from 'lighthouse'
+import chromeLauncher from 'chrome-launcher'
+import ErrorService from './errorService'
 
 function launchChromeAndRunLighthouse(
     url,

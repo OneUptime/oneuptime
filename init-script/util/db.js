@@ -94,7 +94,7 @@ async function getVersion() {
     return null;
 }
 
-module.exports = {
+export default {
     connectToDb,
     find,
     findOne,

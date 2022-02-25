@@ -30,7 +30,7 @@ const testAuth = (z, bundle) => {
         });
 };
 
-module.exports = {
+export default {
     type: 'custom',
     // Define any auth fields your app requires here. The user will be prompted to enter this info when
     // they connect their account.

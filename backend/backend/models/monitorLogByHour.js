@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const monitorLogByHourSchema = new Schema({
@@ -31,4 +31,4 @@ const monitorLogByHourSchema = new Schema({
     sslCertificate: Object,
     kubernetesLog: Object,
 });
-module.exports = mongoose.model('MonitorLogByHour', monitorLogByHourSchema);
+export default mongoose.model('MonitorLogByHour', monitorLogByHourSchema);

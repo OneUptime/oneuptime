@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const scheduledEventsSchema = new Schema(
@@ -89,4 +89,4 @@ const scheduledEventsSchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model('ScheduledEvent', scheduledEventsSchema);
+export default mongoose.model('ScheduledEvent', scheduledEventsSchema);

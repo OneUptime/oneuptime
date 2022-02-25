@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, skip, limit, sort, populate, select }) {
         if (!skip) skip = 0;
 
@@ -143,6 +143,6 @@ module.exports = {
     },
 };
 
-const OnCallScheduleStatusModel = require('../models/onCallScheduleStatus');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import OnCallScheduleStatusModel from '../models/onCallScheduleStatus'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

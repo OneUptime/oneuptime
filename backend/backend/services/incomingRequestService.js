@@ -1,24 +1,24 @@
-const IncomingRequestModel = require('../models/incomingRequest');
-const IncidentService = require('../services/incidentService');
-const MonitorService = require('../services/monitorService');
-const AlertService = require('../services/alertService');
-const ErrorService = require('common-server/utils/error');
-const ProjectService = require('../services/projectService');
-const createDOMPurify = require('dompurify');
+import IncomingRequestModel from '../models/incomingRequest'
+import IncidentService from '../services/incidentService'
+import MonitorService from '../services/monitorService'
+import AlertService from '../services/alertService'
+import ErrorService from 'common-server/utils/error'
+import ProjectService from '../services/projectService'
+import createDOMPurify from 'dompurify'
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
-const { isEmpty } = require('lodash');
-const IncidentMessageService = require('../services/incidentMessageService');
-const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
-const IncidentSettingsService = require('../services/incidentSettingsService');
-const joinNames = require('../utils/joinNames');
-const vm = require('vm');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-// const RealTimeService = require('./realTimeService');
+import { isEmpty } from 'lodash'
+import IncidentMessageService from '../services/incidentMessageService'
+import IncidentPrioritiesService from '../services/incidentPrioritiesService'
+import IncidentSettingsService from '../services/incidentSettingsService'
+import joinNames from '../utils/joinNames'
+import vm from 'vm'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+// import RealTimeService from './realTimeService'
 
-module.exports = {
+export default {
     findOneBy: async function({ query, select, populate }) {
         if (!query) {
             query = {};

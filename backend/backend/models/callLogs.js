@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const callLogsSchema = new Schema({
@@ -16,4 +16,4 @@ const callLogsSchema = new Schema({
     status: String,
     error: String,
 });
-module.exports = mongoose.model('callLogs', callLogsSchema);
+export default mongoose.model('callLogs', callLogsSchema);

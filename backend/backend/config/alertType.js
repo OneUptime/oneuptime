@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     Call: 'call',
     Email: 'email',
     SMS: 'sms',

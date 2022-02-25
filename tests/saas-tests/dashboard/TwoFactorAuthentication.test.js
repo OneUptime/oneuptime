@@ -1,8 +1,8 @@
-const puppeteer = require('puppeteer');
-const utils = require('../../test-utils');
-const init = require('../../test-init');
-const speakeasy = require('speakeasy');
-const { expect } = require('chai');
+import puppeteer from 'puppeteer'
+import utils from '../../test-utils'
+import init from '../../test-init'
+import speakeasy from 'speakeasy'
+import { expect } from 'chai'
 
 require('should');
 const projectName = 'project';

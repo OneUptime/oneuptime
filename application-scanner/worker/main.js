@@ -1,8 +1,8 @@
 const getApi = require('../utils/api').getApi;
-const ErrorService = require('../utils/errorService');
-const ApplicationSecurity = require('./applicationSecurity');
+import ErrorService from '../utils/errorService'
+import ApplicationSecurity from './applicationSecurity'
 
-module.exports = {
+export default {
     runApplicationScan: async function() {
         try {
             const securities = await getApi(

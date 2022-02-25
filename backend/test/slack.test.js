@@ -1,14 +1,14 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
 
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const GlobalConfig = require('./utils/globalConfig');
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import GlobalConfig from './utils/globalConfig'
 
 // eslint-disable-next-line
 let token,

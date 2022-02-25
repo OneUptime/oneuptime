@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     async findBy({ query, skip, limit, populate, select }) {
         if (!skip) skip = 0;
 
@@ -177,8 +177,8 @@ module.exports = {
     },
 };
 
-const NotificationModel = require('../models/notification');
-const RealTimeService = require('../services/realTimeService');
-const ErrorService = require('common-server/utils/error');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import NotificationModel from '../models/notification'
+import RealTimeService from '../services/realTimeService'
+import ErrorService from 'common-server/utils/error'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

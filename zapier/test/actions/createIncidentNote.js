@@ -1,8 +1,8 @@
 require('should');
 
-const zapier = require('zapier-platform-core');
+import zapier from 'zapier-platform-core'
 
-const App = require('../../index');
+import App from '../../index'
 
 const appTester = zapier.createAppTester(App);
 

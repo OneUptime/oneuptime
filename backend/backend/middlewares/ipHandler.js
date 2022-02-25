@@ -1,7 +1,7 @@
-const StatusPageService = require('../services/statusPageService');
+import StatusPageService from '../services/statusPageService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const apiMiddleware = require('./api');
-const ipaddr = require('ipaddr.js');
+import apiMiddleware from './api'
+import ipaddr from 'ipaddr.js'
 
 const _this = {
     ipWhitelist: async function(req, res, next) {
@@ -160,4 +160,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

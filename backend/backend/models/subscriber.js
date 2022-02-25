@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const subscriberSchema = new Schema({
@@ -36,4 +36,4 @@ const subscriberSchema = new Schema({
     subscribed: { type: Boolean, default: true },
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
-module.exports = mongoose.model('Subscriber', subscriberSchema);
+export default mongoose.model('Subscriber', subscriberSchema);

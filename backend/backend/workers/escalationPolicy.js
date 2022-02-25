@@ -1,11 +1,11 @@
-const ErrorService = require('common-server/utils/error');
-const OnCallScheduleStatusService = require('../services/onCallScheduleStatusService');
-const AlertService = require('../services/alertService');
-const DateTime = require('../utils/DateTime');
-const IncidentService = require('../services/incidentService');
-const ScheduleService = require('../services/scheduleService');
+import ErrorService from 'common-server/utils/error'
+import OnCallScheduleStatusService from '../services/onCallScheduleStatusService'
+import AlertService from '../services/alertService'
+import DateTime from '../utils/DateTime'
+import IncidentService from '../services/incidentService'
+import ScheduleService from '../services/scheduleService'
 
-module.exports = {
+export default {
     checkActiveEscalationPolicyAndSendAlerts: async () => {
         try {
             /* 

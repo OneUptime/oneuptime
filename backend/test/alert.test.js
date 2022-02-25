@@ -1,25 +1,25 @@
 process.env.PORT = 3020;
 process.env.NODE_ENV = 'development';
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const incidentData = require('./data/incident');
-const chai = require('chai');
+import userData from './data/user'
+import incidentData from './data/incident'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const UserModel = require('../backend/models/user');
-const IncidentService = require('../backend/services/incidentService');
-const GlobalConfig = require('./utils/globalConfig');
-const ProjectService = require('../backend/services/projectService');
-const StatusPageService = require('../backend/services/statusPageService');
-const MonitorService = require('../backend/services/monitorService');
-const AlertService = require('../backend/services/alertService');
-const AirtableService = require('../backend/services/airtableService');
-const NotificationService = require('../backend/services/notificationService');
-const ComponentModel = require('../backend/models/component');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import UserModel from '../backend/models/user'
+import IncidentService from '../backend/services/incidentService'
+import GlobalConfig from './utils/globalConfig'
+import ProjectService from '../backend/services/projectService'
+import StatusPageService from '../backend/services/statusPageService'
+import MonitorService from '../backend/services/monitorService'
+import AlertService from '../backend/services/alertService'
+import AirtableService from '../backend/services/airtableService'
+import NotificationService from '../backend/services/notificationService'
+import ComponentModel from '../backend/models/component'
 
 let token, userId, projectId, subProjectId, incidentId, alertId, monitorId;
 

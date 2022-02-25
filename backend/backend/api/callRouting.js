@@ -1,15 +1,15 @@
-const express = require('express');
-const { fetchPhoneNumbers } = require('../services/twilioService');
-const CallRoutingService = require('../services/callRoutingService');
-const FileService = require('../services/fileService');
-const { isAuthorized } = require('../middlewares/authorization');
+import express from 'express'
+import { fetchPhoneNumbers } from '../services/twilioService'
+import CallRoutingService from '../services/callRoutingService'
+import FileService from '../services/fileService'
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
-const multer = require('multer');
-const storage = require('../middlewares/upload');
+import multer from 'multer'
+import storage from '../middlewares/upload'
 
 const callForward = async (req, res) => {
     try {
@@ -301,4 +301,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

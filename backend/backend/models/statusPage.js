@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const statusSchema = new Schema({
@@ -150,7 +150,7 @@ const requiredFields = {
     projectId: true,
 };
 
-module.exports = {
+export default {
     schema: mongoose.model('StatusPage', statusSchema),
     requiredFields,
 };

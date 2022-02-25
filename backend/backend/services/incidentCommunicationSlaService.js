@@ -1,9 +1,9 @@
-const IncidentCommunicationSlaModel = require('../models/incidentCommunicationSla');
-const MonitorService = require('./monitorService');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import IncidentCommunicationSlaModel from '../models/incidentCommunicationSla'
+import MonitorService from './monitorService'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'
 
-module.exports = {
+export default {
     create: async function(data) {
         const incidentCommunicationSla = await this.countBy({
             name: data.name,

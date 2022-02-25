@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     'Subscriber Incident Created': [
         '{{userName}} : User display name.',
         '{{monitorName}} : Name of the monitor on which incident has occured.',

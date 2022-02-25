@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, skip, limit, select, populate }) {
         if (!skip) skip = 0;
 
@@ -124,6 +124,6 @@ module.exports = {
     },
 };
 
-const CallRoutingLogModel = require('../models/callRoutingLog');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import CallRoutingLogModel from '../models/callRoutingLog'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

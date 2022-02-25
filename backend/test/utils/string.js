@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     generateRandomString: function(length) {
         if (!length) {
             length = 10;

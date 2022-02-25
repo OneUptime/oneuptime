@@ -1,11 +1,11 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
+import IncidentPrioritiesService from '../services/incidentPrioritiesService'
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     const { projectId } = req.params;
@@ -144,4 +144,4 @@ router.delete('/:projectId', getUser, isAuthorized, async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
-module.exports = router;
+export default router;

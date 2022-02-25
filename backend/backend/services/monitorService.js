@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     //Description: Upsert function for monitor.
     //Params:
     //Param 1: data: MonitorModal.
@@ -1000,7 +1000,7 @@ module.exports = {
     },
 
     async getScriptMonitors({ limit, skip }) {
-        const moment = require('moment');
+        import moment from 'moment'
         const monitors = await MonitorModel.find({
             $and: [
                 {
@@ -2146,34 +2146,34 @@ module.exports = {
     },
 };
 
-const MonitorModel = require('../models/monitor');
-const ProbeService = require('./probeService');
-const MonitorStatusService = require('./monitorStatusService');
-const MonitorLogService = require('./monitorLogService');
-const MonitorLogByHourService = require('./monitorLogByHourService');
-const MonitorLogByDayService = require('./monitorLogByDayService');
-const MonitorLogByWeekService = require('./monitorLogByWeekService');
-const ResourceCategoryService = require('./resourceCategoryService');
-const MonitorCriteriaService = require('./monitorCriteriaService');
-const Plans = require('./../config/plans');
-const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const ProjectService = require('./projectService');
-const PaymentService = require('./paymentService');
-const IncidentService = require('./incidentService');
-const AlertService = require('./alertService');
-const StatusPageService = require('./statusPageService');
-const ScheduleService = require('./scheduleService');
-const IntegrationService = require('./integrationService');
-const TeamService = require('./teamService');
-const ErrorService = require('common-server/utils/error');
-const moment = require('moment');
-const _ = require('lodash');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const ScheduledEventService = require('./scheduledEventService');
-const MonitorSlaService = require('./monitorSlaService');
-const IncomingRequestService = require('./incomingRequestService');
-const componentService = require('./componentService');
-const getSlug = require('../utils/getSlug');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import MonitorModel from '../models/monitor'
+import ProbeService from './probeService'
+import MonitorStatusService from './monitorStatusService'
+import MonitorLogService from './monitorLogService'
+import MonitorLogByHourService from './monitorLogByHourService'
+import MonitorLogByDayService from './monitorLogByDayService'
+import MonitorLogByWeekService from './monitorLogByWeekService'
+import ResourceCategoryService from './resourceCategoryService'
+import MonitorCriteriaService from './monitorCriteriaService'
+import Plans from './../config/plans'
+import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import ProjectService from './projectService'
+import PaymentService from './paymentService'
+import IncidentService from './incidentService'
+import AlertService from './alertService'
+import StatusPageService from './statusPageService'
+import ScheduleService from './scheduleService'
+import IntegrationService from './integrationService'
+import TeamService from './teamService'
+import ErrorService from 'common-server/utils/error'
+import moment from 'moment'
+import _ from 'lodash'
+import { IS_SAAS_SERVICE } from '../config/server'
+import ScheduledEventService from './scheduledEventService'
+import MonitorSlaService from './monitorSlaService'
+import IncomingRequestService from './incomingRequestService'
+import componentService from './componentService'
+import getSlug from '../utils/getSlug'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'

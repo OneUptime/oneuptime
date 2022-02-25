@@ -1,7 +1,7 @@
-const JsonToCsv = require('./jsonToCsv');
-const { GridFSBucket } = require('mongodb');
+import JsonToCsv from './jsonToCsv'
+import { GridFSBucket } from 'mongodb'
 
-module.exports = {
+export default {
     sendEmptyResponse(req, res) {
         //purge request.
         //req = null;

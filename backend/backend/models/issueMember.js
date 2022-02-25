@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const issueMemberSchema = new Schema({
@@ -33,4 +33,4 @@ issueMemberSchema.virtual('issue', {
     justOne: true,
 });
 
-module.exports = mongoose.model('IssueMember', issueMemberSchema);
+export default mongoose.model('IssueMember', issueMemberSchema);

@@ -1,9 +1,9 @@
-const ApiService = require('../utils/apiService');
-const ErrorService = require('../utils/errorService');
-const { run: runScript } = require('../utils/scriptSandbox');
+import ApiService from '../utils/apiService'
+import ErrorService from '../utils/errorService'
+import { run: runScript } from '../utils/scriptSandbox'
 
 // it collects all monitors then ping them one by one to store their response
-module.exports = {
+export default {
     run: async monitor => {
         try {
             if (monitor && monitor.type === 'script') {

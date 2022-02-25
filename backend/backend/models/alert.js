@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const alertSchema = new Schema({
@@ -31,4 +31,4 @@ const alertSchema = new Schema({
     },
     deletedById: { type: String, ref: 'User', index: true },
 });
-module.exports = mongoose.model('Alert', alertSchema);
+export default mongoose.model('Alert', alertSchema);

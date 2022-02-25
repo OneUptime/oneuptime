@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, sort, populate, select }) {
         if (!skip) skip = 0;
 
@@ -168,7 +168,7 @@ module.exports = {
     },
 };
 
-const EmailStatusModel = require('../models/emailStatus');
-const GlobalConfigService = require('./globalConfigService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import EmailStatusModel from '../models/emailStatus'
+import GlobalConfigService from './globalConfigService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

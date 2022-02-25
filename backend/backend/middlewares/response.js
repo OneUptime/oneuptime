@@ -1,8 +1,8 @@
-const Mongoose = require('mongoose');
-const mongoose = require('../config/db');
-const JsonToCsv = require('./jsonToCsv');
-const ErrorService = require('common-server/utils/error');
-const logger = require('common-server/utils/logger');
+import Mongoose from 'mongoose'
+import mongoose from '../config/db'
+import JsonToCsv from './jsonToCsv'
+import ErrorService from 'common-server/utils/error'
+import logger from 'common-server/utils/logger'
 
 function logResponse(req, res, responsebody) {
     const requestEndedAt = Date.now();
@@ -27,7 +27,7 @@ function logResponse(req, res, responsebody) {
     }
 }
 
-module.exports = {
+export default {
     sendEmptyResponse(req, res) {
         res.set('Request-Id', req.id);
         res.set('Pod-Id', process.env.POD_NAME);

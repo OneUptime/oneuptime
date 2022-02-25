@@ -1,6 +1,6 @@
 const postApi = require('./api').postApi;
 
-module.exports = {
+export default {
     headers: async (val, type) => {
         const header = {};
         if (type && type.length) {

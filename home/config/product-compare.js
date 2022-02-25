@@ -1,4 +1,4 @@
-module.exports = product => {
+export default product => {
     const products = {
         pagerduty: {
             productName: 'PagerDuty',

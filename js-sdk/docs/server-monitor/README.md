@@ -112,7 +112,7 @@ Services created by the daemon are similar to most other services running on Win
 ## Programmatic Usage
 
 ```javascript
-const OneUptime = require('oneuptime');
+import OneUptime from 'oneuptime';
 const ServerMonitor = OneUptime.ServerMonitor;
 
 const monitor = ServerMonitor({

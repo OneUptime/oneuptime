@@ -1,9 +1,9 @@
-const CustomFieldModel = require('../models/customField');
-const IncomingRequestService = require('../services/incomingRequestService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import CustomFieldModel from '../models/customField'
+import IncomingRequestService from '../services/incomingRequestService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     findOneBy: async function({ query, select, populate }) {
         if (!query) {
             query = {};

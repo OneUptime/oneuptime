@@ -1,15 +1,15 @@
-const express = require('express');
-const path = require('path');
+import express from 'express'
+import path from 'path'
 const app = express();
 
-const https = require('https');
-const http = require('http');
-const tls = require('tls');
-const fs = require('fs');
-const fetch = require('node-fetch');
-const { spawn } = require('child_process');
-const axios = require('axios');
-const cors = require('cors');
+import https from 'https'
+import http from 'http'
+import tls from 'tls'
+import fs from 'fs'
+import fetch from 'node-fetch'
+import { spawn } from 'child_process'
+import axios from 'axios'
+import cors from 'cors'
 
 // mongodb
 const MongoClient = require('mongodb').MongoClient;

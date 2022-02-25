@@ -1,8 +1,8 @@
-const SslModel = require('../models/ssl');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import SslModel from '../models/ssl'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const sslChallenge = await SslModel.create(data);
         return sslChallenge;

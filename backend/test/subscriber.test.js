@@ -1,24 +1,24 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const GlobalConfig = require('./utils/globalConfig');
-const UserService = require('../backend/services/userService');
-const StatusPageService = require('../backend/services/statusPageService');
-const ProjectService = require('../backend/services/projectService');
-const NotificationService = require('../backend/services/notificationService');
-const SubscriberService = require('../backend/services/subscriberService');
-const MonitorService = require('../backend/services/monitorService');
-const AirtableService = require('../backend/services/airtableService');
-const StringUtil = require('./utils/string');
+import { createUser } from './utils/userSignUp'
+import GlobalConfig from './utils/globalConfig'
+import UserService from '../backend/services/userService'
+import StatusPageService from '../backend/services/statusPageService'
+import ProjectService from '../backend/services/projectService'
+import NotificationService from '../backend/services/notificationService'
+import SubscriberService from '../backend/services/subscriberService'
+import MonitorService from '../backend/services/monitorService'
+import AirtableService from '../backend/services/airtableService'
+import StringUtil from './utils/string'
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const ComponentModel = require('../backend/models/component');
-const ComponentService = require('../backend/services/componentService');
+import VerificationTokenModel from '../backend/models/verificationToken'
+import ComponentModel from '../backend/models/component'
+import ComponentService from '../backend/services/componentService'
 
 let projectId,
     userId,

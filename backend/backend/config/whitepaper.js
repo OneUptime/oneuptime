@@ -1,6 +1,6 @@
 //Note: This should go into a DB later.
 
-module.exports = [
+export default [
     {
         name: 'best-practices',
         link:

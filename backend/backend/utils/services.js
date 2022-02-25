@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     deduplicate: async (arr = []) => {
         const map = {};
 

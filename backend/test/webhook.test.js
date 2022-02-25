@@ -1,19 +1,19 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const MonitorService = require('../backend/services/monitorService');
-const AirtableService = require('../backend/services/airtableService');
-const IntegrationService = require('../backend/services/integrationService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const GlobalConfig = require('./utils/globalConfig');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import MonitorService from '../backend/services/monitorService'
+import AirtableService from '../backend/services/airtableService'
+import IntegrationService from '../backend/services/integrationService'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import GlobalConfig from './utils/globalConfig'
 
 // eslint-disable-next-line
 let token, userId, projectId, monitorId, msTeamsId,msTeamsId1,slackId,slackId1;

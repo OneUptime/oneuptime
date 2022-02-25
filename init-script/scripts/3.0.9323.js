@@ -1,6 +1,6 @@
-const { find, update, save, updateMany, findOne } = require('../util/db');
-const { ObjectId } = require('mongodb');
-const moment = require('moment');
+import { find, update, save, updateMany, findOne } from '../util/db'
+import { ObjectId } from 'mongodb'
+import moment from 'moment'
 
 const monitorCollection = 'monitors';
 const resourceCategoryCollection = 'resourcecategories';
@@ -150,4 +150,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

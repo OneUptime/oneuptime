@@ -1,7 +1,7 @@
-const { postApi } = require('./api');
+import { postApi } from './api'
 const SLACK_URL = process.env.SLACK_BILLING_WEBHOOK;
 
-module.exports = {
+export default {
     // webhook notification to slack channel
     sendSlackAlert: async (title, identifier, reason, code, invoiceUrl) => {
         let data = {

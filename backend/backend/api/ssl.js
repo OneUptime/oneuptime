@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const SslService = require('../services/sslService');
+import SslService from '../services/sslService'
 
 const router = express.Router();
 
@@ -62,4 +62,4 @@ router.delete('/challenge/:token', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,26 +1,26 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const ResourceCategoryService = require('../backend/services/resourceCategoryService');
-const ResourceCategoryModel = require('../backend/models/resourceCategory');
-const AirtableService = require('../backend/services/airtableService');
-const GlobalConfig = require('./utils/globalConfig');
-const VerificationTokenModel = require('../backend/models/verificationToken');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import ResourceCategoryService from '../backend/services/resourceCategoryService'
+import ResourceCategoryModel from '../backend/models/resourceCategory'
+import AirtableService from '../backend/services/airtableService'
+import GlobalConfig from './utils/globalConfig'
+import VerificationTokenModel from '../backend/models/verificationToken'
 
 let token, userId, projectId, resourceCategoryId, apiKey;
 const resourceCategory = {
     resourceCategoryName: 'New Resource Category',
 };
-const payment = require('../backend/config/payment');
-const stripe = require('stripe')(payment.paymentPrivateKey);
+import payment from '../backend/config/payment'
+import stripe from 'stripe')(payment.paymentPrivateKey
 
 describe('Resource Category API', function() {
     this.timeout(20000);

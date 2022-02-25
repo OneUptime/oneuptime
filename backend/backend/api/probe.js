@@ -1,7 +1,7 @@
-const express = require('express');
-const ProbeService = require('../services/probeService');
-const MonitorService = require('../services/monitorService');
-const LighthouseLogService = require('../services/lighthouseLogService');
+import express from 'express'
+import ProbeService from '../services/probeService'
+import MonitorService from '../services/monitorService'
+import LighthouseLogService from '../services/lighthouseLogService'
 const router = express.Router();
 const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
     .isAuthorizedAdmin;
@@ -11,9 +11,9 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
-const multer = require('multer');
-const storage = require('../middlewares/upload');
+import { isAuthorized } from '../middlewares/authorization'
+import multer from 'multer'
+import storage from '../middlewares/upload'
 
 router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
@@ -745,4 +745,4 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     }
 });
 
-module.exports = router;
+export default router;

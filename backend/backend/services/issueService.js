@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
 
@@ -184,11 +184,11 @@ module.exports = {
     },
 };
 
-const IssueModel = require('../models/issue');
-const sha256 = require('crypto-js/sha256');
-const ComponentService = require('./componentService');
-const RealTimeService = require('./realTimeService');
-const NotificationService = require('./notificationService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const errorService = require('common-server/utils/error');
+import IssueModel from '../models/issue'
+import sha256 from 'crypto-js/sha256'
+import ComponentService from './componentService'
+import RealTimeService from './realTimeService'
+import NotificationService from './notificationService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import errorService from 'common-server/utils/error'

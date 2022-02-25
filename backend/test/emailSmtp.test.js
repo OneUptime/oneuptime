@@ -1,19 +1,19 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const data = require('./data/user');
-const chai = require('chai');
+import data from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
-const GlobalConfig = require('./utils/globalConfig');
+import app from '../server'
+import GlobalConfig from './utils/globalConfig'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
-const { testemail } = require('./utils/config');
-const GlobalConfigService = require('../backend/services/globalConfigService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const smtpCredential = require('./data/smtpCredential');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import AirtableService from '../backend/services/airtableService'
+import { testemail } from './utils/config'
+import GlobalConfigService from '../backend/services/globalConfigService'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import smtpCredential from './data/smtpCredential'
 
 let projectId, jwtToken, emailSmtpId;
 

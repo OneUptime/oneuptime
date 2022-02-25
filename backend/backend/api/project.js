@@ -1,23 +1,23 @@
-const express = require('express');
-const ProjectService = require('../services/projectService');
+import express from 'express'
+import ProjectService from '../services/projectService'
 
 const router = express.Router();
-const PaymentService = require('../services/paymentService');
-const UserService = require('../services/userService');
-const MailService = require('../services/mailService');
-const AirtableService = require('../services/airtableService');
+import PaymentService from '../services/paymentService'
+import UserService from '../services/userService'
+import MailService from '../services/mailService'
+import AirtableService from '../services/airtableService'
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const { IS_SAAS_SERVICE } = require('../config/server');
-const { isAuthorized } = require('../middlewares/authorization');
+import { IS_SAAS_SERVICE } from '../config/server'
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const isAuthorizedService = require('../middlewares/serviceAuthorization')
     .isAuthorizedService;
-const ErrorService = require('common-server/utils/error');
+import ErrorService from 'common-server/utils/error'
 
 // Route
 // Description: Creating new Porject by Admin.
@@ -1368,4 +1368,4 @@ router.put(
     }
 );
 
-module.exports = router;
+export default router;

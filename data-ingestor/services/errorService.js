@@ -1,5 +1,5 @@
-const winston = require('winston');
-const Slack = require('winston-slack-webhook-transport');
+import winston from 'winston'
+import Slack from 'winston-slack-webhook-transport'
 
 if (
     process.env.PORT &&
@@ -9,7 +9,7 @@ if (
     winston.add(new Slack({ webhookUrl: process.env.SLACK_ERROR_LOG_WEBHOOK }));
 }
 
-module.exports = {
+export default {
     log: (functionName, error) => {
         error = error && error.message ? error.message : error;
         winston.error(

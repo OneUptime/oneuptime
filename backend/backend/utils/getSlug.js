@@ -1,7 +1,7 @@
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
+import slugify from 'slugify'
+import generate from 'nanoid/generate'
 
-module.exports = function getSlug(name) {
+export default function getSlug(name) {
     name = String(name);
     if (!name || !name.trim()) return;
 

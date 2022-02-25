@@ -1,6 +1,6 @@
-const moment = require('moment');
+import moment from 'moment'
 
-module.exports = {
+export default {
     calculateHumanReadableDownTime: function(comparedTime) {
         const downTime =
             (new Date().getTime() - new Date(comparedTime).getTime()) /

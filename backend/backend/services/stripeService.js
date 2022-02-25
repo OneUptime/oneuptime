@@ -470,17 +470,17 @@ const Services = {
     },
 };
 
-const payment = require('../config/payment');
-const UserService = require('../services/userService');
-const PaymentService = require('../services/paymentService');
-const ProjectService = require('../services/projectService');
-const ProjectModel = require('../models/project');
-const MailService = require('../services/mailService');
-const ErrorService = require('common-server/utils/error');
-const { sendSlackAlert } = require('../utils/stripeHandlers');
+import payment from '../config/payment'
+import UserService from '../services/userService'
+import PaymentService from '../services/paymentService'
+import ProjectService from '../services/projectService'
+import ProjectModel from '../models/project'
+import MailService from '../services/mailService'
+import ErrorService from 'common-server/utils/error'
+import { sendSlackAlert } from '../utils/stripeHandlers'
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
 // removal of 'moment' due to declaration but not used.
 
-module.exports = Services;
+export default Services;

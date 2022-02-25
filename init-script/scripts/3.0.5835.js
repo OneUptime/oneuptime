@@ -1,5 +1,5 @@
-const { find, update, save } = require('../util/db');
-const bcrypt = require('bcrypt');
+import { find, update, save } from '../util/db'
+import bcrypt from 'bcrypt'
 const { IS_TESTING, IS_SAAS_SERVICE } = process.env;
 
 const userCollection = 'users';
@@ -82,4 +82,4 @@ async function run() {
     }
 }
 
-module.exports = run;
+export default run;

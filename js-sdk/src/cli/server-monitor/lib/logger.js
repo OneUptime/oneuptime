@@ -4,7 +4,7 @@
  * @module logger
  */
 
-const pino = require('pino');
+import pino from 'pino'
 
 /** The logger service. */
 const logger = pino({
@@ -12,4 +12,4 @@ const logger = pino({
     prettyPrint: { colorize: true, translateTime: true },
 });
 
-module.exports = logger;
+export default logger;

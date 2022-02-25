@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
@@ -287,10 +287,10 @@ module.exports = {
     },
 };
 
-const ssoDefaultRolesModel = require('../models/ssoDefaultRoles');
-const mongoose = require('mongoose');
-const ProjectService = require('./projectService');
-const SsoService = require('./ssoService');
-const UserService = require('./userService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ssoDefaultRolesModel from '../models/ssoDefaultRoles'
+import mongoose from 'mongoose'
+import ProjectService from './projectService'
+import SsoService from './ssoService'
+import UserService from './userService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

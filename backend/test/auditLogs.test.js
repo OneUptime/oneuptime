@@ -1,18 +1,18 @@
 process.env.PORT = 3020;
-const chai = require('chai');
+import chai from 'chai'
 const expect = require('chai').expect;
 
-const userData = require('./data/user');
-const app = require('../server');
+import userData from './data/user'
+import app from '../server'
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
-const GlobalConfig = require('./utils/globalConfig');
-const { createUser } = require('./utils/userSignUp');
-const AuditLogsService = require('../backend/services/auditLogsService');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const AirtableService = require('../backend/services/airtableService');
-const VerificationTokenModel = require('../backend/models/verificationToken');
+import GlobalConfig from './utils/globalConfig'
+import { createUser } from './utils/userSignUp'
+import AuditLogsService from '../backend/services/auditLogsService'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import AirtableService from '../backend/services/airtableService'
+import VerificationTokenModel from '../backend/models/verificationToken'
 
 let token, projectId, userId;
 let testSuiteStartTime, testCaseStartTime;

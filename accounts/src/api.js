@@ -4,7 +4,7 @@ import { User } from './config';
 import { history } from './store';
 const baseURL = API_URL;
 
-const Q = require('q');
+import Q from 'q'
 
 const headers = {
     'Access-Control-Allow-Origin': '*',

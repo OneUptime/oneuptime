@@ -1,25 +1,25 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
-const app = require('../server');
+import app from '../server'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const GlobalConfig = require('./utils/globalConfig');
-const incidentData = require('./data/incident');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const IncidentService = require('../backend/services/incidentService');
-const MonitorService = require('../backend/services/monitorService');
-const NotificationService = require('../backend/services/notificationService');
-const SubscriberAlertService = require('../backend/services/subscriberAlertService');
-const SubscriberService = require('../backend/services/subscriberService');
-const AirtableService = require('../backend/services/airtableService');
-const smtpCredentials = require('./data/smtpCredential');
-const EmailSmtpService = require('../backend/services/emailSmtpService');
+import { createUser } from './utils/userSignUp'
+import GlobalConfig from './utils/globalConfig'
+import incidentData from './data/incident'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import IncidentService from '../backend/services/incidentService'
+import MonitorService from '../backend/services/monitorService'
+import NotificationService from '../backend/services/notificationService'
+import SubscriberAlertService from '../backend/services/subscriberAlertService'
+import SubscriberService from '../backend/services/subscriberService'
+import AirtableService from '../backend/services/airtableService'
+import smtpCredentials from './data/smtpCredential'
+import EmailSmtpService from '../backend/services/emailSmtpService'
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
+import VerificationTokenModel from '../backend/models/verificationToken'
 
 let token, userId, projectId, monitorId, incidentId, subscriberId, idNumber;
 const monitor = {

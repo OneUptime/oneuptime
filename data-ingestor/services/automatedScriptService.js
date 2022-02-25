@@ -1,12 +1,12 @@
-const { postApi } = require('../utils/api');
-const ErrorService = require('./errorService');
-const { scriptBaseUrl } = require('../utils/config');
+import { postApi } from '../utils/api'
+import ErrorService from './errorService'
+import { scriptBaseUrl } from '../utils/config'
 const scriptLogCollection = global.db.collection('automationsriptlogs');
 const scriptCollection = global.db.collection('automationsripts');
-const { ObjectId } = require('mongodb');
-const moment = require('moment');
+import { ObjectId } from 'mongodb'
+import moment from 'moment'
 
-module.exports = {
+export default {
     createLog: async function(id, data) {
         try {
             const scriptLog = {};

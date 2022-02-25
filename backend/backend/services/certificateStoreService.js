@@ -1,8 +1,8 @@
-const CertificateModel = require('../models/certificate');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import CertificateModel from '../models/certificate'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const certificate = await CertificateModel.create(data);
         return certificate;

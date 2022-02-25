@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const emailTemplateModel = new EmailTemplateModel();
         emailTemplateModel.projectId = data.projectId || null;
@@ -176,8 +176,8 @@ module.exports = {
     },
 };
 
-const EmailTemplateModel = require('../models/emailTemplate');
-const emailTemplateVariables = require('../config/emailTemplateVariables');
-const defaultTemplate = require('../config/emailTemplate');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import EmailTemplateModel from '../models/emailTemplate'
+import emailTemplateVariables from '../config/emailTemplateVariables'
+import defaultTemplate from '../config/emailTemplate'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const automatedScriptSchema = new Schema(
@@ -55,4 +55,4 @@ const automatedScriptSchema = new Schema(
     },
     { timestamps: true }
 );
-module.exports = mongoose.model('AutomationSript', automatedScriptSchema);
+export default mongoose.model('AutomationSript', automatedScriptSchema);

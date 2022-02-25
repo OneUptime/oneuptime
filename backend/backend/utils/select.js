@@ -1,5 +1,5 @@
-const ErrorService = require('common-server/utils/error');
-module.exports = (select, query) => {
+import ErrorService from 'common-server/utils/error'
+export default (select, query) => {
     /**
      * select is an array of column(s) to show
      *

@@ -1,14 +1,14 @@
-const express = require('express');
-const psl = require('psl');
-const { getUser, isUserMasterAdmin } = require('../middlewares/user');
-const { isAuthorized } = require('../middlewares/authorization');
+import express from 'express'
+import psl from 'psl'
+import { getUser, isUserMasterAdmin } from '../middlewares/user'
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const DomainVerificationService = require('../services/domainVerificationService');
-const { sendListResponse } = require('../middlewares/response');
-const StatusPageService = require('../services/statusPageService');
-const ProjectService = require('../services/projectService');
-const errorService = require('common-server/utils/error');
+import DomainVerificationService from '../services/domainVerificationService'
+import { sendListResponse } from '../middlewares/response'
+import StatusPageService from '../services/statusPageService'
+import ProjectService from '../services/projectService'
+import errorService from 'common-server/utils/error'
 
 const router = express.Router();
 
@@ -280,4 +280,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

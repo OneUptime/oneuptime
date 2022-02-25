@@ -1,9 +1,9 @@
-const MonitorSlaModel = require('../models/monitorSla');
-const MonitorService = require('./monitorService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import MonitorSlaModel from '../models/monitorSla'
+import MonitorService from './monitorService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function(data) {
         const monitorSlaCount = await this.countBy({
             name: data.name,

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const LogDay = new MonitorLogByDayModel();
 
@@ -106,6 +106,6 @@ module.exports = {
     },
 };
 
-const MonitorLogByDayModel = require('../models/monitorLogByDay');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import MonitorLogByDayModel from '../models/monitorLogByDay'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

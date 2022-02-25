@@ -1,31 +1,31 @@
-const express = require('express');
-const UserService = require('../services/userService');
-const ProjectService = require('../services/projectService');
+import express from 'express'
+import UserService from '../services/userService'
+import ProjectService from '../services/projectService'
 const jwtSecretKey = process.env['JWT_SECRET'];
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const saml2 = require('saml2-js');
-const { decode } = require('js-base64');
-const MailService = require('../services/mailService');
-const SsoService = require('../services/ssoService');
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import saml2 from 'saml2-js'
+import { decode } from 'js-base64'
+import MailService from '../services/mailService'
+import SsoService from '../services/ssoService'
 const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const router = express.Router();
-const multer = require('multer');
-const storage = require('../middlewares/upload');
-const winston = require('winston');
-const constants = require('../config/constants.json');
-const { emaildomains } = require('../config/emaildomains');
-const randToken = require('rand-token');
-const VerificationTokenModel = require('../models/verificationToken');
-const { IS_SAAS_SERVICE } = require('../config/server');
-const UserModel = require('../models/user');
-const ErrorService = require('common-server/utils/error');
-const SsoDefaultRolesService = require('../services/ssoDefaultRolesService');
+import multer from 'multer'
+import storage from '../middlewares/upload'
+import winston from 'winston'
+import constants from '../config/constants.json'
+import { emaildomains } from '../config/emaildomains'
+import randToken from 'rand-token'
+import VerificationTokenModel from '../models/verificationToken'
+import { IS_SAAS_SERVICE } from '../config/server'
+import UserModel from '../models/user'
+import ErrorService from 'common-server/utils/error'
+import SsoDefaultRolesService from '../services/ssoDefaultRolesService'
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const Ip = require('../middlewares/ipHandler');
+import Ip from '../middlewares/ipHandler'
 
 router.post('/signup', async function(req, res) {
     try {
@@ -1712,4 +1712,4 @@ router.get('/:token/email', async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

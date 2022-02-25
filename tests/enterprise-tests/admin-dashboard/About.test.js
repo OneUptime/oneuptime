@@ -1,7 +1,7 @@
-const puppeteer = require('puppeteer');
+import puppeteer from 'puppeteer'
 
-const utils = require('../../test-utils');
-const init = require('../../test-init');
+import utils from '../../test-utils'
+import init from '../../test-init'
 let browser, page;
 require('should');
 

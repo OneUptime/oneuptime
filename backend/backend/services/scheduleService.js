@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
@@ -520,8 +520,8 @@ module.exports = {
     },
 };
 
-const ScheduleModel = require('../models/schedule');
-const EscalationService = require('../services/escalationService');
-const getSlug = require('../utils/getSlug');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import ScheduleModel from '../models/schedule'
+import EscalationService from '../services/escalationService'
+import getSlug from '../utils/getSlug'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'

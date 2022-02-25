@@ -1,8 +1,8 @@
 const getApi = require('../utils/api').getApi;
-const UrlMonitors = require('./urlMonitors');
-const ErrorService = require('../utils/errorService');
+import UrlMonitors from './urlMonitors'
+import ErrorService from '../utils/errorService'
 
-module.exports = {
+export default {
     runJob: async function() {
         try {
             let monitors = await getApi('lighthouse/monitors');

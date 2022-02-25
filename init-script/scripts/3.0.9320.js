@@ -1,4 +1,4 @@
-const { customUpdate } = require('../util/db');
+import { customUpdate } from '../util/db'
 
 const statusPageCollection = 'statuspages';
 
@@ -25,4 +25,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

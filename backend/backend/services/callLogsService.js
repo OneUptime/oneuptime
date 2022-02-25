@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, sort, select, populate }) {
         if (!skip) skip = 0;
 
@@ -97,6 +97,6 @@ module.exports = {
     },
 };
 
-const CallLogsModel = require('../models/callLogs');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import CallLogsModel from '../models/callLogs'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

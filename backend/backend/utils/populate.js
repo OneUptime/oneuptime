@@ -1,5 +1,5 @@
-const ErrorService = require('common-server/utils/error');
-module.exports = (populateArray, query) => {
+import ErrorService from 'common-server/utils/error'
+export default (populateArray, query) => {
     /**
      * populate should be an array of object, no matter the depth it exist in
      *

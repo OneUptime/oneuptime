@@ -1,17 +1,17 @@
-const userData = require('./data/user');
+import userData from './data/user'
 process.env.PORT = 3020;
 process.env.ADMIN_EMAIL = userData.adminUser.email.toLowerCase();
 process.env.ADMIN_PASSWORD = userData.adminUser.password;
-const chai = require('chai');
+import chai from 'chai'
 const expect = require('chai').expect;
 
-const app = require('../server');
+import app from '../server'
 chai.use(require('chai-http'));
 const request = chai.request.agent(app);
-const GlobalConfig = require('./utils/globalConfig');
-const AuditLogsService = require('../backend/services/auditLogsService');
-const UserService = require('../backend/services/userService');
-const AirtableService = require('../backend/services/airtableService');
+import GlobalConfig from './utils/globalConfig'
+import AuditLogsService from '../backend/services/auditLogsService'
+import UserService from '../backend/services/userService'
+import AirtableService from '../backend/services/airtableService'
 
 let token;
 

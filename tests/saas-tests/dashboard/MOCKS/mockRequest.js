@@ -1,5 +1,5 @@
-const mockResponse = require('./response');
-module.exports = [
+import mockResponse from './response'
+export default [
     {
         title: 'Signup',
         urlPattern: /user\/signup/,

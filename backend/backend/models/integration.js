@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 
@@ -46,4 +46,4 @@ const integrationSchema = new Schema({
 
 integrationSchema.index({ projectId: 1, teamId: -1 });
 
-module.exports = mongoose.model('Integrations', integrationSchema);
+export default mongoose.model('Integrations', integrationSchema);

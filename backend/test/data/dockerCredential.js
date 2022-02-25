@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     dockerUsername: process.env.DOCKER_UNMASKED_USERNAME,
     dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD,
     dockerRegistryUrl: process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL,

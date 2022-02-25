@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const feedbackSchema = new Schema({
@@ -14,4 +14,4 @@ const feedbackSchema = new Schema({
     },
     deletedById: { type: String, ref: 'User', index: true },
 });
-module.exports = mongoose.model('Feedback', feedbackSchema);
+export default mongoose.model('Feedback', feedbackSchema);

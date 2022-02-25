@@ -1,4 +1,4 @@
-const { find, update, removeField } = require('../util/db');
+import { find, update, removeField } from '../util/db'
 
 const statusPageCollection = 'statuspages';
 
@@ -42,4 +42,4 @@ async function run() {
     }
 }
 
-module.exports = run;
+export default run;

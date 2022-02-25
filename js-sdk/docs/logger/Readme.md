@@ -23,7 +23,7 @@ $ npm install oneuptime
 import OneUptime from 'oneuptime';
 
 // If your env supports require
-const OneUptime = require('oneuptime');
+import OneUptime from 'oneuptime';
 
 // set up tracking configurations
 const options = {

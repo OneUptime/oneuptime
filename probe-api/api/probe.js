@@ -1,5 +1,5 @@
-const express = require('express');
-const MonitorService = require('../services/monitorService');
+import express from 'express'
+import MonitorService from '../services/monitorService'
 const router = express.Router();
 const isAuthorizedProbe = require('../middlewares/probeAuthorization')
     .isAuthorizedProbe;
@@ -25,4 +25,4 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

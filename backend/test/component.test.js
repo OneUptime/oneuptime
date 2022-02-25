@@ -1,24 +1,24 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const userData = require('./data/user');
-const chai = require('chai');
+import userData from './data/user'
+import chai from 'chai'
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-const app = require('../server');
-const GlobalConfig = require('./utils/globalConfig');
+import app from '../server'
+import GlobalConfig from './utils/globalConfig'
 const request = chai.request.agent(app);
-const { createUser } = require('./utils/userSignUp');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
-const ComponentService = require('../backend/services/componentService');
-const NotificationService = require('../backend/services/notificationService');
-const AirtableService = require('../backend/services/airtableService');
-const gitCredential = require('./data/gitCredential');
-const GitCredentialService = require('../backend/services/gitCredentialService');
-const dockerCredential = require('./data/dockerCredential');
-const DockerCredentialService = require('../backend/services/dockerCredentialService');
+import { createUser } from './utils/userSignUp'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
+import ComponentService from '../backend/services/componentService'
+import NotificationService from '../backend/services/notificationService'
+import AirtableService from '../backend/services/airtableService'
+import gitCredential from './data/gitCredential'
+import GitCredentialService from '../backend/services/gitCredentialService'
+import dockerCredential from './data/dockerCredential'
+import DockerCredentialService from '../backend/services/dockerCredentialService'
 
-const VerificationTokenModel = require('../backend/models/verificationToken');
+import VerificationTokenModel from '../backend/models/verificationToken'
 
 let token,
     userId,

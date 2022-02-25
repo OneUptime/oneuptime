@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const applicationScannerSchema = new Schema({
@@ -12,4 +12,4 @@ const applicationScannerSchema = new Schema({
     applicationScannerImage: { type: String },
 });
 
-module.exports = mongoose.model('applicationScanner', applicationScannerSchema);
+export default mongoose.model('applicationScanner', applicationScannerSchema);

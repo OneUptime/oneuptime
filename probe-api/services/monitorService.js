@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     async getProbeMonitors(probeId, limit = 10) {
         //get monitors that have not been pinged for the last minute.
         const date = new Date(new Date().getTime() - 60 * 1000);
@@ -71,6 +71,6 @@ module.exports = {
     },
 };
 
-const ErrorService = require('./errorService');
-const moment = require('moment');
+import ErrorService from './errorService'
+import moment from 'moment'
 const monitorCollection = global.db.collection('monitors');

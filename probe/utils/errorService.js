@@ -1,6 +1,6 @@
-const winston = require('winston');
+import winston from 'winston'
 
-module.exports = {
+export default {
     log: (functionName, error) => {
         error = error && error.message ? error.message : error;
         //eslint-disable-next-line

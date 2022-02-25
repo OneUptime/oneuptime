@@ -1,9 +1,9 @@
-const crypto = require('crypto');
-const EncryptionKeys = require('./encryptionKeys');
+import crypto from 'crypto'
+import EncryptionKeys from './encryptionKeys'
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
 
-module.exports = {
+export default {
     encrypt: (plainText, iv) => {
         const promise = new Promise((resolve, reject) => {
             try {

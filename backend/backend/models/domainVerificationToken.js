@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose'
 
 const Schema = mongoose.Schema;
 const domainVerificationTokenSchema = new Schema({
@@ -23,7 +23,7 @@ const domainVerificationTokenSchema = new Schema({
     },
 });
 
-module.exports = mongoose.model(
+export default mongoose.model(
     'DomainVerificationToken',
     domainVerificationTokenSchema
 );

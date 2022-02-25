@@ -1,5 +1,5 @@
-const winston = require('winston');
-const Slack = require('winston-slack-transport');
+import winston from 'winston'
+import Slack from 'winston-slack-transport'
 
 if (
     process.env.PORT &&
@@ -14,7 +14,7 @@ if (
     });
 }
 
-module.exports = {
+export default {
     log: (functionName, error) => {
         error = error && error.message ? error.message : error;
         winston.error(

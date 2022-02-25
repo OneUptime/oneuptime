@@ -1,6 +1,6 @@
-const lighthouse = require('lighthouse');
-const chromeLauncher = require('chrome-launcher');
-const ora = require('ora');
+import lighthouse from 'lighthouse'
+import chromeLauncher from 'chrome-launcher'
+import ora from 'ora'
 
 /**
  * Adjustments needed for DevTools network throttling to simulate

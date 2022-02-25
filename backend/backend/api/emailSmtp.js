@@ -1,14 +1,14 @@
-const express = require('express');
-const EmailSmtpService = require('../services/emailSmtpService');
-const MailService = require('../services/mailService');
+import express from 'express'
+import EmailSmtpService from '../services/emailSmtpService'
+import MailService from '../services/mailService'
 const router = express.Router();
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const UserService = require('../services/userService');
+import UserService from '../services/userService'
 
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {
@@ -245,4 +245,4 @@ router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function(
     }
 });
 
-module.exports = router;
+export default router;

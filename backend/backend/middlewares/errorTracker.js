@@ -1,6 +1,6 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('common-server/utils/error');
-const ErrorTrackerService = require('../services/errorTrackerService');
+import ErrorService from 'common-server/utils/error'
+import ErrorTrackerService from '../services/errorTrackerService'
 
 const _this = {
     isErrorTrackerValid: async function(req, res, next) {
@@ -102,4 +102,4 @@ const _this = {
         }
     },
 };
-module.exports = _this;
+export default _this;

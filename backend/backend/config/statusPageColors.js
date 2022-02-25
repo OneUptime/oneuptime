@@ -1,5 +1,5 @@
 // Initial colors for the status page
-module.exports = {
+export default {
     default: {
         pageBackground: { r: 247, g: 247, b: 247, a: 1 },
         statusPageBackground: { r: 253, g: 253, b: 253, a: 1 },

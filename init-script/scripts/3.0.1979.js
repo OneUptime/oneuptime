@@ -1,4 +1,4 @@
-const { find, save, update } = require('../util/db');
+import { find, save, update } from '../util/db'
 
 const projectCollection = 'projects';
 const componentCollection = 'components';
@@ -35,4 +35,4 @@ async function run() {
     return `Script ran for ${projects.length} projects.`;
 }
 
-module.exports = run;
+export default run;

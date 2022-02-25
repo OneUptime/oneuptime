@@ -6,7 +6,7 @@
 
 'use strict';
 
-const path = require('path');
+import path from 'path'
 
 /** The api url to send server information. */
 const API_URL =
@@ -73,7 +73,7 @@ const LOG_PATH = {
     },
 };
 
-module.exports = {
+export default {
     API_URL,
     LOG_PATH,
     onlineTestData,

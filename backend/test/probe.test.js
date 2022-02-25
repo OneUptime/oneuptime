@@ -1,28 +1,28 @@
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-const app = require('../server');
-const userData = require('./data/user');
-const { newProject } = require('./data/project');
-const gitCredential = require('./data/gitCredential');
-const dockerCredential = require('./data/dockerCredential');
-const { createUser } = require('./utils/userSignUp');
-const VerificationTokenModel = require('../backend/models/verificationToken');
-const UserService = require('../backend/services/userService');
-const ProjectService = require('../backend/services/projectService');
+import app from '../server'
+import userData from './data/user'
+import { newProject } from './data/project'
+import gitCredential from './data/gitCredential'
+import dockerCredential from './data/dockerCredential'
+import { createUser } from './utils/userSignUp'
+import VerificationTokenModel from '../backend/models/verificationToken'
+import UserService from '../backend/services/userService'
+import ProjectService from '../backend/services/projectService'
 const request = chai.request.agent(app);
-const ProbeService = require('../backend/services/probeService');
-const MonitorService = require('../backend/services/monitorService');
-const ComponentService = require('../backend/services/componentService');
-const GitCredentialService = require('../backend/services/gitCredentialService');
-const ApplicationSecurityService = require('../backend/services/applicationSecurityService');
-const DockerCredentialService = require('../backend/services/dockerCredentialService');
-const ContainerSecurityService = require('../backend/services/containerSecurityService');
+import ProbeService from '../backend/services/probeService'
+import MonitorService from '../backend/services/monitorService'
+import ComponentService from '../backend/services/componentService'
+import GitCredentialService from '../backend/services/gitCredentialService'
+import ApplicationSecurityService from '../backend/services/applicationSecurityService'
+import DockerCredentialService from '../backend/services/dockerCredentialService'
+import ContainerSecurityService from '../backend/services/containerSecurityService'
 let probeId;
-const GlobalConfig = require('./utils/globalConfig');
-const AirtableService = require('../backend/services/airtableService');
+import GlobalConfig from './utils/globalConfig'
+import AirtableService from '../backend/services/airtableService'
 let token, userId, projectId, componentId;
 const probeKey = 'test-key';
 const sleep = waitTimeInMs =>

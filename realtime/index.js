@@ -19,10 +19,10 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
+import express from 'express'
 const app = express();
-const http = require('http').createServer(app);
-const cors = require('cors');
+import http from 'http').createServer(app
+import cors from 'cors'
 const io = require('socket.io')(http, {
     path: '/realtime/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session
@@ -118,4 +118,4 @@ http.listen(app.get('port'), function() {
     console.log('realtime server started on port ' + app.get('port'));
 });
 
-module.exports = app;
+export default app;

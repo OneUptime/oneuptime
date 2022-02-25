@@ -1,9 +1,9 @@
-const ProjectService = require('../services/projectService');
-const ErrorService = require('common-server/utils/error');
+import ProjectService from '../services/projectService'
+import ErrorService from 'common-server/utils/error'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const url = require('url');
+import url from 'url'
 
-module.exports = {
+export default {
     // Description: Get subprojects which user belongs to.
     getSubProjects: async function(req, res, next) {
         try {

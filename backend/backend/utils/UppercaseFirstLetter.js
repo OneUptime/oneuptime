@@ -1,4 +1,4 @@
-module.exports = function(word) {
+export default function(word) {
     if (typeof word === 'string') {
         return word.charAt(0).toUpperCase() + word.slice(1);
     }

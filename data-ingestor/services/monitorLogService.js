@@ -1,18 +1,18 @@
-const MonitorLogByHourService = require('../services/monitorLogByHourService');
-const MonitorLogByDayService = require('../services/monitorLogByDayService');
-const MonitorLogByWeekService = require('../services/monitorLogByWeekService');
-const MonitorService = require('../services/monitorService');
-const ErrorService = require('../services/errorService');
-const moment = require('moment');
+import MonitorLogByHourService from '../services/monitorLogByHourService'
+import MonitorLogByDayService from '../services/monitorLogByDayService'
+import MonitorLogByWeekService from '../services/monitorLogByWeekService'
+import MonitorService from '../services/monitorService'
+import ErrorService from '../services/errorService'
+import moment from 'moment'
 const monitorLogCollection = global.db.collection('monitorlogs');
-const { ObjectId } = require('mongodb');
-const { postApi } = require('../utils/api');
-const { realtimeUrl } = require('../utils/config');
-const ProjectService = require('./projectService');
+import { ObjectId } from 'mongodb'
+import { postApi } from '../utils/api'
+import { realtimeUrl } from '../utils/config'
+import ProjectService from './projectService'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const Log = {};

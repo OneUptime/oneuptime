@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const Log = new MonitorLogModel();
         let responseBody = '';
@@ -293,13 +293,13 @@ module.exports = {
     },
 };
 
-const MonitorLogModel = require('../models/monitorLog');
-const MonitorLogByHourService = require('../services/monitorLogByHourService');
-const MonitorLogByDayService = require('../services/monitorLogByDayService');
-const MonitorLogByWeekService = require('../services/monitorLogByWeekService');
-const MonitorService = require('../services/monitorService');
-const RealTimeService = require('./realTimeService');
-const ErrorService = require('common-server/utils/error');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
-const moment = require('moment');
+import MonitorLogModel from '../models/monitorLog'
+import MonitorLogByHourService from '../services/monitorLogByHourService'
+import MonitorLogByDayService from '../services/monitorLogByDayService'
+import MonitorLogByWeekService from '../services/monitorLogByWeekService'
+import MonitorService from '../services/monitorService'
+import RealTimeService from './realTimeService'
+import ErrorService from 'common-server/utils/error'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
+import moment from 'moment'

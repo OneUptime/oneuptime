@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const _this = this;
@@ -1019,7 +1019,7 @@ module.exports = {
     },
 };
 
-const _ = require('lodash');
+import _ from 'lodash'
 
 const incomingCheckAnd = (payload, condition) => {
     let validity = false;
@@ -6180,20 +6180,20 @@ const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-const ErrorService = require('./errorService');
-const MonitorService = require('./monitorService');
-const MonitorStatusService = require('./monitorStatusService');
-const MonitorLogService = require('./monitorLogService');
-const LighthouseLogService = require('./lighthouseLogService');
-const IncidentService = require('./incidentService');
-const IncidentTimelineService = require('./incidentTimelineService');
-const moment = require('moment');
-const { some, forEach } = require('p-iteration');
-const vm = require('vm');
-const AutomatedScriptService = require('./automatedScriptService');
-const { ObjectId } = require('mongodb');
+import ErrorService from './errorService'
+import MonitorService from './monitorService'
+import MonitorStatusService from './monitorStatusService'
+import MonitorLogService from './monitorLogService'
+import LighthouseLogService from './lighthouseLogService'
+import IncidentService from './incidentService'
+import IncidentTimelineService from './incidentTimelineService'
+import moment from 'moment'
+import { some, forEach } from 'p-iteration'
+import vm from 'vm'
+import AutomatedScriptService from './automatedScriptService'
+import { ObjectId } from 'mongodb'
 const probeCollection = global.db.collection('probes');
-const { v1: uuidv1 } = require('uuid');
-const { postApi } = require('../utils/api');
-const { realtimeUrl } = require('../utils/config');
+import { v1: uuidv1 } from 'uuid'
+import { postApi } from '../utils/api'
+import { realtimeUrl } from '../utils/config'
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

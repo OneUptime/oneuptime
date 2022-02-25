@@ -1,6 +1,6 @@
 const replacer = (key, value) => (value === null ? '' : value); // specify how you want to handle null values here
 
-module.exports = {
+export default {
     ToCsv: json => {
         return new Promise((resolve, reject) => {
             try {

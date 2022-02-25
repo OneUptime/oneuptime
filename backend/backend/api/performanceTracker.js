@@ -1,17 +1,17 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const NotificationService = require('../services/notificationService');
-const ErrorService = require('common-server/utils/error');
-const PerformanceTrackerService = require('../services/performanceTrackerService');
-const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
-const { decode } = require('js-base64');
+import NotificationService from '../services/notificationService'
+import ErrorService from 'common-server/utils/error'
+import PerformanceTrackerService from '../services/performanceTrackerService'
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService'
+import { decode } from 'js-base64'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const uuid = require('uuid');
+import uuid from 'uuid'
 
 // Route
 // Description: Adding a new performance tracker to a component.
@@ -382,4 +382,4 @@ router.get(
     }
 );
 
-module.exports = router;
+export default router;

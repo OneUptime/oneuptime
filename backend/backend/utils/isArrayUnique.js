@@ -3,6 +3,6 @@
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-module.exports = function isArrayUnique(myArray) {
+export default function isArrayUnique(myArray) {
     return myArray.length === new Set(myArray).size;
 };

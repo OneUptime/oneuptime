@@ -1,4 +1,4 @@
-const { find, update } = require('../util/db');
+import { find, update } from '../util/db'
 
 const ssoCollection = 'ssos';
 
@@ -18,4 +18,4 @@ async function run() {
     return `Script ran for ${ssos.length} sso`;
 }
 
-module.exports = run;
+export default run;

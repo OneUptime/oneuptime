@@ -1,4 +1,4 @@
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
 
 const expect = chai.expect;

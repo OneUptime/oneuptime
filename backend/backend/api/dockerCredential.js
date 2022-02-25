@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express'
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const DockerCredentialService = require('../services/dockerCredentialService');
+import DockerCredentialService from '../services/dockerCredentialService'
 
 const router = express.Router();
 
@@ -136,4 +136,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

@@ -1,29 +1,29 @@
-const express = require('express');
+import express from 'express'
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-const UserService = require('../services/userService');
-const ComponentService = require('../services/componentService');
-const NotificationService = require('../services/notificationService');
-const RealTimeService = require('../services/realTimeService');
-const ErrorTrackerService = require('../services/errorTrackerService');
-const ResourceCategoryService = require('../services/resourceCategoryService');
-const uuid = require('uuid');
+import UserService from '../services/userService'
+import ComponentService from '../services/componentService'
+import NotificationService from '../services/notificationService'
+import RealTimeService from '../services/realTimeService'
+import ErrorTrackerService from '../services/errorTrackerService'
+import ResourceCategoryService from '../services/resourceCategoryService'
+import uuid from 'uuid'
 const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
-const ErrorEventService = require('../services/errorEventService');
+import ErrorEventService from '../services/errorEventService'
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const IssueService = require('../services/issueService');
-const TeamService = require('../services/teamService');
-const IssueMemberService = require('../services/issueMemberService');
-const IssueTimelineService = require('../services/issueTimelineService');
-const ErrorService = require('common-server/utils/error');
+import IssueService from '../services/issueService'
+import TeamService from '../services/teamService'
+import IssueMemberService from '../services/issueMemberService'
+import IssueTimelineService from '../services/issueTimelineService'
+import ErrorService from 'common-server/utils/error'
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
@@ -1195,4 +1195,4 @@ router.delete(
         }
     }
 );
-module.exports = router;
+export default router;

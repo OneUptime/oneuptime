@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     sendCreatedIncident: ({ projectId, incident }) => {
         try {
             if (!global || !global.io) {
@@ -869,4 +869,4 @@ module.exports = {
     },
 };
 
-const ErrorService = require('./errorService');
+import ErrorService from './errorService'

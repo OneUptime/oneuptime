@@ -1,16 +1,16 @@
 const lighthouseLogCollection = global.db.collection('lighthouselogs');
-const probeService = require('./probeService');
-const ErrorService = require('./errorService');
-const { ObjectId } = require('mongodb');
-const MonitorService = require('./monitorService');
-const { postApi } = require('../utils/api');
-const moment = require('moment');
-const { realtimeUrl } = require('../utils/config');
-const ProjectService = require('./projectService');
+import probeService from './probeService'
+import ErrorService from './errorService'
+import { ObjectId } from 'mongodb'
+import MonitorService from './monitorService'
+import { postApi } from '../utils/api'
+import moment from 'moment'
+import { realtimeUrl } from '../utils/config'
+import ProjectService from './projectService'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const result = await lighthouseLogCollection.insertOne({

@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 
-const SubscriberService = require('../services/subscriberService');
-const MonitorService = require('../services/monitorService');
+import SubscriberService from '../services/subscriberService'
+import MonitorService from '../services/monitorService'
 
 const getUser = require('../middlewares/user').getUser;
 
@@ -471,4 +471,4 @@ router.post('/:projectId/:monitorId/csv', async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

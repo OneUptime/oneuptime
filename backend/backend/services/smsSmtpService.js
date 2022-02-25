@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const iv = Crypto.randomBytes(16);
         data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
@@ -180,8 +180,8 @@ module.exports = {
     },
 };
 
-const Crypto = require('crypto');
-const TwilioModel = require('../models/twilio');
-const EncryptDecrypt = require('../config/encryptDecrypt');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import Crypto from 'crypto'
+import TwilioModel from '../models/twilio'
+import EncryptDecrypt from '../config/encryptDecrypt'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

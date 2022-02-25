@@ -1,3 +1,3 @@
-module.exports = {
+export default {
     domains: ['hackerbay.io', 'oneuptime.com'],
 };

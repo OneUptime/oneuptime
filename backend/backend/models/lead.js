@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const leadSchema = new Schema({
@@ -22,4 +22,4 @@ const leadSchema = new Schema({
     source: Object,
     deletedById: { type: String, ref: 'User', index: true },
 });
-module.exports = mongoose.model('Lead', leadSchema);
+export default mongoose.model('Lead', leadSchema);

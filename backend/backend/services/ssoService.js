@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
@@ -186,7 +186,7 @@ module.exports = {
     },
 };
 
-const SsoModel = require('../models/sso');
-const SsoDefaultRolesService = require('./ssoDefaultRolesService');
-const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/select');
+import SsoModel from '../models/sso'
+import SsoDefaultRolesService from './ssoDefaultRolesService'
+import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select'

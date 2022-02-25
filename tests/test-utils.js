@@ -1,4 +1,4 @@
-const faker = require('faker');
+import faker from 'faker'
 
 const user = faker.helpers.createCard();
 user.email = generateRandomBusinessEmail();
@@ -203,7 +203,7 @@ const scheduleEventTabIndexes = {
     ADVANCE: 4,
 };
 
-module.exports = {
+export default {
     HOME_URL,
     ACCOUNTS_URL,
     ADMIN_DASHBOARD_URL,

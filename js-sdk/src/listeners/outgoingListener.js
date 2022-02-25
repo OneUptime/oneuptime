@@ -1,9 +1,9 @@
 'use strict';
 
 /*eslint-disable no-unused-vars*/
-const Http = require('http');
-const Https = require('https');
-const { v4: uuidv4 } = require('uuid');
+import Http from 'http'
+import Https from 'https'
+import { v4: uuidv4 } from 'uuid'
 
 class OutgoingListener {
     #start;

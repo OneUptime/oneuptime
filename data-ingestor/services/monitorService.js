@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     updateCriterion: async function(_id, lastMatchedCriterion) {
         try {
             await monitorCollection.updateOne(
@@ -178,7 +178,7 @@ module.exports = {
     },
 };
 
-const ErrorService = require('./errorService');
-const moment = require('moment');
+import ErrorService from './errorService'
+import moment from 'moment'
 const monitorCollection = global.db.collection('monitors');
-const { ObjectId } = require('mongodb');
+import { ObjectId } from 'mongodb'

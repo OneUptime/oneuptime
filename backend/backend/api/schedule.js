@@ -1,10 +1,10 @@
-const express = require('express');
-const ScheduleService = require('../services/scheduleService');
+import express from 'express'
+import ScheduleService from '../services/scheduleService'
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -515,4 +515,4 @@ router.post(
     }
 );
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const express = require('express');
-const { sendErrorResponse, sendSuccessResponse } = require('../utils/response');
+import express from 'express'
+import { sendErrorResponse, sendSuccessResponse } from '../utils/response'
 const router = express.Router();
-const jsScript = require('../utils/scriptSandbox');
-const bashScript = require('../utils/bash');
+import jsScript from '../utils/scriptSandbox'
+import bashScript from '../utils/bash'
 
 router.post('/js', async function(req, res) {
     try {
@@ -24,4 +24,4 @@ router.post('/bash', async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,5 +1,5 @@
-const { find, update } = require('../util/db');
-const { ObjectId } = require('mongodb');
+import { find, update } from '../util/db'
+import { ObjectId } from 'mongodb'
 
 const monitorCollection = 'monitors';
 const incidentCollection = 'incidents';
@@ -46,4 +46,4 @@ async function run() {
     return `Script completed`;
 }
 
-module.exports = run;
+export default run;

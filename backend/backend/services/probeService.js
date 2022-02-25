@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const _this = this;
         let probeKey;
@@ -1172,7 +1172,7 @@ module.exports = {
     },
 };
 
-const _ = require('lodash');
+import _ from 'lodash'
 
 const incomingCheckAnd = (payload, condition) => {
     let validity = false;
@@ -6328,19 +6328,19 @@ const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-const ProbeModel = require('../models/probe');
-const RealTimeService = require('./realTimeService');
-const ErrorService = require('common-server/utils/error');
-const { v1: uuidv1 } = require('uuid');
-const MonitorService = require('./monitorService');
-const MonitorStatusService = require('./monitorStatusService');
-const MonitorLogService = require('./monitorLogService');
-const LighthouseLogService = require('./lighthouseLogService');
-const IncidentService = require('./incidentService');
-const IncidentTimelineService = require('./incidentTimelineService');
-const moment = require('moment');
-const { some, forEach } = require('p-iteration');
-const vm = require('vm');
-const AutomatedScriptService = require('./automatedScriptService');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ProbeModel from '../models/probe'
+import RealTimeService from './realTimeService'
+import ErrorService from 'common-server/utils/error'
+import { v1: uuidv1 } from 'uuid'
+import MonitorService from './monitorService'
+import MonitorStatusService from './monitorStatusService'
+import MonitorLogService from './monitorLogService'
+import LighthouseLogService from './lighthouseLogService'
+import IncidentService from './incidentService'
+import IncidentTimelineService from './incidentTimelineService'
+import moment from 'moment'
+import { some, forEach } from 'p-iteration'
+import vm from 'vm'
+import AutomatedScriptService from './automatedScriptService'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

@@ -1,6 +1,6 @@
-const fs = require('fs');
-const Path = require('path');
-const { promisify } = require('util');
+import fs from 'fs'
+import Path from 'path'
+import { promisify } from 'util'
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
@@ -51,7 +51,7 @@ async function deleteFolderRecursive(dir) {
     }
 }
 
-module.exports = {
+export default {
     readFileContent,
     deleteFile,
     deleteFolderRecursive,

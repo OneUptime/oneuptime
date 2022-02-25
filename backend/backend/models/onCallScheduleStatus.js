@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
@@ -36,4 +36,4 @@ const schema = new Schema({
     alertedEveryone: { type: Boolean, default: false }, //this happens when everyone in the scheudle has been alerted and they still ignore the incident.
 });
 
-module.exports = mongoose.model('OnCallScheduleStatus', schema);
+export default mongoose.model('OnCallScheduleStatus', schema);

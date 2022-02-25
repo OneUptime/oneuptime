@@ -1,23 +1,23 @@
-const crypto = require('crypto');
-const EncryptionKeys = require('./encryptionKeys');
+import crypto from 'crypto'
+import EncryptionKeys from './encryptionKeys'
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-const { v1: uuidv1 } = require('uuid');
-const fs = require('fs');
-const Path = require('path');
-const { promisify } = require('util');
+import { v1: uuidv1 } from 'uuid'
+import fs from 'fs'
+import Path from 'path'
+import { promisify } from 'util'
 const unlink = promisify(fs.unlink);
-const { spawn } = require('child_process');
-const ErrorService = require('./errorService');
+import { spawn } from 'child_process'
+import ErrorService from './errorService'
 const {
     updateContainerSecurityToScanning,
     updateContainerSecurityLogService,
     updateContainerSecurityScanTime,
     updateContainerSecurityToFailed,
 } = require('./containerSecurityUpdate');
-const flattenArray = require('../utils/flattenArray');
+import flattenArray from '../utils/flattenArray'
 
-module.exports = {
+export default {
     scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);

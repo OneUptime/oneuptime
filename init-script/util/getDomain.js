@@ -13,7 +13,7 @@ const secondTLDs = 'com|edu|gov|net|mil|org|nom|sch|caa|res|off|gob|int|tur|ip6|
     '|'
 );
 
-module.exports = function getDomain(s) {
+export default function getDomain(s) {
     s = s.replace(/^www\./, '');
 
     const parts = s.split('.');

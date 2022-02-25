@@ -1,6 +1,6 @@
-const express = require('express');
-const ReportService = require('../services/reportService');
-const { isAuthorized } = require('../middlewares/authorization');
+import express from 'express'
+import ReportService from '../services/reportService'
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -135,4 +135,4 @@ router.get(
     }
 );
 
-module.exports = router;
+export default router;

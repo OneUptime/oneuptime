@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 
@@ -22,4 +22,4 @@ const zapierSchema = new Schema({
     },
 });
 
-module.exports = mongoose.model('Zapier', zapierSchema);
+export default mongoose.model('Zapier', zapierSchema);

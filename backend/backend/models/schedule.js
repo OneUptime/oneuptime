@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const scheduleSchema = new Schema({
@@ -38,4 +38,4 @@ const scheduleSchema = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
     isDefault: { type: Boolean, default: false },
 });
-module.exports = mongoose.model('Schedule', scheduleSchema);
+export default mongoose.model('Schedule', scheduleSchema);

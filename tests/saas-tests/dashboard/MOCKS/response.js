@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     signup: {
         status: 200,
         contentType: 'application/json',

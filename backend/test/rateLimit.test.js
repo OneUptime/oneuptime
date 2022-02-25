@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
 require('dotenv').config();
 const requests = [];
@@ -8,7 +8,7 @@ let app, request, sandbox;
 describe('API limit rate', function() {
     this.timeout(10000);
     before(function(done) {
-        const sinon = require('sinon');
+        import sinon from 'sinon'
         sandbox = sinon.createSandbox();
         sandbox
             .stub(process.env, 'RATE_LIMITTER_TIME_PERIOD_IN_MS')

@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const subscriberAlertSchema = new Schema({
@@ -40,4 +40,4 @@ const subscriberAlertSchema = new Schema({
     totalSubscribers: { type: Number },
     identification: { type: Number },
 });
-module.exports = mongoose.model('SubscriberAlert', subscriberAlertSchema);
+export default mongoose.model('SubscriberAlert', subscriberAlertSchema);

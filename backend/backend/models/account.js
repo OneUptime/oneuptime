@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const accountSchema = new Schema(
@@ -14,4 +14,4 @@ const accountSchema = new Schema(
     },
     { timestamps: true }
 );
-module.exports = mongoose.model('Account', accountSchema);
+export default mongoose.model('Account', accountSchema);

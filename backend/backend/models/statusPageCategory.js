@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const statusPageCategorySchema = new Schema(
@@ -30,4 +30,4 @@ const statusPageCategorySchema = new Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model('StatusPageCategory', statusPageCategorySchema);
+export default mongoose.model('StatusPageCategory', statusPageCategorySchema);

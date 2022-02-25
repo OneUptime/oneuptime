@@ -1,7 +1,7 @@
-const start = require('./start');
-const end = require('./end');
+import start from './start'
+import end from './end'
 
-module.exports = {
+export default {
     start,
     end,
 };

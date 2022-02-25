@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const lighthouseLogSchema = new Schema({
@@ -17,4 +17,4 @@ const lighthouseLogSchema = new Schema({
     },
     scanning: Boolean,
 });
-module.exports = mongoose.model('LighthouseLog', lighthouseLogSchema);
+export default mongoose.model('LighthouseLog', lighthouseLogSchema);

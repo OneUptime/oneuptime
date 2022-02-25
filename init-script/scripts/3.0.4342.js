@@ -1,4 +1,4 @@
-const { find, update, save } = require('../util/db');
+import { find, update, save } from '../util/db'
 
 const monitorCollection = 'monitors';
 const projectsCollection = 'projects';
@@ -86,4 +86,4 @@ async function run() {
         }
     }
 }
-module.exports = run;
+export default run;

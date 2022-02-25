@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
-const ProjectModel = require('../../backend/models/project');
-const ErrorService = require('../../backend/services/errorService');
+import mongoose from 'mongoose'
+import ProjectModel from '../../backend/models/project'
+import ErrorService from '../../backend/services/errorService'
 
-module.exports = {
+export default {
     /**
      * adds team members to a project
      * @param { {userId, role}[]} teamMembers

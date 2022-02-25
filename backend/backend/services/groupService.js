@@ -1,6 +1,6 @@
-const GroupModel = require('../models/groups');
+import GroupModel from '../models/groups'
 
-module.exports = {
+export default {
     findBy: async function(query, limit, skip) {
         if (!skip) skip = 0;
 

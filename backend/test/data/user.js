@@ -1,6 +1,6 @@
-const StringUtil = require('../utils/string');
+import StringUtil from '../utils/string'
 
-module.exports = {
+export default {
     randomUser: () => {
         return {
             name: 'John Smith',

@@ -1,5 +1,5 @@
-const { exec } = require('child_process');
-const { performance } = require('perf_hooks');
+import { exec } from 'child_process'
+import { performance } from 'perf_hooks'
 
 const run = async script => {
     const start = performance.now();

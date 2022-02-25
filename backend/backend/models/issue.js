@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const issueSchema = new Schema({
@@ -54,4 +54,4 @@ issueSchema.virtual('errorTracker', {
     justOne: true,
 });
 
-module.exports = mongoose.model('Issue', issueSchema);
+export default mongoose.model('Issue', issueSchema);

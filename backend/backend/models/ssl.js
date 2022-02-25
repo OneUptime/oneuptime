@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const sslSchema = new Schema(
@@ -11,4 +11,4 @@ const sslSchema = new Schema(
     },
     { timestamps: true }
 );
-module.exports = mongoose.model('Ssl', sslSchema);
+export default mongoose.model('Ssl', sslSchema);

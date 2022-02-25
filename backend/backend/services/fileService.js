@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findOneBy: async function(query) {
         const gfs = await Grid(mongoose.connection.db, mongoose.mongo);
         gfs.collection('uploads');
@@ -32,5 +32,5 @@ module.exports = {
     },
 };
 
-const mongoose = require('../config/db');
-const Grid = require('gridfs-stream');
+import mongoose from '../config/db'
+import Grid from 'gridfs-stream'

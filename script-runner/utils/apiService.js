@@ -1,6 +1,6 @@
-const { getApi, postApi } = require('./api');
+import { getApi, postApi } from './api'
 
-module.exports = {
+export default {
     ping: async function(monitorId, data) {
         return await postApi(`script-runner/ping/${monitorId}`, data);
     },

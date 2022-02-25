@@ -1,4 +1,4 @@
-module.exports = [
+export default [
     {
         allowedVariables: [
             '{{incidentTime}} : Time at which this incident occurred.',

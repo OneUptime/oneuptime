@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express'
 const app = express();
 
 const { NODE_ENV } = process.env;
@@ -20,10 +20,10 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const path = require('path');
-const http = require('http').createServer(app);
-const bodyParser = require('body-parser');
-const cors = require('cors');
+import path from 'path'
+import http from 'http').createServer(app
+import bodyParser from 'body-parser'
+import cors from 'cors'
 
 app.use(cors());
 
@@ -77,7 +77,7 @@ app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
 
-module.exports = app;
+export default app;
 module.exports.close = function() {
     server.close();
 };

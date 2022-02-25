@@ -1,9 +1,9 @@
 const express = require('express')
 // If your env supports require                  
-const OneUptime = require('oneuptime-staging');
+import OneUptime from 'oneuptime-staging'
 const app = express()
 
-const axios = require('axios');
+import axios from 'axios'
 
     
 // set up performance tracker configuration

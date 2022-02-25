@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const monitorLogSchema = new Schema({
@@ -35,4 +35,4 @@ const monitorLogSchema = new Schema({
         statusText: String,
     },
 });
-module.exports = mongoose.model('MonitorLog', monitorLogSchema);
+export default mongoose.model('MonitorLog', monitorLogSchema);

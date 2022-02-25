@@ -1,31 +1,31 @@
-const express = require('express');
-const UserService = require('../services/userService');
-const ComponentService = require('../services/componentService');
-const NotificationService = require('../services/notificationService');
-const RealTimeService = require('../services/realTimeService');
-const ApplicationLogService = require('../services/applicationLogService');
-const MonitorService = require('../services/monitorService');
-const ApplicationSecurityService = require('../services/applicationSecurityService');
-const ContainerSecurityService = require('../services/containerSecurityService');
-const LogService = require('../services/logService');
-const ApplicationSecurityLogService = require('../services/applicationSecurityLogService');
-const ContainerSecurityLogService = require('../services/containerSecurityLogService');
-const ErrorTrackerService = require('../services/errorTrackerService');
-const IssueService = require('../services/issueService');
-const PerformanceTrackerService = require('../services/performanceTrackerService');
-const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
-const ErrorService = require('common-server/utils/error');
+import express from 'express'
+import UserService from '../services/userService'
+import ComponentService from '../services/componentService'
+import NotificationService from '../services/notificationService'
+import RealTimeService from '../services/realTimeService'
+import ApplicationLogService from '../services/applicationLogService'
+import MonitorService from '../services/monitorService'
+import ApplicationSecurityService from '../services/applicationSecurityService'
+import ContainerSecurityService from '../services/containerSecurityService'
+import LogService from '../services/logService'
+import ApplicationSecurityLogService from '../services/applicationSecurityLogService'
+import ContainerSecurityLogService from '../services/containerSecurityLogService'
+import ErrorTrackerService from '../services/errorTrackerService'
+import IssueService from '../services/issueService'
+import PerformanceTrackerService from '../services/performanceTrackerService'
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService'
+import ErrorService from 'common-server/utils/error'
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const moment = require('moment');
+import moment from 'moment'
 
 // Route
 // Description: Adding / Updating a new component to the project.
@@ -774,4 +774,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

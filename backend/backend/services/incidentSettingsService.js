@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         const {
             projectId,
@@ -188,6 +188,6 @@ module.exports = {
     },
 };
 
-const incidentSettingsModel = require('../models/incidentSettings');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import incidentSettingsModel from '../models/incidentSettings'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

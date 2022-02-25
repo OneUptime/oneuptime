@@ -1,4 +1,4 @@
-const faker = require('faker');
+import faker from 'faker'
 
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 
@@ -26,7 +26,7 @@ function generateRandomString() {
         .substring(10);
 }
 
-module.exports = {
+export default {
     user,
     puppeteerLaunchConfig,
     generateRandomString,

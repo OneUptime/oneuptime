@@ -1,6 +1,6 @@
-const ProbeService = require('../services/probeService');
+import ProbeService from '../services/probeService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const ErrorService = require('common-server/utils/error');
+import ErrorService from 'common-server/utils/error'
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 
 // TODO: Make sure this is stored in redis.
@@ -15,7 +15,7 @@ const CLUSTER_KEY = process.env.CLUSTER_KEY;
  */
 global.probes = {};
 
-module.exports = {
+export default {
     isAuthorizedProbe: async function(req, res, next) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;

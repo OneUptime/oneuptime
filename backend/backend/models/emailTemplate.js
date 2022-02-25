@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const emailTemplateSchema = new Schema({
@@ -30,4 +30,4 @@ const emailTemplateSchema = new Schema({
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
 
-module.exports = mongoose.model('EmailTemplate', emailTemplateSchema);
+export default mongoose.model('EmailTemplate', emailTemplateSchema);

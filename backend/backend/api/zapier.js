@@ -1,8 +1,8 @@
-const express = require('express');
-const ZapierService = require('../services/zapierService');
-const MonitorService = require('../services/monitorService');
-const ProjectService = require('../services/projectService');
-const { isAuthorized } = require('../middlewares/authorization');
+import express from 'express'
+import ZapierService from '../services/zapierService'
+import MonitorService from '../services/monitorService'
+import ProjectService from '../services/projectService'
+import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
@@ -263,4 +263,4 @@ router.delete('/unsubscribe/:id', isAuthorized, async function(req, res) {
     }
 });
 
-module.exports = router;
+export default router;

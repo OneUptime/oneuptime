@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, skip, limit, select, populate }) {
         if (!skip) skip = 0;
 
@@ -245,6 +245,6 @@ module.exports = {
         return 'Integration(s) Removed Successfully!';
     },
 };
-const IntegrationModel = require('../models/integration');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import IntegrationModel from '../models/integration'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

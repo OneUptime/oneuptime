@@ -1,4 +1,4 @@
-module.exports = [
+export default [
     {
         allowedVariables: [
             '{{userName}} : User display name.',

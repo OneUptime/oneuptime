@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     attachments: [
         {
             text: 'An incident occured with your project',

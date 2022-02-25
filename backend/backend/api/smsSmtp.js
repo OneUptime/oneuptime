@@ -1,8 +1,8 @@
-const express = require('express');
-const SmsSmtpService = require('../services/smsSmtpService');
-const TwilioService = require('../services/twilioService');
+import express from 'express'
+import SmsSmtpService from '../services/smsSmtpService'
+import TwilioService from '../services/twilioService'
 const router = express.Router();
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -101,4 +101,4 @@ router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function(
     }
 });
 
-module.exports = router;
+export default router;

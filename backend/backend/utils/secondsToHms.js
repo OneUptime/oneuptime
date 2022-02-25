@@ -28,4 +28,4 @@ const secondsToHms = value => {
     return '0 sec';
 };
 
-module.exports = secondsToHms;
+export default secondsToHms;

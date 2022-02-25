@@ -1,4 +1,4 @@
-const mongoose = require('../config/db');
+import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 const probeSchema = new Schema({
@@ -12,4 +12,4 @@ const probeSchema = new Schema({
     probeImage: { type: String },
 });
 
-module.exports = mongoose.model('Probe', probeSchema);
+export default mongoose.model('Probe', probeSchema);

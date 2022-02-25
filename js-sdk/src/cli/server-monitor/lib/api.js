@@ -8,14 +8,14 @@
 
 'use strict';
 
-const dotenv = require('dotenv');
+import dotenv from 'dotenv'
 dotenv.config();
 
-const Promise = require('promise');
-const cron = require('cron');
-const si = require('systeminformation');
-const { get, post } = require('./helpers');
-const logger = require('./logger');
+import Promise from 'promise'
+import cron from 'cron'
+import si from 'systeminformation'
+import { get, post } from './helpers'
+import logger from './logger'
 const {
     onlineTestData,
     degradedTestData,
@@ -182,7 +182,7 @@ const ping = (
  * @return {Object} The server monitor handlers.
  */
 
-module.exports = function(config, apiUrl, apiKey, monitorId) {
+export default function(config, apiUrl, apiKey, monitorId) {
     let pingServer,
         projectId = config,
         interval,

@@ -1,5 +1,5 @@
-const ErrorService = require('common-server/utils/error');
-const PerformanceTrackerService = require('../services/performanceTrackerService');
+import ErrorService from 'common-server/utils/error'
+import PerformanceTrackerService from '../services/performanceTrackerService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
@@ -35,4 +35,4 @@ const _this = {
     },
 };
 
-module.exports = _this;
+export default _this;

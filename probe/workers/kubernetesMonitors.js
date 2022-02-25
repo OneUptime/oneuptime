@@ -1,14 +1,14 @@
-const { spawn } = require('child_process');
-const fs = require('fs');
-const Path = require('path');
-const fetch = require('node-fetch-commonjs');
-const { v4: uuidv4 } = require('uuid');
-const ApiService = require('../utils/apiService');
-const ErrorService = require('../utils/errorService');
-const { serverUrl } = require('../utils/config');
-const { deleteFile } = require('../utils/fsHandlers');
+import { spawn } from 'child_process'
+import fs from 'fs'
+import Path from 'path'
+import fetch from 'node-fetch-commonjs'
+import { v4: uuidv4 } from 'uuid'
+import ApiService from '../utils/apiService'
+import ErrorService from '../utils/errorService'
+import { serverUrl } from '../utils/config'
+import { deleteFile } from '../utils/fsHandlers'
 
-module.exports = {
+export default {
     run: async function({ monitor }) {
         try {
             if (

@@ -1,5 +1,5 @@
-const { find, update } = require('../util/db');
-const getSlug = require('../util/getSlug');
+import { find, update } from '../util/db'
+import getSlug from '../util/getSlug'
 const statusPageCollection = 'statuspages';
 
 async function run() {
@@ -20,4 +20,4 @@ async function run() {
     }
     return `Script ran for ${statusPages.length} status pages.`;
 }
-module.exports = run;
+export default run;

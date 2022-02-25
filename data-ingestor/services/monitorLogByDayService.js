@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         try {
             const LogDay = {};
@@ -86,7 +86,7 @@ module.exports = {
     },
 };
 
-const { ObjectId } = require('mongodb');
-const ErrorService = require('../services/errorService');
+import { ObjectId } from 'mongodb'
+import ErrorService from '../services/errorService'
 const monitorLogByDayCollection = global.db.collection('monitorlogbydays');
-const moment = require('moment');
+import moment from 'moment'

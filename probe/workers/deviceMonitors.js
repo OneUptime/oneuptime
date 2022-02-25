@@ -1,10 +1,10 @@
-const moment = require('moment');
-const ApiService = require('../utils/apiService');
-const ErrorService = require('../utils/errorService');
+import moment from 'moment'
+import ApiService from '../utils/apiService'
+import ErrorService from '../utils/errorService'
 // it collects all IOT device monitors then check the last time they where pinged
 // If the difference is greater than 2 minutes
 // creates incident if a website is down and resolves it when they come back up
-module.exports = {
+export default {
     ping: async monitor => {
         try {
             const newDate = new moment();

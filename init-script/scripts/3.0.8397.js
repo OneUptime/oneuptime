@@ -1,4 +1,4 @@
-const { find, update } = require('../util/db');
+import { find, update } from '../util/db'
 
 const incidentsCollection = 'incidents';
 
@@ -17,4 +17,4 @@ async function run() {
     }
 }
 
-module.exports = run;
+export default run;

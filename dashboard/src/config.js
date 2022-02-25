@@ -7,7 +7,7 @@ import moment from 'moment';
 import { isEmpty } from 'lodash';
 // import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
-const dJSON = require('dirty-json');
+import dJSON from 'dirty-json'
 
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -1267,7 +1267,7 @@ export const metricsQuickStart = {
     import OneUptime from 'oneuptime';
                                     
     // If your env supports require                  
-    const OneUptime = require('oneuptime');
+    import OneUptime from 'oneuptime'
     
     // set up performance tracker configuration
     const options = {                    
@@ -1455,7 +1455,7 @@ $ npm install oneuptime`,
 import OneUptime from 'oneuptime';
                                 
 // If your env supports require                  
-const OneUptime = require('oneuptime');
+import OneUptime from 'oneuptime'
 
 // set up tracking configurations                    
 const options = {                    
@@ -1492,7 +1492,7 @@ $ npm install oneuptime`,
 import OneUptime from 'oneuptime';
                                 
 // If your env supports require                  
-const OneUptime = require('oneuptime');
+import OneUptime from 'oneuptime'
                                                     
 // constructor                    
 const logger = new OneUptime.Logger(

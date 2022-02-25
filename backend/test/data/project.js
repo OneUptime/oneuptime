@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     newProject: {
         projectName: 'Test Project',
         apiKey: '071793c0-a72e-11e8-95da-4d5dc22b5dc1',

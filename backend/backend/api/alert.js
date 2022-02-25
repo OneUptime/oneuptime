@@ -1,12 +1,12 @@
-const express = require('express');
-const alertService = require('../services/alertService');
-const IncidentService = require('../services/incidentService');
-const alertChargeService = require('../services/alertChargeService');
-const path = require('path');
-const fs = require('fs');
+import express from 'express'
+import alertService from '../services/alertService'
+import IncidentService from '../services/incidentService'
+import alertChargeService from '../services/alertChargeService'
+import path from 'path'
+import fs from 'fs'
 
 const router = express.Router();
-const { isAuthorized } = require('../middlewares/authorization');
+import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const isUserOwner = require('../middlewares/project').isUserOwner;
@@ -216,4 +216,4 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
     }
 });
 
-module.exports = router;
+export default router;

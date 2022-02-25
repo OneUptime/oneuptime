@@ -1,7 +1,7 @@
-const chai = require('chai');
+import chai from 'chai'
 chai.use(require('chai-http'));
 const expect = require('chai').expect;
-const decode = require('urldecode');
+import decode from 'urldecode'
 
 const methods = {
     getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
@@ -342,7 +342,7 @@ const methods = {
         const {
             res: { text: html },
         } = samlResponsePage;
-        const { parse } = require('node-html-parser');
+        import { parse } from 'node-html-parser'
         const root = parse(html);
         const input = root.querySelectorAll('input')[1];
         const value = input.rawAttrs.split(' ')[2];
@@ -367,4 +367,4 @@ const proxy = new Proxy(methods, {
     },
 });
 
-module.exports = proxy;
+export default proxy;

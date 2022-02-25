@@ -1,5 +1,5 @@
 const PKG_VERSION = require('../package.json').version;
-const { update } = require('../util/db');
+import { update } from '../util/db'
 
 async function run() {
     const collection = 'globalconfigs';
@@ -7,4 +7,4 @@ async function run() {
     await update(collection, { name }, { value: PKG_VERSION });
 }
 
-module.exports = run;
+export default run;

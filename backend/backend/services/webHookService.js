@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     // process external subscriber webhook
     sendSubscriberNotification: async function(
         subscriber,
@@ -358,11 +358,11 @@ module.exports = {
     },
 };
 
-const IntegrationService = require('./integrationService');
-const axios = require('axios');
-const ProjectService = require('./projectService');
-const MonitorStatusService = require('./monitorStatusService');
-const ErrorService = require('common-server/utils/error');
+import IntegrationService from './integrationService'
+import axios from 'axios'
+import ProjectService from './projectService'
+import MonitorStatusService from './monitorStatusService'
+import ErrorService from 'common-server/utils/error'
 const {
     PROJECT_WEBHOOK,
     EXTERNAL_SUBSCRIBER_WEBHOOK,

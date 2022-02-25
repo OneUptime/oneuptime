@@ -17,11 +17,11 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
+import express from 'express'
 const app = express();
-const path = require('path');
-const bodyParser = require('body-parser');
-const http = require('http');
+import path from 'path'
+import bodyParser from 'body-parser'
+import http from 'http'
 
 const { NODE_ENV } = process.env;
 

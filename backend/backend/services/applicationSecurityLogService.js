@@ -1,8 +1,8 @@
-const ApplicationSecurityLogModel = require('../models/applicationSecurityLog');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ApplicationSecurityLogModel from '../models/applicationSecurityLog'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'
 
-module.exports = {
+export default {
     create: async function({ securityId, componentId, data }) {
         if (!securityId) {
             const error = new Error('Security ID is required');

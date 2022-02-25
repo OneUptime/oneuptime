@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     findBy: async function({ query, limit, skip }) {
         try {
             if (!skip) skip = 0;
@@ -44,5 +44,5 @@ module.exports = {
 };
 
 const resourceCategoryCollection = global.db.collection('resourcecategories');
-const { ObjectId } = require('mongodb');
-const ErrorService = require('./errorService');
+import { ObjectId } from 'mongodb'
+import ErrorService from './errorService'

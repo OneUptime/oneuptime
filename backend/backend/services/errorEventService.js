@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     create: async function(data) {
         // prepare error event model
         const errorEvent = new ErrorEventModel();
@@ -389,10 +389,10 @@ module.exports = {
     },
 };
 
-const ErrorEventModel = require('../models/errorEvent');
-const IssueService = require('./issueService');
-const IssueMemberService = require('./issueMemberService');
-const IssueTimelineService = require('./issueTimelineService');
-const moment = require('moment');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
+import ErrorEventModel from '../models/errorEvent'
+import IssueService from './issueService'
+import IssueMemberService from './issueMemberService'
+import IssueTimelineService from './issueTimelineService'
+import moment from 'moment'
+import handleSelect from '../utils/select'
+import handlePopulate from '../utils/populate'

@@ -1,10 +1,10 @@
-const mongoose = require('../config/db');
-const ProjectService = require('../services/projectService');
+import mongoose from '../config/db'
+import ProjectService from '../services/projectService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ObjectID = mongoose.Types.ObjectId;
-const MonitorService = require('../services/monitorService');
+import MonitorService from '../services/monitorService'
 
-module.exports = {
+export default {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
     // Param 1: req.headers-> {token}

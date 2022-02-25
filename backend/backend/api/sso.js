@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -7,7 +7,7 @@ const isScaleOrMasterAdmin = require('../middlewares/user')
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const SsoService = require('../services/ssoService');
+import SsoService from '../services/ssoService'
 
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     const skip = req.query.skip || 0;
@@ -99,4 +99,4 @@ router.get('/:projectId/ssos', getUser, isScaleOrMasterAdmin, async function(
     }
 });
 
-module.exports = router;
+export default router;

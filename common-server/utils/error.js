@@ -1,6 +1,6 @@
-const logger = require('./logger');
+import logger from './logger'
 
-module.exports = {
+export default {
     // logdata would be undefined for some logs
     // eg: realtimeservice logs, etc
     log: (functionName, err, logdata = {}) => {

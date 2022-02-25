@@ -1,4 +1,4 @@
-const { find, update } = require('../util/db');
+import { find, update } from '../util/db'
 
 const PROJECT_COLLECTION = 'projects';
 async function run() {
@@ -56,4 +56,4 @@ async function run() {
     );
 }
 
-module.exports = run;
+export default run;

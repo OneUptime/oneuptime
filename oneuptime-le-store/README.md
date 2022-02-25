@@ -9,7 +9,7 @@ This module implements a dead-simple, api call to OneUptime backend to store acc
 ## Usage
 
     // make sure greenlock is already installed
-    const Greenlock = require('greenlock');
+    import Greenlock from 'greenlock'
 
     Greenlock.create({
         store: {
