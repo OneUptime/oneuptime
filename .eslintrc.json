@@ -16,6 +16,7 @@
         "jest": true
     },
     "plugins": [
+
         "react",
         "jsx-a11y",
         "progress"
@@ -39,7 +40,7 @@
         "workbox" :true,
         "importScripts" :true
     },
-    "parser": "babel-eslint",
+    "parser": "@typescript-eslint/parser",
     "rules": {
         "no-fallthrough": "error",
         "no-unreachable": "error",
