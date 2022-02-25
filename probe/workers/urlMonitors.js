@@ -1,6 +1,6 @@
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
-
+const logger = require('../../common-server/utils/logger');
 const pingfetch = require('../utils/pingFetch');
 
 // it collects all monitors then ping them one by one to store their response
@@ -19,6 +19,9 @@ module.exports = {
                             monitor.data.url
                         );
 
+                        logger.info(
+                            `Monitor ID ${monitor._id}: Start saving data to ingestor.`
+                        );
                         const response = await ApiService.ping(monitor._id, {
                             monitor,
                             res,
@@ -27,6 +30,9 @@ module.exports = {
                             type: monitor.type,
                             retryCount,
                         });
+                        logger.info(
+                            `Monitor ID ${monitor._id}: End saving data to ingestor.`
+                        );
                         if (response && !response.retry) {
                             retry = false;
                         } else {
