@@ -23,7 +23,8 @@
         "eslint-plugin-react-hooks": "^4.2.0",
         "husky": "^4.3.5",
         "lint-staged": "^9.5.0",
-        "prettier": "^1.19.1"
+        "prettier": "^1.19.1",
+        "ts-migrate": "^0.1.28"
     },
     "scripts": {
         "count-total-lines-of-code": "git grep ^ | wc -l",
