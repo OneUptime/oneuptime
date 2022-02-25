@@ -46,6 +46,8 @@ spec:
                             key: clusterkey
                       - name: NODE_ENV
                         value: {{ $.Values.nodeEnv }}
+                      - name: DB_NAME
+                        value: {{ $.Values.mongo.databaseName }}
                       - name: NODE_NAME
                         valueFrom:
                           fieldRef:

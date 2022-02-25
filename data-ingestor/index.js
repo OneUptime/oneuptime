@@ -9,7 +9,7 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
-const { mongoUrl } = require('./utils/config');
+const { mongoUrl, databaseName } = require('./utils/config');
 const MongoClient = require('mongodb').MongoClient;
 
 process.on('exit', () => {
@@ -46,7 +46,7 @@ const client = getMongoClient();
 })();
 
 // attach the database to global object
-global.db = client.db('oneuptimedb');
+global.db = client.db(databaseName);
 
 app.use(cors());
 
