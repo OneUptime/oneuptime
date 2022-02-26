@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -21,8 +22,9 @@ class PerformanceTracker extends Component {
         requesting: false,
     };
 
-    prevClicked = (projectId, componentId, skip, limit) => {
+    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPerformanceTrackers' does not exist... Remove this comment to see the full error message
             .fetchPerformanceTrackers({
                 projectId,
                 componentId,
@@ -34,16 +36,20 @@ class PerformanceTracker extends Component {
                 this.setState(prevState => {
                     return {
                         page:
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                             prevState.page === 1
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 ? prevState.page
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 : prevState.page - 1,
                     };
                 });
             });
     };
 
-    nextClicked = (projectId, componentId, skip, limit) => {
+    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPerformanceTrackers' does not exist... Remove this comment to see the full error message
             .fetchPerformanceTrackers({
                 projectId,
                 componentId,
@@ -54,6 +60,7 @@ class PerformanceTracker extends Component {
             .then(() => {
                 this.setState(prevState => {
                     return {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                         page: prevState.page + 1,
                     };
                 });
@@ -61,7 +68,9 @@ class PerformanceTracker extends Component {
     };
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadPage' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.loadPage('Performance Tracker');
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
             this.setState({ requesting: true });
@@ -71,21 +80,28 @@ class PerformanceTracker extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             prevProps.componentId !== this.props.componentId ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             prevProps.componentSlug !== this.props.componentSlug
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             const componentId = this.props.componentId;
             const projectId =
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 this.props.currentProject && this.props.currentProject._id;
             if (projectId) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
                 this.props.fetchComponent(projectId, this.props.componentSlug);
             }
             if (projectId && componentId) {
                 this.setRequesting();
                 this.props
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPerformanceTrackers' does not exist... Remove this comment to see the full error message
                     .fetchPerformanceTrackers({
                         projectId,
                         componentId,
@@ -100,11 +116,14 @@ class PerformanceTracker extends Component {
     setRequesting = () => this.setState({ requesting: true });
 
     ready = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
         const componentId = this.props.componentId;
         const projectId =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
             this.props
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPerformanceTrackers' does not exist... Remove this comment to see the full error message
                 .fetchPerformanceTrackers({
                     projectId,
                     componentId,
@@ -117,40 +136,52 @@ class PerformanceTracker extends Component {
 
     renderPerformanceTrackerList = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
             performanceTrackerList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectSlug' does not exist on type 'Rea... Remove this comment to see the full error message
             projectSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
         } = this.props;
         return performanceTrackerList.performanceTrackers.map(
-            performanceTracker => (
-                <PerformanceTrackerList
-                    key={performanceTracker.name}
-                    performanceTracker={performanceTracker}
-                    componentSlug={componentSlug}
-                    projectSlug={projectSlug}
-                    projectId={component.projectId._id || component.projectId}
-                    requesting={performanceTrackerList.requesting}
-                />
-            )
+            (performanceTracker: $TSFixMe) => <PerformanceTrackerList
+                key={performanceTracker.name}
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; performanceTracker: any; compone... Remove this comment to see the full error message
+                performanceTracker={performanceTracker}
+                componentSlug={componentSlug}
+                projectSlug={projectSlug}
+                projectId={component.projectId._id || component.projectId}
+                requesting={performanceTrackerList.requesting}
+            />
         );
     };
 
     toggleForm = () =>
         this.setState(prevState => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showNewPerformanceTrackerForm' does not ... Remove this comment to see the full error message
             showNewPerformanceTrackerForm: !prevState.showNewPerformanceTrackerForm,
         }));
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         if (this.props.currentProject) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             document.title = this.props.currentProject.name + ' Dashboard';
         }
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
             performanceTrackerList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberOfPage' does not exist on type 'Re... Remove this comment to see the full error message
             numberOfPage,
         } = this.props;
 
@@ -175,6 +206,7 @@ class PerformanceTracker extends Component {
         const projectId = currentProject ? currentProject._id : '';
 
         const isEmpty =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
             this.props.performanceTrackerList.performanceTrackers.length === 0;
         return (
             <Fade>
@@ -183,6 +215,7 @@ class PerformanceTracker extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -197,6 +230,7 @@ class PerformanceTracker extends Component {
                             : 'Performance Tracker'
                     }
                     pageTitle="Performance Tracker"
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: any; name: string; pageTitle: strin... Remove this comment to see the full error message
                     addBtn={!isEmpty}
                     btnText="Create New Performance Tracker"
                     toggleForm={this.toggleForm}
@@ -205,12 +239,14 @@ class PerformanceTracker extends Component {
                     <div>
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
                                 this.props.performanceTrackerList.requesting ||
                                 this.state.requesting
                             }
                         >
                             <LoadingState />
                         </ShouldRender>
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
                         {!this.props.performanceTrackerList.requesting &&
                             !this.state.requesting &&
                             !this.state.showNewPerformanceTrackerForm &&
@@ -218,6 +254,7 @@ class PerformanceTracker extends Component {
                             this.renderPerformanceTrackerList()}
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
                                 !this.props.performanceTrackerList.requesting &&
                                 !this.state.requesting
                             }
@@ -233,7 +270,9 @@ class PerformanceTracker extends Component {
                                     <NewPerformanceTracker
                                         index={2000}
                                         formKey="NewPerformanceTrackerForm"
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                                         componentId={this.props.componentId}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                         componentSlug={this.props.componentSlug}
                                         toggleForm={this.toggleForm}
                                         showCancelBtn={!isEmpty}
@@ -243,6 +282,7 @@ class PerformanceTracker extends Component {
                         </ShouldRender>
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerList' does not exist o... Remove this comment to see the full error message
                                 !this.props.performanceTrackerList.requesting &&
                                 !this.state.requesting &&
                                 !this.state.showNewPerformanceTrackerForm &&
@@ -251,6 +291,7 @@ class PerformanceTracker extends Component {
                         >
                             <div
                                 className="Box-root Card-shadow--medium"
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                 tabIndex="0"
                             >
                                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -378,9 +419,10 @@ class PerformanceTracker extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 PerformanceTracker.displayName = 'PerformanceTracker';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchPerformanceTrackers,
@@ -391,7 +433,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const currentProject = state.project.currentProject;
     const { componentSlug, slug } = ownProps.match.params;
 
@@ -409,6 +451,7 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 PerformanceTracker.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,

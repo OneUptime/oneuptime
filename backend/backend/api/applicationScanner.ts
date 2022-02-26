@@ -92,49 +92,62 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
         const selectApplicationSecurityLog = '_id securityId componentId data';
 
         const findLog = await ApplicationSecurityLogService.findOneBy({
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             query: { _id: securityLog._id },
             populate: populateApplicationSecurityLog,
             select: selectApplicationSecurityLog,
         });
 
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
         const project = await ProjectService.findOneBy({
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             query: { _id: findLog.componentId.projectId },
             select: '_id name users',
         });
 
         const userIds = project.users
-            .filter(e => e.role !== 'Viewer')
-            .map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+            .filter((e: $TSFixMe) => e.role !== 'Viewer')
+            .map((e: $TSFixMe) => ({
+            id: e.userId
+        })); // This cater for projects with multiple registered members
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         project.critical = findLog.data.vulnerabilities.critical;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         project.high = findLog.data.vulnerabilities.high;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         project.moderate = findLog.data.vulnerabilities.moderate;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         project.low = findLog.data.vulnerabilities.low;
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const critical = findLog.data.advisories
-            .filter(e => e.severity === 'critical')
+            .filter((e: $TSFixMe) => e.severity === 'critical')
             .slice(0, 10);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const high = findLog.data.advisories
-            .filter(e => e.severity === 'high')
+            .filter((e: $TSFixMe) => e.severity === 'high')
             .slice(0, 10);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const moderate = findLog.data.advisories
-            .filter(e => e.severity === 'moderate')
+            .filter((e: $TSFixMe) => e.severity === 'moderate')
             .slice(0, 10);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const low = findLog.data.advisories
-            .filter(e => e.severity === 'low')
+            .filter((e: $TSFixMe) => e.severity === 'low')
             .slice(0, 10);
-        const criticalWithTitle = critical.map(advisories => {
+        const criticalWithTitle = critical.map((advisories: $TSFixMe) => {
             const filter = advisories.via.filter(
-                e => e.severity === advisories.severity
+                (e: $TSFixMe) => e.severity === advisories.severity
             );
             let filterBySeverity;
             let filterByTitle;
             //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
-                    e => e.severity === advisories.severity
+                    (e: $TSFixMe) => e.severity === advisories.severity
                 ).severity;
                 filterByTitle = advisories.via.find(
-                    e => e.severity === advisories.severity
+                    (e: $TSFixMe) => e.severity === advisories.severity
                 ).title;
             } else {
                 filterBySeverity = 'Nil';
@@ -145,43 +158,19 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
                 : (advisories.title = 'Nil');
             return advisories;
         });
-        const highWithTitle = high.map(advisories => {
+        const highWithTitle = high.map((advisories: $TSFixMe) => {
             const filter = advisories.via.filter(
-                e => e.severity === advisories.severity
+                (e: $TSFixMe) => e.severity === advisories.severity
             );
             let filterBySeverity;
             let filterByTitle;
             //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
-                    e => e.severity === advisories.severity
+                    (e: $TSFixMe) => e.severity === advisories.severity
                 ).severity;
                 filterByTitle = advisories.via.find(
-                    e => e.severity === advisories.severity
-                ).title;
-            } else {
-                filterBySeverity = 'Nil';
-                filterByTitle = 'Nil';
-            }
-
-            advisories.severity === filterBySeverity
-                ? (advisories.title = filterByTitle)
-                : (advisories.title = 'Nil');
-            return advisories;
-        });
-        const moderateWithTitle = moderate.map(advisories => {
-            const filter = advisories.via.filter(
-                e => e.severity === advisories.severity
-            );
-            let filterBySeverity;
-            let filterByTitle;
-            //This is used to get the library name and description
-            if (filter.length > 0) {
-                filterBySeverity = advisories.via.find(
-                    e => e.severity === advisories.severity
-                ).severity;
-                filterByTitle = advisories.via.find(
-                    e => e.severity === advisories.severity
+                    (e: $TSFixMe) => e.severity === advisories.severity
                 ).title;
             } else {
                 filterBySeverity = 'Nil';
@@ -193,19 +182,43 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
                 : (advisories.title = 'Nil');
             return advisories;
         });
-        const lowWithTitle = low.map(advisories => {
+        const moderateWithTitle = moderate.map((advisories: $TSFixMe) => {
             const filter = advisories.via.filter(
-                e => e.severity === advisories.severity
+                (e: $TSFixMe) => e.severity === advisories.severity
             );
             let filterBySeverity;
             let filterByTitle;
             //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
-                    e => e.severity === advisories.severity
+                    (e: $TSFixMe) => e.severity === advisories.severity
                 ).severity;
                 filterByTitle = advisories.via.find(
-                    e => e.severity === advisories.severity
+                    (e: $TSFixMe) => e.severity === advisories.severity
+                ).title;
+            } else {
+                filterBySeverity = 'Nil';
+                filterByTitle = 'Nil';
+            }
+
+            advisories.severity === filterBySeverity
+                ? (advisories.title = filterByTitle)
+                : (advisories.title = 'Nil');
+            return advisories;
+        });
+        const lowWithTitle = low.map((advisories: $TSFixMe) => {
+            const filter = advisories.via.filter(
+                (e: $TSFixMe) => e.severity === advisories.severity
+            );
+            let filterBySeverity;
+            let filterByTitle;
+            //This is used to get the library name and description
+            if (filter.length > 0) {
+                filterBySeverity = advisories.via.find(
+                    (e: $TSFixMe) => e.severity === advisories.severity
+                ).severity;
+                filterByTitle = advisories.via.find(
+                    (e: $TSFixMe) => e.severity === advisories.severity
                 ).title;
             } else {
                 filterBySeverity = 'Nil';
@@ -238,6 +251,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
 
         try {
             RealtimeService.handleLog({
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 securityId: securityLog.securityId,
                 securityLog: findLog,
             });

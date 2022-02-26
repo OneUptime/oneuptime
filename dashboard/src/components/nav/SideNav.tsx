@@ -7,6 +7,7 @@ import { allRoutes, groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
 import { closeSideNav } from '../../actions/page';
 import ProjectSwitcher from '../project/ProjectSwitcher';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import {
     showProjectSwitcher,
@@ -16,16 +17,22 @@ import {
 } from '../../actions/project';
 import { API_URL, User } from '../../config';
 import { getSubProjects } from '../../actions/subProject';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Route, Switch, withRouter } from 'react-router-dom';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 class SideNav extends Component {
+    showProfileMenu: $TSFixMe;
     state = { navLoading: false };
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         if (this.props.currentProject) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewer' does not exist on... Remove this comment to see the full error message
             this.props.switchToProjectViewer(
                 User.getUserId(),
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                 this.props.subProjects,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 this.props.currentProject
             );
             this.updateNavLoading('projectShow');
@@ -33,42 +40,52 @@ class SideNav extends Component {
             this.updateNavLoading('noProjectShow');
         }
     }
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.currentProject) !==
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             JSON.stringify(this.props.currentProject)
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             this.props.currentProject &&
                 this.props
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSubProjects' does not exist on type '... Remove this comment to see the full error message
                     .getSubProjects(this.props.currentProject._id)
-                    .then(res => {
+                    .then((res: $TSFixMe) => {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewer' does not exist on... Remove this comment to see the full error message
                         this.props.switchToProjectViewer(
                             User.getUserId(),
                             res.data.data,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                             this.props.currentProject
                         );
                         this.updateNavLoading('projectShow');
                     });
         }
     }
-    updateNavLoading = option => this.setState({ navLoading: option });
+    updateNavLoading = (option: $TSFixMe) => this.setState({ navLoading: option });
 
     hideSwitcher = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         if (this.props.project.projectSwitcherVisible) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProjectSwitcher' does not exist on t... Remove this comment to see the full error message
             this.props.hideProjectSwitcher();
         }
     };
 
     showSwitcher = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         if (!this.props.project.projectSwitcherVisible) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showProjectSwitcher' does not exist on t... Remove this comment to see the full error message
             this.props.showProjectSwitcher();
         }
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 this.hideSwitcher();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideForm' does not exist on type 'Readon... Remove this comment to see the full error message
                 this.props.hideForm();
                 return true;
             default:
@@ -78,6 +95,7 @@ class SideNav extends Component {
 
     renderAccountSwitcher = () => (
         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
             <div tabIndex="-1">
                 <div
                     id="AccountSwitcherId"
@@ -86,6 +104,7 @@ class SideNav extends Component {
                 >
                     <ClickOutside onClickOutside={this.hideSwitcher}>
                         <ProjectSwitcher
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ visible: any; }' is not assignable to type... Remove this comment to see the full error message
                             visible={this.props.project.projectSwitcherVisible}
                         />
                     </ClickOutside>
@@ -104,8 +123,10 @@ class SideNav extends Component {
                             whiteSpace: 'nowrap',
                         }}
                     >
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                         {this.props.project.currentProject && (
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--noWrap">
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                                 {this.props.project.currentProject.name}
                             </span>
                         )}
@@ -120,9 +141,13 @@ class SideNav extends Component {
 
     renderUserProfile = () => {
         const IMG_URL =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic !== '' &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic !== 'null'
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
 
@@ -132,6 +157,7 @@ class SideNav extends Component {
                     className="bs-Button bs-DeprecatedButton db-UserMenuX"
                     id="profile-menu"
                     type="button"
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                     tabIndex="-1"
                     onClick={this.showProfileMenu}
                 >
@@ -150,6 +176,7 @@ class SideNav extends Component {
                         marginLeft: '10px',
                     }}
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'userName' does not exist on type 'Readon... Remove this comment to see the full error message
                     {this.props.userName}
                 </span>
             </div>
@@ -158,8 +185,11 @@ class SideNav extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'allIndividualComponents' does not exist ... Remove this comment to see the full error message
             allIndividualComponents,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
         const switchToComponentDetailNav =
@@ -208,9 +238,10 @@ class SideNav extends Component {
             location.pathname.match(/profile\/billing/) ||
             location.pathname.match(/profile\/advanced/);
 
-        let groupsToRender = [];
+        let groupsToRender: $TSFixMe = [];
 
         const user = User.getUserId();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProject' does not exist on type 'R... Remove this comment to see the full error message
         const isViewer = isSubProjectViewer(user, this.props.activeProject);
 
         if ((switchToProjectViewerNav || isViewer) && !switchToProfileNav) {
@@ -222,7 +253,8 @@ class SideNav extends Component {
                 .filter(group => group.visibleOnComponentDetail)
                 .filter(group => group.visible)
                 .map(group => {
-                    group.routes = group.routes.filter(route => route.visible);
+                    // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
+                    group.routes = group.routes.filter((route: $TSFixMe) => route.visible);
                     return group;
                 });
         } else if (switchToProfileNav) {
@@ -230,7 +262,8 @@ class SideNav extends Component {
                 .filter(group => group.visibleOnProfile)
                 .filter(group => group.visible)
                 .map(group => {
-                    group.routes = group.routes.filter(route => {
+                    // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
+                    group.routes = group.routes.filter((route: $TSFixMe) => {
                         if (
                             route.title === 'Back to Dashboard' &&
                             switchToProjectViewerNav
@@ -240,6 +273,7 @@ class SideNav extends Component {
                         }
                         if (
                             route.title === 'Back to Dashboard' &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                             !this.props.currentProject
                         ) {
                             route.path = '/dashboard/project/project';
@@ -252,8 +286,10 @@ class SideNav extends Component {
                     return group;
                 });
         } else {
+            // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
             if (this.state.navLoading === 'projectShow') {
                 groupsToRender = groups
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPublic' does not exist on type '{ grou... Remove this comment to see the full error message
                     .filter(group => !group.isPublic)
                     .filter(group => !group.visibleOnComponentDetail)
                     .filter(group => !group.visibleOnProfile)
@@ -261,16 +297,19 @@ class SideNav extends Component {
                     .filter(group => !group.visibleForProjectViewer);
             }
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { componentSlug } = this.props.match.params;
         const selectedComponent = allIndividualComponents.find(
-            component => component.slug === componentSlug
+            (component: $TSFixMe) => component.slug === componentSlug
         );
 
         return (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeSideNav' does not exist on type 'Re... Remove this comment to see the full error message
             <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
                     className={`db-World-sideNavContainer${
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sidenavopen' does not exist on type 'Rea... Remove this comment to see the full error message
                         this.props.sidenavopen ? ' open' : ''
                     }`}
                 >
@@ -285,13 +324,17 @@ class SideNav extends Component {
 
                         <div
                             className={`db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt ${
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                 this.props.animateSidebar
                                     ? ' animate-in'
                                     : ' animate-out'
                             }`}
                         >
+                            // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
                             {(this.state.navLoading === 'projectShow' ||
+                                // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
                                 this.state.navLoading === 'noProjectShow') &&
+                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'group' implicitly has an 'any' type.
                                 groupsToRender.map((group, index, array) => {
                                     const marginClass =
                                         index === array.length - 1
@@ -359,7 +402,7 @@ class SideNav extends Component {
                                                 )}
 
                                                 {group.routes.map(
-                                                    (route, index) => {
+                                                    (route: $TSFixMe, index: $TSFixMe) => {
                                                         return (
                                                             <li key={index}>
                                                                 <NavItem
@@ -383,11 +426,12 @@ class SideNav extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state) {
+const mapStateToProps = function(state: $TSFixMe) {
     const allIndividualComponents = state.component.componentList.components.reduce(
-        (acc, curr) => acc.concat(curr.components || []),
+        (acc: $TSFixMe, curr: $TSFixMe) => acc.concat(curr.components || []),
         []
     );
     const settings = state.profileSettings.profileSetting.data;
@@ -421,7 +465,7 @@ const mapStateToProps = function(state) {
     };
 };
 
-const mapDispatchToProps = function(dispatch) {
+const mapDispatchToProps = function(dispatch: $TSFixMe) {
     return bindActionCreators(
         {
             openModal,
@@ -437,6 +481,7 @@ const mapDispatchToProps = function(dispatch) {
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SideNav.propTypes = {
     project: PropTypes.object.isRequired,
     hideProjectSwitcher: PropTypes.func.isRequired,
@@ -461,7 +506,7 @@ SideNav.propTypes = {
 // since sideNav is above page routes we have no access to the pages' props.match,
 // we rebuild the routes here to enable access to these properties
 
-const WrappedSideNav = props => {
+const WrappedSideNav = (props: $TSFixMe) => {
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
 
@@ -503,12 +548,11 @@ const WrappedSideNav = props => {
                 .map((route, index) => {
                     return (
                         <Route
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exact' does not exist on type '{ title: ... Remove this comment to see the full error message
                             exact={route.exact}
                             path={route.path}
                             key={index}
-                            render={routeProps => (
-                                <SideNav {...props} {...routeProps} />
-                            )}
+                            render={(routeProps: $TSFixMe) => <SideNav {...props} {...routeProps} />}
                         />
                     );
                 })}

@@ -7,14 +7,14 @@ export function deleteSlackRequest() {
     };
 }
 
-export function deleteSlackError(error) {
+export function deleteSlackError(error: $TSFixMe) {
     return {
         type: types.DELETE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function deleteSlackSuccess(deleteSlack) {
+export function deleteSlackSuccess(deleteSlack: $TSFixMe) {
     return {
         type: types.DELETE_SLACK_WEBHOOK_SUCCESS,
         payload: deleteSlack,
@@ -28,8 +28,8 @@ export const resetDeleteSlack = () => {
 };
 
 // Calls the API to link webhook team to project
-export function deleteSlack(projectId, msTeamsId) {
-    return function(dispatch) {
+export function deleteSlack(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${msTeamsId}`,
             null
@@ -39,7 +39,9 @@ export function deleteSlack(projectId, msTeamsId) {
 
         return promise.then(
             function(msTeams) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteSlackSuccess(msTeams.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return msTeams.data;
             },
             function(error) {
@@ -59,21 +61,21 @@ export function deleteSlack(projectId, msTeamsId) {
     };
 }
 
-export function getSlackRequest(promise) {
+export function getSlackRequest(promise: $TSFixMe) {
     return {
         type: types.GET_SLACK_WEBHOOK_REQUEST,
         payload: promise,
     };
 }
 
-export function getSlackError(error) {
+export function getSlackError(error: $TSFixMe) {
     return {
         type: types.GET_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function getSlackSuccess(msTeams) {
+export function getSlackSuccess(msTeams: $TSFixMe) {
     return {
         type: types.GET_SLACK_WEBHOOK_SUCCESS,
         payload: msTeams,
@@ -86,8 +88,8 @@ export const resetGetSlack = () => {
     };
 };
 
-export function getSlack(projectId, skip, limit) {
-    return function(dispatch) {
+export function getSlack(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit ||
@@ -97,6 +99,7 @@ export function getSlack(projectId, skip, limit) {
 
         promise.then(
             function(webhooks) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getSlackSuccess(webhooks.data));
             },
             function(error) {
@@ -118,8 +121,8 @@ export function getSlack(projectId, skip, limit) {
     };
 }
 
-export function getSlackMonitor(projectId, monitorId, skip, limit) {
-    return function(dispatch) {
+export function getSlackMonitor(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
@@ -129,6 +132,7 @@ export function getSlackMonitor(projectId, monitorId, skip, limit) {
 
         promise.then(
             function(webhooks) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getSlackSuccess(webhooks.data));
             },
             function(error) {
@@ -156,14 +160,14 @@ export function createSlackRequest() {
     };
 }
 
-export function createSlackError(error) {
+export function createSlackError(error: $TSFixMe) {
     return {
         type: types.CREATE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function createSlackSuccess(newWebHook) {
+export function createSlackSuccess(newWebHook: $TSFixMe) {
     return {
         type: types.CREATE_SLACK_WEBHOOK_SUCCESS,
         payload: newWebHook,
@@ -177,14 +181,16 @@ export const resetCreateSlack = () => {
 };
 
 // Calls the API to add webhook to project
-export function createSlack(projectId, data) {
-    return function(dispatch) {
+export function createSlack(projectId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createSlackRequest());
         return promise.then(
             function(webhook) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createSlackSuccess(webhook.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return webhook.data;
             },
             function(error) {
@@ -210,14 +216,14 @@ export function updateSlackRequest() {
     };
 }
 
-export function updateSlackError(error) {
+export function updateSlackError(error: $TSFixMe) {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function updateSlackSuccess(newWebHook) {
+export function updateSlackSuccess(newWebHook: $TSFixMe) {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_SUCCESS,
         payload: newWebHook,
@@ -231,15 +237,17 @@ export const resetUpdateSlack = () => {
 };
 
 // Calls the API to add webhook to project
-export function updateSlack(projectId, webhookId, data) {
-    return function(dispatch) {
+export function updateSlack(projectId: $TSFixMe, webhookId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
         dispatch(updateSlackRequest());
 
         return promise.then(
             function(webhook) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(updateSlackSuccess(webhook.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return webhook.data;
             },
             function(error) {
@@ -279,8 +287,8 @@ export function paginateReset() {
     };
 }
 
-export function paginate(type) {
-    return function(dispatch) {
+export function paginate(type: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

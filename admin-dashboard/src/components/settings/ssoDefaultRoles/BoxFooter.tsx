@@ -8,8 +8,8 @@ const BoxFooter = ({
     previousClicked,
     nextClicked,
     page,
-    numberOfPages,
-}) => (
+    numberOfPages
+}: $TSFixMe) => (
     <div className="bs-Tail bs-Tail--separated bs-Tail--short">
         <div className="bs-Tail-copy">
             <span>

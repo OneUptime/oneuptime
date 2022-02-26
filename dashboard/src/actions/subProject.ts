@@ -3,21 +3,21 @@ import * as types from '../constants/subProject';
 import errors from '../errors';
 import { User } from '../config';
 
-export function subProjectsRequest(promise) {
+export function subProjectsRequest(promise: $TSFixMe) {
     return {
         type: types.SUBPROJECTS_REQUEST,
         payload: promise,
     };
 }
 
-export function subProjectsError(error) {
+export function subProjectsError(error: $TSFixMe) {
     return {
         type: types.SUBPROJECTS_FAILED,
         payload: error,
     };
 }
 
-export function subProjectsSuccess(subProjects) {
+export function subProjectsSuccess(subProjects: $TSFixMe) {
     return {
         type: types.SUBPROJECTS_SUCCESS,
         payload: subProjects,
@@ -30,8 +30,8 @@ export const resetSubProjects = () => {
     };
 };
 
-export function getSubProjects(projectId, skip = 0, limit = 10) {
-    return function(dispatch) {
+export function getSubProjects(projectId: $TSFixMe, skip = 0, limit = 10) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `project/${projectId}/subProjects?skip=${skip}&limit=${limit}`
         );
@@ -40,7 +40,9 @@ export function getSubProjects(projectId, skip = 0, limit = 10) {
         promise.then(
             function(subProjects) {
                 const subData = {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     subProjects: subProjects.data.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     count: subProjects.data.count,
                     skip,
                     limit,
@@ -72,14 +74,14 @@ export function createSubProjectRequest() {
     };
 }
 
-export function createSubProjectError(error) {
+export function createSubProjectError(error: $TSFixMe) {
     return {
         type: types.CREATE_SUBPROJECT_FAILED,
         payload: error,
     };
 }
 
-export function createSubProjectSuccess(subProject) {
+export function createSubProjectSuccess(subProject: $TSFixMe) {
     return {
         type: types.CREATE_SUBPROJECT_SUCCESS,
         payload: subProject,
@@ -99,13 +101,13 @@ export const resetCreateNewSubProject = () => {
 };
 
 export function createNewSubProjectReset() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(resetCreateNewSubProject());
     };
 }
 
-export function createSubProject(projectId, subProjectName) {
-    return function(dispatch) {
+export function createSubProject(projectId: $TSFixMe, subProjectName: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/subProject`, {
             subProjectName,
         });
@@ -114,7 +116,9 @@ export function createSubProject(projectId, subProjectName) {
 
         return promise.then(
             function(subProject) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createSubProjectSuccess(subProject.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return subProject.data;
             },
             function(error) {
@@ -147,14 +151,14 @@ export function resetSubProjectTokenRequest() {
     };
 }
 
-export function resetSubProjectTokenSuccess(subProject) {
+export function resetSubProjectTokenSuccess(subProject: $TSFixMe) {
     return {
         type: types.RESET_SUBPROJECT_TOKEN_SUCCESS,
         payload: subProject.data,
     };
 }
 
-export function resetSubProjectTokenError(error) {
+export function resetSubProjectTokenError(error: $TSFixMe) {
     return {
         type: types.RESET_SUBPROJECT_TOKEN_FAILED,
         payload: error,
@@ -162,13 +166,13 @@ export function resetSubProjectTokenError(error) {
 }
 
 export function resetSubProjectKeyReset() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(resetSubProjectTokenReset());
     };
 }
 
-export function resetSubProjectToken(subProjectId) {
-    return function(dispatch) {
+export function resetSubProjectToken(subProjectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`project/${subProjectId}/resetToken`);
 
         dispatch(resetSubProjectTokenRequest());
@@ -208,14 +212,14 @@ export function renameSubProjectRequest() {
     };
 }
 
-export function renameSubProjectSuccess(project) {
+export function renameSubProjectSuccess(project: $TSFixMe) {
     return {
         type: types.RENAME_SUBPROJECT_SUCCESS,
         payload: project.data,
     };
 }
 
-export function renameSubProjectError(error) {
+export function renameSubProjectError(error: $TSFixMe) {
     return {
         type: types.RENAME_SUBPROJECT_FAILED,
         payload: error,
@@ -223,13 +227,13 @@ export function renameSubProjectError(error) {
 }
 
 export function resetRenameSubProject() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(renameSubProjectReset());
     };
 }
 
-export function renameSubProject(projectId, subProjectId, subProjectName) {
-    return function(dispatch) {
+export function renameSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe, subProjectName: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`project/${projectId}/${subProjectId}`, {
             subProjectName,
         });
@@ -266,14 +270,14 @@ export function deleteSubProjectRequest() {
     };
 }
 
-export function deleteSubProjectSuccess(subProjectId) {
+export function deleteSubProjectSuccess(subProjectId: $TSFixMe) {
     return {
         type: types.DELETE_SUBPROJECT_SUCCESS,
         payload: subProjectId,
     };
 }
 
-export function deleteSubProjectError(error) {
+export function deleteSubProjectError(error: $TSFixMe) {
     return {
         type: types.DELETE_SUBPROJECT_FAILED,
         payload: error,
@@ -287,13 +291,13 @@ export function deleteSubProjectReset() {
 }
 
 export function resetDeleteSubProject() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(deleteSubProjectReset());
     };
 }
 
-export function deleteSubProject(projectId, subProjectId) {
-    return function(dispatch) {
+export function deleteSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`project/${projectId}/${subProjectId}`, {
             subProjectId,
         });
@@ -334,22 +338,22 @@ export function exitSubProjectRequest() {
     };
 }
 
-export function exitSubProjectSuccess(userId) {
+export function exitSubProjectSuccess(userId: $TSFixMe) {
     return {
         type: types.EXIT_SUBPROJECT_SUCCESS,
         payload: userId,
     };
 }
 
-export function exitSubProjectError(error) {
+export function exitSubProjectError(error: $TSFixMe) {
     return {
         type: types.EXIT_SUBPROJECT_FAILED,
         payload: error,
     };
 }
 
-export function exitSubProject(projectId, subProjectId, userId) {
-    return function(dispatch) {
+export function exitSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe, userId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
             null
@@ -379,7 +383,7 @@ export function exitSubProject(projectId, subProjectId, userId) {
     };
 }
 
-export function changeSubProjectRoles(team) {
+export function changeSubProjectRoles(team: $TSFixMe) {
     return {
         type: types.CHANGE_SUBPROJECT_ROLES,
         payload: team,
@@ -393,22 +397,22 @@ export function markSubProjectForDeleteRequest() {
     };
 }
 
-export function markSubProjectForDeleteSuccess(subProjectId) {
+export function markSubProjectForDeleteSuccess(subProjectId: $TSFixMe) {
     return {
         type: types.MARK_SUBPROJECT_DELETE_SUCCESS,
         payload: subProjectId,
     };
 }
 
-export function markSubProjectForDeleteError(error) {
+export function markSubProjectForDeleteError(error: $TSFixMe) {
     return {
         type: types.MARK_SUBPROJECT_DELETE_FAILED,
         payload: error,
     };
 }
 
-export function markSubProjectForDelete(projectId, subProjectId, feedback) {
-    return function(dispatch) {
+export function markSubProjectForDelete(projectId: $TSFixMe, subProjectId: $TSFixMe, feedback: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/deleteProject`,
             { subProjectId, feedback }
@@ -439,7 +443,7 @@ export function markSubProjectForDelete(projectId, subProjectId, feedback) {
     };
 }
 
-export function setActiveSubProject(subproject, updateStorage = false) {
+export function setActiveSubProject(subproject: $TSFixMe, updateStorage = false) {
     if (updateStorage) {
         // store to localstorage
         User.setActiveSubProjectId(subproject);

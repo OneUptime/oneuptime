@@ -3,21 +3,28 @@ import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    create: async function({ securityId, componentId, data }) {
+    create: async function({
+        securityId,
+        componentId,
+        data
+    }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         if (!componentId) {
             const error = new Error('Component ID is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         if (!data) {
             const error = new Error('Please provide a scan log');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -35,6 +42,7 @@ export default {
             });
         } else {
             securityLog = await this.updateOneBy(
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 { _id: securityLog._id },
                 data
             );
@@ -42,7 +50,11 @@ export default {
 
         return securityLog;
     },
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -55,7 +67,13 @@ export default {
         const securityLog = await securityLogQuery;
         return securityLog;
     },
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -80,7 +98,7 @@ export default {
         const securityLogs = await securityLogsQuery;
         return securityLogs;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -97,19 +115,21 @@ export default {
             const error = new Error(
                 'Container Security Log not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         return containerSecurityLog;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         let securityLog = await this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
             const error = new Error(
                 'Container Security Log not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -121,7 +141,7 @@ export default {
 
         return securityLog;
     },
-    hardDelete: async function(query) {
+    hardDelete: async function(query: $TSFixMe) {
         await ContainerSecurityLogModel.deleteMany(query);
         return 'Container Security logs deleted successfully';
     },

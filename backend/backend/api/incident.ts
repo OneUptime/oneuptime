@@ -12,6 +12,7 @@ import UserService from '../services/userService'
 import MonitorService from '../services/monitorService'
 const router = express.Router();
 
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 import errorService from 'common-server/utils/error'
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -26,6 +27,7 @@ import subscriberAlertService from '../services/subscriberAlertService'
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService'
 import Services from '../utils/services'
 import joinNames from '../utils/joinNames'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
 import { isAuthorizedService } from '../middlewares/serviceAuthorization'
 import ErrorService from 'common-server/utils/error'
 
@@ -56,6 +58,7 @@ router.post(
         try {
             const { incidentId, name, probeId } = req.body;
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5-7 arguments, but got 4.
             const incident = await IncidentService.acknowledge(
                 incidentId,
                 null,
@@ -78,6 +81,7 @@ router.post(
         try {
             const { incidentId, name, probeId } = req.body;
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5-7 arguments, but got 4.
             const incident = await IncidentService.resolve(
                 incidentId,
                 null,
@@ -127,12 +131,16 @@ router.post(
             const description = req.body.description;
             const customFields = req.body.customFields;
             const monitors = req.body.monitors;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                 ? req.user.id === 'API'
                     ? null
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                     : req.user.id
                 : null;
             let createdByApi = false;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             if (req.user && req.user.id === 'API') {
                 createdByApi = true;
             }
@@ -250,6 +258,7 @@ router.post(
                 const end = moment(endDate).toDate();
                 query = {
                     'monitors.monitorId': { $in: [monitorId] },
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'monitors.monitorId': { $in: string[]; }; ... Remove this comment to see the full error message
                     createdAt: { $gte: start, $lte: end },
                 };
             }
@@ -396,7 +405,7 @@ router.get('/:projectId/incident', getUser, isAuthorized, async function(
             query: { projectId },
             select: '_id',
         });
-        const monitorIds = monitors.map(monitor => monitor._id);
+        const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
         const query = {
             'monitors.monitorId': { $in: monitorIds },
@@ -510,15 +519,19 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                ? req.user.subProjects.map(project => project._id)
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call the IncidentService.
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const { isHome } = req.query;
             const incident = await IncidentService.getUnresolvedIncidents(
                 subProjectIds,
                 userId,
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
                 isHome
             );
             return sendItemResponse(req, res, incident);
@@ -534,12 +547,16 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                 ? req.user.id === 'API'
                     ? null
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                     : req.user.id
                 : null;
             let acknowledgedByApi = false;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             if (req.user && req.user.id === 'API') {
                 acknowledgedByApi = true;
             }
@@ -549,9 +566,11 @@ router.post(
             const incident = await IncidentService.acknowledge(
                 incidentId,
                 userId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                 req.user.name,
                 null,
                 null,
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'null' is not assignable to param... Remove this comment to see the full error message
                 null,
                 acknowledgedByApi
             );
@@ -667,13 +686,12 @@ router.post(
                 ...callScheduleStatus,
             ];
             incidentMessages.sort(
-                (a, b) =>
+                (a: $TSFixMe, b: $TSFixMe) =>
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
             const filteredMsg = incidentMessages.filter(
-                a =>
-                    a.status !== 'internal notes added' &&
-                    a.status !== 'internal notes updated'
+                (a: $TSFixMe) => a.status !== 'internal notes added' &&
+                a.status !== 'internal notes updated'
             );
             const result = {
                 data: await Services.rearrangeDuty(filteredMsg),
@@ -698,12 +716,16 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                 ? req.user.id === 'API'
                     ? null
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                     : req.user.id
                 : null;
             let resolvedByApi = false;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             if (req.user && req.user.id === 'API') {
                 resolvedByApi = true;
             }
@@ -716,6 +738,7 @@ router.post(
                 null,
                 null,
                 null,
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'null' is not assignable to param... Remove this comment to see the full error message
                 null,
                 resolvedByApi
             );
@@ -832,13 +855,12 @@ router.post(
                 ...callScheduleStatus,
             ];
             incidentMessages.sort(
-                (a, b) =>
+                (a: $TSFixMe, b: $TSFixMe) =>
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
             const filteredMsg = incidentMessages.filter(
-                a =>
-                    a.status !== 'internal notes added' &&
-                    a.status !== 'internal notes updated'
+                (a: $TSFixMe) => a.status !== 'internal notes added' &&
+                a.status !== 'internal notes updated'
             );
             const result = {
                 data: await Services.rearrangeDuty(filteredMsg),
@@ -859,6 +881,7 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const { incidentId } = req.params;
             // Call the IncidentService
@@ -959,6 +982,7 @@ router.post(
             });
             const idNumber = incident.idNumber;
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
@@ -1036,7 +1060,7 @@ router.post(
                 data.incidentId = incidentId;
 
                 const monitors = incident.monitors.map(
-                    monitor => monitor.monitorId.name
+                    (monitor: $TSFixMe) => monitor.monitorId.name
                 );
                 const templateInput = {
                     time: moment(incident.createdAt).format('h:mm:ss a'),
@@ -1055,9 +1079,10 @@ router.post(
 
                 // handle creation or updating
                 if (!data.id) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                     data.createdById = req.user.id;
                     data.monitors = incident.monitors.map(
-                        monitor => monitor.monitorId
+                        (monitor: $TSFixMe) => monitor.monitorId
                     );
                     incidentMessage = await IncidentMessageService.create(data);
                     if (data.post_statuspage) {
@@ -1191,6 +1216,7 @@ router.post(
                     }),
                     IncidentTimelineService.create({
                         incidentId: incident._id,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                         createdById: req.user.id,
                         incident_state: data.incident_state,
                         status,
@@ -1252,14 +1278,13 @@ router.post(
                         ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
-                        (a, b) =>
+                        (a: $TSFixMe, b: $TSFixMe) =>
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
                     const filteredMsg = incidentMessages.filter(
-                        a =>
-                            a.status !== 'internal notes added' &&
-                            a.status !== 'internal notes updated'
+                        (a: $TSFixMe) => a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
                     );
                     incidentMessage = {
                         type: data.type,
@@ -1305,7 +1330,9 @@ router.get(
                     count,
                 } = await StatusPageService.getStatusPagesForIncident(
                     incident._id,
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
                     parseInt(req.query.skip) || 0,
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
                     parseInt(req.query.limit) || 10
                 );
                 return sendListResponse(req, res, statusPages, count);
@@ -1348,6 +1375,7 @@ router.delete(
                         _id: incidentMessageId,
                         incidentId,
                     },
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                     req.user.id
                 ),
             ]);
@@ -1436,6 +1464,7 @@ router.delete(
                     }),
                     IncidentTimelineService.create({
                         incidentId,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                         createdById: req.user.id,
                         status,
                     }),
@@ -1477,14 +1506,13 @@ router.delete(
                         ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
-                        (a, b) =>
+                        (a: $TSFixMe, b: $TSFixMe) =>
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
                     const filteredMsg = incidentMessages.filter(
-                        a =>
-                            a.status !== 'internal notes added' &&
-                            a.status !== 'internal notes updated'
+                        (a: $TSFixMe) => a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
                     );
                     result = {
                         type: checkMsg.type,
@@ -1530,7 +1558,9 @@ router.get(
                 let skip = 0,
                     limit = 0;
                 if (type === 'investigation') {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | ParsedQs | 0 | string[] | ParsedQs[... Remove this comment to see the full error message
                     skip = req.query.skip || 0;
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | ParsedQs | string[] | 10 | ParsedQs... Remove this comment to see the full error message
                     limit = req.query.limit || 10;
                 }
 
@@ -1657,6 +1687,7 @@ router.get(
                         ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
+                        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(a: any, b: any) => number | fal... Remove this comment to see the full error message
                         (a, b) =>
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
@@ -1667,6 +1698,7 @@ router.get(
                             a.status !== 'internal notes updated'
                     );
 
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
                     result = await Services.rearrangeDuty(filteredMsg);
                 }
             }
@@ -1685,6 +1717,7 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
         const { projectId, incidentId } = req.params;
         const incident = await IncidentService.deleteBy(
             { _id: incidentId, projectId },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             req.user.id
         );
         if (incident) {
@@ -1737,6 +1770,7 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
 
             // get incident properties to build url
@@ -1748,6 +1782,7 @@ router.get(
                     select: 'idNumber projectId slug',
                     populate: [{ path: 'projectId', select: 'slug' }],
                 }),
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5-7 arguments, but got 2.
                 IncidentService.resolve(incidentId, userId),
             ]);
 
@@ -1758,7 +1793,9 @@ router.get(
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                 dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}`,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
                 apiUrl: global.apiHost,
             });
         } catch (error) {
@@ -1779,6 +1816,7 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
 
             // get incident properties to build url
@@ -1790,6 +1828,7 @@ router.get(
                     select: 'idNumber projectId slug',
                     populate: [{ path: 'projectId', select: 'slug' }],
                 }),
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5-7 arguments, but got 3.
                 IncidentService.acknowledge(incidentId, userId, req.user.name),
             ]);
 
@@ -1800,7 +1839,9 @@ router.get(
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                 dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}`,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
                 apiUrl: global.apiHost,
             });
         } catch (error) {

@@ -3,10 +3,13 @@ import ErrorService from '../utils/errorService'
 import fs from 'fs'
 import { NodeSSH } from 'node-ssh'
 import fetch from 'node-fetch-commonjs'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
 import { COMMAND, serverUrl } from '../utils/config'
 
 export default {
-    run: async ({ monitor }) => {
+    run: async ({
+        monitor
+    }: $TSFixMe) => {
         try {
             if (
                 monitor &&
@@ -31,6 +34,7 @@ export default {
                 };
 
                 if (authentication === 'password') {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{ host... Remove this comment to see the full error message
                     config.password = password;
                 } else {
                     await fetch(`${serverUrl}/file/${identityFile}`).then(
@@ -39,13 +43,17 @@ export default {
                                 const dest = fs.createWriteStream(
                                     `./${identityFile}`
                                 );
+                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                                 res.body.pipe(dest);
+                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                                 res.body.on('end', () => {
                                     setTimeout(() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{ ho... Remove this comment to see the full error message
                                         config.privateKey = fs.readFileSync(
                                             `./${identityFile}`,
                                             'utf8'
                                         );
+                                        // @ts-expect-error ts-migrate(2794) FIXME: Expected 1 arguments, but got 0. Did you forget to... Remove this comment to see the full error message
                                         resolve();
                                     }, 1000);
                                 });
@@ -100,7 +108,7 @@ export default {
     },
 };
 
-const execCommands = async (exec, os) => {
+const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
     try {
         const isSSH = exec instanceof NodeSSH;
 
@@ -138,7 +146,7 @@ const execCommands = async (exec, os) => {
                 .replace(/\t|:|,|-/gi, '')
                 .trim()
                 .split('\n')
-                .map(line => {
+                .map((line: $TSFixMe) => {
                     const words = line
                         .replace(/\s+/g, ' ')
                         .trim()
@@ -149,12 +157,12 @@ const execCommands = async (exec, os) => {
                 .replace(/\t|:/gi, '')
                 .trim()
                 .split('\n')
-                .map(line => line.replace(/\s+/g, ' ').trim());
+                .map((line: $TSFixMe) => line.replace(/\s+/g, ' ').trim());
             const memLines = mem
                 .replace(/\t|:/gi, '')
                 .trim()
                 .split('\n')
-                .map(line => {
+                .map((line: $TSFixMe) => {
                     const words = line
                         .replace(/\s+/g, ' ')
                         .trim()
@@ -165,7 +173,7 @@ const execCommands = async (exec, os) => {
                 .replace(/\t|:|M|G|%/gi, '')
                 .trim()
                 .split('\n')
-                .map(line => {
+                .map((line: $TSFixMe) => {
                     const words = line
                         .replace(/\s+/g, ' ')
                         .trim()
@@ -176,7 +184,7 @@ const execCommands = async (exec, os) => {
                         storageUsage: words[4],
                     };
                 })
-                .reduce((disks, disk) => {
+                .reduce((disks: $TSFixMe, disk: $TSFixMe) => {
                     return {
                         storageUsed: disks.storageUsed + disk.storageUsed,
                         totalStorage: disks.totalStorage + disk.totalStorage,
@@ -229,7 +237,7 @@ const execCommands = async (exec, os) => {
                 .replace(/\t|:|,|-|%/gi, '')
                 .trim()
                 .split('\n')
-                .map(line => {
+                .map((line: $TSFixMe) => {
                     const words = line
                         .replace(/\s+/g, ' ')
                         .trim()
@@ -250,7 +258,7 @@ const execCommands = async (exec, os) => {
                 .replace(/\t|:|Mi|Gi|%/gi, '')
                 .trim()
                 .split('\n')
-                .map(line => {
+                .map((line: $TSFixMe) => {
                     const words = line
                         .replace(/\s+/g, ' ')
                         .trim()
@@ -261,7 +269,7 @@ const execCommands = async (exec, os) => {
                         storageUsage: words[4],
                     };
                 })
-                .reduce((disks, disk) => {
+                .reduce((disks: $TSFixMe, disk: $TSFixMe) => {
                     return {
                         storageUsed: disks.storageUsed + disk.storageUsed,
                         totalStorage: disks.totalStorage + disk.totalStorage,

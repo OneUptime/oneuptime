@@ -1,11 +1,14 @@
 import ApiService from '../utils/apiService'
 import ErrorService from '../utils/errorService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'ping... Remove this comment to see the full error message
 import ping from 'ping'
 // it collects all monitors then ping them one by one to store their response
 // checks if the IP Address of the IP monitor is up or down
 // creates incident if a IP Address is down and resolves it when they come back up
 export default {
-    ping: async ({ monitor }) => {
+    ping: async ({
+        monitor
+    }: $TSFixMe) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.IPAddress) {
@@ -40,7 +43,7 @@ export default {
     },
 };
 
-const pingfetch = async IPAddress => {
+const pingfetch = async (IPAddress: $TSFixMe) => {
     const now = new Date().getTime();
     let resp = null;
     let rawResp = null;

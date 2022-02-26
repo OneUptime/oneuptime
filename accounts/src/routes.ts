@@ -111,7 +111,7 @@ export const groups = [
     },
 ];
 
-const joinFn = (acc = [], curr) => {
+const joinFn = (acc = [], curr: $TSFixMe) => {
     return acc.concat(curr);
 };
 
@@ -130,15 +130,19 @@ export const allRoutes = groups
                 const newSubRoutes = [];
                 for (const subRoute of route.subRoutes) {
                     newSubRoutes.push(subRoute);
+                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
                     const tempRoute = { ...subRoute };
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'path' does not exist on type 'never'.
                     tempRoute.path = '/accounts' + subRoute.path;
                     newSubRoutes.push(tempRoute);
                 }
                 return newSubRoutes;
             })
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(acc: never[] | undefined, curr:... Remove this comment to see the full error message
             .reduce(joinFn);
         return newRoutes.concat(subRoutes);
     })
+    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(acc: never[] | undefined, curr:... Remove this comment to see the full error message
     .reduce(joinFn);
 
 export const getGroups = () => groups;

@@ -24,24 +24,28 @@ const theme = createTheme({
     },
 });
 
-let WeekSelector = ({ classes, input, style }) => {
+let WeekSelector = ({
+    classes,
+    input,
+    style
+}: $TSFixMe) => {
     const [selectedDate, selectDate] = useState(new Date());
 
-    const handleChange = option => {
+    const handleChange = (option: $TSFixMe) => {
         selectDate(option);
         if (input.onChange) {
             input.onChange(new Date(option).toUTCString());
         }
     };
 
-    const formatWeekSelectLabel = (date, invalidLabel) => {
+    const formatWeekSelectLabel = (date: $TSFixMe, invalidLabel: $TSFixMe) => {
         return date && isValid(date)
             ? `${format(date, 'EEEE, hh:mm aaa')}`
             : invalidLabel;
     };
 
     // eslint-disable-next-line react/display-name
-    const renderWrappedWeekDay = (date, selectedDate, dayInCurrentMonth) => {
+    const renderWrappedWeekDay = (date: $TSFixMe, selectedDate: $TSFixMe, dayInCurrentMonth: $TSFixMe) => {
         const start = startOfWeek(selectedDate);
         const end = endOfWeek(selectedDate);
 
@@ -88,10 +92,11 @@ let WeekSelector = ({ classes, input, style }) => {
     );
 };
 
-const styles = createStyles(theme => ({
+const styles = createStyles((theme: $TSFixMe) => ({
     dayWrapper: {
         position: 'relative',
     },
+
     day: {
         width: 36,
         height: 36,
@@ -99,6 +104,7 @@ const styles = createStyles(theme => ({
         margin: '0 2px',
         color: 'inherit',
     },
+
     customDayHighlight: {
         position: 'absolute',
         top: 0,
@@ -108,32 +114,40 @@ const styles = createStyles(theme => ({
         border: `1px solid ${theme.palette.secondary.main}`,
         borderRadius: '50%',
     },
+
     nonCurrentMonthDay: {
         color: theme.palette.text.disabled,
     },
+
     highlightNonCurrentMonthDay: {
         color: '#676767',
     },
+
     highlight: {
         background: theme.palette.primary.main,
         color: theme.palette.common.white,
     },
+
     firstHighlight: {
         extend: 'highlight',
         borderTopLeftRadius: '50%',
         borderBottomLeftRadius: '50%',
     },
+
     endHighlight: {
         extend: 'highlight',
         borderTopRightRadius: '50%',
         borderBottomRightRadius: '50%',
-    },
+    }
 }));
 
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'ComponentType<Pick<any, string | number | sy... Remove this comment to see the full error message
 WeekSelector = withStyles(styles)(WeekSelector);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
 WeekSelector.displayName = 'WeekSelector';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ cl... Remove this comment to see the full error message
 WeekSelector.propTypes = {
     input: PropTypes.object.isRequired,
     style: PropTypes.object,

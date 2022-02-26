@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,11 +15,13 @@ class DeleteScheduleModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -27,9 +30,13 @@ class DeleteScheduleModal extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
             confirmThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
         } = this.props;
 
@@ -126,9 +133,10 @@ class DeleteScheduleModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteScheduleModal.displayName = 'DeleteScheduleModal';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         isRequesting:
             state.schedule &&
@@ -141,6 +149,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteScheduleModal.propTypes = {
     isRequesting: PropTypes.bool,
     confirmThisDialog: PropTypes.func.isRequired,

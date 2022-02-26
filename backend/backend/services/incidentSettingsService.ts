@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const {
             projectId,
             title,
@@ -20,6 +20,7 @@ export default {
             const error = new Error(
                 'Incident template with this name already exist in project'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -37,15 +38,27 @@ export default {
                 }
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         incidentSettings.projectId = projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Document<... Remove this comment to see the full error message
         incidentSettings.title = title;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
         incidentSettings.description = description;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
         incidentSettings.incidentPriority = incidentPriority;
+        // @ts-expect-error ts-migrate(2551) FIXME: Property 'isDefault' does not exist on type 'Docum... Remove this comment to see the full error message
         incidentSettings.isDefault = isDefault || false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         incidentSettings.name = name;
         return await incidentSettings.save();
     },
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -71,7 +84,7 @@ export default {
 
         return result;
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -79,7 +92,11 @@ export default {
         if (!query.deleted) query.deleted = false;
         return await incidentSettingsModel.countDocuments(query);
     },
-    findOne: async ({ query, select, populate }) => {
+    findOne: async ({
+        query,
+        select,
+        populate
+    }: $TSFixMe) => {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -90,7 +107,7 @@ export default {
         const incidentSettings = await responseQuery;
         return incidentSettings;
     },
-    updateOne: async function(query, data) {
+    updateOne: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -108,6 +125,7 @@ export default {
                 const error = new Error(
                     'Incident template with this name already exist in project'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -142,7 +160,7 @@ export default {
         });
         return incidentSettings;
     },
-    updateBy: async (query, data) => {
+    updateBy: async (query: $TSFixMe, data: $TSFixMe) => {
         if (!query) {
             query = {};
         }
@@ -154,10 +172,11 @@ export default {
         const populate = [{ path: 'incidentPriority', select: 'name color' }];
         const select =
             'projectId title description incidentPriority isDefault name createdAt';
+        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         const incidentSetting = await this.findOne({
             query,
             select:
@@ -165,6 +184,7 @@ export default {
         });
         if (incidentSetting.isDefault) {
             const error = new Error('Default template cannot be deleted');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -182,7 +202,7 @@ export default {
 
         return deletedIncidentSetting;
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await incidentSettingsModel.deleteMany(query);
         return 'Incident setting(s) removed successfully!';
     },

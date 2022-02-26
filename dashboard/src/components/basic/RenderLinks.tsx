@@ -12,8 +12,8 @@ const RenderLinks = ({
     statusPage,
     removeFooterLink,
     removeFooterLinkModalId,
-    deleting,
-}) => {
+    deleting
+}: $TSFixMe) => {
     return (
         <div>
             <table className="Table">
@@ -55,7 +55,7 @@ const RenderLinks = ({
                     </tr>
                 </thead>
                 <tbody className="Table-body">
-                    {fields.getAll().map((link, i) => {
+                    {fields.getAll().map((link: $TSFixMe, i: $TSFixMe) => {
                         return (
                             <tr
                                 id={`name_${i}`}

@@ -27,7 +27,7 @@ const initialState = {
     },
 };
 
-export default function probes(state = initialState, action) {
+export default function probes(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {
@@ -80,8 +80,10 @@ export default function probes(state = initialState, action) {
                 probes: {
                     ...state.probes,
                     data: state.probes.data.filter(
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         d => d._id !== action.payload
                     ),
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.probes.count - 1,
                 },
                 deleteProbe: {
@@ -122,7 +124,9 @@ export default function probes(state = initialState, action) {
             return Object.assign({}, state, {
                 probes: {
                     ...state.probes,
+                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                     data: state.probes.data.concat([action.payload]),
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.probes.count + 1,
                 },
                 addProbe: {
@@ -194,6 +198,7 @@ export default function probes(state = initialState, action) {
                     data:
                         state.probes.data.length > 0
                             ? state.probes.data.map(probe => {
+                                  // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                                   return probe._id === action.payload._id
                                       ? action.payload
                                       : probe;

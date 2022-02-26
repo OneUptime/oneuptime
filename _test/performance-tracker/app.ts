@@ -1,8 +1,10 @@
 const express = require('express')
 // If your env supports require                  
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'oneuptime-staging' or its corr... Remove this comment to see the full error message
 import OneUptime from 'oneuptime-staging'
 const app = express()
 
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
 import axios from 'axios'
 
     
@@ -19,24 +21,24 @@ new OneUptime.PerformanceTracker(
     options
 );
 
-app.get('/', function(req, res){
+app.get('/', function(req: $TSFixMe, res: $TSFixMe){
     res.send({status: "ok"})
 })
 
-app.get('/error', function(req, res){
+app.get('/error', function(req: $TSFixMe, res: $TSFixMe){
     res.status(500).send({error: "Error"})
 })
 
-app.get('/outgoing-requests', async function(req, res){
+app.get('/outgoing-requests', async function(req: $TSFixMe, res: $TSFixMe){
     await axios('https://google.com');
     res.send({status: "ok"})
 })
 
-app.get('/user/:id', async function(req, res){
+app.get('/user/:id', async function(req: $TSFixMe, res: $TSFixMe){
     res.send({user: req.params.id})
 })
 
-app.post('/post', async function(req, res){
+app.post('/post', async function(req: $TSFixMe, res: $TSFixMe){
     res.send({"status": "this is a post request"})
 })
 

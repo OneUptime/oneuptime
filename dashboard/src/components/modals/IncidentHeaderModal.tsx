@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { history } from '../../store';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { addIncident } from '../../actions/incident';
 import { animateSidebar } from '../../actions/animateSidebar';
@@ -17,17 +18,19 @@ class IncidentHeaderModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             default:
                 return false;
         }
     };
 
-    navigatToIncident = incident => {
+    navigatToIncident = (incident: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data } = this.props;
         const componentSlug =
             incident &&
@@ -42,15 +45,20 @@ class IncidentHeaderModal extends Component {
                     '/incidents/' +
                     incident.slug
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addIncident' does not exist on type 'Rea... Remove this comment to see the full error message
             this.props.addIncident(incident.incident);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
             this.props.animateSidebar(false);
         }, 200);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAsRead' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.markAsRead(data.currentProjectId, incident.notificationId);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
         this.props.animateSidebar(true);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         this.props.closeThisDialog();
     };
 
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 1) {
             return `${monitors[0].monitorId.name} is`;
         }
@@ -68,6 +76,7 @@ class IncidentHeaderModal extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog, data } = this.props;
 
         return (
@@ -97,40 +106,38 @@ class IncidentHeaderModal extends Component {
                                         {data.incidents.length > 0 ? (
                                             <ul>
                                                 {data.incidents.map(
-                                                    incident => (
-                                                        <li
-                                                            key={incident._id}
-                                                            className="activeIncidentList"
+                                                    (incident: $TSFixMe) => <li
+                                                        key={incident._id}
+                                                        className="activeIncidentList"
+                                                    >
+                                                        <span
+                                                            style={{
+                                                                fontWeight:
+                                                                    '500',
+                                                                cursor:
+                                                                    'pointer',
+                                                                textDecoration:
+                                                                    'underline',
+                                                            }}
+                                                            onClick={() => {
+                                                                this.navigatToIncident(
+                                                                    incident
+                                                                );
+                                                            }}
                                                         >
-                                                            <span
-                                                                style={{
-                                                                    fontWeight:
-                                                                        '500',
-                                                                    cursor:
-                                                                        'pointer',
-                                                                    textDecoration:
-                                                                        'underline',
-                                                                }}
-                                                                onClick={() => {
-                                                                    this.navigatToIncident(
-                                                                        incident
-                                                                    );
-                                                                }}
-                                                            >
-                                                                Incident #
-                                                                {
-                                                                    incident.idNumber
-                                                                }
-                                                            </span>
-                                                            :{' '}
-                                                            {this.handleMonitorList(
-                                                                incident.monitors
-                                                            )}{' '}
+                                                            Incident #
                                                             {
-                                                                incident.incidentType
+                                                                incident.idNumber
                                                             }
-                                                        </li>
-                                                    )
+                                                        </span>
+                                                        :{' '}
+                                                        {this.handleMonitorList(
+                                                            incident.monitors
+                                                        )}{' '}
+                                                        {
+                                                            incident.incidentType
+                                                        }
+                                                    </li>
                                                 )}
                                             </ul>
                                         ) : (
@@ -146,6 +153,7 @@ class IncidentHeaderModal extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                             autoFocus={true}
                                         >
@@ -165,8 +173,10 @@ class IncidentHeaderModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncidentHeaderModal.displayName = 'IncidentHeaderModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncidentHeaderModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     currentProjectSlug: PropTypes.string,
@@ -176,7 +186,7 @@ IncidentHeaderModal.propTypes = {
     addIncident: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             addIncident,

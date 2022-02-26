@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
 import express from 'express'
 import path from 'path'
 const app = express();
@@ -6,9 +7,11 @@ import https from 'https'
 import http from 'http'
 import tls from 'tls'
 import fs from 'fs'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
 import fetch from 'node-fetch'
 import { spawn } from 'child_process'
 import axios from 'axios'
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
 import cors from 'cors'
 
 // mongodb
@@ -57,7 +60,7 @@ if (process.env.ONEUPTIME_HOST) {
         : `http://${process.env.ONEUPTIME_HOST}/api`;
 }
 
-app.get(['/env.js', '/status-page/env.js'], function(req, res) {
+app.get(['/env.js', '/status-page/env.js'], function(req: $TSFixMe, res: $TSFixMe) {
     let REACT_APP_ONEUPTIME_HOST = null;
     let REACT_APP_BACKEND_PROTOCOL = null;
     if (!process.env.ONEUPTIME_HOST) {
@@ -107,7 +110,7 @@ app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.use('/.well-known/acme-challenge/:token', async function(req, res) {
+app.use('/.well-known/acme-challenge/:token', async function(req: $TSFixMe, res: $TSFixMe) {
     // make api call to backend and fetch keyAuthorization
     const { token } = req.params;
     const url = `${apiHost}/ssl/challenge/authorization/${token}`;
@@ -116,7 +119,7 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
 });
 
 // fetch details about a domain from the db
-async function handleCustomDomain(client, collection, domain) {
+async function handleCustomDomain(client: $TSFixMe, collection: $TSFixMe, domain: $TSFixMe) {
     const statusPage = await client
         .db(process.env.DB_NAME)
         .collection(collection)
@@ -128,23 +131,28 @@ async function handleCustomDomain(client, collection, domain) {
     let domainObj = {};
     statusPage &&
         statusPage.domains &&
-        statusPage.domains.forEach(eachDomain => {
+        statusPage.domains.forEach((eachDomain: $TSFixMe) => {
             if (eachDomain.domain === domain) {
                 domainObj = eachDomain;
             }
         });
 
     return {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'cert' does not exist on type '{}'.
         cert: domainObj.cert,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{}'.
         privateKey: domainObj.privateKey,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoProvisioning' does not exist on type... Remove this comment to see the full error message
         autoProvisioning: domainObj.autoProvisioning,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableHttps' does not exist on type '{}'... Remove this comment to see the full error message
         enableHttps: domainObj.enableHttps,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type '{}'.
         domain: domainObj.domain,
     };
 }
 
 // fetch certificate for a particular domain
-async function handleCertificate(client, collection, domain) {
+async function handleCertificate(client: $TSFixMe, collection: $TSFixMe, domain: $TSFixMe) {
     const certificate = await client
         .db(process.env.DB_NAME)
         .collection(collection)
@@ -153,7 +161,7 @@ async function handleCertificate(client, collection, domain) {
     return certificate;
 }
 
-app.use('/', async function(req, res, next) {
+app.use('/', async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
     const host = req.hostname;
     if (
         host &&
@@ -194,7 +202,7 @@ app.use('/', async function(req, res, next) {
     }
 });
 
-app.get(['/status-page/status', '/status'], function(req, res) {
+app.get(['/status-page/status', '/status'], function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -212,13 +220,13 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function(req, res) {
+app.get('/*', function(req: $TSFixMe, res: $TSFixMe) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-async function fetchCredential(apiHost, credentialName, configPath) {
+async function fetchCredential(apiHost: $TSFixMe, credentialName: $TSFixMe, configPath: $TSFixMe) {
     return new Promise((resolve, reject) => {
-        fetch(`${apiHost}/file/${credentialName}`).then(res => {
+        fetch(`${apiHost}/file/${credentialName}`).then((res: $TSFixMe) => {
             const dest = fs.createWriteStream(configPath);
             res.body.pipe(dest);
             // at this point, writing to the specified file is complete
@@ -233,7 +241,7 @@ async function fetchCredential(apiHost, credentialName, configPath) {
     });
 }
 
-function decodeAndSave(content, filePath) {
+function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe) {
     return new Promise(resolve => {
         const command = `echo ${content} | base64 -d`;
         let output = '';
@@ -254,7 +262,7 @@ function decodeAndSave(content, filePath) {
     });
 }
 
-function createDir(dirPath) {
+function createDir(dirPath: $TSFixMe) {
     return new Promise((resolve, reject) => {
         const workPath = path.resolve(process.cwd(), 'src', dirPath);
         if (fs.existsSync(workPath)) {
@@ -268,7 +276,7 @@ function createDir(dirPath) {
     });
 }
 
-function countFreq(pat, txt) {
+function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
     const M = pat.length;
     const N = txt.length;
     let res = 0;
@@ -337,7 +345,7 @@ function countFreq(pat, txt) {
             key: fs.readFileSync(
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
-            SNICallback: async function(domain, cb) {
+            SNICallback: async function(domain: $TSFixMe, cb: $TSFixMe) {
                 const res = await handleCustomDomain(
                     client,
                     'statuspages',

@@ -4,8 +4,8 @@ import errors from '../errors';
 
 //Create new log container
 //props -> {name: '', type, data -> { data.url}}
-export function createApplicationLog(projectId, componentId, values) {
-    return function(dispatch) {
+export function createApplicationLog(projectId: $TSFixMe, componentId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/create`,
             values
@@ -14,6 +14,7 @@ export function createApplicationLog(projectId, componentId, values) {
 
         promise.then(
             function(applicationLog) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
@@ -36,7 +37,7 @@ export function createApplicationLog(projectId, componentId, values) {
     };
 }
 
-export function createApplicationLogSuccess(newApplicationLog) {
+export function createApplicationLogSuccess(newApplicationLog: $TSFixMe) {
     return {
         type: types.CREATE_APPLICATION_LOG_SUCCESS,
         payload: newApplicationLog,
@@ -49,7 +50,7 @@ export function createApplicationLogRequest() {
     };
 }
 
-export function createApplicationLogFailure(error) {
+export function createApplicationLogFailure(error: $TSFixMe) {
     return {
         type: types.CREATE_APPLICATION_LOG_FAILURE,
         payload: error,
@@ -63,13 +64,13 @@ export function resetCreateApplicationLog() {
 }
 
 export function fetchApplicationLogs(
-    projectId,
-    componentId,
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
     skip = 0,
     limit = 0,
     paginated = false
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `application-log/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
@@ -77,6 +78,7 @@ export function fetchApplicationLogs(
 
         promise.then(
             function(applicationLogs) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
             function(error) {
@@ -98,21 +100,21 @@ export function fetchApplicationLogs(
     };
 }
 
-export function fetchApplicationLogsSuccess(applicationLogs) {
+export function fetchApplicationLogsSuccess(applicationLogs: $TSFixMe) {
     return {
         type: types.FETCH_APPLICATION_LOGS_SUCCESS,
         payload: applicationLogs,
     };
 }
 
-export function fetchApplicationLogsRequest(paginated) {
+export function fetchApplicationLogsRequest(paginated: $TSFixMe) {
     return {
         type: types.FETCH_APPLICATION_LOGS_REQUEST,
         payload: paginated,
     };
 }
 
-export function fetchApplicationLogsFailure(error) {
+export function fetchApplicationLogsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_APPLICATION_LOGS_FAILURE,
         payload: error,
@@ -127,8 +129,8 @@ export function resetFetchApplicationLogs() {
 
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
-export function deleteApplicationLog(projectId, componentId, applicationLogId) {
-    return function(dispatch) {
+export function deleteApplicationLog(projectId: $TSFixMe, componentId: $TSFixMe, applicationLogId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
@@ -139,6 +141,7 @@ export function deleteApplicationLog(projectId, componentId, applicationLogId) {
 
         promise.then(
             function(applicationLog) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
             function(error) {
@@ -165,28 +168,28 @@ export function deleteApplicationLog(projectId, componentId, applicationLogId) {
     };
 }
 
-export function deleteApplicationLogSuccess(removedApplicationLogId) {
+export function deleteApplicationLogSuccess(removedApplicationLogId: $TSFixMe) {
     return {
         type: types.DELETE_APPLICATION_LOG_SUCCESS,
         payload: removedApplicationLogId,
     };
 }
 
-export function deleteApplicationLogRequest(applicationLogId) {
+export function deleteApplicationLogRequest(applicationLogId: $TSFixMe) {
     return {
         type: types.DELETE_APPLICATION_LOG_REQUEST,
         payload: applicationLogId,
     };
 }
 
-export function deleteApplicationLogFailure(error) {
+export function deleteApplicationLogFailure(error: $TSFixMe) {
     return {
         type: types.DELETE_APPLICATION_LOG_FAILURE,
         payload: error,
     };
 }
 
-export function deleteComponentApplicationLogs(componentId) {
+export function deleteComponentApplicationLogs(componentId: $TSFixMe) {
     return {
         type: types.DELETE_COMPONENT_APPLICATION_LOGS,
         payload: componentId,
@@ -194,17 +197,17 @@ export function deleteComponentApplicationLogs(componentId) {
 }
 
 export function fetchLogs(
-    projectId,
-    componentId,
-    applicationLogId,
-    skip,
-    limit,
-    startDate,
-    endDate,
-    type,
-    filter
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLogId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe,
+    type: $TSFixMe,
+    filter: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/logs`,
             {
@@ -223,10 +226,13 @@ export function fetchLogs(
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         logs: response.data.data.logs,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         dateRange: response.data.data.dateRange,
                         skip,
                         limit,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         count: response.data.count,
                     })
                 );
@@ -252,21 +258,21 @@ export function fetchLogs(
     };
 }
 
-export function fetchLogsSuccess(logs) {
+export function fetchLogsSuccess(logs: $TSFixMe) {
     return {
         type: types.FETCH_LOGS_SUCCESS,
         payload: logs,
     };
 }
 
-export function fetchLogsRequest(applicationLogId) {
+export function fetchLogsRequest(applicationLogId: $TSFixMe) {
     return {
         type: types.FETCH_LOGS_REQUEST,
         payload: applicationLogId,
     };
 }
 
-export function fetchLogsFailure(error) {
+export function fetchLogsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_LOGS_FAILURE,
         payload: error,
@@ -279,11 +285,12 @@ export function resetFetchLogs() {
 }
 
 export function resetApplicationLogKey(
-    projectId,
-    componentId,
-    applicationLogId
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLogId: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
@@ -291,6 +298,7 @@ export function resetApplicationLogKey(
 
         promise.then(
             function(applicationLog) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
             function(error) {
@@ -312,7 +320,7 @@ export function resetApplicationLogKey(
     };
 }
 
-export function resetApplicationLogKeySuccess(applicationLog) {
+export function resetApplicationLogKeySuccess(applicationLog: $TSFixMe) {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_SUCCESS,
         payload: applicationLog,
@@ -325,7 +333,7 @@ export function resetApplicationLogKeyRequest() {
     };
 }
 
-export function resetApplicationLogKeyFailure(error) {
+export function resetApplicationLogKeyFailure(error: $TSFixMe) {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_FAILURE,
         payload: error,
@@ -337,7 +345,7 @@ export function resetresetApplicationLogKey() {
         type: types.RESET_APPLICATION_LOG_KEY_RESET,
     };
 }
-export function editApplicationLogSwitch(index) {
+export function editApplicationLogSwitch(index: $TSFixMe) {
     return {
         type: types.EDIT_APPLICATION_LOG_SWITCH,
         payload: index,
@@ -345,12 +353,12 @@ export function editApplicationLogSwitch(index) {
 }
 //Edit new applicationLog
 export function editApplicationLog(
-    projectId,
-    componentId,
-    applicationLogId,
-    values
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLogId: $TSFixMe,
+    values: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             values
@@ -359,6 +367,7 @@ export function editApplicationLog(
 
         promise.then(
             function(applicationLog) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
@@ -381,7 +390,7 @@ export function editApplicationLog(
     };
 }
 
-export function editApplicationLogSuccess(newApplicationLog) {
+export function editApplicationLogSuccess(newApplicationLog: $TSFixMe) {
     return {
         type: types.EDIT_APPLICATION_LOG_SUCCESS,
         payload: newApplicationLog,
@@ -394,15 +403,15 @@ export function editApplicationLogRequest() {
     };
 }
 
-export function editApplicationLogFailure(error) {
+export function editApplicationLogFailure(error: $TSFixMe) {
     return {
         type: types.EDIT_APPLICATION_LOG_FAILURE,
         payload: error,
     };
 }
 
-export function fetchStats(projectId, componentId, applicationLogId) {
-    return function(dispatch) {
+export function fetchStats(projectId: $TSFixMe, componentId: $TSFixMe, applicationLogId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
             {}
@@ -414,6 +423,7 @@ export function fetchStats(projectId, componentId, applicationLogId) {
                 dispatch(
                     fetchStatsSuccess({
                         applicationLogId,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         stats: logs.data.data,
                     })
                 );
@@ -442,21 +452,21 @@ export function fetchStats(projectId, componentId, applicationLogId) {
     };
 }
 
-export function fetchStatsSuccess(stats) {
+export function fetchStatsSuccess(stats: $TSFixMe) {
     return {
         type: types.FETCH_LOG_STAT_SUCCESS,
         payload: stats,
     };
 }
 
-export function fetchStatsRequest(applicationLogId) {
+export function fetchStatsRequest(applicationLogId: $TSFixMe) {
     return {
         type: types.FETCH_LOG_STAT_REQUEST,
         payload: applicationLogId,
     };
 }
 
-export function fetchStatsFailure(error) {
+export function fetchStatsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_LOG_STAT_FAILURE,
         payload: error,
@@ -467,15 +477,15 @@ export function resetFetchStats() {
         type: types.FETCH_LOG_STAT_RESET,
     };
 }
-export function getLogSuccess(log) {
+export function getLogSuccess(log: $TSFixMe) {
     return {
         type: types.GET_LOG_SUCCESS,
         payload: log,
     };
 }
 
-export function searchLog(projectId, componentId, applicationLogId, payload) {
-    return function(dispatch) {
+export function searchLog(projectId: $TSFixMe, componentId: $TSFixMe, applicationLogId: $TSFixMe, payload: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
             payload
@@ -486,7 +496,9 @@ export function searchLog(projectId, componentId, applicationLogId, payload) {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         logs: response.data.searchedLogs,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         count: response.data.totalSearchCount,
                     })
                 );

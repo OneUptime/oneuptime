@@ -1,7 +1,7 @@
 import winston from 'winston'
 
 export default {
-    log: (functionName, error) => {
+    log: (functionName: $TSFixMe, error: $TSFixMe) => {
         error = error && error.message ? error.message : error;
         //eslint-disable-next-line
         console.error(error);
@@ -12,6 +12,7 @@ export default {
                     functionName: String(functionName),
                     stack: new Error().stack,
                 },
+                // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                 0,
                 2
             )

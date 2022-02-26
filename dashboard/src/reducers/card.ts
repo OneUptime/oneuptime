@@ -28,7 +28,7 @@ const initialState = {
     },
 };
 
-export default function card(state = initialState, action) {
+export default function card(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.ADD_CARD_REQUEST:
             return Object.assign({}, state, {
@@ -81,7 +81,7 @@ export default function card(state = initialState, action) {
                     requesting: false,
                     success: true,
                     error: null,
-                    cards: action.payload.sort(function(a, b) {
+                    cards: action.payload.sort(function(a: $TSFixMe, b: $TSFixMe) {
                         if (a.id > b.id) {
                             return -1;
                         }
@@ -120,6 +120,7 @@ export default function card(state = initialState, action) {
                 fetchCards: {
                     ...state.fetchCards,
                     cards: state.fetchCards.cards.filter(card => {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'never'.
                         if (action.payload.id === card.id) {
                             return false;
                         }

@@ -1,17 +1,23 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const emailTemplateModel = new EmailTemplateModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         emailTemplateModel.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type 'Documen... Remove this comment to see the full error message
         emailTemplateModel.subject = data.subject || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailTemplateModel.body = data.body || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type 'Docum... Remove this comment to see the full error message
         emailTemplateModel.emailType = data.emailType || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'allowedVariables' does not exist on type... Remove this comment to see the full error message
         emailTemplateModel.allowedVariables =
+            // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
             emailTemplateVariables[[data.emailType]];
         const emailTemplate = await emailTemplateModel.save();
         return emailTemplate;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -19,6 +25,7 @@ export default {
         if (!query.deleted) query.deleted = false;
 
         if (data.emailType && !data.allowedVariables) {
+            // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
             data.allowedVariables = emailTemplateVariables[[data.emailType]];
         }
         const updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(
@@ -33,7 +40,7 @@ export default {
         return updatedEmailTemplate;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -51,7 +58,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const emailTemplate = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
@@ -68,7 +75,13 @@ export default {
         return emailTemplate;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -98,7 +111,11 @@ export default {
         return result;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -114,7 +131,7 @@ export default {
         return result;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -124,7 +141,7 @@ export default {
         return count;
     },
 
-    getTemplates: async function(projectId) {
+    getTemplates: async function(projectId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
@@ -145,7 +162,7 @@ export default {
         return templates;
     },
 
-    resetTemplate: async function(projectId, templateId) {
+    resetTemplate: async function(projectId: $TSFixMe, templateId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await _this.findOneBy({
@@ -170,7 +187,7 @@ export default {
         return resetTemplate;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await EmailTemplateModel.deleteMany(query);
         return 'Email Template(s) removed successfully';
     },

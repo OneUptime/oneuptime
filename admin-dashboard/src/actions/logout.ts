@@ -24,13 +24,14 @@ export function receiveLogout() {
 
 // Logs the user out
 export function logoutUser() {
-    return dispatch => {
+    return (dispatch: $TSFixMe) => {
         dispatch(requestLogout());
         const cookies = new Cookies();
         cookies.remove('admin-data', { path: '/' });
         cookies.remove('data', { path: '/' });
         localStorage.clear();
         dispatch(receiveLogout());
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
         window.location = ACCOUNTS_URL;
     };
 }

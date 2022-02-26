@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ReactJson from 'react-json-view';
@@ -15,7 +16,7 @@ class ViewJsonLogs extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
@@ -26,12 +27,15 @@ class ViewJsonLogs extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             id: this.props.data.viewJsonModalId,
         });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { viewJsonModalId, title, jsonLog, rootName } = this.props.data;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -80,6 +84,7 @@ class ViewJsonLogs extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={() =>
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.closeModal({
                                                     id: viewJsonModalId,
                                                 })
@@ -102,8 +107,10 @@ class ViewJsonLogs extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ViewJsonLogs.displayName = 'ViewJsonLogs';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ViewJsonLogs.propTypes = {
     closeModal: PropTypes.func.isRequired,
     data: PropTypes.object,
@@ -114,6 +121,5 @@ const mapStateToProps = () => {
     return {};
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(ViewJsonLogs);

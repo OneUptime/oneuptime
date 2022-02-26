@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -7,20 +8,24 @@ import ShouldRender from './ShouldRender';
 import moment from 'moment';
 import { capitalize } from '../config';
 
-const AffectedResources = ({ event, monitorState, colorStyle }) => {
-    const affectedMonitors = [];
+const AffectedResources = ({
+    event,
+    monitorState,
+    colorStyle
+}: $TSFixMe) => {
+    const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
 
-    const eventMonitors = [];
+    const eventMonitors: $TSFixMe = [];
     // populate the ids of the event monitors in an array
     event &&
         event.monitors &&
-        event.monitors.map(monitor => {
+        event.monitors.map((monitor: $TSFixMe) => {
             eventMonitors.push(String(monitor.monitorId._id));
             return monitor;
         });
 
-    monitorState.map(monitor => {
+    monitorState.map((monitor: $TSFixMe) => {
         if (eventMonitors.includes(String(monitor._id))) {
             affectedMonitors.push(monitor);
             monitorCount += 1;
@@ -55,38 +60,37 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
             </>
         );
     } else {
-        return (
-            <>
-                <span
-                    className="ongoing__affectedmonitor--title"
-                    style={
-                        colorStyle !== 'white'
-                            ? { color: 'rgba(76, 76, 76, 0.8)' }
-                            : {}
-                    }
-                >
-                    <Translate>Resources Affected</Translate>:{' '}
-                </span>
-                <span
-                    className="ongoing__affectedmonitor--content"
-                    style={
-                        colorStyle !== 'white'
-                            ? { color: 'rgba(0, 0, 0, 0.5)' }
-                            : {}
-                    }
-                >
-                    {affectedMonitors
-                        .map(monitor => capitalize(monitor.name))
-                        .join(', ')
-                        .replace(/, ([^,]*)$/, ' and $1')}
-                </span>
-            </>
-        );
+        return <>
+            <span
+                className="ongoing__affectedmonitor--title"
+                style={
+                    colorStyle !== 'white'
+                        ? { color: 'rgba(76, 76, 76, 0.8)' }
+                        : {}
+                }
+            >
+                <Translate>Resources Affected</Translate>:{' '}
+            </span>
+            <span
+                className="ongoing__affectedmonitor--content"
+                style={
+                    colorStyle !== 'white'
+                        ? { color: 'rgba(0, 0, 0, 0.5)' }
+                        : {}
+                }
+            >
+                {affectedMonitors
+                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+                    .map(monitor => capitalize(monitor.name))
+                    .join(', ')
+                    .replace(/, ([^,]*)$/, ' and $1')}
+            </span>
+        </>;
     }
 };
 class NewThemeEvent extends Component {
     render() {
-        const checkDuplicateDates = items => {
+        const checkDuplicateDates = (items: $TSFixMe) => {
             const track = {};
 
             const result = [];
@@ -94,8 +98,10 @@ class NewThemeEvent extends Component {
             for (const item of items) {
                 const date = String(item.createdAt).slice(0, 10);
 
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 if (!track[date]) {
                     item.style = true;
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     track[date] = date;
                 } else {
                     item.style = false;
@@ -107,8 +113,8 @@ class NewThemeEvent extends Component {
             return result;
         };
 
-        const formatMsg = data => {
-            const result = data.reduce(function(r, a) {
+        const formatMsg = (data: $TSFixMe) => {
+            const result = data.reduce(function(r: $TSFixMe, a: $TSFixMe) {
                 r[a.event_state] = r[a.event_state] || [];
                 r[a.event_state].push(a);
                 return r;
@@ -117,10 +123,14 @@ class NewThemeEvent extends Component {
             return result;
         };
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredEvents' does not exist on type '... Remove this comment to see the full error message
         const data = this.props.filteredEvents.success
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredEvents' does not exist on type '... Remove this comment to see the full error message
             ? this.props.filteredEvents.events
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'events' does not exist on type 'Readonly... Remove this comment to see the full error message
             : this.props.events;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteBackgroundColor' does not exist on t... Remove this comment to see the full error message
         const noteBackgroundColor = this.props.noteBackgroundColor;
 
         const currentTime = moment();
@@ -156,7 +166,9 @@ class NewThemeEvent extends Component {
                                         id={`event-name-${event.name}`}
                                         style={{ cursor: 'pointer' }}
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
                                             this.props.history.push(
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
                                                 `/status-page/${this.props.statusPageSlug}/scheduledEvent/${event.slug}`
                                             )
                                         }
@@ -254,7 +266,7 @@ class NewThemeEvent extends Component {
                                     >
                                         {event.description
                                             .split('\n')
-                                            .map((elem, index) => (
+                                            .map((elem: $TSFixMe, index: $TSFixMe) => (
                                                 <Markdown
                                                     key={`${elem}-${index}`}
                                                     options={{
@@ -268,6 +280,7 @@ class NewThemeEvent extends Component {
                                 </ShouldRender>
                                 {AffectedResources({
                                     event,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                                     monitorState: this.props.monitorState,
                                     colorStyle: {},
                                 })}
@@ -323,7 +336,7 @@ class NewThemeEvent extends Component {
                                                             {formatMsg(
                                                                 event.notes
                                                             )[key].map(
-                                                                (item, i) => {
+                                                                (item: $TSFixMe, i: $TSFixMe) => {
                                                                     return (
                                                                         <div
                                                                             className="incident-brief"
@@ -356,7 +369,7 @@ class NewThemeEvent extends Component {
                                                             {formatMsg(
                                                                 event.notes
                                                             )[key].map(
-                                                                (time, i) => {
+                                                                (time: $TSFixMe, i: $TSFixMe) => {
                                                                     return (
                                                                         <>
                                                                             {i ===
@@ -397,8 +410,10 @@ class NewThemeEvent extends Component {
             })
         ) : (
             <>
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredEvents' does not exist on type '... Remove this comment to see the full error message
                 <ShouldRender if={this.props.filteredEvents.date}>
                     <div className="date-big ma-t-20">
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredEvents' does not exist on type '... Remove this comment to see the full error message
                         {moment(this.props.filteredEvents.date).format('LL')}
                     </div>
                 </ShouldRender>
@@ -410,8 +425,10 @@ class NewThemeEvent extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 NewThemeEvent.displayName = 'NewThemeEvent';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 NewThemeEvent.propTypes = {
     events: PropTypes.array,
     filteredEvents: PropTypes.object,
@@ -421,7 +438,7 @@ NewThemeEvent.propTypes = {
     history: PropTypes.object,
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { type } = ownProps;
     const futureEvents = state.status.futureEvents.events;
     const pastEvents = state.status.pastEvents.events;
@@ -430,7 +447,7 @@ const mapStateToProps = (state, ownProps) => {
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
         state.status.ongoing.ongoing.filter(
-            ongoingSchedule => !ongoingSchedule.cancelled
+            (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
         );
     const events =
         type === 'future'

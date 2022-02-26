@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
 
-function Row(props) {
+function Row(props: $TSFixMe) {
     const path = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
     return (
         <tr
@@ -46,7 +47,7 @@ Row.propTypes = {
     bottonTitle: PropTypes.string,
 };
 
-function parseSchedule(schedule) {
+function parseSchedule(schedule: $TSFixMe) {
     const { name, monitorIds, _id, slug } = schedule;
     const { escalationIds } = schedule;
     const escalation = escalationIds[0] && escalationIds[0].teams;
@@ -68,8 +69,8 @@ function parseSchedule(schedule) {
             }
         }
     }
-    const gt = i => monitorIds.length > i;
-    const ut = i => userIds.length > i;
+    const gt = (i: $TSFixMe) => monitorIds.length > i;
+    const ut = (i: $TSFixMe) => userIds.length > i;
 
     const id = _id;
 
@@ -94,10 +95,10 @@ function OnCallTableRows({
     match,
     subProjectId,
     bottonTitle,
-    slug,
-}) {
+    slug
+}: $TSFixMe) {
     return schedules.length > 0
-        ? schedules.map((schedule, index) => {
+        ? schedules.map((schedule: $TSFixMe, index: $TSFixMe) => {
               if (Array.isArray(schedule)) return null;
               schedule = parseSchedule(schedule);
               return (
@@ -105,6 +106,7 @@ function OnCallTableRows({
                       name={schedule.name}
                       users={schedule.users}
                       monitors={schedule.monitors}
+                      // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; users: any; monitors: any; isRe... Remove this comment to see the full error message
                       isRequesting={isRequesting}
                       id={schedule.id}
                       key={`oncall ${index}`}

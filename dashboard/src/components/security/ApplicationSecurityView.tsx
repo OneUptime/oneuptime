@@ -26,9 +26,12 @@ const ApplicationSecurityView = ({
     applicationSecurity,
     scanError,
     activeApplicationSecurity,
-    scannedStatus,
-}) => {
-    const handleSubmit = ({ projectId, applicationSecurityId }) => {
+    scannedStatus
+}: $TSFixMe) => {
+    const handleSubmit = ({
+        projectId,
+        applicationSecurityId
+    }: $TSFixMe) => {
         openModal({
             id: applicationSecurityId,
             content: ConfirmScanModal,
@@ -47,8 +50,8 @@ const ApplicationSecurityView = ({
         componentId,
         applicationSecurityId,
         applicationSecuritySlug,
-        componentSlug,
-    }) => {
+        componentSlug
+    }: $TSFixMe) => {
         openModal({
             id: applicationSecurityId,
             content: EditApplicationSecurity,
@@ -308,15 +311,14 @@ ApplicationSecurityView.propTypes = {
     scannedStatus: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         isRequesting: state.security.deleteApplication.requesting,
         securityLog: state.security.applicationSecurityLog || {},

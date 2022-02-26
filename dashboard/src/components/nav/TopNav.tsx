@@ -18,11 +18,13 @@ import { API_URL, User } from '../../config';
 
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
+// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
 import OnCallScheduleModal from '../OnCallScheduleModal';
 import IncidentHeaderModal from '../modals/IncidentHeaderModal';
 import ScheduleHeaderModal from '../modals/ScheduleHeaderModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import _ from 'lodash';
 import moment from 'moment-timezone';
 import Search from './Search';
@@ -33,20 +35,24 @@ import { fetchMonitors } from '../../actions/monitor';
 import { history } from '../../store';
 import { socket } from '../basic/Socket';
 import { showSearchBar, closeSearchBar } from '../../actions/search';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 
 class TopContent extends Component {
+    ArrowDown: $TSFixMe;
     state = { width: 0 };
     updateDimensions = () => {
         this.setState({ width: window.innerWidth });
     };
 
-    handleChange = value => {
+    handleChange = (value: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setActiveSubProject' does not exist on t... Remove this comment to see the full error message
         this.props.setActiveSubProject(value, true);
 
         // emit project id to connect to room in backend
         socket?.emit('project_switch', value);
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitors' does not exist on type 'R... Remove this comment to see the full error message
         this.props.fetchMonitors(value);
         const val = history.location.pathname
             .split('project/')[1]
@@ -56,21 +62,31 @@ class TopContent extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userSettings' does not exist on type 'Re... Remove this comment to see the full error message
             userSettings,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getVersion' does not exist on type 'Read... Remove this comment to see the full error message
             getVersion,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubProjectOngoingScheduledEvents' d... Remove this comment to see the full error message
             fetchSubProjectOngoingScheduledEvents,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             user,
         } = this.props;
         userSettings();
         getVersion();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userScheduleRequest' does not exist on t... Remove this comment to see the full error message
         this.props.userScheduleRequest();
         if (currentProject && currentProject._id) {
             fetchSubProjectOngoingScheduledEvents(currentProject._id);
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
         if (this.props.currentProjectId && this.props.user.id) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserSchedule' does not exist on typ... Remove this comment to see the full error message
             this.props.fetchUserSchedule(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                 this.props.currentProjectId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 this.props.user.id
             );
         }
@@ -79,6 +95,7 @@ class TopContent extends Component {
                 ...user,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             };
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateProfileSetting' does not exist on ... Remove this comment to see the full error message
             this.props.updateProfileSetting(userData);
         }
         this.updateDimensions();
@@ -89,45 +106,61 @@ class TopContent extends Component {
         window.removeEventListener('resize', this.updateDimensions);
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         if (prevProps.currentProject !== this.props.currentProject) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             this.props.currentProject &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubProjectOngoingScheduledEvents' d... Remove this comment to see the full error message
                 this.props.fetchSubProjectOngoingScheduledEvents(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                     this.props.currentProject._id
                 );
         }
         if (
             (!prevProps.user.id &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                 this.props.currentProjectId &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 this.props.user.id) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
             (prevProps.currentProjectId !== this.props.currentProjectId &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 this.props.user.id)
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserSchedule' does not exist on typ... Remove this comment to see the full error message
             this.props.fetchUserSchedule(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                 this.props.currentProjectId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 this.props.user.id
             );
         }
     }
 
     showFeedbackModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openFeedbackModal' does not exist on typ... Remove this comment to see the full error message
         this.props.openFeedbackModal();
     };
 
     hideFeedbackModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetCreateFeedback' does not exist on t... Remove this comment to see the full error message
         this.props.resetCreateFeedback();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeFeedbackModal' does not exist on ty... Remove this comment to see the full error message
         this.props.closeFeedbackModal();
     };
 
-    showProfileMenu = e => {
+    showProfileMenu = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showProfileMenu' does not exist on type ... Remove this comment to see the full error message
         this.props.showProfileMenu(e.clientX);
     };
 
-    showNotificationsMenu = e => {
+    showNotificationsMenu = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openNotificationMenu' does not exist on ... Remove this comment to see the full error message
         this.props.openNotificationMenu(e.clientX);
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 this.hideFeedbackModal();
@@ -141,77 +174,87 @@ class TopContent extends Component {
         let unresolvedincidents = [];
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.incidents.length > 0
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             unresolvedincidents = this.props.incidents.incidents.filter(
-                incident => !incident.resolved
+                (incident: $TSFixMe) => !incident.resolved
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
             content: DataPathHoC(IncidentHeaderModal, {
                 status: 'active',
                 incidents: unresolvedincidents,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectSlug' does not exist on ty... Remove this comment to see the full error message
                 currentProjectSlug: this.props.currentProjectSlug,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                 currentProjectId: this.props.currentProjectId,
             }),
         });
     };
 
     handleOngoingScheduleClick = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectOngoingScheduledEvents' does n... Remove this comment to see the full error message
         const { subProjectOngoingScheduledEvents } = this.props;
-        const schedules = [];
-        subProjectOngoingScheduledEvents.forEach(eventData => {
+        const schedules: $TSFixMe = [];
+        subProjectOngoingScheduledEvents.forEach((eventData: $TSFixMe) => {
             schedules.push(...eventData.ongoingScheduledEvents);
         });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
             content: DataPathHoC(ScheduleHeaderModal, {
                 schedules,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectSlug' does not exist on ty... Remove this comment to see the full error message
                 currentProjectSlug: this.props.currentProjectSlug,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                 currentProjectId: this.props.currentProjectId,
             }),
         });
     };
 
-    renderActiveIncidents = incidentCounter => (
-        <>
-            {typeof incidentCounter === 'number' && (
-                <div
-                    className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+    renderActiveIncidents = (incidentCounter: $TSFixMe) => <>
+        {typeof incidentCounter === 'number' && (
+            <div
+                className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${
+                    incidentCounter && incidentCounter > 0
+                        ? 'red'
+                        : incidentCounter === 0
+                        ? 'green'
+                        : null
+                } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
+                style={{ paddingBottom: '6px', paddingTop: '6px' }}
+                onClick={this.handleActiveIncidentClick}
+                id="activeIncidents"
+            >
+                <span
+                    className={`db-SideNav-icon db-SideNav-icon--${
                         incidentCounter && incidentCounter > 0
-                            ? 'red'
+                            ? 'info'
                             : incidentCounter === 0
-                            ? 'green'
+                            ? 'tick'
                             : null
-                    } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
-                    style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                    onClick={this.handleActiveIncidentClick}
-                    id="activeIncidents"
-                >
-                    <span
-                        className={`db-SideNav-icon db-SideNav-icon--${
-                            incidentCounter && incidentCounter > 0
-                                ? 'info'
-                                : incidentCounter === 0
-                                ? 'tick'
-                                : null
-                        } db-SideNav-icon--selected`}
-                        style={{
-                            filter: 'brightness(0) invert(1)',
-                            marginTop: '1px',
-                            marginRight: '3px',
-                        }}
-                    />
-                </div>
-            )}
-        </>
-    );
+                    } db-SideNav-icon--selected`}
+                    style={{
+                        filter: 'brightness(0) invert(1)',
+                        marginTop: '1px',
+                        marginRight: '3px',
+                    }}
+                />
+            </div>
+        )}
+    </>;
 
     renderOngoingScheduledEvents = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectOngoingScheduledEvents' does n... Remove this comment to see the full error message
         const { subProjectOngoingScheduledEvents } = this.props;
         let count = 0;
-        subProjectOngoingScheduledEvents.forEach(eventData => {
+        subProjectOngoingScheduledEvents.forEach((eventData: $TSFixMe) => {
             count += eventData.count;
         });
         return count > 0 ? (
@@ -234,9 +277,9 @@ class TopContent extends Component {
     };
 
     renderOnCallSchedule = (
-        activeSchedules,
-        currentProjectId,
-        currentProjectSlug
+        activeSchedules: $TSFixMe,
+        currentProjectId: $TSFixMe,
+        currentProjectSlug: $TSFixMe
     ) => {
         return (
             <div
@@ -244,6 +287,7 @@ class TopContent extends Component {
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
                 id="onCallSchedule"
                 onClick={() =>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.openModal({
                         content: DataPathHoC(OnCallScheduleModal, {
                             status: 'active',
@@ -268,22 +312,32 @@ class TopContent extends Component {
 
     render() {
         const IMG_URL =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic !== '' &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic !== 'null'
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
         const userId = User.getUserId();
         const isNotViewer =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             this.props.currentProject &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             !isSubProjectViewer(userId, this.props.currentProject);
         let count = 0;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
             this.props.notifications &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
             this.props.notifications.notifications &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
             this.props.notifications.notifications.length
         ) {
-            this.props.notifications.notifications.map(notification => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+            this.props.notifications.notifications.map((notification: $TSFixMe) => {
                 if (notification.read.indexOf(userId) > -1) {
                     return notification;
                 } else {
@@ -295,26 +349,31 @@ class TopContent extends Component {
         let incidentCounter = null;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.incidents.length > 0
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             incidentCounter = this.props.incidents.incidents.filter(
-                incident => !incident.resolved
+                (incident: $TSFixMe) => !incident.resolved
             ).length;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalations' does not exist on type 'Rea... Remove this comment to see the full error message
         const { escalations } = this.props;
 
         const userSchedules = _.flattenDeep(
-            escalations.map(escalation => {
+            escalations.map((escalation: $TSFixMe) => {
                 return escalation.teams
-                    .map(team => {
+                    .map((team: $TSFixMe) => {
                         const schedule = team.teamMembers.find(
-                            user =>
-                                String(user.userId) ===
-                                String(
-                                    this.props.user.id || this.props.user._id
-                                )
+                            (user: $TSFixMe) => String(user.userId) ===
+                            String(
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                this.props.user.id || this.props.user._id
+                            )
                         );
                         if (schedule) {
                             schedule.projectId = escalation.projectId;
@@ -322,16 +381,16 @@ class TopContent extends Component {
                         }
                         return schedule;
                     })
-                    .filter(escalation => escalation);
+                    .filter((escalation: $TSFixMe) => escalation);
             })
         );
 
-        const activeSchedules = [];
+        const activeSchedules: $TSFixMe = [];
         const upcomingSchedules = [];
         const inactiveSchedules = [];
 
         if (userSchedules && userSchedules.length > 0) {
-            userSchedules.forEach(userSchedule => {
+            userSchedules.forEach((userSchedule: $TSFixMe) => {
                 const now = (userSchedule && moment()).format('HH:mm');
                 const oncallstart = moment(userSchedule.startTime).format(
                     'HH:mm'
@@ -348,7 +407,7 @@ class TopContent extends Component {
                     (userSchedule && userSchedule.endTime) || dayEnd
                 ).format('HH:mm');
 
-                const compareDate = (oncallstart, oncallend, now) => {
+                const compareDate = (oncallstart: $TSFixMe, oncallend: $TSFixMe, now: $TSFixMe) => {
                     const isDifferentDay = oncallstart >= oncallend;
                     const [startHour, startMin] = oncallstart.split(':');
                     const [endHour, endMin] = oncallend.split(':');
@@ -416,29 +475,35 @@ class TopContent extends Component {
 
         let ongoingEventList, topNavCardClass;
         const topNavCardCount = document.getElementById('myId')
+            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
             ? document.getElementById('myId').childElementCount
             : 0;
         if (topNavCardCount === 4) topNavCardClass = 'oneCardClass';
         if (topNavCardCount === 5) topNavCardClass = 'twoCardClass';
         if (topNavCardCount === 6) topNavCardClass = 'threeCardClass';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { project, searchFieldVisible, closeSearchBar } = this.props;
         const renderSearch =
             project.projects.success && project.projects.projects.length !== 0;
 
         let activeSubProject;
-        this.props.subProjects.forEach(subProject => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+        this.props.subProjects.forEach((subProject: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeSubProject' does not exist on type... Remove this comment to see the full error message
             if (subProject._id === this.props.activeSubProject) {
                 activeSubProject = subProject.name;
             }
         });
 
         const loggedInUser = User.getUserId();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const showMainProject = this.props.currentProject?.users.find(
-            user => (user.userId._id || user.userId) === loggedInUser
+            (user: $TSFixMe) => (user.userId._id || user.userId) === loggedInUser
         );
 
         return (
             <div
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
                 style={{
@@ -450,6 +515,7 @@ class TopContent extends Component {
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
                 <div>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     <ShouldRender if={this.props.subProjects.length > 0}>
                         <SubProjectDropDown
                             value={
@@ -459,20 +525,26 @@ class TopContent extends Component {
                             }
                             options={[
                                 {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                     value: this.props.currentProject?._id,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                     label: `${this.props.currentProject?.name}`,
                                 },
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                                 ...(this.props.subProjects &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                                 this.props.subProjects.length > 0
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                                     ? this.props.subProjects.map(
-                                          subProject => ({
+                                          (subProject: $TSFixMe) => ({
                                               value: subProject._id,
-                                              label: subProject.name,
+                                              label: subProject.name
                                           })
                                       )
                                     : []),
                             ]}
                             updateState={this.handleChange}
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingSubProjects' does not exist on t... Remove this comment to see the full error message
                             ready={!this.props.fetchingSubProjects}
                             showMainProject={showMainProject}
                         />
@@ -483,12 +555,14 @@ class TopContent extends Component {
                         <ShouldRender if={isNotViewer && searchFieldVisible}>
                             <ClickOutside onClickOutside={closeSearchBar}>
                                 <div className="db-Search-wrapper search-input2 floating-search-input">
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ closeSearchBar: any; }' is not assignable ... Remove this comment to see the full error message
                                     <Search closeSearchBar={closeSearchBar} />
                                 </div>
                             </ClickOutside>
                         </ShouldRender>
                         <div
                             className="Box-root"
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSideNav' does not exist on type 'Rea... Remove this comment to see the full error message
                             onClick={this.props.openSideNav}
                         >
                             <div className="db-MenuContainer">
@@ -502,6 +576,7 @@ class TopContent extends Component {
                             </div>
                         </div>
                         <FeedBackModal
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ hideFeedbackModal: () => void; }' is not a... Remove this comment to see the full error message
                             hideFeedbackModal={this.hideFeedbackModal}
                         />
 
@@ -512,6 +587,7 @@ class TopContent extends Component {
                             {userSchedules ? (
                                 <>
                                     {ongoingEventList &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type 'never'.
                                         ongoingEventList.length > 0 &&
                                         ongoingEventList}
                                     <ShouldRender
@@ -523,8 +599,11 @@ class TopContent extends Component {
                                     >
                                         {this.renderOnCallSchedule(
                                             activeSchedules,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                                             this.props.currentProjectId,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectSlug' does not exist on ty... Remove this comment to see the full error message
                                             this.props.currentProjectSlug,
+                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 4.
                                             topNavCardClass
                                         )}
                                     </ShouldRender>
@@ -536,11 +615,13 @@ class TopContent extends Component {
                             {isNotViewer &&
                                 this.renderActiveIncidents(
                                     incidentCounter,
+                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
                                     topNavCardClass
                                 )}
 
                             {isNotViewer &&
                                 this.renderOngoingScheduledEvents(
+                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 0 arguments, but got 1.
                                     topNavCardClass
                                 )}
 
@@ -563,6 +644,7 @@ class TopContent extends Component {
                                                 'db-Notifications-button'
                                             }
                                             style={{ paddingTop: 7 }}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showSearchBar' does not exist on type 'R... Remove this comment to see the full error message
                                             onClick={this.props.showSearchBar}
                                         >
                                             <img
@@ -610,6 +692,7 @@ class TopContent extends Component {
                             <ShouldRender if={isNotViewer}>
                                 <div className="Box-root Flex-flex">
                                     <div
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                         tabIndex="-1"
                                         style={{
                                             outline: 'none',
@@ -638,6 +721,7 @@ class TopContent extends Component {
                                                 className="bs-Button bs-DeprecatedButton db-UserMenuX"
                                                 id="profile-menu"
                                                 type="button"
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                 tabIndex="-1"
                                                 onClick={this.showProfileMenu}
                                             >
@@ -660,14 +744,15 @@ class TopContent extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 TopContent.displayName = 'TopContent';
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';
     const { projectId } = props;
     const monitors = projectId
-        ? state.monitor.monitorsList.monitors.find(project => {
+        ? state.monitor.monitorsList.monitors.find((project: $TSFixMe) => {
               return project._id === projectId;
           })
         : [];
@@ -697,30 +782,30 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            showProfileMenu,
-            openFeedbackModal,
-            closeFeedbackModal,
-            userSettings,
-            openNotificationMenu,
-            fetchUserSchedule,
-            userScheduleRequest,
-            getVersion,
-            openSideNav,
-            fetchSubProjectOngoingScheduledEvents,
-            openModal,
-            updateProfileSetting,
-            setActiveSubProject,
-            fetchMonitors,
-            showSearchBar,
-            closeSearchBar,
-            resetCreateFeedback,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        showProfileMenu,
+        openFeedbackModal,
+        closeFeedbackModal,
+        userSettings,
+        openNotificationMenu,
+        fetchUserSchedule,
+        userScheduleRequest,
+        getVersion,
+        openSideNav,
+        fetchSubProjectOngoingScheduledEvents,
+        openModal,
+        updateProfileSetting,
+        setActiveSubProject,
+        fetchMonitors,
+        showSearchBar,
+        closeSearchBar,
+        resetCreateFeedback,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TopContent.propTypes = {
     getVersion: PropTypes.func,
     openSideNav: PropTypes.func,

@@ -1,21 +1,21 @@
 import { getApi } from '../api';
 import * as types from '../constants/version';
 
-export function getVersionRequest(promise) {
+export function getVersionRequest(promise: $TSFixMe) {
     return {
         type: types.GET_VERSION_REQUEST,
         payload: promise,
     };
 }
 
-export function getVersionError(error) {
+export function getVersionError(error: $TSFixMe) {
     return {
         type: types.GET_VERSION_FAILED,
         payload: error,
     };
 }
 
-export function getVersionSuccess(versions) {
+export function getVersionSuccess(versions: $TSFixMe) {
     return {
         type: types.GET_VERSION_SUCCESS,
         payload: versions,
@@ -29,7 +29,7 @@ export const resetGetVersion = () => {
 };
 
 export function getVersion() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi('version');
 
@@ -37,6 +37,7 @@ export function getVersion() {
 
         promise.then(
             function(versions) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getVersionSuccess(versions.data));
             },
             function(error) {

@@ -25,7 +25,7 @@ const initialState = {
     activeSla: '',
 };
 
-export default function incidentCommunicationSla(state = initialState, action) {
+export default function incidentCommunicationSla(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.CREATE_COMMUNICATION_SLA_REQUEST:
             return {
@@ -73,6 +73,7 @@ export default function incidentCommunicationSla(state = initialState, action) {
 
         case types.DELETE_COMMUNICATION_SLA_SUCCESS: {
             const incidentSlas = state.incidentCommunicationSlas.incidentSlas.filter(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 sla => String(sla._id) !== String(action.payload._id)
             );
             return {
@@ -184,12 +185,16 @@ export default function incidentCommunicationSla(state = initialState, action) {
                 sla => {
                     if (
                         action.payload.isDefault &&
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         String(sla._id) !== String(action.payload._id)
                     ) {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
                         sla.isDefault = false;
                     }
 
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                     if (String(sla._id) === String(action.payload._id)) {
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                         sla = action.payload;
                     }
 

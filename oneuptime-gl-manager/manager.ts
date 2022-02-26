@@ -1,17 +1,21 @@
 'use strict';
 
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
 import axios from 'axios'
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 const Manager = module.exports;
 // eslint-disable-next-line no-unused-vars
-Manager.create = function(opts) {
+Manager.create = function(opts: $TSFixMe) {
     const manager = {};
 
     //
     // REQUIRED (basic issuance)
     //
-    manager.get = async function({ servername }) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'get' does not exist on type '{}'.
+    manager.get = async function({
+        servername
+    }: $TSFixMe) {
         const url = `${BASE_URL}/api/manager/site?servername=${servername}`;
         const response = await axios({
             url,
@@ -24,7 +28,8 @@ Manager.create = function(opts) {
     //
     // REQUIRED (basic issuance)
     //
-    manager.set = async function(opts) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'set' does not exist on type '{}'.
+    manager.set = async function(opts: $TSFixMe) {
         const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
@@ -38,7 +43,8 @@ Manager.create = function(opts) {
     //
     // Optional (Fully Automatic Renewal)
     //
-    manager.find = async function(opts) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'find' does not exist on type '{}'.
+    manager.find = async function(opts: $TSFixMe) {
         // { subject, servernames, altnames, renewBefore }
         if (opts.subject) {
             const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
@@ -88,7 +94,8 @@ Manager.create = function(opts) {
     // Optional (Special Remove Functionality)
     // The default behavior is to set `deletedAt`
     //
-    manager.remove = async function(opts) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'remove' does not exist on type '{}'.
+    manager.remove = async function(opts: $TSFixMe) {
         const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
@@ -103,7 +110,8 @@ Manager.create = function(opts) {
     // Implemented here because this module IS the fallback
     // This is a setter/getter function
     //
-    manager.defaults = async function(opts) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaults' does not exist on type '{}'.
+    manager.defaults = async function(opts: $TSFixMe) {
         if (!opts) {
             const url = `${BASE_URL}/api/manager/default`;
             const response = await axios({

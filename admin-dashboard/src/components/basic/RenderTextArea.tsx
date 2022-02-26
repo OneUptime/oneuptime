@@ -10,8 +10,8 @@ const RenderTextArea = ({
     maxlength,
     rows,
     disabled,
-    style,
-}) => (
+    style
+}: $TSFixMe) => (
     <span>
         <span>
             <textarea

@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import WebHookList from './WebHookList';
@@ -32,7 +33,9 @@ class WebHookBox extends React.Component {
                                             <div className="Box-root">
                                                 <RenderIfAdmin>
                                                     <WebHookButton
+                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitorId: any; }' is not assignable to ty... Remove this comment to see the full error message
                                                         monitorId={
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
                                                             this.props.monitorId
                                                         }
                                                     />
@@ -41,6 +44,7 @@ class WebHookBox extends React.Component {
                                         </div>
                                     </div>
                                 </div>
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitorId: any; }' is not assignable to ty... Remove this comment to see the full error message
                                 <WebHookList monitorId={this.props.monitorId} />
                             </div>
                         </div>
@@ -51,8 +55,10 @@ class WebHookBox extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 WebHookBox.displayName = 'WebHookBox';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 WebHookBox.propTypes = {
     monitorId: PropTypes.string,
 };

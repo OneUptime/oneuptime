@@ -5,7 +5,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-export function RenderIfSubProjectAdmin(props) {
+export function RenderIfSubProjectAdmin(props: $TSFixMe) {
     const { children, currentProject, subProjects, subProjectId } = props;
     const userId = User.getUserId();
     let renderItems = null;
@@ -15,23 +15,21 @@ export function RenderIfSubProjectAdmin(props) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user =>
-                user.userId === userId &&
-                (user.role === 'Administrator' || user.role === 'Owner')
+            (user: $TSFixMe) => user.userId === userId &&
+            (user.role === 'Administrator' || user.role === 'Owner')
         ).length > 0
     ) {
         renderItems = children;
     } else {
         if (subProjects) {
-            subProjects.forEach(subProject => {
+            subProjects.forEach((subProject: $TSFixMe) => {
                 if (subProjectId) {
                     if (
                         subProject._id === subProjectId &&
                         subProject.users.filter(
-                            user =>
-                                user.userId === userId &&
-                                (user.role === 'Administrator' ||
-                                    user.role === 'Owner')
+                            (user: $TSFixMe) => user.userId === userId &&
+                            (user.role === 'Administrator' ||
+                                user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = children;
@@ -43,10 +41,9 @@ export function RenderIfSubProjectAdmin(props) {
                         subProject.users &&
                         subProject.users.length > 0 &&
                         subProject.users.filter(
-                            user =>
-                                user.userId === userId &&
-                                (user.role === 'Administrator' ||
-                                    user.role === 'Owner')
+                            (user: $TSFixMe) => user.userId === userId &&
+                            (user.role === 'Administrator' ||
+                                user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = children;
@@ -58,7 +55,7 @@ export function RenderIfSubProjectAdmin(props) {
     return renderItems;
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,

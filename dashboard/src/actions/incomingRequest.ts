@@ -5,17 +5,17 @@ export const createIncomingRequestRequest = () => ({
     type: types.CREATE_INCOMING_REQUEST_REQUEST,
 });
 
-export const createIncomingRequestSuccess = payload => ({
+export const createIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_INCOMING_REQUEST_SUCCESS,
-    payload,
+    payload
 });
 
-export const createIncomingRequestFailure = error => ({
+export const createIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.CREATE_INCOMING_REQUEST_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const createIncomingRequest = (projectId, data) => async dispatch => {
+export const createIncomingRequest = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(createIncomingRequestRequest());
 
@@ -23,6 +23,7 @@ export const createIncomingRequest = (projectId, data) => async dispatch => {
             `incoming-request/${projectId}/create-request-url`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(createIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -41,21 +42,21 @@ export const editIncomingRequestRequest = () => ({
     type: types.EDIT_INCOMING_REQUEST_REQUEST,
 });
 
-export const editIncomingRequestSuccess = payload => ({
+export const editIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.EDIT_INCOMING_REQUEST_SUCCESS,
-    payload,
+    payload
 });
 
-export const editIncomingRequestFailure = error => ({
+export const editIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.EDIT_INCOMING_REQUEST_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const editIncomingRequest = (
-    projectId,
-    requestId,
-    data
-) => async dispatch => {
+    projectId: $TSFixMe,
+    requestId: $TSFixMe,
+    data: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(editIncomingRequestRequest());
 
@@ -63,6 +64,7 @@ export const editIncomingRequest = (
             `incoming-request/${projectId}/update/${requestId}`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(editIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -81,26 +83,28 @@ export const deleteIncomingRequestRequest = () => ({
     type: types.DELETE_INCOMING_REQUEST_REQUEST,
 });
 
-export const deleteIncomingRequestSuccess = payload => ({
+export const deleteIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCOMING_REQUEST_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteIncomingRequestFailure = error => ({
+export const deleteIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCOMING_REQUEST_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteIncomingRequest = (
-    projectId,
-    requestId
-) => async dispatch => {
+    projectId: $TSFixMe,
+    requestId: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(deleteIncomingRequestRequest());
 
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `incoming-request/${projectId}/remove/${requestId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -119,27 +123,28 @@ export const fetchAllIncomingRequestRequest = () => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_REQUEST,
 });
 
-export const fetchAllIncomingRequestSuccess = payload => ({
+export const fetchAllIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchAllIncomingRequestFailure = error => ({
+export const fetchAllIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchAllIncomingRequest = (
-    projectId,
-    skip,
-    limit
-) => async dispatch => {
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(fetchAllIncomingRequestRequest());
 
         const response = await getApi(
             `incoming-request/${projectId}/all-incoming-request?skip=${skip}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(fetchAllIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -154,16 +159,16 @@ export const fetchAllIncomingRequest = (
     }
 };
 
-export const setActiveIncomingRequest = requestId => ({
+export const setActiveIncomingRequest = (requestId: $TSFixMe) => ({
     type: types.SET_ACTIVE_INCOMING_REQUEST,
-    payload: requestId,
+    payload: requestId
 });
 
 export const incomingRequestToggle = (
-    projectId,
-    requestId,
-    enabled
-) => async dispatch => {
+    projectId: $TSFixMe,
+    requestId: $TSFixMe,
+    enabled: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(editIncomingRequestRequest());
         const response = await postApi(
@@ -171,6 +176,7 @@ export const incomingRequestToggle = (
             enabled
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(editIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =

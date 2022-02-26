@@ -6,19 +6,27 @@ import { ListLoader } from '../basic/Loader';
 import moment from 'moment';
 
 export class InvoiceList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
     }
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'has_more' does not exist on type 'Readon... Remove this comment to see the full error message
             has_more,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'invoices' does not exist on type 'Readon... Remove this comment to see the full error message
             invoices,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
             nextClicked,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextCount' does not exist on type 'Reado... Remove this comment to see the full error message
             nextCount,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
             prevClicked,
         } = this.props;
         const canPrev = Boolean(nextCount);
@@ -120,6 +128,7 @@ export class InvoiceList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -134,7 +143,7 @@ export class InvoiceList extends Component {
                             {invoices &&
                             invoices.data &&
                             invoices.data.length > 0 ? (
-                                invoices.data.map(invoice => {
+                                invoices.data.map((invoice: $TSFixMe) => {
                                     let invoiceDescription;
                                     if (
                                         invoice.billing_reason ===
@@ -281,6 +290,7 @@ export class InvoiceList extends Component {
                                             </td>
                                             <td
                                                 id="overflow"
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                                 type="action"
                                                 className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                 style={{ height: '1px' }}
@@ -308,6 +318,7 @@ export class InvoiceList extends Component {
                     }}
                 >
                     {!invoices &&
+                    // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
                     !invoices.length > 0 &&
                     !isRequesting &&
                     !error
@@ -374,11 +385,11 @@ export class InvoiceList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({}, dispatch);
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const { invoices, nextCount } = state.invoice;
     const { has_more } = invoices;
     const isRequesting = state.invoice.requesting;
@@ -393,6 +404,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 InvoiceList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     invoices: PropTypes.array,
@@ -403,6 +415,7 @@ InvoiceList.propTypes = {
     prevClicked: PropTypes.func.isRequired,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 InvoiceList.displayName = 'InvoiceList';
 
 export default connect(mapStateToProps, mapDispatchToProps)(InvoiceList);

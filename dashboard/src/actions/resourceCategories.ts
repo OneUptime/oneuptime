@@ -2,10 +2,10 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/resourceCategories';
 import errors from '../errors';
 
-export function fetchResourceCategories(projectId, skip, limit) {
+export function fetchResourceCategories(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -21,6 +21,7 @@ export function fetchResourceCategories(projectId, skip, limit) {
         promise.then(
             function(resourceCategories) {
                 dispatch(
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
@@ -42,7 +43,7 @@ export function fetchResourceCategories(projectId, skip, limit) {
     };
 }
 
-export function fetchResourceCategoriesSuccess(resourceCategories) {
+export function fetchResourceCategoriesSuccess(resourceCategories: $TSFixMe) {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_SUCCESS,
         payload: resourceCategories,
@@ -55,20 +56,21 @@ export function fetchResourceCategoriesRequest() {
     };
 }
 
-export function fetchResourceCategoriesFailure(error) {
+export function fetchResourceCategoriesFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FAILURE,
         payload: error,
     };
 }
 
-export function createResourceCategory(projectId, values) {
-    return function(dispatch) {
+export function createResourceCategory(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`resourceCategory/${projectId}`, values);
         dispatch(createResourceCategoryRequest());
 
         promise.then(
             function(resourceCategory) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
             function(error) {
@@ -90,8 +92,8 @@ export function createResourceCategory(projectId, values) {
     };
 }
 
-export function updateResourceCategory(projectId, resourceCategoryId, values) {
-    return function(dispatch) {
+export function updateResourceCategory(projectId: $TSFixMe, resourceCategoryId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
             values
@@ -101,6 +103,7 @@ export function updateResourceCategory(projectId, resourceCategoryId, values) {
         promise.then(
             function(updatedResourceCategory) {
                 dispatch(
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
@@ -123,7 +126,7 @@ export function updateResourceCategory(projectId, resourceCategoryId, values) {
     };
 }
 
-export function createResourceCategorySuccess(newResourceCategory) {
+export function createResourceCategorySuccess(newResourceCategory: $TSFixMe) {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_SUCCESS,
         payload: newResourceCategory,
@@ -136,7 +139,7 @@ export function createResourceCategoryRequest() {
     };
 }
 
-export function createResourceCategoryFailure(error) {
+export function createResourceCategoryFailure(error: $TSFixMe) {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
@@ -149,22 +152,23 @@ export function updateResourceCategoryRequest() {
     };
 }
 
-export function updateResourceCategorySuccess(updatedResourceCategory) {
+export function updateResourceCategorySuccess(updatedResourceCategory: $TSFixMe) {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_SUCCESS,
         payload: updatedResourceCategory,
     };
 }
 
-export function updateResourceCategoryFailure(error) {
+export function updateResourceCategoryFailure(error: $TSFixMe) {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
     };
 }
 
-export function deleteResourceCategory(resourceCategoryId, projectId) {
-    return function(dispatch) {
+export function deleteResourceCategory(resourceCategoryId: $TSFixMe, projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`
         );
@@ -173,6 +177,7 @@ export function deleteResourceCategory(resourceCategoryId, projectId) {
         promise.then(
             function(resourceCategory) {
                 dispatch(
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
@@ -196,29 +201,29 @@ export function deleteResourceCategory(resourceCategoryId, projectId) {
     };
 }
 
-export function deleteResourceCategorySuccess(removedResourceCategoryId) {
+export function deleteResourceCategorySuccess(removedResourceCategoryId: $TSFixMe) {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_SUCCESS,
         payload: removedResourceCategoryId,
     };
 }
 
-export function deleteResourceCategoryRequest(resourceCategoryId) {
+export function deleteResourceCategoryRequest(resourceCategoryId: $TSFixMe) {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_REQUEST,
         payload: resourceCategoryId,
     };
 }
 
-export function deleteResourceCategoryFailure(error) {
+export function deleteResourceCategoryFailure(error: $TSFixMe) {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
     };
 }
 
-export function fetchResourceCategoriesForNewResource(projectId) {
-    return function(dispatch) {
+export function fetchResourceCategoriesForNewResource(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
@@ -226,6 +231,7 @@ export function fetchResourceCategoriesForNewResource(projectId) {
             function(resourceCategories) {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         resourceCategories.data
                     )
                 );
@@ -251,7 +257,7 @@ export function fetchResourceCategoriesForNewResource(projectId) {
 }
 
 export function fetchResourceCategoriesForNewResourceSuccess(
-    resourceCategories
+    resourceCategories: $TSFixMe
 ) {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_SUCCESS,
@@ -265,7 +271,7 @@ export function fetchResourceCategoriesForNewResourceRequest() {
     };
 }
 
-export function fetchResourceCategoriesForNewResourceFailure(error) {
+export function fetchResourceCategoriesForNewResourceFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,
         payload: error,

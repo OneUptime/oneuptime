@@ -6,7 +6,7 @@ export default {
      * @param { string } projectId of project to query
      * @returns {Promise} rejected if their is an error resolves if all is good
      */
-    async getMostActiveMembers(subProjectIds, startDate, endDate, skip, limit) {
+    async getMostActiveMembers(subProjectIds: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
@@ -62,7 +62,7 @@ export default {
         const arr = [];
         const wrapper = {};
         const filterMembers = result[0].members.filter(
-            member => member._id !== null
+            (member: $TSFixMe) => member._id !== null
         );
         for (const member of filterMembers) {
             const response = await UserService.findOneBy({
@@ -79,7 +79,9 @@ export default {
             };
             arr.push(result);
         }
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         wrapper['members'] = arr;
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
@@ -91,11 +93,11 @@ export default {
      * @returns {Promise} rejected if their is an error resolves if all is good
      */
     async getMostActiveMonitors(
-        subProjectIds,
-        startDate,
-        endDate,
-        skip,
-        limit
+        subProjectIds: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
     ) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
@@ -168,7 +170,9 @@ export default {
             };
             arr.push(monitorObj);
         }
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         wrapper['monitors'] = arr;
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
@@ -180,7 +184,7 @@ export default {
      * @description get the average resolve time for the current month
      * @returns { Promise } array if resolved || error if rejected
      */
-    async getAverageTimeBy(subProjectIds, startDate, endDate, filter) {
+    async getAverageTimeBy(subProjectIds: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, filter: $TSFixMe) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
@@ -286,6 +290,7 @@ export default {
                     10
                 ),
             };
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             data[filter] = moment(period._id[filter], inputFormat).format(
                 outputFormat
             );
@@ -302,7 +307,7 @@ export default {
      * @description get the number of incidents for the past 12 months
      * @returns { Promise } array if resolved || error if rejected
      */
-    async getIncidentCountBy(subProjectIds, startDate, endDate, filter) {
+    async getIncidentCountBy(subProjectIds: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, filter: $TSFixMe) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
@@ -387,6 +392,7 @@ export default {
             const data = {
                 incidents: period.count,
             };
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             data[filter] = moment(period._id[filter], inputFormat).format(
                 outputFormat
             );

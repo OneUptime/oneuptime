@@ -1,7 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const IssueIndicator = ({ status, resourceName, count }) => {
+const IssueIndicator = ({
+    status,
+    resourceName,
+    count
+}: $TSFixMe) => {
     let statusColor, content;
 
     switch (status) {

@@ -134,7 +134,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function user(state = INITIAL_STATE, action) {
+export default function user(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         // fetch users list
         case FETCH_USERS_REQUEST:
@@ -220,6 +220,7 @@ export default function user(state = INITIAL_STATE, action) {
                                   action.payload,
                                   ...state.users.users.slice(0, -1),
                               ],
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.users.count + 1,
                 },
                 addUser: {
@@ -279,6 +280,7 @@ export default function user(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     users: state.users.users.map(user =>
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         user._id === action.payload._id ? action.payload : user
                     ),
                     count: action.payload.count,
@@ -569,7 +571,9 @@ export default function user(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     users: state.users.users.map(user => {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         if (user._id === action.payload._id) {
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                             user = action.payload;
                         }
                         return user;

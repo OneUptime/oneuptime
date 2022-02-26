@@ -1,5 +1,6 @@
 import logger from 'common-server/utils/logger'
 import fetch from 'node-fetch-commonjs'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'get-... Remove this comment to see the full error message
 import sslCert from 'get-ssl-certificate'
 import https from 'https'
 import http from 'http'
@@ -10,7 +11,7 @@ const httpsAgent = new https.Agent({
 
 const httpAgent = new http.Agent();
 
-const pingfetch = async (url, method, body, headers) => {
+const pingfetch = async (url: $TSFixMe, method: $TSFixMe, body: $TSFixMe, headers: $TSFixMe) => {
     const now = new Date().getTime();
     let resp, res, response;
 
@@ -27,9 +28,11 @@ const pingfetch = async (url, method, body, headers) => {
             timeout: 30000,
         };
         if (headers && Object.keys(headers).length > 0) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'headers' does not exist on type '{ metho... Remove this comment to see the full error message
             payload.headers = headers;
         }
         if (body && Object.keys(body).length > 0) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type '{ method: ... Remove this comment to see the full error message
             payload.body = body;
         }
         try {

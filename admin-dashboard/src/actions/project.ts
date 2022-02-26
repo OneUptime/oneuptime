@@ -10,14 +10,14 @@ export const fetchProjectsRequest = () => {
     };
 };
 
-export const fetchProjectsSuccess = projects => {
+export const fetchProjectsSuccess = (projects: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECTS_SUCCESS,
         payload: projects,
     };
 };
 
-export const fetchProjectsError = error => {
+export const fetchProjectsError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECTS_FAILURE,
         payload: error,
@@ -25,17 +25,19 @@ export const fetchProjectsError = error => {
 };
 
 // Calls the API to fetch all projects.
-export const fetchProjects = (skip, limit) => async dispatch => {
+export const fetchProjects = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     skip = skip || 0;
     limit = limit || 10;
 
     dispatch(fetchProjectsRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(
             `project/projects/allProjects?skip=${skip}&limit=${limit}`
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(fetchProjectsSuccess(response.data));
         return response;
     } catch (error) {
@@ -60,14 +62,14 @@ export const fetchProjectRequest = () => {
     };
 };
 
-export const fetchProjectSuccess = project => {
+export const fetchProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const fetchProjectError = error => {
+export const fetchProjectError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_FAILURE,
         payload: error,
@@ -75,11 +77,13 @@ export const fetchProjectError = error => {
 };
 
 // Calls the API to fetch a project.
-export const fetchProject = slug => async dispatch => {
+export const fetchProject = (slug: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchProjectRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`project/projects/${slug}`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const projects = response.data;
 
         dispatch(fetchProjectSuccess(projects));
@@ -107,14 +111,14 @@ export function userCreateRequest() {
     };
 }
 
-export function userCreateSuccess(team) {
+export function userCreateSuccess(team: $TSFixMe) {
     return {
         type: types.USER_CREATE_SUCCESS,
         payload: team,
     };
 }
 
-export function userCreateError(error) {
+export function userCreateError(error: $TSFixMe) {
     return {
         type: types.USER_CREATE_FAILURE,
         payload: error,
@@ -122,15 +126,17 @@ export function userCreateError(error) {
 }
 
 // Calls the API to add users to project.
-export function userCreate(projectId, values) {
-    return function(dispatch) {
+export function userCreate(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const promise = postApi(`team/${projectId}`, values);
         dispatch(userCreateRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const data = response.data;
                 const projectUsers = data.filter(
-                    team => team.projectId === projectId
+                    (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(userCreateSuccess(projectUsers.team));
             },
@@ -159,14 +165,14 @@ export const fetchUserProjectsRequest = () => {
     };
 };
 
-export const fetchUserProjectsSuccess = users => {
+export const fetchUserProjectsSuccess = (users: $TSFixMe) => {
     return {
         type: types.FETCH_USER_PROJECTS_SUCCESS,
         payload: users,
     };
 };
 
-export const fetchUserProjectsError = error => {
+export const fetchUserProjectsError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_USER_PROJECTS_FAILURE,
         payload: error,
@@ -174,12 +180,14 @@ export const fetchUserProjectsError = error => {
 };
 
 // Calls the API to fetch users belonging to a particular project
-export const fetchProjectTeam = projectId => async dispatch => {
+export const fetchProjectTeam = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchProjectTeamRequest());
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`team/${projectId}/teamMembers`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const team = response.data;
-        const projectTeam = team.filter(team => team._id === projectId)[0];
+        const projectTeam = team.filter((team: $TSFixMe) => team._id === projectId)[0];
         dispatch(fetchProjectTeamSuccess(projectTeam));
         return response;
     } catch (error) {
@@ -204,49 +212,49 @@ export const fetchProjectTeamRequest = () => {
     };
 };
 
-export const fetchProjectTeamSuccess = payload => {
+export const fetchProjectTeamSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_TEAM_SUCCESS,
         payload,
     };
 };
 
-export const fetchProjectTeamError = error => {
+export const fetchProjectTeamError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_TEAM_ERROR,
         payload: error,
     };
 };
-export function userUpdateRoleRequest(id) {
+export function userUpdateRoleRequest(id: $TSFixMe) {
     return {
         type: types.USER_UPDATE_ROLE_REQUEST,
         payload: id,
     };
 }
 
-export function userUpdateRoleSuccess(team) {
+export function userUpdateRoleSuccess(team: $TSFixMe) {
     return {
         type: types.USER_UPDATE_ROLE_SUCCESS,
         payload: team,
     };
 }
 
-export function userUpdateRoleError(error) {
+export function userUpdateRoleError(error: $TSFixMe) {
     return {
         type: types.USER_UPDATE_ROLE_FAILURE,
         payload: error,
     };
 }
 
-export function changeUserProjectRole(team) {
+export function changeUserProjectRole(team: $TSFixMe) {
     return {
         type: types.CHANGE_USER_PROJECT_ROLES,
         payload: team,
     };
 }
 // Calls the API to update user role.
-export function userUpdateRole(projectId, values) {
-    return function(dispatch) {
+export function userUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `team/${projectId}/${values.teamMemberId}/changerole`,
             values
@@ -255,9 +263,10 @@ export function userUpdateRole(projectId, values) {
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const data = response.data;
                 const projectUsers = data.filter(
-                    user => user.projectId === projectId
+                    (user: $TSFixMe) => user.projectId === projectId
                 )[0];
                 dispatch(userUpdateRoleSuccess(projectUsers));
             },
@@ -293,8 +302,8 @@ export function paginatePrev() {
     };
 }
 
-export function paginate(type) {
-    return function(dispatch) {
+export function paginate(type: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
     };
@@ -302,15 +311,16 @@ export function paginate(type) {
 
 //Add Balance to a project
 export const updateBalance = (
-    projectId,
-    rechargeBalanceAmount
-) => async dispatch => {
+    projectId: $TSFixMe,
+    rechargeBalanceAmount: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     dispatch(updateProjectBalanceRequest());
 
     try {
         const response = await putApi(`project/${projectId}/updateBalance`, {
             rechargeBalanceAmount,
         });
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
         dispatch(updateProjectBalanceSuccess(data));
         return response;
@@ -336,30 +346,31 @@ export function updateProjectBalanceRequest() {
     };
 }
 
-export function updateProjectBalanceSuccess(project) {
+export function updateProjectBalanceSuccess(project: $TSFixMe) {
     return {
         type: types.PROJECT_BALANCE_UPDATE_SUCCESS,
         payload: project,
     };
 }
 
-export function updateProjectBalanceError(error) {
+export function updateProjectBalanceError(error: $TSFixMe) {
     return {
         type: types.PROJECT_BALANCE_UPDATE_FAILURE,
         payload: error,
     };
 }
 // Calls the API to delete user from project
-export function teamDelete(projectId, teamMemberId) {
-    return function(dispatch) {
+export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const team = response.data;
                 const projectTeam = team.filter(
-                    team => team.projectId === projectId
+                    (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(teamDeleteSuccess(projectTeam.team));
                 return { team };
@@ -384,20 +395,20 @@ export function teamDelete(projectId, teamMemberId) {
     };
 }
 
-export function teamDeleteRequest(id) {
+export function teamDeleteRequest(id: $TSFixMe) {
     return {
         type: types.TEAM_DELETE_REQUEST,
         payload: id,
     };
 }
-export function teamDeleteSuccess(team) {
+export function teamDeleteSuccess(team: $TSFixMe) {
     return {
         type: types.TEAM_DELETE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamDeleteError(error) {
+export function teamDeleteError(error: $TSFixMe) {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
@@ -410,22 +421,24 @@ export function teamDeleteReset() {
     };
 }
 export function resetTeamDelete() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(teamDeleteReset());
     };
 }
 
 // Calls the API to fetch all user projects.
-export const fetchUserProjects = (userId, skip, limit) => async dispatch => {
+export const fetchUserProjects = (userId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
 
     dispatch(fetchUserProjectsRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(
             `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const users = response.data;
 
         dispatch(fetchUserProjectsSuccess(users));
@@ -459,14 +472,14 @@ export const deleteProjectReset = () => {
     };
 };
 
-export const deleteProjectSuccess = project => {
+export const deleteProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const deleteProjectError = error => {
+export const deleteProjectError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_FAILED,
         payload: error,
@@ -474,11 +487,13 @@ export const deleteProjectError = error => {
 };
 
 // Calls the API to delete a project
-export const deleteProject = projectId => async dispatch => {
+export const deleteProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteProjectRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(`project/${projectId}/deleteProject`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(deleteProjectSuccess(data));
@@ -512,14 +527,14 @@ export const blockProjectReset = () => {
     };
 };
 
-export const blockProjectSuccess = project => {
+export const blockProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.BLOCK_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const blockProjectError = error => {
+export const blockProjectError = (error: $TSFixMe) => {
     return {
         type: types.BLOCK_PROJECT_FAILED,
         payload: error,
@@ -527,11 +542,13 @@ export const blockProjectError = error => {
 };
 
 // Calls the API to block a project
-export const blockProject = projectId => async dispatch => {
+export const blockProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(blockProjectRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await putApi(`project/${projectId}/blockProject`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(blockProjectSuccess(data));
@@ -565,14 +582,14 @@ export const renewAlertLimitReset = () => {
     };
 };
 
-export const renewAlertLimitSuccess = project => {
+export const renewAlertLimitSuccess = (project: $TSFixMe) => {
     return {
         type: types.ALERT_LIMIT_SUCCESS,
         payload: project,
     };
 };
 
-export const renewAlertLimitError = error => {
+export const renewAlertLimitError = (error: $TSFixMe) => {
     return {
         type: types.ALERT_LIMIT_FAILED,
         payload: error,
@@ -580,13 +597,14 @@ export const renewAlertLimitError = error => {
 };
 
 // Calls the API to block a project
-export const renewAlertLimit = (projectId, alertLimit) => async dispatch => {
+export const renewAlertLimit = (projectId: $TSFixMe, alertLimit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(renewAlertLimitRequest());
 
     try {
         const response = await putApi(`project/${projectId}/renewAlertLimit`, {
             alertLimit,
         });
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(renewAlertLimitSuccess(data));
@@ -620,14 +638,14 @@ export const restoreProjectReset = () => {
     };
 };
 
-export const restoreProjectSuccess = project => {
+export const restoreProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.RESTORE_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const restoreProjectError = error => {
+export const restoreProjectError = (error: $TSFixMe) => {
     return {
         type: types.RESTORE_PROJECT_FAILED,
         payload: error,
@@ -635,11 +653,13 @@ export const restoreProjectError = error => {
 };
 
 // Calls the API to restore a project
-export const restoreProject = projectId => async dispatch => {
+export const restoreProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(restoreProjectRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await putApi(`project/${projectId}/restoreProject`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(restoreProjectSuccess(data));
@@ -673,14 +693,14 @@ export const unblockProjectReset = () => {
     };
 };
 
-export const unblockProjectSuccess = project => {
+export const unblockProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.UNBLOCK_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const unblockProjectError = error => {
+export const unblockProjectError = (error: $TSFixMe) => {
     return {
         type: types.UNBLOCK_PROJECT_FAILED,
         payload: error,
@@ -688,11 +708,13 @@ export const unblockProjectError = error => {
 };
 
 // Calls the API to un-block a project
-export const unblockProject = projectId => async dispatch => {
+export const unblockProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(unblockProjectRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await putApi(`project/${projectId}/unblockProject`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(unblockProjectSuccess(data));
@@ -726,14 +748,14 @@ export const addProjectNoteReset = () => {
     };
 };
 
-export const addProjectNoteSuccess = projectNote => {
+export const addProjectNoteSuccess = (projectNote: $TSFixMe) => {
     return {
         type: types.ADD_PROJECT_NOTE_SUCCESS,
         payload: projectNote,
     };
 };
 
-export const addProjectNoteError = error => {
+export const addProjectNoteError = (error: $TSFixMe) => {
     return {
         type: types.ADD_PROJECT_NOTE_FAILURE,
         payload: error,
@@ -741,11 +763,13 @@ export const addProjectNoteError = error => {
 };
 
 // Calls the API to add Admin Note
-export const addProjectNote = (projectId, values) => async dispatch => {
+export const addProjectNote = (projectId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addProjectNoteRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(`project/${projectId}/addNote`, values);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(addProjectNoteSuccess(data));
@@ -779,14 +803,14 @@ export const searchProjectsReset = () => {
     };
 };
 
-export const searchProjectsSuccess = projects => {
+export const searchProjectsSuccess = (projects: $TSFixMe) => {
     return {
         type: types.SEARCH_PROJECTS_SUCCESS,
         payload: projects,
     };
 };
 
-export const searchProjectsError = error => {
+export const searchProjectsError = (error: $TSFixMe) => {
     return {
         type: types.SEARCH_PROJECTS_FAILURE,
         payload: error,
@@ -794,7 +818,7 @@ export const searchProjectsError = error => {
 };
 
 // Calls the search projects api
-export const searchProjects = (filter, skip, limit) => async dispatch => {
+export const searchProjects = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -802,10 +826,12 @@ export const searchProjects = (filter, skip, limit) => async dispatch => {
     dispatch(searchProjectsRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(
             `project/projects/search?skip=${skip}&limit=${limit}`,
             values
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(searchProjectsSuccess(data));
@@ -833,14 +859,14 @@ export const changePlanRequest = () => {
     };
 };
 
-export const changePlanSuccess = payload => {
+export const changePlanSuccess = (payload: $TSFixMe) => {
     return {
         type: types.CHANGE_PLAN_SUCCESS,
         payload,
     };
 };
 
-export const changePlanFailure = error => {
+export const changePlanFailure = (error: $TSFixMe) => {
     return {
         type: types.CHANGE_PLAN_FAILURE,
         payload: error,
@@ -848,12 +874,12 @@ export const changePlanFailure = error => {
 };
 
 export const changePlan = (
-    projectId,
-    planId,
-    projectName,
-    oldPlan,
-    newPlan
-) => async dispatch => {
+    projectId: $TSFixMe,
+    planId: $TSFixMe,
+    projectName: $TSFixMe,
+    oldPlan: $TSFixMe,
+    newPlan: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     dispatch(changePlanRequest());
 
     try {
@@ -863,6 +889,7 @@ export const changePlan = (
             oldPlan,
             newPlan,
         });
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(changePlanSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -883,29 +910,32 @@ export function fetchProjectDomainsRequest() {
     };
 }
 
-export function fetchProjectDomainsSuccess(payload) {
+export function fetchProjectDomainsSuccess(payload: $TSFixMe) {
     return {
         type: types.PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function fetchProjectDomainsFailure(error) {
+export function fetchProjectDomainsFailure(error: $TSFixMe) {
     return {
         type: types.PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
 }
 
-export function fetchProjectDomains(projectId, skip = 0, limit = 10) {
-    return async function(dispatch) {
+export function fetchProjectDomains(projectId: $TSFixMe, skip = 0, limit = 10) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(fetchProjectDomainsRequest());
 
         try {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
             const response = await getApi(
                 `domainVerificationToken/${projectId}/domains?skip=${skip}&limit=${limit}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchProjectDomainsSuccess(response.data));
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -927,14 +957,14 @@ export function deleteProjectDomainRequest() {
     };
 }
 
-export function deleteProjectDomainSuccess(payload) {
+export function deleteProjectDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.DELETE_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function deleteProjectDomainFailure(error) {
+export function deleteProjectDomainFailure(error: $TSFixMe) {
     return {
         type: types.DELETE_PROJECT_DOMAIN_FAILURE,
         payload: error,
@@ -947,15 +977,21 @@ export function resetDeleteProjectDomain() {
     };
 }
 
-export function deleteProjectDomain({ projectId, domainId }) {
-    return async function(dispatch) {
+export function deleteProjectDomain({
+    projectId,
+    domainId
+}: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(
             `domainVerificationToken/${projectId}/domain/${domainId}`
         );
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteProjectDomainSuccess(response.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return response.data;
             },
             function(error) {
@@ -980,14 +1016,14 @@ export function verifyProjectDomainRequest() {
     };
 }
 
-export function verifyProjectDomainSuccess(payload) {
+export function verifyProjectDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function verifyProjectDomainFailure(error) {
+export function verifyProjectDomainFailure(error: $TSFixMe) {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_FAILURE,
         payload: error,
@@ -1000,15 +1036,21 @@ export function resetVerifyProjectDomain() {
     };
 }
 
-export function verifyProjectDomain({ projectId, domainId }) {
-    return async function(dispatch) {
+export function verifyProjectDomain({
+    projectId,
+    domainId
+}: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 
         try {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
             const response = await putApi(
                 `domainVerificationToken/${projectId}/forceVerify/${domainId}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(verifyProjectDomainSuccess(response.data));
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1030,14 +1072,14 @@ export function unVerifyProjectDomainRequest() {
     };
 }
 
-export function unVerifyProjectDomainSuccess(payload) {
+export function unVerifyProjectDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.UNVERIFY_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function unVerifyProjectDomainFailure(error) {
+export function unVerifyProjectDomainFailure(error: $TSFixMe) {
     return {
         type: types.UNVERIFY_PROJECT_DOMAIN_FAILURE,
         payload: error,
@@ -1050,15 +1092,17 @@ export function resetUnverifyProjectDomain() {
     };
 }
 
-export function unVerifyProjectDomain(projectId, domainId) {
-    return async function(dispatch) {
+export function unVerifyProjectDomain(projectId: $TSFixMe, domainId: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(unVerifyProjectDomainRequest());
 
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = putApi(
             `domainVerificationToken/${projectId}/unverify/${domainId}`
         );
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(unVerifyProjectDomainSuccess(response.data));
             },
             function(error) {
@@ -1083,14 +1127,14 @@ export function resetProjectDomainRequest() {
     };
 }
 
-export function resetProjectDomainSuccess(payload) {
+export function resetProjectDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.RESET_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function resetProjectDomainFailure(error) {
+export function resetProjectDomainFailure(error: $TSFixMe) {
     return {
         type: types.RESET_PROJECT_DOMAIN_FAILURE,
         payload: error,
@@ -1103,14 +1147,16 @@ export function resetProjectDomainOnMount() {
     };
 }
 
-export function resetProjectDomain(projectId, domainId) {
-    return async function(dispatch) {
+export function resetProjectDomain(projectId: $TSFixMe, domainId: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(resetProjectDomainRequest());
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = putApi(
             `domainVerificationToken/${projectId}/resetDomain/${domainId}`
         );
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(resetProjectDomainSuccess(response.data));
             },
             function(error) {

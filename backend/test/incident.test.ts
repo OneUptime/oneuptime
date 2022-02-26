@@ -1,4 +1,6 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
@@ -7,8 +9,11 @@ import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 
 import incidentData from './data/incident'
@@ -39,19 +44,18 @@ const {
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-const sleep = waitTimeInMs =>
-    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let token,
-    userId,
-    projectId,
-    monitorId,
-    incidentId,
+let token: $TSFixMe,
+    userId: $TSFixMe,
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    incidentId: $TSFixMe,
     testServerMonitorId,
-    testServerIncidentId,
-    componentId,
-    investigationMessageId,
-    internalMessageId;
+    testServerIncidentId: $TSFixMe,
+    componentId: $TSFixMe,
+    investigationMessageId: $TSFixMe,
+    internalMessageId: $TSFixMe;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -63,9 +67,11 @@ const testServerMonitor = {
     data: { url: HTTP_TEST_SERVER_URL },
 };
 
-describe('Incident API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Incident API', function(this: $TSFixMe) {
     this.timeout(500000);
-    before(async function() {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(async function(this: $TSFixMe) {
         this.timeout(90000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -138,6 +144,7 @@ describe('Incident API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
@@ -148,19 +155,23 @@ describe('Incident API', function() {
         await IncidentService.hardDeleteBy({ projectId: projectId });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create an incident', async function() {
         const authorization = `Basic ${token}`;
         const test1 = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/msteams');
         expect(test1).to.have.status(404);
         const test2 = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(test2).to.have.status(404);
 
         // no external subscriber's webhook notification shall be sent when there's no incident
         const webhookTest = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/external_subscriber');
         expect(webhookTest).to.have.status(404);
@@ -175,22 +186,26 @@ describe('Incident API', function() {
         expect(res.body).to.be.an('object');
 
         const msTeamsEndpoint = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/msteams');
         expect(msTeamsEndpoint).to.have.status(200);
 
         const slackEndpoint = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(slackEndpoint).to.have.status(200);
 
         // a webhook notification shall be received after an incident
         const webhookTestAfterIncident = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/external_subscriber');
         expect(webhookTestAfterIncident).to.have.status(200);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create an incident with multi-probes and add to incident timeline', async function() {
         const authorization = `Basic ${token}`;
         await testServer.post('/api/settings').send({
@@ -223,6 +238,7 @@ describe('Incident API', function() {
         expect(res2.body.data[1].status).to.be.equal('offline');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should auto-resolve an incident with multi-probes and add to incident timeline', async function() {
         const authorization = `Basic ${token}`;
         await testServer.post('/api/settings').send({
@@ -259,6 +275,7 @@ describe('Incident API', function() {
         expect(res1.body.data[5].status).to.be.equal('resolved');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should get incidents belonging to a monitor', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -270,6 +287,7 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should get all incidents in a project', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -281,6 +299,7 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should get an incident by incidentId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -291,6 +310,7 @@ describe('Incident API', function() {
         expect(res.body._id).to.be.equal(incidentId);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should acknowledge an incident and send email to users', async function() {
         const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
@@ -313,6 +333,7 @@ describe('Incident API', function() {
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should resolve an incident and send email to users', async function() {
         const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
@@ -332,6 +353,7 @@ describe('Incident API', function() {
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should update incident details.', async function() {
         const authorization = `Basic ${token}`;
         const incidentTitle = 'New incident title';
@@ -350,6 +372,7 @@ describe('Incident API', function() {
         expect(res.body.description).to.be.equal(incidentDescription);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should get incident timeline by incidentId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -362,13 +385,14 @@ describe('Incident API', function() {
         // check if sorted by ascending order of createdAt
         expect(
             res.body.data.sort(
-                (firstIncidentTimeline, secondIncidentTimeline) =>
+                (firstIncidentTimeline: $TSFixMe, secondIncidentTimeline: $TSFixMe) =>
                     Date.parse(firstIncidentTimeline.createdAt) >
                     Date.parse(secondIncidentTimeline.createdAt)
             )
         ).to.equal(res.body.data);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should require an incident state', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -382,6 +406,7 @@ describe('Incident API', function() {
         expect(res.body.message).to.be.equal('Incident State is required.');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should require a valid incident message type', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -398,6 +423,7 @@ describe('Incident API', function() {
         );
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should add an investigation incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -415,6 +441,7 @@ describe('Incident API', function() {
         expect(res.body.incident_state).to.be.equal('investigation');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should add an internal incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -434,6 +461,7 @@ describe('Incident API', function() {
         expect(res.body.data[0].incident_state).to.be.equal('just test');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should update an investigation incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -452,6 +480,7 @@ describe('Incident API', function() {
         expect(res.body.incident_state).to.be.equal('automated');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should update an internal incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -471,6 +500,7 @@ describe('Incident API', function() {
         expect(res.body.incident_state).to.be.equal('update');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should fetch list of investigation incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'investigation';
@@ -487,6 +517,7 @@ describe('Incident API', function() {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should fetch list of status pages for the incident', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -498,6 +529,7 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should fetch list of internal incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'internal';
@@ -511,12 +543,13 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
 
-        const sameType = res.body.data.filter(function(e) {
+        const sameType = res.body.data.filter(function(e: $TSFixMe) {
             return e.type === 'internal';
         });
         expect(sameType[0].type).to.be.equal(type);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -622,6 +655,7 @@ describe('Incident API', function() {
         );
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -634,6 +668,7 @@ describe('Incident API', function() {
         expect(res.body.data.length).to.be.equal(0);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should send incident alert when balance is above minimum amount', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -662,6 +697,7 @@ describe('Incident API', function() {
         expect(callAlert.alertStatus).to.be.equal('Success');
         expect(callAlert.error).to.be.equal(false);
     });
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create an alert charge when an alert is sent to a user.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -676,11 +712,13 @@ describe('Incident API', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId, newUserToken, subProjectIncidentId;
+let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectIncidentId: $TSFixMe;
 
-describe('Incident API with Sub-Projects', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Incident API with Sub-Projects', function(this: $TSFixMe) {
     this.timeout(60000);
-    before(async function() {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(async function(this: $TSFixMe) {
         this.timeout(60000);
 
         incidentData.monitors = [monitorId];
@@ -718,6 +756,7 @@ describe('Incident API with Sub-Projects', function() {
             });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
@@ -735,6 +774,7 @@ describe('Incident API with Sub-Projects', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create an incident for user not present in project', async function() {
         const res = await createUser(request, userData.anotherUser);
         const verificationToken = await VerificationTokenModel.findOne({
@@ -759,6 +799,7 @@ describe('Incident API with Sub-Projects', function() {
         );
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create an incident in parent project.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -770,6 +811,7 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body).to.be.an('object');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create an incident in sub-project.', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
@@ -781,6 +823,7 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body).to.be.an('object');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it("should get only sub-project's incidents for valid sub-project user", async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
@@ -794,6 +837,7 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body.data[0]._id).to.be.equal(subProjectIncidentId);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should get both project and sub-project incidents for valid parent project user.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -807,6 +851,7 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body[1]._id).to.be.equal(projectId);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should acknowledge subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await markSubprojectIncidentAsAcknowledged({
@@ -821,6 +866,7 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body.incident.acknowledged).to.be.equal(true);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should resolve subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await markSubprojectIncidentAsResolved({

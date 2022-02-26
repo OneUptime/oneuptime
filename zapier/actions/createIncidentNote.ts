@@ -1,4 +1,4 @@
-const createIncidentNote = (z, bundle) => {
+const createIncidentNote = (z: $TSFixMe, bundle: $TSFixMe) => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     const data = {
         data: bundle.inputData,
@@ -8,7 +8,7 @@ const createIncidentNote = (z, bundle) => {
         url: `${bundle.authData.serverUrl}/zapier/incident/incident-note`,
         body: data,
     });
-    return responsePromise.then(response => JSON.parse(response.content));
+    return responsePromise.then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

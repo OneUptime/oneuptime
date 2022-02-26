@@ -2,8 +2,11 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
 import { getUser } from '../middlewares/user'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/project"' has no exported ... Remove this comment to see the full error message
 import { getUserRole } from '../middlewares/project'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 
 export default ({
@@ -15,9 +18,9 @@ export default ({
     listApiProps,
     isResourceInProject,
     friendlyResourceName,
-    service,
-}) => {
-    const getItemMiddleware = async function(req, res) {
+    service
+}: $TSFixMe) => {
+    const getItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             let item = null;
 
@@ -53,7 +56,7 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async function(req, res) {
+    const listItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             let query = req.data.query;
             let skip = req.data.skip;
@@ -132,7 +135,7 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async function(req, res) {
+    const createItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const data = req.body;
 
@@ -148,7 +151,7 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async function(req, res) {
+    const deleteItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
@@ -174,7 +177,7 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function(req, res, next) {
+    const updateItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
@@ -202,10 +205,10 @@ export default ({
         }
     };
 
-    const getMiddlewares = props => {
+    const getMiddlewares = (props: $TSFixMe) => {
         const functionChain = [];
 
-        const apiPropsMiddleware = (req, res, next) => {
+        const apiPropsMiddleware = (req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) => {
             req.apiProps = props;
             return next();
         };

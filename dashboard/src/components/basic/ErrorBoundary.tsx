@@ -3,17 +3,18 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { error: null, hasError: false };
     }
 
-    static getDerivedStateFromError(error) {
+    static getDerivedStateFromError(error: $TSFixMe) {
         // Update state so the next render will show the fallback UI.
         return { hasError: true, error };
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hasError' does not exist on type 'Readon... Remove this comment to see the full error message
         if (this.state.hasError || this.state.error) {
             return (
                 <div
@@ -43,8 +44,10 @@ class ErrorBoundary extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorBoundary.displayName = 'ErrorBoundary';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorBoundary.propTypes = {
     children: PropTypes.any,
 };

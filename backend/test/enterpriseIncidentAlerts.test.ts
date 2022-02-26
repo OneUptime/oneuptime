@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 import userData from './data/user'
 import chai from 'chai'
@@ -6,7 +7,9 @@ chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createEnterpriseUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
@@ -33,20 +36,21 @@ import LoginIPLog from '../backend/models/loginIPLog'
 import UserModel from '../backend/models/user'
 import GlobalConfigModel from '../backend/models/globalConfig'
 
-const sleep = waitTimeInMs =>
-    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let authorization, token, userId, projectId, componentId, monitorId, scheduleId;
+let authorization: $TSFixMe, token, userId: $TSFixMe, projectId: $TSFixMe, componentId, monitorId: $TSFixMe, scheduleId;
 
-describe('Incident Alerts', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Incident Alerts', function(this: $TSFixMe) {
     this.timeout(30000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(request, userData.user, async function(
-                err,
-                res
+                err: $TSFixMe,
+                res: $TSFixMe
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -62,7 +66,7 @@ describe('Incident Alerts', function() {
                         email: userData.user.email,
                         password: userData.user.password,
                     })
-                    .end(async function(err, res) {
+                    .end(async function(err: $TSFixMe, res: $TSFixMe) {
                         token = res.body.tokens.jwtAccessToken;
                         authorization = `Basic ${token}`;
 
@@ -149,6 +153,7 @@ describe('Incident Alerts', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
@@ -174,12 +179,14 @@ describe('Incident Alerts', function() {
         await NotificationService.hardDeleteBy({ projectId: projectId });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
     describe('Global twilio credentials set (and Custom twilio settings not set)', async () => {
         /**
          * Global twilio settings: set
          * Custom twilio settings: not set
          * Global twilio settings (SMS/Call) enable : true
          */
+        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
         it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -264,6 +271,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings SMS enable : true
          * Global twilio settings Call enable : false
          */
+        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -356,6 +364,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings SMS enable : false
          * Global twilio settings Call enable : true
          */
+        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
         it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -445,6 +454,7 @@ describe('Incident Alerts', function() {
             expect(alertsSentList.includes('call')).to.equal(true);
         });
     });
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
     describe('Custom twilio settings are set', async () => {
         /**
          * Global twilio settings: set
@@ -452,6 +462,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings SMS enable : false
          * Global twilio settings Call enable : false
          */
+        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
         it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -557,6 +568,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings: not set
          * Custom twilio settings: not set
          */
+        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
         it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function() {
             await GlobalConfigModel.deleteMany({
                 name: 'twilio',

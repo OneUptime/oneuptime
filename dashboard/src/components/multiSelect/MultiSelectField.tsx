@@ -1,43 +1,47 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Select from 'react-select';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 
 const styles = {
-    control: provided => ({
+    control: (provided: $TSFixMe) => ({
         ...provided,
         border: '1px solid hsl(0,0%,80%) !important',
         boxShadow: 'unset !important',
-        minHeight: 'unset',
+        minHeight: 'unset'
     }),
-    option: provided => ({
+    option: (provided: $TSFixMe) => ({
         ...provided,
         backgroundColor: 'unset',
+
         ':hover': {
             ...provided[':hover'],
             backgroundColor: 'black',
             color: 'white',
-        },
+        }
     }),
-    menu: provided => ({
+    menu: (provided: $TSFixMe) => ({
         ...provided,
-        zIndex: 5,
+        zIndex: 5
     }),
-    multiValueLabel: styles => ({
+    multiValueLabel: (styles: $TSFixMe) => ({
         ...styles,
         color: 'white',
         backgroundColor: 'black',
-        borderRadius: '5px 0 0 5px',
+        borderRadius: '5px 0 0 5px'
     }),
-    multiValueRemove: styles => ({
+    multiValueRemove: (styles: $TSFixMe) => ({
         ...styles,
         color: 'white',
         backgroundColor: 'black',
         borderRadius: '0 5px 5px 0',
         cursor: 'pointer',
+
         ':hover': {
             backgroundColor: 'black',
             color: 'white',
-        },
+        }
     }),
 };
 
@@ -47,8 +51,8 @@ const MultiSelectField = ({
     classNamePrefix,
     input,
     meta,
-    placeholder,
-}) => {
+    placeholder
+}: $TSFixMe) => {
     return (
         <div>
             <div>

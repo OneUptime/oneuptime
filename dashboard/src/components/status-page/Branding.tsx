@@ -3,7 +3,9 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
 import { API_URL } from '../../config';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import {
     updateStatusPageBranding,
@@ -33,20 +35,23 @@ import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 //Client side validation
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
     if (values.title) {
         if (!Validate.text(values.title)) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type '{}'.
             errors.title = 'Please mention title in text format .';
         }
     }
     if (values.description) {
         if (!Validate.text(values.description)) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
             errors.description = 'Please mention description in text format .';
         }
     }
     if (values.copyright) {
         if (!Validate.text(values.copyright)) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'copyright' does not exist on type '{}'.
             errors.copyright = 'Please mention copyright in text format .';
         }
     }
@@ -61,7 +66,7 @@ export class Branding extends Component {
         confirmResetModalId: uuidv4(),
     };
 
-    handleClick = e => {
+    handleClick = (e: $TSFixMe) => {
         this.setState({
             displayColorPicker: !this.state.displayColorPicker,
             currentColorPicker: e.currentTarget.id,
@@ -72,20 +77,23 @@ export class Branding extends Component {
         this.setState({ displayColorPicker: false, currentColorPicker: '' });
     };
 
-    handleChange = color => {
+    handleChange = (color: $TSFixMe) => {
         const { currentColorPicker } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'colors' does not exist on type 'Readonly... Remove this comment to see the full error message
         let newColors = this.props.colors;
         newColors = { ...newColors, [currentColorPicker]: color.rgb };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setStatusPageColors' does not exist on t... Remove this comment to see the full error message
         this.props.setStatusPageColors(newColors);
     };
 
-    changelogo = e => {
+    changelogo = (e: $TSFixMe) => {
         e.preventDefault();
 
         const reader = new FileReader();
         const file = e.target.files[0];
 
         reader.onloadend = () => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createLogoCache' does not exist on type ... Remove this comment to see the full error message
             this.props.createLogoCache(reader.result);
         };
         try {
@@ -95,12 +103,13 @@ export class Branding extends Component {
         }
     };
 
-    updloadBannerHandler = e => {
+    updloadBannerHandler = (e: $TSFixMe) => {
         e.preventDefault();
         const reader = new FileReader();
         const file = e.target.files[0];
 
         reader.onloadend = () => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createBannerCache' does not exist on typ... Remove this comment to see the full error message
             this.props.createBannerCache(reader.result);
         };
         try {
@@ -110,13 +119,14 @@ export class Branding extends Component {
         }
     };
 
-    changefavicon = e => {
+    changefavicon = (e: $TSFixMe) => {
         e.preventDefault();
 
         const reader = new FileReader();
         const file = e.target.files[0];
 
         reader.onloadend = () => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createFaviconCache' does not exist on ty... Remove this comment to see the full error message
             this.props.createFaviconCache(reader.result);
         };
         try {
@@ -125,29 +135,41 @@ export class Branding extends Component {
             return;
         }
     };
-    removeImageHandler = e => {
+    removeImageHandler = (e: $TSFixMe) => {
         const values = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { _id } = this.props.statusPage.status;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
         if (_id) values._id = _id;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
             reset,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetLogoCache' does not exist on type '... Remove this comment to see the full error message
             resetLogoCache,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetFaviconCache' does not exist on typ... Remove this comment to see the full error message
             resetFaviconCache,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetBannerCache' does not exist on type... Remove this comment to see the full error message
             resetBannerCache,
         } = this.props;
         if (e.currentTarget.id === 'removeFavicon') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'favicon' does not exist on type '{}'.
             values.favicon = '';
         }
         if (e.currentTarget.id === 'removeBanner') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'banner' does not exist on type '{}'.
             values.banner = '';
         }
         if (e.currentTarget.id === 'removeLogo') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logo' does not exist on type '{}'.
             values.logo = '';
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageBranding' does not exist... Remove this comment to see the full error message
         this.props.updateStatusPageBranding(projectId, values).then(
             () => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectStatusPage' does not exist o... Remove this comment to see the full error message
                 this.props.fetchProjectStatusPage(projectId, true, 0, 10);
                 resetLogoCache();
                 resetFaviconCache();
@@ -158,21 +180,30 @@ export class Branding extends Component {
         );
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { _id } = this.props.statusPage.status;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if (_id) values._id = _id;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
             reset,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetLogoCache' does not exist on type '... Remove this comment to see the full error message
             resetLogoCache,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetFaviconCache' does not exist on typ... Remove this comment to see the full error message
             resetFaviconCache,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetBannerCache' does not exist on type... Remove this comment to see the full error message
             resetBannerCache,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'colors' does not exist on type 'Readonly... Remove this comment to see the full error message
             colors,
         } = this.props;
         values.colors = colors;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageBranding' does not exist... Remove this comment to see the full error message
         this.props.updateStatusPageBranding(projectId, values).then(
             () => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectStatusPage' does not exist o... Remove this comment to see the full error message
                 this.props.fetchProjectStatusPage(projectId, true, 0, 10);
                 resetLogoCache();
                 resetFaviconCache();
@@ -183,9 +214,10 @@ export class Branding extends Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('saveBranding').click();
             default:
                 return false;
@@ -193,36 +225,58 @@ export class Branding extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit } = this.props;
         let faviconImage = <span />;
         let logoImage = <span />;
         let bannerImage = <span />;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logourl' does not exist on type 'Readonl... Remove this comment to see the full error message
         const logoUrl = this.props.logourl
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logourl' does not exist on type 'Readonl... Remove this comment to see the full error message
             ? this.props.logourl
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             : this.props.statusPage.status &&
+              // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
               this.props.statusPage.status.logoPath
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             ? `${API_URL}/file/${this.props.statusPage.status.logoPath}`
             : '';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
         const faviconUrl = this.props.faviconurl
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
             ? this.props.faviconurl
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             : this.props.statusPage.status &&
+              // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
               this.props.statusPage.status.faviconPath
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}`
             : '';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bannerurl' does not exist on type 'Reado... Remove this comment to see the full error message
         const bannerUrl = this.props.bannerurl
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'bannerurl' does not exist on type 'Reado... Remove this comment to see the full error message
             ? this.props.bannerurl
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             : this.props.statusPage.status &&
+              // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
               this.props.statusPage.status.bannerPath
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             ? `${API_URL}/file/${this.props.statusPage.status.bannerPath}`
             : '';
         const colors =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'colors' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.colors && Object.keys(this.props.colors).length > 0
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'colors' does not exist on type 'Readonly... Remove this comment to see the full error message
                 ? this.props.colors
                 : null;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.statusPage &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.statusPage.status &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.statusPage.status.faviconPath) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.faviconurl
         ) {
             faviconImage = (
@@ -230,9 +284,13 @@ export class Branding extends Component {
             );
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.statusPage &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.statusPage.status &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.statusPage.status.logoPath) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logourl' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.logourl
         ) {
             logoImage = (
@@ -240,9 +298,13 @@ export class Branding extends Component {
             );
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.statusPage &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.statusPage.status &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.statusPage.status.bannerPath) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'bannerurl' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.bannerurl
         ) {
             bannerImage = (
@@ -253,7 +315,9 @@ export class Branding extends Component {
                 />
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { _id } = this.props.statusPage.status;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         return (
@@ -295,6 +359,7 @@ export class Branding extends Component {
                                                         placeholder="MyCompany Status Page"
                                                         disabled={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .statusPage
                                                                 .branding
                                                                 .requesting
@@ -325,6 +390,7 @@ export class Branding extends Component {
                                                         placeholder="A short description of the page. This is used for SEO."
                                                         disabled={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .statusPage
                                                                 .branding
                                                                 .requesting
@@ -345,12 +411,14 @@ export class Branding extends Component {
                                                         <div>
                                                             <label
                                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                                 type="button"
                                                             >
                                                                 <ShouldRender
                                                                     if={
                                                                         !this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                             .statusPage
                                                                             .status
                                                                             .faviconPath
@@ -366,6 +434,7 @@ export class Branding extends Component {
                                                                     if={
                                                                         this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                             .statusPage
                                                                             .status
                                                                             .faviconPath
@@ -396,6 +465,7 @@ export class Branding extends Component {
                                                             <ShouldRender
                                                                 if={
                                                                     this.props
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                         .statusPage
                                                                         .status
                                                                         .faviconPath
@@ -403,6 +473,7 @@ export class Branding extends Component {
                                                             >
                                                                 <label
                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; na... Remove this comment to see the full error message
                                                                     name="favicon"
                                                                     id="removeFavicon"
                                                                     onClick={
@@ -429,10 +500,12 @@ export class Branding extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .statusPage
                                                                 .status
                                                                 .faviconPath ||
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .faviconurl
                                                         }
                                                     >
@@ -449,12 +522,14 @@ export class Branding extends Component {
                                                         <div>
                                                             <label
                                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                                 type="button"
                                                             >
                                                                 <ShouldRender
                                                                     if={
                                                                         !this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                             .statusPage
                                                                             .status
                                                                             .logoPath
@@ -470,6 +545,7 @@ export class Branding extends Component {
                                                                     if={
                                                                         this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                             .statusPage
                                                                             .status
                                                                             .logoPath
@@ -500,6 +576,7 @@ export class Branding extends Component {
                                                             <ShouldRender
                                                                 if={
                                                                     this.props
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                         .statusPage
                                                                         .status
                                                                         .logoPath
@@ -507,6 +584,7 @@ export class Branding extends Component {
                                                             >
                                                                 <label
                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; na... Remove this comment to see the full error message
                                                                     name="logo"
                                                                     id="removeLogo"
                                                                     onClick={
@@ -533,9 +611,11 @@ export class Branding extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .statusPage
                                                                 .status
                                                                 .logoPath ||
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logourl' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                             this.props.logourl
                                                         }
                                                     >
@@ -552,12 +632,14 @@ export class Branding extends Component {
                                                         <div>
                                                             <label
                                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                                 type="button"
                                                             >
                                                                 <ShouldRender
                                                                     if={
                                                                         !this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                             .statusPage
                                                                             .status
                                                                             .bannerPath
@@ -573,6 +655,7 @@ export class Branding extends Component {
                                                                     if={
                                                                         this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                             .statusPage
                                                                             .status
                                                                             .bannerPath
@@ -603,6 +686,7 @@ export class Branding extends Component {
                                                             <ShouldRender
                                                                 if={
                                                                     this.props
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                         .statusPage
                                                                         .status
                                                                         .bannerPath
@@ -610,6 +694,7 @@ export class Branding extends Component {
                                                             >
                                                                 <label
                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                                     type="button"
                                                                     name="banner"
                                                                     id="removeBanner"
@@ -636,9 +721,11 @@ export class Branding extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .statusPage
                                                                 .status
                                                                 .bannerPath ||
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'bannerurl' does not exist on type 'Reado... Remove this comment to see the full error message
                                                             this.props.bannerurl
                                                         }
                                                     >
@@ -681,11 +768,13 @@ export class Branding extends Component {
                                                         id="copyright"
                                                         placeholder={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'copyright' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                 .copyright ||
                                                             '© MyCompany, Inc.'
                                                         }
                                                         disabled={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .statusPage
                                                                 .branding
                                                                 .requesting
@@ -708,6 +797,7 @@ export class Branding extends Component {
                         <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                             <span className="db-SettingsForm-footerMessage">
                                 <ShouldRender
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                     if={this.props.statusPage.branding.error}
                                 >
                                     <div className="bs-Tail-copy">
@@ -721,6 +811,7 @@ export class Branding extends Component {
                                             <div className="Box-root">
                                                 <span style={{ color: 'red' }}>
                                                     {
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                         this.props.statusPage
                                                             .branding.error
                                                     }
@@ -736,13 +827,16 @@ export class Branding extends Component {
                                     id="resetBranding"
                                     className="bs-Button bs-FileUploadButton bs-Button--new"
                                     disabled={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                         this.props.statusPage
                                             .resetBrandingColors.requesting
                                     }
                                     type="button"
                                     onClick={e => {
                                         e.preventDefault();
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                         return this.props.openModal({
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
                                             id: this.state.subProjectModalId,
                                             content: DataPathHoC(
                                                 ConfirmResetBrandColors,
@@ -763,13 +857,16 @@ export class Branding extends Component {
                                     id="saveBranding"
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                         this.props.statusPage.branding
                                             .requesting
                                     }
                                     type="submit"
                                 >
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                     {!this.props.statusPage.branding
                                         .requesting && <span>Save</span>}
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                     {this.props.statusPage.branding
                                         .requesting && <FormLoader />}
                                 </button>
@@ -782,8 +879,10 @@ export class Branding extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Branding.displayName = 'Branding';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Branding.propTypes = {
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -812,7 +911,7 @@ const BrandingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(Branding);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             createLogoCache,
@@ -833,7 +932,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         statusPage: state.statusPage,
         logourl: state.statusPage.logocache.data,

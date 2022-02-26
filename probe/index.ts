@@ -1,4 +1,5 @@
 const { NODE_ENV } = process.env;
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'awai... Remove this comment to see the full error message
 import asyncSleep from 'await-sleep'
 
 if (!NODE_ENV || NODE_ENV === 'development') {

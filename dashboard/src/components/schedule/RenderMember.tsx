@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import TeamMemberSelector from '../basic/TeamMemberSelector';
@@ -8,9 +9,11 @@ import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 import moment from 'moment-timezone';
 import { RenderSelect } from '../basic/RenderSelect';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { change } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { formValueSelector } from 'redux-form';
 
 let RenderMember = ({
@@ -24,13 +27,13 @@ let RenderMember = ({
     change,
     form,
     projectGroups,
-    formValues,
-}) => {
+    formValues
+}: $TSFixMe) => {
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
     const [type, setType] = useState({});
 
-    const manageVisibility = (timeVisible, memberHasCallTimes) => {
+    const manageVisibility = (timeVisible: $TSFixMe, memberHasCallTimes: $TSFixMe) => {
         setTimeVisible(timeVisible);
         if (memberHasCallTimes && !timeVisible) {
             forceTimeHide(true);
@@ -63,7 +66,7 @@ let RenderMember = ({
         return result;
     };
 
-    const handleSwitch = val => {
+    const handleSwitch = (val: $TSFixMe) => {
         setType({ [teamIndex.toString() + nameIndex.toString()]: val });
         if (val === 'team') {
             change('OnCallAlertBox', `${inputarray}.groupId`, '');
@@ -92,6 +95,7 @@ let RenderMember = ({
                             <Field
                                 id={`${inputarray}.${
                                     type[
+                                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
                                         [
                                             teamIndex.toString() +
                                                 nameIndex.toString(),
@@ -110,6 +114,7 @@ let RenderMember = ({
                                 component={RenderSelect}
                                 placeholder={
                                     type[
+                                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
                                         [
                                             teamIndex.toString() +
                                                 nameIndex.toString(),
@@ -122,7 +127,7 @@ let RenderMember = ({
                                     { label: 'Team members', value: 'team' },
                                     { label: 'Groups', value: 'group' },
                                 ]}
-                                onChange={(event, newValue) => {
+                                onChange={(event: $TSFixMe, newValue: $TSFixMe) => {
                                     handleSwitch(newValue);
                                 }}
                                 subProjectId={subProjectId}
@@ -153,6 +158,7 @@ let RenderMember = ({
                             teamIndex={teamIndex}
                             renderType={renderType}
                         />
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
                         <Tooltip title="Call Reminders">
                             <div>
                                 <p> Team member who will be on-call duty. </p>
@@ -174,6 +180,7 @@ let RenderMember = ({
                                 }
                                 id="addOnCallDutyTimes"
                             >
+                                // @ts-expect-error ts-migrate(2747) FIXME: 'PricingPlan' components don't accept text as chil... Remove this comment to see the full error message
                                 <PricingPlan plan="Growth" hideChildren={false}>
                                     Advanced: Add on-call duty times
                                 </PricingPlan>
@@ -198,6 +205,7 @@ let RenderMember = ({
                                 placeholder="10pm"
                                 style={{ width: '250px' }}
                             />
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
                             <Tooltip title="Start Time">
                                 <div>
                                     <p>
@@ -245,6 +253,7 @@ let RenderMember = ({
                                 placeholder="11pm"
                                 style={{ width: '250px' }}
                             />
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
                             <Tooltip title="End Time">
                                 <div>
                                     <p>
@@ -315,13 +324,14 @@ let RenderMember = ({
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
 RenderMember.displayName = 'RenderMember';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ change }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
     const formValues = state.form.OnCallAlertBox?.values;
@@ -332,6 +342,7 @@ function mapStateToProps(state) {
         formValues,
     };
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ me... Remove this comment to see the full error message
 RenderMember.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     fields: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
@@ -346,5 +357,6 @@ RenderMember.propTypes = {
     formValues: PropTypes.object,
 };
 
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'ConnectedComponent<({ memberValue, inputarra... Remove this comment to see the full error message
 RenderMember = connect(mapStateToProps, mapDispatchToProps)(RenderMember);
 export { RenderMember };

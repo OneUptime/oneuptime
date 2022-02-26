@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update } from '../util/db'
 
 const monitorCollection = 'monitors';
@@ -45,8 +46,8 @@ async function run() {
             monitor.criteria.up.length > 0
         ) {
             for (const up of monitor.criteria.up) {
-                let and = [],
-                    or = [];
+                let and: $TSFixMe = [],
+                    or: $TSFixMe = [];
                 if (up.and && up.and.length > 0) {
                     and = [...up.and];
                 }
@@ -61,6 +62,7 @@ async function run() {
                 }
 
                 if (and && and.length > 0) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                     cr.and.push(and);
                     up.and = cr;
                 }
@@ -68,6 +70,7 @@ async function run() {
                     up.and = { and: [], or: [] };
                 }
                 if (or && or.length > 0) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                     cr.and.push(or);
                     up.or = cr;
                 }
@@ -82,8 +85,8 @@ async function run() {
             monitor.criteria.down.length > 0
         ) {
             for (const down of monitor.criteria.down) {
-                let and = [],
-                    or = [];
+                let and: $TSFixMe = [],
+                    or: $TSFixMe = [];
                 if (down.and && down.and.length > 0) {
                     and = [...down.and];
                 }
@@ -98,6 +101,7 @@ async function run() {
                 }
 
                 if (and && and.length > 0) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                     cr.and.push(and);
                     down.and = cr;
                 }
@@ -105,6 +109,7 @@ async function run() {
                     down.and = { and: [], or: [] };
                 }
                 if (or && or.length > 0) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                     cr.and.push(or);
                     down.or = cr;
                 }
@@ -119,8 +124,8 @@ async function run() {
             monitor.criteria.degraded.length > 0
         ) {
             for (const degraded of monitor.criteria.degraded) {
-                let and = [],
-                    or = [];
+                let and: $TSFixMe = [],
+                    or: $TSFixMe = [];
                 if (degraded.and && degraded.and.length > 0) {
                     and = [...degraded.and];
                 }
@@ -135,6 +140,7 @@ async function run() {
                 }
 
                 if (and && and.length > 0) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                     cr.and.push(and);
                     degraded.and = cr;
                 }
@@ -142,6 +148,7 @@ async function run() {
                     degraded.and = { and: [], or: [] };
                 }
                 if (or && or.length > 0) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                     cr.and.push(or);
                     degraded.or = cr;
                 }

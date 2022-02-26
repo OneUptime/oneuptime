@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import { history } from '../../store';
 
-const OnCallSchedule = ({ status, schedules, slug }) => {
+const OnCallSchedule = ({
+    status,
+    schedules,
+    slug
+}: $TSFixMe) => {
     let color;
     switch (status) {
         case 'active':
@@ -22,6 +26,7 @@ const OnCallSchedule = ({ status, schedules, slug }) => {
     return (
         <div
             className={`Box-root Margin-vertical--12 Card-shadow--medium Box-background--${color} Border-radius--4`}
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
             tabIndex="0"
         >
             <div className="db-Trends-header">
@@ -57,7 +62,7 @@ const OnCallSchedule = ({ status, schedules, slug }) => {
                                 </span>
                                 <span className="ContentHeader-description Text-color--white Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <ul>
-                                        {schedules.map((schedule, i) => {
+                                        {schedules.map((schedule: $TSFixMe, i: $TSFixMe) => {
                                             return (
                                                 <li key={i}>
                                                     <b

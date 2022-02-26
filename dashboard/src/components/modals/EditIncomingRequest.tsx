@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, FieldArray } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -18,10 +20,11 @@ import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/mon
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!values.name || !values.name.trim()) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         errors.name = 'Incoming request name is required';
     }
 
@@ -45,8 +48,11 @@ class EditIncomingRequest extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
             fetchCustomFields,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorCustomFields' does not exist... Remove this comment to see the full error message
             fetchMonitorCustomFields,
         } = this.props;
         fetchCustomFields(projectId);
@@ -61,26 +67,35 @@ class EditIncomingRequest extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editIncomingRequest' does not exist on t... Remove this comment to see the full error message
             editIncomingRequest,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             initialValues,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'destroy' does not exist on type 'Readonl... Remove this comment to see the full error message
             destroy,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
             customFields,
         } = this.props;
         const requestId = initialValues._id;
         const postObj = {};
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         postObj.name = values.name;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filterMatch' does not exist on type '{}'... Remove this comment to see the full error message
         postObj.filterMatch = values.filterMatch;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filters' does not exist on type '{}'.
         postObj.filters =
             values.filters && values.filters.length > 0
                 ? values.filters
-                      .filter(filter => !!filter)
-                      .map(filter => {
+                      .filter((filter: $TSFixMe) => !!filter)
+                      .map((filter: $TSFixMe) => {
                           if (!isNaN(filter.filterText)) {
                               if (typeof filter.filterText === 'string') {
                                   filter.filterText = String(filter.filterText);
@@ -100,48 +115,67 @@ class EditIncomingRequest extends Component {
                 values.selectMonitor &&
                 values.selectMonitor === 'selectAllMonitors'
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectAllMonitors' does not exist on typ... Remove this comment to see the full error message
                 postObj.selectAllMonitors = true;
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectAllMonitors' does not exist on typ... Remove this comment to see the full error message
                 postObj.selectAllMonitors = false;
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncident' does not exist on type '... Remove this comment to see the full error message
             postObj.createIncident = true;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTitle' does not exist on type '{... Remove this comment to see the full error message
             postObj.incidentTitle = values.incidentTitle;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentType' does not exist on type '{}... Remove this comment to see the full error message
             postObj.incidentType = values.incidentType;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSeparateIncident' does not exist o... Remove this comment to see the full error message
             postObj.createSeparateIncident = values.createSeparateIncident;
             if (values.dynamicIncidentType) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'customIncidentType' does not exist on ty... Remove this comment to see the full error message
                 postObj.customIncidentType = values.customIncidentType;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentType' does not exist on t... Remove this comment to see the full error message
                 postObj.dynamicIncidentType = values.dynamicIncidentType;
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
             postObj.incidentPriority = values.incidentPriority;
             if (values.dynamicIncidentPriority) {
                 // create this incident priority on the BE
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'customIncidentPriority' does not exist o... Remove this comment to see the full error message
                 postObj.customIncidentPriority = values.customIncidentPriority;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentPriority' does not exist ... Remove this comment to see the full error message
                 postObj.dynamicIncidentPriority =
                     values.dynamicIncidentPriority;
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentDescription' does not exist on t... Remove this comment to see the full error message
             postObj.incidentDescription = values.incidentDescription;
 
-            postObj.customFields = customFields.map(field => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type '{}... Remove this comment to see the full error message
+            postObj.customFields = customFields.map((field: $TSFixMe) => ({
                 fieldName: field.fieldName,
                 fieldType: field.fieldType,
                 uniqueField: field.uniqueField,
+
                 fieldValue:
                     field.fieldType === 'number'
                         ? parseFloat(values[field.fieldName])
-                        : values[field.fieldName],
+                        : values[field.fieldName]
             }));
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             postObj.monitors = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectAllMonitors' does not exist on typ... Remove this comment to see the full error message
             if (!postObj.selectAllMonitors) {
                 if (
                     this.state.selectedMonitors &&
                     this.state.selectedMonitors.length > 0
                 ) {
                     const monitors = this.state.selectedMonitors;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
                     postObj.monitors = monitors;
                 }
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
                 const isDuplicate = postObj.monitors
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
                     ? postObj.monitors.length === new Set(postObj.monitors).size
                         ? false
                         : true
@@ -151,6 +185,7 @@ class EditIncomingRequest extends Component {
                     this.setState({
                         monitorError: 'Duplicate monitor selection found',
                     });
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
                     postObj.monitors = [];
                     return;
                 }
@@ -158,10 +193,12 @@ class EditIncomingRequest extends Component {
         }
 
         if (values.nextAction && values.nextAction === 'updateIncidentNote') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentNote' does not exist on ty... Remove this comment to see the full error message
             postObj.updateIncidentNote = true;
         }
 
         if (values.nextAction && values.nextAction === 'updateInternalNote') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateInternalNote' does not exist on ty... Remove this comment to see the full error message
             postObj.updateInternalNote = true;
         }
 
@@ -170,25 +207,32 @@ class EditIncomingRequest extends Component {
             (values.nextAction === 'updateIncidentNote' ||
                 values.nextAction === 'updateInternalNote')
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteContent' does not exist on type '{}'... Remove this comment to see the full error message
             postObj.noteContent = values.noteContent;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentState' does not exist on type '{... Remove this comment to see the full error message
             postObj.incidentState = values.incidentState;
             if (values.incidentState === 'others') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentState' does not exist on type '{... Remove this comment to see the full error message
                 postObj.incidentState = values.customIncidentState;
             }
             if (values.post_statuspage) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'post_statuspage' does not exist on type ... Remove this comment to see the full error message
                 postObj.post_statuspage = values.post_statuspage;
             }
         }
 
         if (values.nextAction && values.nextAction === 'acknowledgeIncident') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgeIncident' does not exist on t... Remove this comment to see the full error message
             postObj.acknowledgeIncident = true;
         }
 
         if (values.nextAction && values.nextAction === 'resolveIncident') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveIncident' does not exist on type ... Remove this comment to see the full error message
             postObj.resolveIncident = true;
         }
 
         editIncomingRequest(projectId, requestId, postObj).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             if (!this.props.requesting && !this.props.requestError) {
                 destroy();
                 closeModal({
@@ -199,13 +243,16 @@ class EditIncomingRequest extends Component {
     };
 
     formatData = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
         const monitors = this.props.monitorsList;
         const hash = {};
 
-        monitors.forEach(monitor => {
+        monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
             const componentId = monitor.componentId._id || monitor.componentId;
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (!hash[projectId]) {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 hash[projectId] = {
                     projectName: monitor.projectId?.name,
                     projectId,
@@ -224,9 +271,12 @@ class EditIncomingRequest extends Component {
                 };
             } else {
                 let monitorAdded = false;
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 hash[projectId] = {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     ...hash[projectId],
-                    components: hash[projectId].components.map(componentObj => {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
                             const newMonitor = {
                                 monitorName: monitor.name,
@@ -256,9 +306,12 @@ class EditIncomingRequest extends Component {
                             },
                         ],
                     };
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     hash[projectId] = {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...hash[projectId],
                         components: [
+                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             ...hash[projectId].components,
                             componentData,
                         ],
@@ -276,16 +329,18 @@ class EditIncomingRequest extends Component {
 
         this.setState({
             selectData: data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             selectedMonitors: this.props.initialValues.monitors || [],
         });
     };
 
-    updateState = (value, key) => {
+    updateState = (value: $TSFixMe, key: $TSFixMe) => {
         this.setState(prevState => {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             let currentValue = prevState[key];
 
             if (currentValue.includes(value)) {
-                currentValue = currentValue.filter(val => val !== value);
+                currentValue = currentValue.filter((val: $TSFixMe) => val !== value);
                 this.updateMultipleState(value, key, currentValue);
 
                 return {
@@ -302,11 +357,12 @@ class EditIncomingRequest extends Component {
         });
     };
 
-    updateMultipleState = (id, key, databank) => {
+    updateMultipleState = (id: $TSFixMe, key: $TSFixMe, databank: $TSFixMe) => {
         if (key === 'selectedProjects' && databank.includes(id)) {
-            const monitorIds = [];
-            const componentIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            const componentIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
                     componentIds.push(
@@ -317,18 +373,21 @@ class EditIncomingRequest extends Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
                 selectedComponents: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
                     new Set([...prevState.selectedComponents, ...componentIds])
                 ),
             }));
         }
 
         if (key === 'selectedProjects' && !databank.includes(id)) {
-            const monitorIds = [];
-            const componentIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            const componentIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
                     componentIds.push(
@@ -338,18 +397,21 @@ class EditIncomingRequest extends Component {
             });
 
             return this.setState(prevState => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                 selectedMonitors: prevState.selectedMonitors.filter(
-                    monitorId => !monitorIds.includes(monitorId)
+                    (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
                 selectedComponents: prevState.selectedComponents.filter(
-                    componentId => !componentIds.includes(componentId)
+                    (componentId: $TSFixMe) => !componentIds.includes(componentId)
                 ),
             }));
         }
 
         if (key === 'selectedComponents' && databank.includes(id)) {
-            const monitorIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
                 }
@@ -357,133 +419,141 @@ class EditIncomingRequest extends Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
             }));
         }
 
         if (key === 'selectedComponents' && !databank.includes(id)) {
-            const monitorIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
                 }
             });
 
             return this.setState(prevState => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                 selectedMonitors: prevState.selectedMonitors.filter(
-                    monitorId => !monitorIds.includes(monitorId)
+                    (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
             }));
         }
     };
 
-    renderCustomFields = ({ fields }) => {
+    renderCustomFields = ({
+        fields
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues, customFields } = this.props;
-        return (
-            <>
-                <div
-                    style={{
-                        width: '100%',
-                        position: 'relative',
+        return <>
+            <div
+                style={{
+                    width: '100%',
+                    position: 'relative',
+                }}
+            >
+                <span
+                    id="addCustomField"
+                    onClick={() => {
+                        fields.push();
                     }}
-                >
-                    <span
-                        id="addCustomField"
-                        onClick={() => {
-                            fields.push();
-                        }}
-                    ></span>
-                    {fields.map((field, index) => {
-                        const fieldType = (
-                            customFields.find(
-                                customField =>
-                                    String(customField._id) ===
-                                    String(
-                                        (formValues.customFields[index] || {})
-                                            .fieldName
-                                    )
-                            ) || {}
-                        ).fieldType;
+                ></span>
+                {fields.map((field: $TSFixMe, index: $TSFixMe) => {
+                    const fieldType = (
+                        customFields.find(
+                            (customField: $TSFixMe) => String(customField._id) ===
+                            String(
+                                (formValues.customFields[index] || {})
+                                    .fieldName
+                            )
+                        ) || {}
+                    ).fieldType;
 
-                        return (
-                            <div
-                                style={{
-                                    width: '100%',
-                                    marginBottom: 10,
-                                }}
-                                key={index}
-                            >
-                                <div className="Flex-flex">
-                                    <Field
-                                        className="db-select-nw Table-cell--width--maximized"
-                                        component={RenderSelect}
-                                        name={`${field}.fieldName`}
-                                        id={`${field}.fieldName`}
-                                        placeholder="Field Name"
-                                        style={{
-                                            height: '28px',
-                                            width: '100%',
-                                        }}
-                                        options={[
-                                            {
-                                                value: '',
-                                                label: 'Select a field',
-                                            },
-                                            ...customFields.map(
-                                                customField => ({
-                                                    value: customField._id,
-                                                    label:
-                                                        customField.fieldName,
-                                                })
-                                            ),
-                                        ]}
-                                    />
-                                    <Field
-                                        component={RenderField}
-                                        name={`${field}.fieldValue`}
-                                        type={
-                                            formValues && fieldType
-                                                ? fieldType
-                                                : 'input'
-                                        }
-                                        placeholder="Field Value"
-                                        id={`${field}.fieldValue`}
-                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                        style={{
-                                            width: '100%',
-                                            padding: '3px 5px',
-                                        }}
-                                        parentStyle={{
-                                            marginLeft: 5,
-                                        }}
-                                    />
-                                </div>
-                                <button
-                                    id="removeMonitor"
-                                    className="Button bs-ButtonLegacy ActionIconParent"
+                    return (
+                        <div
+                            style={{
+                                width: '100%',
+                                marginBottom: 10,
+                            }}
+                            key={index}
+                        >
+                            <div className="Flex-flex">
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized"
+                                    component={RenderSelect}
+                                    name={`${field}.fieldName`}
+                                    id={`${field}.fieldName`}
+                                    placeholder="Field Name"
                                     style={{
-                                        marginTop: 10,
+                                        height: '28px',
+                                        width: '100%',
                                     }}
-                                    type="button"
-                                    onClick={() => {
-                                        fields.remove(index);
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'Select a field',
+                                        },
+                                        ...customFields.map(
+                                            (customField: $TSFixMe) => ({
+                                                value: customField._id,
+
+                                                label:
+                                                    customField.fieldName
+                                            })
+                                        ),
+                                    ]}
+                                />
+                                <Field
+                                    component={RenderField}
+                                    name={`${field}.fieldValue`}
+                                    type={
+                                        formValues && fieldType
+                                            ? fieldType
+                                            : 'input'
+                                    }
+                                    placeholder="Field Value"
+                                    id={`${field}.fieldValue`}
+                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                    style={{
+                                        width: '100%',
+                                        padding: '3px 5px',
                                     }}
-                                >
-                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                        <span>Remove Field</span>
-                                    </span>
-                                </button>
+                                    parentStyle={{
+                                        marginLeft: 5,
+                                    }}
+                                />
                             </div>
-                        );
-                    })}
-                </div>
-            </>
-        );
+                            <button
+                                id="removeMonitor"
+                                className="Button bs-ButtonLegacy ActionIconParent"
+                                style={{
+                                    marginTop: 10,
+                                }}
+                                type="button"
+                                onClick={() => {
+                                    fields.remove(index);
+                                }}
+                            >
+                                <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                    <span>Remove Field</span>
+                                </span>
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+        </>;
     };
 
-    renderFilters = ({ fields }) => {
+    renderFilters = ({
+        fields
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filterShowing' does not exist on type '{... Remove this comment to see the full error message
         const { filterShowing } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues, monitorCustomFields, customFields } = this.props;
 
         if (
@@ -496,179 +566,95 @@ class EditIncomingRequest extends Component {
             this.setState({ filterShowing: true });
         }
 
-        return (
-            <>
-                <div
-                    style={{
-                        width: '100%',
-                        position: 'relative',
+        return <>
+            <div
+                style={{
+                    width: '100%',
+                    position: 'relative',
+                }}
+            >
+                <span
+                    id="addFilter"
+                    onClick={() => {
+                        fields.push();
                     }}
-                >
-                    <span
-                        id="addFilter"
-                        onClick={() => {
-                            fields.push();
-                        }}
-                    ></span>
-                    {fields.map((field, index) => {
-                        return (
+                ></span>
+                {fields.map((field: $TSFixMe, index: $TSFixMe) => {
+                    return (
+                        <div
+                            style={{
+                                width: '100%',
+                                marginBottom: 10,
+                            }}
+                            key={index}
+                        >
                             <div
+                                className="bs-Fieldset-field"
                                 style={{
                                     width: '100%',
-                                    marginBottom: 10,
                                 }}
-                                key={index}
                             >
-                                <div
-                                    className="bs-Fieldset-field"
-                                    style={{
-                                        width: '100%',
-                                    }}
-                                >
-                                    {formValues &&
-                                    formValues.nextAction ===
-                                        'createIncident' ? (
-                                        <Field
-                                            className="db-select-nw Table-cell--width--maximized"
-                                            component={RenderSelect}
-                                            name={`${field}.filterCriteria`}
-                                            id={`${field}.filterCriteria`}
-                                            placeholder="Criteria"
-                                            style={{
-                                                height: '28px',
-                                                width: '100%',
-                                            }}
-                                            options={[
-                                                ...monitorCustomFields.map(
-                                                    field => ({
-                                                        value: field.fieldName,
-                                                        label: field.fieldName,
-                                                    })
-                                                ),
-                                            ]}
-                                        />
-                                    ) : (
-                                        <Field
-                                            className="db-select-nw Table-cell--width--maximized"
-                                            component={RenderSelect}
-                                            name={`${field}.filterCriteria`}
-                                            id={`${field}.filterCriteria`}
-                                            placeholder="Criteria"
-                                            style={{
-                                                height: '28px',
-                                                width: '100%',
-                                            }}
-                                            options={[
-                                                {
-                                                    value: 'incidentId',
-                                                    label: 'Incident ID',
-                                                },
-                                                ...customFields.map(field => ({
+                                {formValues &&
+                                formValues.nextAction ===
+                                    'createIncident' ? (
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={`${field}.filterCriteria`}
+                                        id={`${field}.filterCriteria`}
+                                        placeholder="Criteria"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            ...monitorCustomFields.map(
+                                                (field: $TSFixMe) => ({
                                                     value: field.fieldName,
-                                                    label: field.fieldName,
-                                                })),
-                                            ]}
-                                        />
-                                    )}
+                                                    label: field.fieldName
+                                                })
+                                            ),
+                                        ]}
+                                    />
+                                ) : (
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={`${field}.filterCriteria`}
+                                        id={`${field}.filterCriteria`}
+                                        placeholder="Criteria"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            {
+                                                value: 'incidentId',
+                                                label: 'Incident ID',
+                                            },
+                                            ...customFields.map((field: $TSFixMe) => ({
+                                                value: field.fieldName,
+                                                label: field.fieldName
+                                            })),
+                                        ]}
+                                    />
+                                )}
 
-                                    {formValues &&
-                                    formValues.nextAction ===
-                                        'createIncident' ? (
-                                        (formValues.filters[index]
-                                            ? (
-                                                  monitorCustomFields.find(
-                                                      field =>
-                                                          field.fieldName ===
-                                                          formValues.filters[
-                                                              index
-                                                          ].filterCriteria
-                                                  ) || {
-                                                      fieldType: 'text',
-                                                  }
-                                              ).fieldType
-                                            : 'text') === 'text' ? (
-                                            <Field
-                                                className="db-select-nw Table-cell--width--maximized"
-                                                component={RenderSelect}
-                                                name={`${field}.filterCondition`}
-                                                id={`${field}.filterCondition`}
-                                                placeholder="Condition"
-                                                style={{
-                                                    height: '28px',
-                                                    width: '100%',
-                                                    marginLeft: 5,
-                                                }}
-                                                options={[
-                                                    {
-                                                        value: 'equalTo',
-                                                        label: 'Equal To',
-                                                    },
-                                                    {
-                                                        value: 'notEqualTo',
-                                                        label: 'Not Equal To',
-                                                    },
-                                                ]}
-                                            />
-                                        ) : (
-                                            <Field
-                                                className="db-select-nw Table-cell--width--maximized"
-                                                component={RenderSelect}
-                                                name={`${field}.filterCondition`}
-                                                id={`${field}.filterCondition`}
-                                                placeholder="Condition"
-                                                style={{
-                                                    height: '28px',
-                                                    width: '100%',
-                                                    marginLeft: 5,
-                                                }}
-                                                options={[
-                                                    {
-                                                        value: 'equalTo',
-                                                        label: 'Equal To',
-                                                    },
-                                                    {
-                                                        value: 'notEqualTo',
-                                                        label: 'Not Equal To',
-                                                    },
-                                                    {
-                                                        value: 'greaterThan',
-                                                        label: 'Greater Than',
-                                                    },
-                                                    {
-                                                        value: 'lessThan',
-                                                        label: 'Less Than',
-                                                    },
-                                                    {
-                                                        value:
-                                                            'lessThanOrEqualTo',
-                                                        label:
-                                                            'Less Than Or Equal To',
-                                                    },
-                                                    {
-                                                        value:
-                                                            'greaterThanOrEqualTo',
-                                                        label:
-                                                            'Greater Than Or Equal To',
-                                                    },
-                                                ]}
-                                            />
-                                        )
-                                    ) : (formValues && formValues.filters[index]
-                                          ? formValues.filters[index]
-                                                .filterCriteria === 'incidentId'
-                                              ? 'number'
-                                              : (
-                                                    customFields.find(
-                                                        field =>
-                                                            field.fieldName ===
-                                                            formValues.filters[
-                                                                index
-                                                            ].filterCriteria
-                                                    ) || {
-                                                        fieldType: 'text',
-                                                    }
-                                                ).fieldType
-                                          : 'text') === 'text' ? (
+                                {formValues &&
+                                formValues.nextAction ===
+                                    'createIncident' ? (
+                                    (formValues.filters[index]
+                                        ? (
+                                              monitorCustomFields.find(
+                                                  (field: $TSFixMe) => field.fieldName ===
+                                                  formValues.filters[
+                                                      index
+                                                  ].filterCriteria
+                                              ) || {
+                                                  fieldType: 'text',
+                                              }
+                                          ).fieldType
+                                        : 'text') === 'text' ? (
                                         <Field
                                             className="db-select-nw Table-cell--width--maximized"
                                             component={RenderSelect}
@@ -721,7 +707,8 @@ class EditIncomingRequest extends Component {
                                                     label: 'Less Than',
                                                 },
                                                 {
-                                                    value: 'lessThanOrEqualTo',
+                                                    value:
+                                                        'lessThanOrEqualTo',
                                                     label:
                                                         'Less Than Or Equal To',
                                                 },
@@ -733,178 +720,257 @@ class EditIncomingRequest extends Component {
                                                 },
                                             ]}
                                         />
-                                    )}
+                                    )
+                                ) : (formValues && formValues.filters[index]
+                                      ? formValues.filters[index]
+                                            .filterCriteria === 'incidentId'
+                                          ? 'number'
+                                          : (
+                                                customFields.find(
+                                                    (field: $TSFixMe) => field.fieldName ===
+                                                    formValues.filters[
+                                                        index
+                                                    ].filterCriteria
+                                                ) || {
+                                                    fieldType: 'text',
+                                                }
+                                            ).fieldType
+                                      : 'text') === 'text' ? (
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={`${field}.filterCondition`}
+                                        id={`${field}.filterCondition`}
+                                        placeholder="Condition"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                            marginLeft: 5,
+                                        }}
+                                        options={[
+                                            {
+                                                value: 'equalTo',
+                                                label: 'Equal To',
+                                            },
+                                            {
+                                                value: 'notEqualTo',
+                                                label: 'Not Equal To',
+                                            },
+                                        ]}
+                                    />
+                                ) : (
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={`${field}.filterCondition`}
+                                        id={`${field}.filterCondition`}
+                                        placeholder="Condition"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                            marginLeft: 5,
+                                        }}
+                                        options={[
+                                            {
+                                                value: 'equalTo',
+                                                label: 'Equal To',
+                                            },
+                                            {
+                                                value: 'notEqualTo',
+                                                label: 'Not Equal To',
+                                            },
+                                            {
+                                                value: 'greaterThan',
+                                                label: 'Greater Than',
+                                            },
+                                            {
+                                                value: 'lessThan',
+                                                label: 'Less Than',
+                                            },
+                                            {
+                                                value: 'lessThanOrEqualTo',
+                                                label:
+                                                    'Less Than Or Equal To',
+                                            },
+                                            {
+                                                value:
+                                                    'greaterThanOrEqualTo',
+                                                label:
+                                                    'Greater Than Or Equal To',
+                                            },
+                                        ]}
+                                    />
+                                )}
 
-                                    {formValues &&
-                                    formValues.nextAction ===
-                                        'createIncident' ? (
-                                        <Field
-                                            component={RenderField}
-                                            name={`${field}.filterText`}
-                                            type={
-                                                formValues &&
-                                                formValues.filters[index]
-                                                    ? (
-                                                          monitorCustomFields.find(
-                                                              field =>
-                                                                  field.fieldName ===
-                                                                  formValues
-                                                                      .filters[
-                                                                      index
-                                                                  ]
-                                                                      .filterCriteria
+                                {formValues &&
+                                formValues.nextAction ===
+                                    'createIncident' ? (
+                                    <Field
+                                        component={RenderField}
+                                        name={`${field}.filterText`}
+                                        type={
+                                            formValues &&
+                                            formValues.filters[index]
+                                                ? (
+                                                      monitorCustomFields.find(
+                                                          (field: $TSFixMe) => field.fieldName ===
+                                                          formValues
+                                                              .filters[
+                                                              index
+                                                          ]
+                                                              .filterCriteria
+                                                      ) || {
+                                                          fieldType: 'text',
+                                                      }
+                                                  ).fieldType
+                                                : 'text'
+                                        }
+                                        placeholder="{{request.body.value}}"
+                                        id={`${field}.filterText`}
+                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                        style={{
+                                            width: '100%',
+                                            padding: '3px 5px',
+                                            marginLeft: 5,
+                                        }}
+                                        parentStyle={{
+                                            marginRight: 5,
+                                        }}
+                                    />
+                                ) : (
+                                    <Field
+                                        component={RenderField}
+                                        name={`${field}.filterText`}
+                                        type={
+                                            formValues &&
+                                            formValues.filters[index]
+                                                ? formValues.filters[index]
+                                                      .filterCriteria ===
+                                                  'incidentId'
+                                                    ? 'number'
+                                                    : (
+                                                          customFields.find(
+                                                              (field: $TSFixMe) => field.fieldName ===
+                                                              formValues
+                                                                  .filters[
+                                                                  index
+                                                              ]
+                                                                  .filterCriteria
                                                           ) || {
-                                                              fieldType: 'text',
+                                                              fieldType:
+                                                                  'text',
                                                           }
                                                       ).fieldType
-                                                    : 'text'
-                                            }
-                                            placeholder="{{request.body.value}}"
-                                            id={`${field}.filterText`}
-                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                            style={{
-                                                width: '100%',
-                                                padding: '3px 5px',
-                                                marginLeft: 5,
-                                            }}
-                                            parentStyle={{
-                                                marginRight: 5,
-                                            }}
-                                        />
-                                    ) : (
-                                        <Field
-                                            component={RenderField}
-                                            name={`${field}.filterText`}
-                                            type={
-                                                formValues &&
-                                                formValues.filters[index]
-                                                    ? formValues.filters[index]
-                                                          .filterCriteria ===
-                                                      'incidentId'
-                                                        ? 'number'
-                                                        : (
-                                                              customFields.find(
-                                                                  field =>
-                                                                      field.fieldName ===
-                                                                      formValues
-                                                                          .filters[
-                                                                          index
-                                                                      ]
-                                                                          .filterCriteria
-                                                              ) || {
-                                                                  fieldType:
-                                                                      'text',
-                                                              }
-                                                          ).fieldType
-                                                    : 'text'
-                                            }
-                                            placeholder="{{request.body.value}}"
-                                            id={`${field}.filterText`}
-                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                            style={{
-                                                width: '100%',
-                                                padding: '3px 5px',
-                                                marginLeft: 5,
-                                            }}
-                                            parentStyle={{
-                                                marginRight: 5,
-                                            }}
-                                        />
-                                    )}
-                                    <Tooltip title="Incoming http Request Filter">
-                                        <p>
-                                            Filter exposes the{' '}
-                                            <code>request</code> object of an
-                                            incoming request. The value on the{' '}
-                                            <code>request</code> object can
-                                            either be a string or a number
-                                        </p>
-                                        <p>
-                                            Example properties include the
-                                            following:
-                                        </p>
-                                        <p>
-                                            <ul>
-                                                <li>
-                                                    <code>request.body</code>
-                                                </li>
-                                                <li>
-                                                    <code>request.query</code>
-                                                </li>
-                                                <li>
-                                                    <code>request.headers</code>
-                                                </li>
-                                            </ul>
-                                        </p>
-                                        <p>Usage examples include:</p>
-                                        <p>
-                                            <ul>
-                                                <li>
-                                                    <code>
-                                                        1 | request.body.value
-                                                    </code>
-                                                </li>
-                                                <li>
-                                                    <code>
-                                                        2 | request.query.value
-                                                    </code>
-                                                </li>
-                                                <li>
-                                                    <code>
-                                                        3 | request.header.value
-                                                    </code>
-                                                </li>
-                                            </ul>
-                                        </p>
-                                        <p>
-                                            You can pass the value of{' '}
-                                            <code>request</code> object directly
-                                            or you can specify the{' '}
-                                            <code>request</code> body as a
-                                            variable{' '}
-                                            <code>
-                                                {'{{request.body.value}}'}
-                                            </code>
-                                        </p>
-                                    </Tooltip>
-                                    <button
-                                        className="bs-Button bs-DeprecatedButton"
-                                        type="button"
-                                        onClick={() => fields.remove(index)}
+                                                : 'text'
+                                        }
+                                        placeholder="{{request.body.value}}"
+                                        id={`${field}.filterText`}
+                                        className="db-BusinessSettings-input TextInput bs-TextInput"
                                         style={{
-                                            borderRadius: '50%',
-                                            padding: 0,
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            width: 25,
-                                            height: 25,
+                                            width: '100%',
+                                            padding: '3px 5px',
+                                            marginLeft: 5,
                                         }}
-                                    >
-                                        <img
-                                            src="/dashboard/assets/img/minus.svg"
-                                            style={{
-                                                height: '13px',
-                                                width: '13px',
-                                            }}
-                                            alt=""
-                                        />
-                                    </button>
-                                </div>
+                                        parentStyle={{
+                                            marginRight: 5,
+                                        }}
+                                    />
+                                )}
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+                                <Tooltip title="Incoming http Request Filter">
+                                    <p>
+                                        Filter exposes the{' '}
+                                        <code>request</code> object of an
+                                        incoming request. The value on the{' '}
+                                        <code>request</code> object can
+                                        either be a string or a number
+                                    </p>
+                                    <p>
+                                        Example properties include the
+                                        following:
+                                    </p>
+                                    <p>
+                                        <ul>
+                                            <li>
+                                                <code>request.body</code>
+                                            </li>
+                                            <li>
+                                                <code>request.query</code>
+                                            </li>
+                                            <li>
+                                                <code>request.headers</code>
+                                            </li>
+                                        </ul>
+                                    </p>
+                                    <p>Usage examples include:</p>
+                                    <p>
+                                        <ul>
+                                            <li>
+                                                <code>
+                                                    1 | request.body.value
+                                                </code>
+                                            </li>
+                                            <li>
+                                                <code>
+                                                    2 | request.query.value
+                                                </code>
+                                            </li>
+                                            <li>
+                                                <code>
+                                                    3 | request.header.value
+                                                </code>
+                                            </li>
+                                        </ul>
+                                    </p>
+                                    <p>
+                                        You can pass the value of{' '}
+                                        <code>request</code> object directly
+                                        or you can specify the{' '}
+                                        <code>request</code> body as a
+                                        variable{' '}
+                                        <code>
+                                            {'{{request.body.value}}'}
+                                        </code>
+                                    </p>
+                                </Tooltip>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    type="button"
+                                    onClick={() => fields.remove(index)}
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: 0,
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        width: 25,
+                                        height: 25,
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/minus.svg"
+                                        style={{
+                                            height: '13px',
+                                            width: '13px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
                             </div>
-                        );
-                    })}
-                </div>
-            </>
-        );
+                        </div>
+                    );
+                })}
+            </div>
+        </>;
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
                 if (e.target.localName !== 'textarea') {
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     return document
                         .getElementById('editIncomingRequest')
                         .click();
@@ -916,36 +982,51 @@ class EditIncomingRequest extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'destroy' does not exist on type 'Readonl... Remove this comment to see the full error message
         this.props.destroy();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             id: this.props.projectId,
         });
     };
 
     toggleShowAdvancedOptions = () =>
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         this.props.change(
             'showAdvancedOptions',
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             !this.props.formValues.showAdvancedOptions
         );
 
     toggleShowAvailableVariables = () =>
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         this.props.change(
             'showAvailableVariables',
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             !this.props.formValues.showAvailableVariables
         );
 
-    onContentChange = val => {
+    onContentChange = (val: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         this.props.change('noteContent', val);
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             formValues,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriorities' does not exist on ty... Remove this comment to see the full error message
             incidentPriorities,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'destroy' does not exist on type 'Readonl... Remove this comment to see the full error message
             destroy,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
             customFields,
         } = this.props;
 
@@ -959,6 +1040,7 @@ class EditIncomingRequest extends Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -1730,10 +1812,12 @@ class EditIncomingRequest extends Component {
                                                                             type="button"
                                                                             onClick={e => {
                                                                                 e.preventDefault();
+                                                                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                                                                                 document
                                                                                     .querySelector(
                                                                                         '#addFilter'
                                                                                     )
+                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
                                                                                     .click();
                                                                             }}
                                                                             className="Button bs-ButtonLegacy ActionIconParent"
@@ -1870,10 +1954,12 @@ class EditIncomingRequest extends Component {
                                                                                 type="button"
                                                                                 onClick={e => {
                                                                                     e.preventDefault();
+                                                                                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                                                                                     document
                                                                                         .querySelector(
                                                                                             '#addFilter'
                                                                                         )
+                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
                                                                                         .click();
                                                                                 }}
                                                                                 className="Button bs-ButtonLegacy ActionIconParent"
@@ -2287,6 +2373,7 @@ class EditIncomingRequest extends Component {
                                                                                                             index
                                                                                                         }
                                                                                                         className="template-variables"
+                                                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ display: string; listStyleType: string; li... Remove this comment to see the full error message
                                                                                                         style={
                                                                                                             bulletpoints
                                                                                                         }
@@ -2397,10 +2484,12 @@ class EditIncomingRequest extends Component {
                                                                                 type="button"
                                                                                 onClick={e => {
                                                                                     e.preventDefault();
+                                                                                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                                                                                     document
                                                                                         .querySelector(
                                                                                             '#addFilter'
                                                                                         )
+                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
                                                                                         .click();
                                                                                 }}
                                                                                 className="Button bs-ButtonLegacy ActionIconParent"
@@ -2602,6 +2691,7 @@ class EditIncomingRequest extends Component {
                                                                                 disabled={
                                                                                     this
                                                                                         .props
+                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                                                                         .requesting
                                                                                 }
                                                                                 options={[
@@ -2644,6 +2734,7 @@ class EditIncomingRequest extends Component {
                                                                     </div>
                                                                     <div
                                                                         onClick={() =>
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
                                                                             this.props.change(
                                                                                 'dynamicIncidentType',
                                                                                 !formValues.dynamicIncidentType
@@ -2724,15 +2815,17 @@ class EditIncomingRequest extends Component {
                                                                                     disabled={
                                                                                         this
                                                                                             .props
+                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                                                                             .requesting
                                                                                     }
                                                                                     options={[
                                                                                         ...incidentPriorities.map(
-                                                                                            incidentPriority => ({
+                                                                                            (incidentPriority: $TSFixMe) => ({
                                                                                                 value:
                                                                                                     incidentPriority._id,
+
                                                                                                 label:
-                                                                                                    incidentPriority.name,
+                                                                                                    incidentPriority.name
                                                                                             })
                                                                                         ),
                                                                                     ]}
@@ -2756,6 +2849,7 @@ class EditIncomingRequest extends Component {
                                                                         </div>
                                                                         <div
                                                                             onClick={() =>
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
                                                                                 this.props.change(
                                                                                     'dynamicIncidentPriority',
                                                                                     !formValues.dynamicIncidentPriority
@@ -2843,7 +2937,7 @@ class EditIncomingRequest extends Component {
                                                         customFields.length >
                                                             0 &&
                                                         customFields.map(
-                                                            (field, index) => (
+                                                            (field: $TSFixMe, index: $TSFixMe) => (
                                                                 <fieldset
                                                                     key={index}
                                                                     className="Margin-bottom--16"
@@ -3022,6 +3116,7 @@ class EditIncomingRequest extends Component {
                                                                                                             index
                                                                                                         }
                                                                                                         className="template-variables"
+                                                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ display: string; listStyleType: string; li... Remove this comment to see the full error message
                                                                                                         style={
                                                                                                             bulletpoints
                                                                                                         }
@@ -3050,7 +3145,9 @@ class EditIncomingRequest extends Component {
                                     <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                                 !this.props.requesting &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestError' does not exist on type 'Re... Remove this comment to see the full error message
                                                 this.props.requestError
                                             }
                                         >
@@ -3075,6 +3172,7 @@ class EditIncomingRequest extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestError' does not exist on type 'Re... Remove this comment to see the full error message
                                                                     .requestError
                                                             }
                                                         </span>
@@ -3097,10 +3195,12 @@ class EditIncomingRequest extends Component {
                                         </button>
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             disabled={this.props.requesting}
                                             type="submit"
                                             id="editIncomingRequest"
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             {!this.props.requesting && (
                                                 <>
                                                     <span>Edit</span>
@@ -3109,6 +3209,7 @@ class EditIncomingRequest extends Component {
                                                     </span>
                                                 </>
                                             )}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             {this.props.requesting && (
                                                 <FormLoader />
                                             )}
@@ -3124,8 +3225,10 @@ class EditIncomingRequest extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EditIncomingRequest.displayName = 'EditIncomingRequest';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EditIncomingRequest.propTypes = {
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -3152,18 +3255,17 @@ const EditIncomingRequestForm = reduxForm({
     destroyOnUnmount: false,
 })(EditIncomingRequest);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            editIncomingRequest,
-            closeModal,
-            fetchCustomFields,
-            fetchMonitorCustomFields,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        editIncomingRequest,
+        closeModal,
+        fetchCustomFields,
+        fetchMonitorCustomFields,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const incomingRequestToBeUpdated = state.modal.modals[0].incomingRequest;
     const projectId = state.modal.modals[0].projectId;
     const incidentPriorities =
@@ -3172,89 +3274,116 @@ const mapStateToProps = state => {
     const initialValues = {};
 
     if (incomingRequestToBeUpdated) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         initialValues.name = incomingRequestToBeUpdated.name;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectAllMonitors' does not exist on typ... Remove this comment to see the full error message
         initialValues.selectAllMonitors =
             incomingRequestToBeUpdated.selectAllMonitors;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSeparateIncident' does not exist o... Remove this comment to see the full error message
         initialValues.createSeparateIncident =
             incomingRequestToBeUpdated.createSeparateIncident;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncident' does not exist on type '... Remove this comment to see the full error message
         initialValues.createIncident =
             incomingRequestToBeUpdated.createIncident;
         if (incomingRequestToBeUpdated.createIncident) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextAction' does not exist on type '{}'.
             initialValues.nextAction = 'createIncident';
         }
         if (incomingRequestToBeUpdated.updateIncidentNote) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextAction' does not exist on type '{}'.
             initialValues.nextAction = 'updateIncidentNote';
         }
         if (incomingRequestToBeUpdated.updateInternalNote) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextAction' does not exist on type '{}'.
             initialValues.nextAction = 'updateInternalNote';
         }
         if (
             incomingRequestToBeUpdated.updateIncidentNote ||
             incomingRequestToBeUpdated.updateInternalNote
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentState' does not exist on type '{... Remove this comment to see the full error message
             initialValues.incidentState = ['update', 'investigating'].includes(
                 incomingRequestToBeUpdated.incidentState
             )
                 ? incomingRequestToBeUpdated.incidentState
                 : 'others';
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customIncidentState' does not exist on t... Remove this comment to see the full error message
             initialValues.customIncidentState = ![
                 'update',
                 'investigating',
             ].includes(incomingRequestToBeUpdated.incidentState)
                 ? incomingRequestToBeUpdated.incidentState
                 : '';
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteContent' does not exist on type '{}'... Remove this comment to see the full error message
             initialValues.noteContent =
                 incomingRequestToBeUpdated.noteContent || '';
         }
         if (incomingRequestToBeUpdated.post_statuspage) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'post_statuspage' does not exist on type ... Remove this comment to see the full error message
             initialValues.post_statuspage =
                 incomingRequestToBeUpdated.post_statuspage;
         }
         if (incomingRequestToBeUpdated.acknowledgeIncident) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextAction' does not exist on type '{}'.
             initialValues.nextAction = 'acknowledgeIncident';
         }
         if (incomingRequestToBeUpdated.resolveIncident) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextAction' does not exist on type '{}'.
             initialValues.nextAction = 'resolveIncident';
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
         initialValues._id = incomingRequestToBeUpdated._id;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filters' does not exist on type '{}'.
         initialValues.filters = incomingRequestToBeUpdated.filters;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filterMatch' does not exist on type '{}'... Remove this comment to see the full error message
         initialValues.filterMatch = incomingRequestToBeUpdated.filterMatch;
 
         if (incomingRequestToBeUpdated.createIncident) {
-            const priorityIds = incidentPriorities.map(priority =>
-                String(priority._id)
+            const priorityIds = incidentPriorities.map((priority: $TSFixMe) => String(priority._id)
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentPriority' does not exist ... Remove this comment to see the full error message
             initialValues.dynamicIncidentPriority = !priorityIds.includes(
                 incomingRequestToBeUpdated.incidentPriority
             );
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentPriority' does not exist ... Remove this comment to see the full error message
             if (initialValues.dynamicIncidentPriority) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'customIncidentPriority' does not exist o... Remove this comment to see the full error message
                 initialValues.customIncidentPriority =
                     incomingRequestToBeUpdated.incidentPriority;
             }
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentPriority' does not exist ... Remove this comment to see the full error message
         if (!initialValues.dynamicIncidentPriority) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
             initialValues.incidentPriority =
                 incomingRequestToBeUpdated.incidentPriority;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTitle' does not exist on type '{... Remove this comment to see the full error message
         initialValues.incidentTitle = incomingRequestToBeUpdated.incidentTitle;
         if (incomingRequestToBeUpdated.createIncident) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentType' does not exist on t... Remove this comment to see the full error message
             initialValues.dynamicIncidentType = ![
                 'offline',
                 'online',
                 'degraded',
             ].includes(incomingRequestToBeUpdated.incidentType);
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentType' does not exist on t... Remove this comment to see the full error message
             if (initialValues.dynamicIncidentType) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'customIncidentType' does not exist on ty... Remove this comment to see the full error message
                 initialValues.customIncidentType =
                     incomingRequestToBeUpdated.incidentType;
             }
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dynamicIncidentType' does not exist on t... Remove this comment to see the full error message
         if (!initialValues.dynamicIncidentType) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentType' does not exist on type '{}... Remove this comment to see the full error message
             initialValues.incidentType =
                 incomingRequestToBeUpdated.incidentType;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentDescription' does not exist on t... Remove this comment to see the full error message
         initialValues.incidentDescription =
             incomingRequestToBeUpdated.incidentDescription;
         if (
@@ -3262,29 +3391,35 @@ const mapStateToProps = state => {
             incomingRequestToBeUpdated.customFields.length > 0
         ) {
             incomingRequestToBeUpdated.customFields.forEach(
-                field => (initialValues[field.fieldName] = field.fieldValue)
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                (field: $TSFixMe) => initialValues[field.fieldName] = field.fieldValue
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvancedOptions' does not exist on t... Remove this comment to see the full error message
         initialValues.showAdvancedOptions = false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAvailableVariables' does not exist o... Remove this comment to see the full error message
         initialValues.showAvailableVariables = false;
     }
 
-    let monitors = [];
-    state.monitor.monitorsList.monitors.forEach(monitor => {
+    let monitors: $TSFixMe = [];
+    state.monitor.monitorsList.monitors.forEach((monitor: $TSFixMe) => {
         monitors = [...monitors, ...monitor.monitors];
     });
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectAllMonitors' does not exist on typ... Remove this comment to see the full error message
     if (!initialValues.selectAllMonitors && incomingRequestToBeUpdated) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectMonitor' does not exist on type '{... Remove this comment to see the full error message
         initialValues.selectMonitor = 'selectSpecificMonitors';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
         initialValues.monitors =
             incomingRequestToBeUpdated.monitors &&
             incomingRequestToBeUpdated.monitors
-                .map(monitor =>
-                    monitor.monitorId
-                        ? monitor.monitorId._id || monitor.monitorId
-                        : null
+                .map((monitor: $TSFixMe) => monitor.monitorId
+                ? monitor.monitorId._id || monitor.monitorId
+                : null
                 )
-                .filter(item => typeof item === 'string');
+                .filter((item: $TSFixMe) => typeof item === 'string');
     } else {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectMonitor' does not exist on type '{... Remove this comment to see the full error message
         initialValues.selectMonitor = 'selectAllMonitors';
     }
 

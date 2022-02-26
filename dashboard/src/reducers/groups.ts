@@ -10,7 +10,7 @@ const initialState = {
     oncallDuty: [],
 };
 
-export default function groups(state = initialState, action) {
+export default function groups(state = initialState, action: $TSFixMe) {
     let updatedGroup;
     switch (action.type) {
         case types.GET_GROUPS_REQUEST:
@@ -92,8 +92,10 @@ export default function groups(state = initialState, action) {
             };
         case types.UPDATE_GROUP_SUCCESS:
             updatedGroup = state.groups.map(projectGroup => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'never'.
                 if (projectGroup.project.id === action.payload.projectId._id) {
-                    const groups = projectGroup.groups.groups.map(group => {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'groups' does not exist on type 'never'.
+                    const groups = projectGroup.groups.groups.map((group: $TSFixMe) => {
                         if (group._id === action.payload._id) {
                             return action.payload;
                         }
@@ -101,9 +103,11 @@ export default function groups(state = initialState, action) {
                     });
                     return {
                         groups: {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groups' does not exist on type 'never'.
                             ...projectGroup.groups,
                             groups,
                         },
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'never'.
                         project: projectGroup.project,
                     };
                 }
@@ -150,8 +154,10 @@ export default function groups(state = initialState, action) {
                 oncallDuty: action.payload,
                 groups: state.groups.map(projectGroup => {
                     const projectId = action.payload.groups[0].projectId._id;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'never'.
                     if (projectGroup.project.id === projectId) {
                         return {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'never'.
                             project: projectGroup.project,
                             groups: action.payload,
                         };

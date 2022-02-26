@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -10,28 +11,33 @@ import UserAdminModeEnableModal from './UserAdminModeEnableModal';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class UserAdminModeEnableBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { AdminModeModalId: uuidv4() };
     }
 
     handleClick = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableAdminMode' does not exist on type ... Remove this comment to see the full error message
         const { enableAdminMode, userId } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'AdminModeModalId' does not exist on type... Remove this comment to see the full error message
         const { AdminModeModalId } = this.state;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
             id: AdminModeModalId,
-            onConfirm: values => {
+            onConfirm: (values: $TSFixMe) => {
                 return enableAdminMode(userId, values);
             },
             content: UserAdminModeEnableModal,
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'AdminModeModalId' does not exist on type... Remove this comment to see the full error message
                     id: this.state.AdminModeModalId,
                 });
             default:
@@ -40,6 +46,7 @@ export class UserAdminModeEnableBox extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
         const { isRequesting } = this.props;
 
         return (
@@ -88,12 +95,12 @@ export class UserAdminModeEnableBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UserAdminModeEnableBox.displayName = 'UserAdminModeEnableBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ enableAdminMode, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ enableAdminMode, openModal, closeModal }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {
@@ -105,6 +112,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UserAdminModeEnableBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     enableAdminMode: PropTypes.func.isRequired,
@@ -113,6 +121,7 @@ UserAdminModeEnableBox.propTypes = {
     userId: PropTypes.string,
 };
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 UserAdminModeEnableBox.contextTypes = {};
 
 export default connect(

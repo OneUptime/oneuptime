@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { connect } from 'react-redux';
 
-const DeleteAutomatedScript = props => {
+const DeleteAutomatedScript = (props: $TSFixMe) => {
     const { confirmThisDialog, closeThisDialog } = props;
-    const handleKeyBoard = e => {
+    const handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return closeThisDialog();
@@ -126,7 +127,7 @@ DeleteAutomatedScript.propTypes = {
     deleteScript: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleteScript: state.automatedScripts.deleteScript,
     };

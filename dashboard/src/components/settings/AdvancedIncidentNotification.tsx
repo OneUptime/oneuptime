@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -15,10 +16,11 @@ import { Validate } from '../../config';
 import Checkbox from '../../components/Checkbox';
 import CheckboxHeader from './CheckboxHeader';
 
-const validate = values => {
+const validate = (values: $TSFixMe) => {
     const errors = {};
     if (values.replyAddress) {
         if (!Validate.email(values.replyAddress)) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyAddress' does not exist on type '{}... Remove this comment to see the full error message
             errors.replyAddress = 'Please input valid email.';
         }
     }
@@ -32,15 +34,21 @@ class AdvancedIncidentNotification extends Component {
 
     showMoreOptionsToggle = () =>
         this.setState(prevState => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showMoreOptions' does not exist on type ... Remove this comment to see the full error message
             showMoreOptions: !prevState.showMoreOptions,
         }));
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setSmsNotification' does not exist on ty... Remove this comment to see the full error message
             setSmsNotification,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setEmailNotification' does not exist on ... Remove this comment to see the full error message
             setEmailNotification,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setWebhookNotificationSettings' does not... Remove this comment to see the full error message
             setWebhookNotificationSettings,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
         } = this.props;
 
@@ -55,8 +63,11 @@ class AdvancedIncidentNotification extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingEmailIncident' does not exist ... Remove this comment to see the full error message
             requestingEmailIncident,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingSmsIncident' does not exist on... Remove this comment to see the full error message
             requestingSmsIncident,
         } = this.props;
         const { showMoreOptions } = this.state;
@@ -112,6 +123,7 @@ class AdvancedIncidentNotification extends Component {
                                 </ShouldRender>
                             </div>
                             <form
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
                                 onSubmit={this.props.handleSubmit(
                                     this.submitForm
                                 )}
@@ -381,8 +393,10 @@ class AdvancedIncidentNotification extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AdvancedIncidentNotification.displayName = 'AdvancedIncidentNotification';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AdvancedIncidentNotification.propTypes = {
     type: PropTypes.string.isRequired,
     setEmailNotification: PropTypes.func,
@@ -401,7 +415,7 @@ const IncidentNotificationForm = reduxForm({
     validate,
 })(AdvancedIncidentNotification);
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { type } = ownProps;
 
     let initialValues = {};
@@ -511,15 +525,14 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            setEmailNotification,
-            setSmsNotification,
-            setWebhookNotificationSettings,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        setEmailNotification,
+        setSmsNotification,
+        setWebhookNotificationSettings,
+    },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

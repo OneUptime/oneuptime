@@ -1,18 +1,24 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
-function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
+function MonitorInputs({
+    monitors,
+    subProject,
+    currentProject,
+    schedule
+}: $TSFixMe) {
     const monitorItems =
         currentProject._id === subProject._id
-            ? monitors.map((monitor, index) => {
+            ? monitors.map((monitor: $TSFixMe, index: $TSFixMe) => {
                   // calculate how many up criteria, degraded criteria and down criteria
                   // are using the schedule
 
-                  const criteriaUsingSchedule = [];
+                  const criteriaUsingSchedule: $TSFixMe = [];
 
                   if (schedule && monitor.criteria) {
                       [
@@ -98,6 +104,7 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                           <div className="Box-root Margin-left--32">
                               <ul>
                                   {criteriaUsingSchedule.map(
+                                      // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criterion' implicitly has an 'any' type... Remove this comment to see the full error message
                                       (criterion, index) => {
                                           return (
                                               <li key={index}>
@@ -113,7 +120,7 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                       </div>
                   );
               })
-            : monitors.map((monitor, index) => {
+            : monitors.map((monitor: $TSFixMe, index: $TSFixMe) => {
                   return monitor.projectId === subProject._id ||
                       monitor.projectId._id === subProject._id ? (
                       <div className="Box-root Margin-bottom--12" key={index}>
@@ -163,7 +170,7 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
                       false
                   );
               });
-    const allMonitorList = monitorItems.filter(monitor => monitor);
+    const allMonitorList = monitorItems.filter((monitor: $TSFixMe) => monitor);
     return allMonitorList.length > 0
         ? allMonitorList
         : 'There is no monitor present in this subproject';
@@ -171,12 +178,12 @@ function MonitorInputs({ monitors, subProject, currentProject, schedule }) {
 
 MonitorInputs.displayName = 'MonitorInputs';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
     };
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInputs);

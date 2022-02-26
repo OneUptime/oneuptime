@@ -1,12 +1,17 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'sane... Remove this comment to see the full error message
 import isEmail from 'sane-email-validation';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
 import validUrl from 'valid-url';
 import valid from 'card-validator';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'file... Remove this comment to see the full error message
 import FileSaver from 'file-saver';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import { isEmpty } from 'lodash';
 // import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'dirt... Remove this comment to see the full error message
 import dJSON from 'dirty-json'
 
 let apiUrl = window.location.origin + '/api';
@@ -34,7 +39,8 @@ if (isLocalhost) {
     realtimeUrl = `${window.location.protocol}//${address}:3300/realtime`;
 }
 
-export function env(value) {
+export function env(value: $TSFixMe) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -66,7 +72,7 @@ export const User = {
         return localStorage.getItem('access_token');
     },
 
-    setCurrentProjectId(projectId) {
+    setCurrentProjectId(projectId: $TSFixMe) {
         localStorage.setItem('current_project_id', projectId);
     },
 
@@ -74,7 +80,7 @@ export const User = {
         return localStorage.getItem('current_project_id');
     },
 
-    setActiveSubProjectId(id) {
+    setActiveSubProjectId(id: $TSFixMe) {
         return localStorage.setItem('active_subproject_id', id);
     },
 
@@ -82,7 +88,7 @@ export const User = {
         return localStorage.getItem('active_subproject_id');
     },
 
-    setAccessToken(token) {
+    setAccessToken(token: $TSFixMe) {
         localStorage.setItem('access_token', token);
     },
 
@@ -90,11 +96,11 @@ export const User = {
         return localStorage.getItem('cardRegistered');
     },
 
-    setCardRegistered(value) {
+    setCardRegistered(value: $TSFixMe) {
         localStorage.setItem('cardRegistered', value);
     },
 
-    setUserId(id) {
+    setUserId(id: $TSFixMe) {
         localStorage.setItem('id', id);
     },
 
@@ -106,7 +112,7 @@ export const User = {
         return localStorage.getItem('name');
     },
 
-    setName(name) {
+    setName(name: $TSFixMe) {
         localStorage.setItem('name', name);
     },
 
@@ -114,13 +120,13 @@ export const User = {
         return localStorage.getItem('email');
     },
 
-    setEmail(email) {
+    setEmail(email: $TSFixMe) {
         localStorage.setItem('email', email);
     },
     initialUrl() {
         return sessionStorage.getItem('initialUrl');
     },
-    setProject(project) {
+    setProject(project: $TSFixMe) {
         localStorage.setItem('project', project);
     },
 
@@ -147,15 +153,15 @@ export const User = {
 
 //Data validation Util goes in here.
 export const Validate = {
-    isDomain(domain) {
+    isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
 
-    url(url) {
+    url(url: $TSFixMe) {
         return validUrl.isUri(url);
     },
 
-    text(text) {
+    text(text: $TSFixMe) {
         if (!text || text.trim() === '') {
             return false;
         }
@@ -163,7 +169,7 @@ export const Validate = {
         return true;
     },
 
-    number(number) {
+    number(number: $TSFixMe) {
         if (typeof number === 'string' && number.length === 0) {
             return false;
         }
@@ -174,7 +180,7 @@ export const Validate = {
             return false;
         }
     },
-    numberGreaterThanZero(number) {
+    numberGreaterThanZero(number: $TSFixMe) {
         if (typeof number === 'string' && number.length === 0) {
             return false;
         }
@@ -186,19 +192,19 @@ export const Validate = {
         }
     },
 
-    email(email) {
+    email(email: $TSFixMe) {
         if (this.text(email)) return isEmail(email);
         return false;
     },
 
     //eslint-disable-next-line
-    isValidBusinessEmail(email) {
+    isValidBusinessEmail(email: $TSFixMe) {
         //return emaildomains.test(email);
         return true;
     },
 
     //eslint-disable-next-line
-    isValidBusinessEmails(emails) {
+    isValidBusinessEmails(emails: $TSFixMe) {
         // let valid = true;
         // if (emails && emails.length > 0) {
         //     for (let i = 0; i < emails.length; i++) {
@@ -211,11 +217,11 @@ export const Validate = {
         return true;
     },
 
-    compare(text1, text2) {
+    compare(text1: $TSFixMe, text2: $TSFixMe) {
         return text1 === text2;
     },
 
-    card(cardNumber) {
+    card(cardNumber: $TSFixMe) {
         const numberValidation = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -225,7 +231,7 @@ export const Validate = {
         return true;
     },
 
-    cardExpiration(expiry) {
+    cardExpiration(expiry: $TSFixMe) {
         const numberValidation = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -235,7 +241,7 @@ export const Validate = {
         return true;
     },
 
-    cvv(cvv) {
+    cvv(cvv: $TSFixMe) {
         const numberValidation = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -245,7 +251,7 @@ export const Validate = {
         return true;
     },
 
-    postalCode(postalCode) {
+    postalCode(postalCode: $TSFixMe) {
         const numberValidation = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -257,10 +263,9 @@ export const Validate = {
 };
 
 export const ValidateField = {
-    required: value =>
-        value && value.length ? undefined : 'This field is required',
+    required: (value: $TSFixMe) => value && value.length ? undefined : 'This field is required',
 
-    isJson: value => {
+    isJson: (value: $TSFixMe) => {
         try {
             const val = value.replace(/^,{+|},+$/g, '');
             const r = dJSON.parse(val);
@@ -272,48 +277,42 @@ export const ValidateField = {
         }
     },
 
-    select: value =>
-        value
-            ? value.value
-                ? value.value.length && value.value.trim() !== ''
-                    ? undefined
-                    : 'Please select a value'
-                : value.length && value.trim() !== ''
+    select: (value: $TSFixMe) => value
+        ? value.value
+            ? value.value.length && value.value.trim() !== ''
                 ? undefined
                 : 'Please select a value'
-            : 'Please select a value',
-
-    maxValue10000: value =>
-        value && value.length && value < 10000
+            : value.length && value.trim() !== ''
             ? undefined
-            : `input value should be less than ${10000}`,
+            : 'Please select a value'
+        : 'Please select a value',
 
-    maxValue20000: value =>
-        value && value.length && value < 20000
-            ? undefined
-            : `input value should be less than ${20000}`,
+    maxValue10000: (value: $TSFixMe) => value && value.length && value < 10000
+        ? undefined
+        : `input value should be less than ${10000}`,
 
-    isDomain: domain =>
-        domain.search(/\./) >= 0 ? undefined : 'Please enter a valid Domain',
+    maxValue20000: (value: $TSFixMe) => value && value.length && value < 20000
+        ? undefined
+        : `input value should be less than ${20000}`,
 
-    url: url => (validUrl.isUri(url) ? undefined : 'Please enter a valid Url'),
+    isDomain: (domain: $TSFixMe) => domain.search(/\./) >= 0 ? undefined : 'Please enter a valid Domain',
 
-    text: text =>
-        !text || text.trim() === ''
-            ? 'This field cannot be left blank'
-            : undefined,
+    url: (url: $TSFixMe) => validUrl.isUri(url) ? undefined : 'Please enter a valid Url',
 
-    number: number =>
-        number && number.length && !isNaN(number)
-            ? undefined
-            : 'Please enter a valid number',
+    text: (text: $TSFixMe) => !text || text.trim() === ''
+        ? 'This field cannot be left blank'
+        : undefined,
 
-    email: email =>
-        this.text(email) && isEmail(email)
-            ? undefined
-            : 'Please enter a valid email',
+    number: (number: $TSFixMe) => number && number.length && !isNaN(number)
+        ? undefined
+        : 'Please enter a valid number',
 
-    compare: (text1, text2) =>
+    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+    email: (email: $TSFixMe) => this.text(email) && isEmail(email)
+        ? undefined
+        : 'Please enter a valid email',
+
+    compare: (text1: $TSFixMe, text2: $TSFixMe) =>
         text1 === text2 ? undefined : 'These texts donot match',
 };
 
@@ -421,7 +420,7 @@ export const PricingPlan = {
         }
     },
 
-    getPlanById(id) {
+    getPlanById(id: $TSFixMe) {
         const plans = this.getPlans();
         if (id && plans.find(plan => plan.planId === id))
             return plans.find(plan => plan.planId === id);
@@ -429,12 +428,12 @@ export const PricingPlan = {
     },
 };
 
-export const capitalize = words => {
+export const capitalize = (words: $TSFixMe) => {
     if (!words || !words.trim()) return '';
 
     words = words.split(' ');
     words = words.map(
-        word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        (word: $TSFixMe) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     );
 
     return words.join(' ').trim();
@@ -621,7 +620,7 @@ export const tutorials = {
     },
 };
 
-export function getQueryVar(variable, url) {
+export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -631,24 +630,27 @@ export function getQueryVar(variable, url) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export function saveFile(content, filename) {
+export function saveFile(content: $TSFixMe, filename: $TSFixMe) {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
-export function makeCriteria(val) {
+export function makeCriteria(val: $TSFixMe) {
     const val2 = {};
     const criteria = [];
 
     for (let i = 0; i < val.length; i++) {
         const val3 = {};
         if (val[i].responseType && val[i].responseType.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
             val3.responseType = val[i].responseType;
         }
         if (val[i].filter && val[i].filter.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
             val3.filter = val[i].filter;
         }
         if (val[i].field1 && val[i].field1.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
             val3.field1 =
                 val[i].field1 &&
                 typeof val[i].field1 === 'string' &&
@@ -657,6 +659,7 @@ export function makeCriteria(val) {
                     : val[i].field1;
         }
         if (val[i].field2 && val[i].field2.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
             val3.field2 =
                 val[i].field2 &&
                 typeof val[i].field2 === 'string' &&
@@ -665,25 +668,28 @@ export function makeCriteria(val) {
                     : val[i].field2;
         }
 
-        let nestVal = [];
+        let nestVal: $TSFixMe = [];
         nestVal = innerCriteria(val[i], nestVal);
 
         criteria.push(val3);
         criteria.push(...nestVal);
 
         if (val[0].match && val[0].match.length && val[0].match === 'all') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{}'.
             val2.condition = 'and';
         }
         if (val[0].match && val[0].match.length && val[0].match === 'any') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{}'.
             val2.condition = 'or';
         }
     }
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type '{}'.
     val2.criteria = criteria;
     return val2;
 }
 
-function innerCriteria(val, nestVal) {
+function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
     nestVal = [...nestVal];
     if (val.criteria && val.criteria.length) {
         for (let j = 0; j < val.criteria.length; j++) {
@@ -692,12 +698,15 @@ function innerCriteria(val, nestVal) {
                 val.criteria[j].responseType &&
                 val.criteria[j].responseType.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
                 innerVal.responseType = val.criteria[j].responseType;
             }
             if (val.criteria[j].filter && val.criteria[j].filter.length) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
                 innerVal.filter = val.criteria[j].filter;
             }
             if (val.criteria[j].field1 && val.criteria[j].field1.length) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
                 innerVal.field1 =
                     val.criteria[j].field1 &&
                     typeof val.criteria[j].field1 === 'string' &&
@@ -706,6 +715,7 @@ function innerCriteria(val, nestVal) {
                         : val.criteria[j].field1;
             }
             if (val.criteria[j].field2 && val.criteria[j].field2.length) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
                 innerVal.field2 =
                     val.criteria[j].field2 &&
                     typeof val.criteria[j].field2 === 'string' &&
@@ -732,7 +742,7 @@ function innerCriteria(val, nestVal) {
     return nestVal;
 }
 
-export function mapCriteria(val) {
+export function mapCriteria(val: $TSFixMe) {
     const val2 = [];
     if (val && val.criteria && val.criteria.condition === 'and') {
         for (let i = 0; i < val.criteria.criteria.length; i++) {
@@ -741,28 +751,32 @@ export function mapCriteria(val) {
                 val.criteria.criteria[i].responseType &&
                 val.criteria.criteria[i].responseType.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
                 val3.responseType = val.criteria.criteria[i].responseType;
             }
             if (
                 val.criteria.criteria[i].filter &&
                 val.criteria.criteria[i].filter.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
                 val3.filter = val.criteria.criteria[i].filter;
             }
             if (
                 val.criteria.criteria[i].field1 &&
                 val.criteria.criteria[i].field1.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
                 val3.field1 = val.criteria.criteria[i].field1;
             }
             if (
                 val.criteria.criteria[i].field2 &&
                 val.criteria.criteria[i].field2.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
                 val3.field2 = val.criteria.criteria[i].field2;
             }
 
-            const innerContainer = [];
+            const innerContainer: $TSFixMe = [];
             if (
                 val.criteria.criteria[i].criteria &&
                 val.criteria.criteria[i].criteria.length > 0 &&
@@ -775,9 +789,11 @@ export function mapCriteria(val) {
                     val2[val2.length - 1]
                 );
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field3' does not exist on type '{}'.
                 val3.field3 = false;
             }
             if (i === 0) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
                 val3.match = 'all';
             }
             if (!isEmpty(val3)) {
@@ -792,28 +808,32 @@ export function mapCriteria(val) {
                 val.criteria.criteria[i].responseType &&
                 val.criteria.criteria[i].responseType.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
                 val3.responseType = val.criteria.criteria[i].responseType;
             }
             if (
                 val.criteria.criteria[i].filter &&
                 val.criteria.criteria[i].filter.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
                 val3.filter = val.criteria.criteria[i].filter;
             }
             if (
                 val.criteria.criteria[i].field1 &&
                 val.criteria.criteria[i].field1.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
                 val3.field1 = val.criteria.criteria[i].field1;
             }
             if (
                 val.criteria.criteria[i].field2 &&
                 val.criteria.criteria[i].field2.length
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
                 val3.field2 = val.criteria.criteria[i].field2;
             }
 
-            const innerContainer = [];
+            const innerContainer: $TSFixMe = [];
             if (
                 val.criteria.criteria[i].criteria &&
                 val.criteria.criteria[i].criteria.length > 0 &&
@@ -826,9 +846,11 @@ export function mapCriteria(val) {
                     val2[val2.length - 1]
                 );
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field3' does not exist on type '{}'.
                 val3.field3 = false;
             }
             if (i === 0) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
                 val3.match = 'any';
             }
             if (!isEmpty(val3)) {
@@ -839,7 +861,7 @@ export function mapCriteria(val) {
     }
 }
 
-function mapNestedCriteria(criteriaObj, innerContainer, cr) {
+function mapNestedCriteria(criteriaObj: $TSFixMe, innerContainer: $TSFixMe, cr: $TSFixMe) {
     innerContainer = [...innerContainer];
     for (let j = 0; j < criteriaObj.criteria.length; j++) {
         const innerVal = {};
@@ -847,30 +869,36 @@ function mapNestedCriteria(criteriaObj, innerContainer, cr) {
             criteriaObj.criteria[j].responseType &&
             criteriaObj.criteria[j].responseType.length
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
             innerVal.responseType = criteriaObj.criteria[j].responseType;
         }
         if (
             criteriaObj.criteria[j].filter &&
             criteriaObj.criteria[j].filter.length
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
             innerVal.filter = criteriaObj.criteria[j].filter;
         }
         if (
             criteriaObj.criteria[j].field1 &&
             criteriaObj.criteria[j].field1.length
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
             innerVal.field1 = criteriaObj.criteria[j].field1;
         }
         if (
             criteriaObj.criteria[j].field2 &&
             criteriaObj.criteria[j].field2.length
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
             innerVal.field2 = criteriaObj.criteria[j].field2;
         }
 
         if (j === 0 && criteriaObj.condition === 'and') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
             innerVal.match = 'all';
         } else if (j === 0 && criteriaObj.condition === 'or') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
             innerVal.match = 'any';
         }
 
@@ -898,9 +926,9 @@ function mapNestedCriteria(criteriaObj, innerContainer, cr) {
 }
 
 export function renderIfSubProjectAdmin(
-    currentProject,
-    subProjects,
-    subProjectId
+    currentProject: $TSFixMe,
+    subProjects: $TSFixMe,
+    subProjectId: $TSFixMe
 ) {
     const userId = User.getUserId();
     let renderItems = false;
@@ -910,23 +938,21 @@ export function renderIfSubProjectAdmin(
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user =>
-                user.userId === userId &&
-                (user.role === 'Administrator' || user.role === 'Owner')
+            (user: $TSFixMe) => user.userId === userId &&
+            (user.role === 'Administrator' || user.role === 'Owner')
         ).length > 0
     ) {
         renderItems = true;
     } else {
         if (subProjects) {
-            subProjects.forEach(subProject => {
+            subProjects.forEach((subProject: $TSFixMe) => {
                 if (subProjectId) {
                     if (
                         subProject._id === subProjectId &&
                         subProject.users.filter(
-                            user =>
-                                user.userId === userId &&
-                                (user.role === 'Administrator' ||
-                                    user.role === 'Owner')
+                            (user: $TSFixMe) => user.userId === userId &&
+                            (user.role === 'Administrator' ||
+                                user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = true;
@@ -938,10 +964,9 @@ export function renderIfSubProjectAdmin(
                         subProject.users &&
                         subProject.users.length > 0 &&
                         subProject.users.filter(
-                            user =>
-                                user.userId === userId &&
-                                (user.role === 'Administrator' ||
-                                    user.role === 'Owner')
+                            (user: $TSFixMe) => user.userId === userId &&
+                            (user.role === 'Administrator' ||
+                                user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = true;
@@ -954,26 +979,26 @@ export function renderIfSubProjectAdmin(
 }
 
 export function renderIfUserInSubProject(
-    currentProject,
-    subProjects,
-    subProjectId
+    currentProject: $TSFixMe,
+    subProjects: $TSFixMe,
+    subProjectId: $TSFixMe
 ) {
     const userId = User.getUserId();
     let renderItems = false;
     if (
         currentProject &&
         currentProject.users.filter(
-            user => user.userId === userId && user.role !== 'Viewer'
+            (user: $TSFixMe) => user.userId === userId && user.role !== 'Viewer'
         ).length > 0
     ) {
         renderItems = true;
     } else {
         if (subProjects) {
-            subProjects.forEach(subProject => {
+            subProjects.forEach((subProject: $TSFixMe) => {
                 if (
                     subProject._id === subProjectId &&
                     subProject.users.filter(
-                        user => user.userId === userId && user.role !== 'Viewer'
+                        (user: $TSFixMe) => user.userId === userId && user.role !== 'Viewer'
                     ).length > 0
                 ) {
                     renderItems = true;
@@ -984,7 +1009,7 @@ export function renderIfUserInSubProject(
     return renderItems;
 }
 
-export const formatDecimal = (value, decimalPlaces, roundType) => {
+export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe) => {
     let formattedNumber;
     switch (roundType) {
         case 'up':
@@ -1007,7 +1032,7 @@ export const formatDecimal = (value, decimalPlaces, roundType) => {
     );
 };
 
-export const formatBytes = (a, b, c, d, e) => {
+export const formatBytes = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe) => {
     let value = a;
     let decimalPlaces;
     let roundType;
@@ -1031,7 +1056,7 @@ export const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-function compareStatus(incident, log) {
+function compareStatus(incident: $TSFixMe, log: $TSFixMe) {
     return moment(incident.createdAt).isSameOrAfter(moment(log.createdAt))
         ? !incident.resolved
             ? incident.incidentType
@@ -1039,7 +1064,7 @@ function compareStatus(incident, log) {
         : log.status;
 }
 
-export const getMonitorStatus = (incidents, logs, type) => {
+export const getMonitorStatus = (incidents: $TSFixMe, logs: $TSFixMe, type: $TSFixMe) => {
     let activeOfflineIncident = [];
     let activeDegradedIncident = [];
 
@@ -1047,16 +1072,14 @@ export const getMonitorStatus = (incidents, logs, type) => {
         incidents &&
         incidents.length > 0 &&
         incidents.filter(
-            incident =>
-                !incident.resolved && incident.incidentType === 'offline'
+            (incident: $TSFixMe) => !incident.resolved && incident.incidentType === 'offline'
         );
 
     activeDegradedIncident =
         incidents &&
         incidents.length > 0 &&
         incidents.filter(
-            incident =>
-                !incident.resolved && incident.incidentType === 'degraded'
+            (incident: $TSFixMe) => !incident.resolved && incident.incidentType === 'degraded'
         );
 
     const lastIncident =
@@ -1086,7 +1109,7 @@ export const getMonitorStatus = (incidents, logs, type) => {
     return statusCompare || 'online';
 };
 
-export const getMonitorStatusColor = status => {
+export const getMonitorStatusColor = (status: $TSFixMe) => {
     switch (status) {
         case 'degraded':
             return 'yellow';
@@ -1099,11 +1122,11 @@ export const getMonitorStatusColor = status => {
     }
 };
 
-export const replaceDashWithSpace = string => {
+export const replaceDashWithSpace = (string: $TSFixMe) => {
     return string.replace('-', ' ');
 };
 
-export const getMonitorTypeBadgeColor = type => {
+export const getMonitorTypeBadgeColor = (type: $TSFixMe) => {
     switch (type) {
         case 'manual':
             return 'red';
@@ -1112,7 +1135,7 @@ export const getMonitorTypeBadgeColor = type => {
     }
 };
 
-export const filterProbeData = (monitor, probe, startDate, endDate) => {
+export const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) => {
     const monitorLogs = monitor.logs;
     const monitorStatuses = monitor.statuses;
 
@@ -1122,7 +1145,7 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
     const probesLog =
         monitorLogs && monitorLogs.length > 0
             ? probe
-                ? monitorLogs.filter(probeLogs => {
+                ? monitorLogs.filter((probeLogs: $TSFixMe) => {
                       return (
                           probeLogs._id === null || probeLogs._id === probe._id
                       );
@@ -1138,20 +1161,19 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
             : [];
     logs =
         logs && logs.length > 0
-            ? logs.filter(log =>
-                  moment(new Date(log.createdAt)).isBetween(
-                      start,
-                      end,
-                      'day',
-                      '[]'
-                  )
+            ? logs.filter((log: $TSFixMe) => moment(new Date(log.createdAt)).isBetween(
+            start,
+            end,
+            'day',
+            '[]'
+        )
               )
             : [];
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
-                ? monitorStatuses.filter(probeStatuses => {
+                ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
                       return (
                           probeStatuses._id === null ||
                           probeStatuses._id === probe._id
@@ -1169,10 +1191,9 @@ export const filterProbeData = (monitor, probe, startDate, endDate) => {
     statuses =
         statuses && statuses.length > 0
             ? statuses.filter(
-                  status =>
-                      moment(new Date(status.startTime)).isBefore(end) &&
-                      (status.endTime === null ||
-                          moment(new Date(status.endTime)).isAfter(start))
+                  (status: $TSFixMe) => moment(new Date(status.startTime)).isBefore(end) &&
+                  (status.endTime === null ||
+                      moment(new Date(status.endTime)).isAfter(start))
               )
             : [];
 
@@ -1247,7 +1268,7 @@ export const metricsQuickStart = {
             },
         ];
     },
-    getQuickStarts(appId, key) {
+    getQuickStarts(appId: $TSFixMe, key: $TSFixMe) {
         return [
             {
                 id: 'js',
@@ -1436,7 +1457,7 @@ export const logLibraries = {
             },
         ];
     },
-    getQuickStarts(errorTracker, applicationLog) {
+    getQuickStarts(errorTracker: $TSFixMe, applicationLog: $TSFixMe) {
         return [
             {
                 id: 'js',

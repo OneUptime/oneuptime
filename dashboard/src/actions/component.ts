@@ -16,8 +16,12 @@ export function hideDeleteModal() {
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
-export function fetchComponents({ projectId, skip = 0, limit = 3 }) {
-    return function(dispatch) {
+export function fetchComponents({
+    projectId,
+    skip = 0,
+    limit = 3
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}?skip=${skip}&limit=${limit}`
         );
@@ -25,6 +29,7 @@ export function fetchComponents({ projectId, skip = 0, limit = 3 }) {
 
         promise.then(
             function(components) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchComponentsSuccess(components.data));
             },
             function(error) {
@@ -46,7 +51,7 @@ export function fetchComponents({ projectId, skip = 0, limit = 3 }) {
     };
 }
 
-export function fetchComponentsSuccess(components) {
+export function fetchComponentsSuccess(components: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENTS_SUCCESS,
         payload: components,
@@ -59,7 +64,7 @@ export function fetchComponentsRequest() {
     };
 }
 
-export function fetchComponentsFailure(error) {
+export function fetchComponentsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENTS_FAILURE,
         payload: error,
@@ -74,8 +79,12 @@ export function resetFetchComponents() {
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
-export function fetchPaginatedComponents({ projectId, skip = 0, limit = 3 }) {
-    return function(dispatch) {
+export function fetchPaginatedComponents({
+    projectId,
+    skip = 0,
+    limit = 3
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}/paginated?skip=${skip}&limit=${limit}`
         );
@@ -83,6 +92,7 @@ export function fetchPaginatedComponents({ projectId, skip = 0, limit = 3 }) {
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
             function(error) {
@@ -106,35 +116,36 @@ export function fetchPaginatedComponents({ projectId, skip = 0, limit = 3 }) {
     };
 }
 
-export function fetchPaginatedComponentsSuccess(payload) {
+export function fetchPaginatedComponentsSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_SUCCESS,
         payload,
     };
 }
 
-export function fetchPaginatedComponentsRequest(projectId) {
+export function fetchPaginatedComponentsRequest(projectId: $TSFixMe) {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_REQUEST,
         payload: projectId,
     };
 }
 
-export function fetchPaginatedComponentsFailure(error, projectId) {
+export function fetchPaginatedComponentsFailure(error: $TSFixMe, projectId: $TSFixMe) {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_FAILURE,
         payload: { error, projectId },
     };
 }
 
-export function createComponent(projectId, values) {
+export function createComponent(projectId: $TSFixMe, values: $TSFixMe) {
     values.projectId = values.projectId._id || values.projectId;
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`component/${projectId}`, values);
         dispatch(createComponentRequest());
 
         promise.then(
             function(component) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createComponentSuccess(component.data));
             },
             function(error) {
@@ -157,7 +168,7 @@ export function createComponent(projectId, values) {
     };
 }
 
-export function createComponentSuccess(newComponent) {
+export function createComponentSuccess(newComponent: $TSFixMe) {
     return {
         type: types.CREATE_COMPONENT_SUCCESS,
         payload: newComponent,
@@ -170,7 +181,7 @@ export function createComponentRequest() {
     };
 }
 
-export function createComponentFailure(error) {
+export function createComponentFailure(error: $TSFixMe) {
     return {
         type: types.CREATE_COMPONENT_FAILURE,
         payload: error,
@@ -183,15 +194,16 @@ export function resetCreateComponent() {
     };
 }
 
-export function editComponent(projectId, values) {
+export function editComponent(projectId: $TSFixMe, values: $TSFixMe) {
     values.projectId = values.projectId._id || values.projectId;
 
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`component/${projectId}/${values._id}`, values);
         dispatch(editComponentRequest());
 
         promise.then(
             function(component) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(editComponentSuccess(component.data));
             },
             function(error) {
@@ -214,7 +226,7 @@ export function editComponent(projectId, values) {
     };
 }
 
-export function editComponentSuccess(newComponent) {
+export function editComponentSuccess(newComponent: $TSFixMe) {
     return {
         type: types.EDIT_COMPONENT_SUCCESS,
         payload: newComponent,
@@ -227,14 +239,14 @@ export function editComponentRequest() {
     };
 }
 
-export function editComponentFailure(error) {
+export function editComponentFailure(error: $TSFixMe) {
     return {
         type: types.EDIT_COMPONENT_FAILURE,
         payload: error,
     };
 }
 
-export function editComponentSwitch(index) {
+export function editComponentSwitch(index: $TSFixMe) {
     return {
         type: types.EDIT_COMPONENT_SWITCH,
         payload: index,
@@ -249,8 +261,8 @@ export function resetEditComponent() {
 
 // Delete a component
 // props -> {name: '', type, data -> { data.url}}
-export function deleteComponent(componentId, projectId) {
-    return function(dispatch) {
+export function deleteComponent(componentId: $TSFixMe, projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`component/${projectId}/${componentId}`, {
             componentId,
         });
@@ -258,6 +270,7 @@ export function deleteComponent(componentId, projectId) {
 
         promise.then(
             function(component) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteComponentSuccess(component.data._id));
             },
             function(error) {
@@ -284,42 +297,44 @@ export function deleteComponent(componentId, projectId) {
     };
 }
 
-export function deleteComponentSuccess(removedComponentId) {
+export function deleteComponentSuccess(removedComponentId: $TSFixMe) {
     return {
         type: types.DELETE_COMPONENT_SUCCESS,
         payload: removedComponentId,
     };
 }
 
-export function deleteComponentRequest(componentId) {
+export function deleteComponentRequest(componentId: $TSFixMe) {
     return {
         type: types.DELETE_COMPONENT_REQUEST,
         payload: componentId,
     };
 }
 
-export function deleteComponentFailure(error) {
+export function deleteComponentFailure(error: $TSFixMe) {
     return {
         type: types.DELETE_COMPONENT_FAILURE,
         payload: error,
     };
 }
 
-export function deleteProjectComponents(projectId) {
+export function deleteProjectComponents(projectId: $TSFixMe) {
     return {
         type: types.DELETE_PROJECT_COMPONENTS,
         payload: projectId,
     };
 }
 
-export function addSeat(projectId) {
-    return function(dispatch) {
+export function addSeat(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(
             function(component) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createComponentFailure(component.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(addSeatSuccess(component.data));
             },
             function(error) {
@@ -342,7 +357,7 @@ export function addSeat(projectId) {
     };
 }
 
-export function addSeatSuccess(message) {
+export function addSeatSuccess(message: $TSFixMe) {
     return {
         type: types.ADD_SEAT_SUCCESS,
         payload: message,
@@ -355,7 +370,7 @@ export function addSeatRequest() {
     };
 }
 
-export function addSeatFailure(error) {
+export function addSeatFailure(error: $TSFixMe) {
     return {
         type: types.ADD_SEAT_FAILURE,
         payload: error,
@@ -370,8 +385,8 @@ export function addSeatReset() {
 
 // Component Resources list
 // props -> {name: '', type, data -> { data.url}}
-export function fetchComponentResources(projectId, componentId, skip, limit) {
-    return function(dispatch) {
+export function fetchComponentResources(projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`
         );
@@ -379,6 +394,7 @@ export function fetchComponentResources(projectId, componentId, skip, limit) {
 
         promise.then(
             function(components) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
             function(error) {
@@ -400,21 +416,21 @@ export function fetchComponentResources(projectId, componentId, skip, limit) {
     };
 }
 
-export function fetchComponentResourcesSuccess(resources) {
+export function fetchComponentResourcesSuccess(resources: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_SUCCESS,
         payload: resources,
     };
 }
 
-export function fetchComponentResourcesRequest(componentId) {
+export function fetchComponentResourcesRequest(componentId: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_REQUEST,
         payload: { componentId: componentId },
     };
 }
 
-export function fetchComponentResourcesFailure(error) {
+export function fetchComponentResourcesFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_FAILURE,
         payload: error,
@@ -429,12 +445,12 @@ export function resetFetchComponentResources() {
 
 // Component Summary
 export function fetchComponentSummary(
-    projectId,
-    componentId,
-    startDate,
-    endDate
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `component/${projectId}/summary/${componentId}`,
             { startDate, endDate }
@@ -443,6 +459,7 @@ export function fetchComponentSummary(
 
         promise.then(
             function(components) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
             function(error) {
@@ -464,21 +481,21 @@ export function fetchComponentSummary(
     };
 }
 
-export function fetchComponentSummarySuccess(summary) {
+export function fetchComponentSummarySuccess(summary: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_SUCCESS,
         payload: summary,
     };
 }
 
-export function fetchComponentSummaryRequest(componentId) {
+export function fetchComponentSummaryRequest(componentId: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_REQUEST,
         payload: componentId,
     };
 }
 
-export function fetchComponentSummaryFailure(error) {
+export function fetchComponentSummaryFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_FAILURE,
         payload: error,
@@ -491,7 +508,7 @@ export function resetFetchComponentSummary() {
     };
 }
 
-export function addCurrentComponent(currentComponent) {
+export function addCurrentComponent(currentComponent: $TSFixMe) {
     return {
         type: types.ADD_CURRENT_COMPONENT,
         payload: currentComponent,
@@ -504,27 +521,28 @@ export function fetchComponentRequest() {
     };
 }
 
-export function fetchComponentSuccess(payload) {
+export function fetchComponentSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_SUCCESS,
         payload,
     };
 }
 
-export function fetchComponentFailure(error) {
+export function fetchComponentFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_COMPONENT_FAILURE,
         payload: error,
     };
 }
 
-export function fetchComponent(projectId, slug) {
-    return function(dispatch) {
+export function fetchComponent(projectId: $TSFixMe, slug: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());
 
         promise.then(
             function(component) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchComponentSuccess(component.data));
             },
             function(error) {

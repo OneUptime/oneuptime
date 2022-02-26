@@ -12,17 +12,23 @@ import { socket } from '../basic/Socket';
 
 class LogTail extends Component {
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
         socket.removeListener(`createLog-${this.props.applicationLogId}`);
     }
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
         if (this.props.applicationLogId) {
             // join application log room
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
             socket.emit('application_log_switch', this.props.applicationLogId);
 
-            socket.on(`createLog-${this.props.applicationLogId}`, data => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
+            socket.on(`createLog-${this.props.applicationLogId}`, (data: $TSFixMe) => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getLogSuccess' does not exist on type 'R... Remove this comment to see the full error message
                 this.props.getLogSuccess(data);
             });
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { logs, applicationLog } = this.props;
         const firstItem = logs?.logs[0];
         const newDate = firstItem?.createdAt;
@@ -88,7 +94,7 @@ class LogTail extends Component {
                             {logs &&
                                 logs.logs &&
                                 logs.logs.length > 0 &&
-                                logs.logs.map((log, index) => (
+                                logs.logs.map((log: $TSFixMe, index: $TSFixMe) => (
                                     <>
                                         <LogItem key={index} value={log} />
                                     </>
@@ -106,9 +112,10 @@ class LogTail extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 LogTail.displayName = 'LogTail';
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {
@@ -117,9 +124,9 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ getLogSuccess }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getLogSuccess }, dispatch);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 LogTail.propTypes = {
     applicationLogId: PropTypes.string,
     applicationLog: PropTypes.object,
@@ -129,7 +136,9 @@ LogTail.propTypes = {
 
 export default connect(mapStateToProps, mapDispatchToProps)(LogTail);
 
-const LogItem = ({ value }) => {
+const LogItem = ({
+    value
+}: $TSFixMe) => {
     const [show, setShow] = useState(false);
     const [hover, setHover] = useState(false);
     const [copy, setCopy] = useState(false);
@@ -140,7 +149,7 @@ const LogItem = ({ value }) => {
     const content =
         typeof value.content === 'object' ? value.content : { message: null };
 
-    const copyHandler = text => {
+    const copyHandler = (text: $TSFixMe) => {
         copyToClipboard(text);
         setCopy(true);
     };
@@ -156,6 +165,7 @@ const LogItem = ({ value }) => {
                     <ShouldRender if={show}>
                         <ArrowDown />
                     </ShouldRender>
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "bs-hover-null"' is not assignable t... Remove this comment to see the full error message
                     <div className={!show && 'bs-hover-null'}>
                         <ShouldRender if={hover && !show}>
                             <ArrowRight />

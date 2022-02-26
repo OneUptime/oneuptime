@@ -7,21 +7,21 @@ import errors from '../errors';
  * process and we need actions for each of them
  */
 
-export function validateTokenRequest(promise) {
+export function validateTokenRequest(promise: $TSFixMe) {
     return {
         type: types.VALIDATE_TOKEN_REQUEST,
         payload: promise,
     };
 }
 
-export function validateTokenError(error) {
+export function validateTokenError(error: $TSFixMe) {
     return {
         type: types.VALIDATE_TOKEN_FAILED,
         payload: error,
     };
 }
 
-export function validateTokenSuccess(accessToken) {
+export function validateTokenSuccess(accessToken: $TSFixMe) {
     sessionStorage.setItem('accessToken', accessToken);
 
     return {
@@ -35,8 +35,8 @@ export const resetvalidateToken = () => ({
 });
 
 // Calls the API to register a user.
-export function validateToken(token) {
-    return function(dispatch) {
+export function validateToken(token: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `user/isAuthenticated?accessToken=${token}`,
             {}
@@ -46,6 +46,7 @@ export function validateToken(token) {
 
         promise.then(
             user => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(validateTokenSuccess(user.data.tokens.jwtAccessToken));
             },
             error => {

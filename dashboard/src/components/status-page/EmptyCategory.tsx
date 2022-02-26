@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function EmptyCategory({ tabSelected }) {
+function EmptyCategory({
+    tabSelected
+}: $TSFixMe) {
     return (
         <div className="bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">

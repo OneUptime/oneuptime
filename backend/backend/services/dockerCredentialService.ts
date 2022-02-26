@@ -1,12 +1,19 @@
 import Crypto from 'crypto'
 import DockerCredentialModel from '../models/dockerCredential'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
 import { encrypt, decrypt } from '../config/encryptDecrypt'
 import axios from 'axios'
 import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -30,7 +37,11 @@ export default {
         const dockerCredentials = await dockerCredentialQuery;
         return dockerCredentials;
     },
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -41,7 +52,7 @@ export default {
         const dockerCredential = await dockerCredentialQuery;
         return dockerCredential;
     },
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         // no more than one docker credential with the same details in a project
         const dockerCredential = await this.findOneBy({
             query: {
@@ -56,6 +67,7 @@ export default {
             const error = new Error(
                 'Docker Credential already exist in this project'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -67,7 +79,7 @@ export default {
         const response = await DockerCredentialModel.create(data);
         return response;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -89,7 +101,9 @@ export default {
                 data.iv = iv;
             } else {
                 const password = await decrypt(
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     dockerCredential.dockerPassword,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     dockerCredential.iv.buffer
                 );
                 await this.validateDockerCredential({
@@ -111,7 +125,9 @@ export default {
             'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
         dockerCredential = await this.findOneBy({
             query: {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 _id: dockerCredential._id,
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 deleted: dockerCredential.deleted,
             },
             select,
@@ -122,13 +138,14 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         return dockerCredential;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         let dockerCredential = await this.findOneBy({
             query,
             select: '_id',
@@ -138,6 +155,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -149,11 +167,14 @@ export default {
 
         return dockerCredential;
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await DockerCredentialModel.deleteMany(query);
         return 'Docker credential(s) successfully deleted';
     },
-    validateDockerCredential: async function({ username, password }) {
+    validateDockerCredential: async function({
+        username,
+        password
+    }: $TSFixMe) {
         try {
             // user docker api to check if username and password is valid
             const response = await axios.post(
@@ -165,6 +186,7 @@ export default {
         } catch (err) {
             // username or password was incorrect
             const error = new Error('Invalid docker credential');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }

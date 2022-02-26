@@ -7,11 +7,16 @@ import { connect } from 'react-redux';
  * @param {React.Props} props Props comprise an object with 3 JSX values for `HEADER`, `CONTENT` & `FOOTER`
  * @returns {JSX.Element} A modal and a child component.
  */
-export function Modalize({ HEADER, CONTENT, FOOTER }) {
+export function Modalize({
+    HEADER,
+    CONTENT,
+    FOOTER
+}: $TSFixMe) {
     return HEADER && CONTENT && FOOTER ? (
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: 105 }}
             >
@@ -36,10 +41,10 @@ export function Modalize({ HEADER, CONTENT, FOOTER }) {
     ) : null;
 }
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     HEADER: state.modal.header,
     CONTENT: state.modal.content,
-    FOOTER: state.modal.footer,
+    FOOTER: state.modal.footer
 });
 
 Modalize.propTypes = {

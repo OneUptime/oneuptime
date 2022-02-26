@@ -3,12 +3,14 @@
 /*eslint-disable no-unused-vars*/
 import Http from 'http'
 import Https from 'https'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4: uuidv4 } from 'uuid'
 
 class OutgoingListener {
     #start;
     #end;
     #store;
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'start' implicitly has an 'any' type.
     constructor(start, end, store) {
         this.#start = start;
         this.#end = end;
@@ -19,10 +21,13 @@ class OutgoingListener {
         override(Http);
         override(Https);
         const _this = this;
+        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'module' implicitly has an 'any' type.
         function override(module) {
             const original = module.request;
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'outgoing' implicitly has an 'any' type.
             function wrapper(outgoing) {
                 // Store a call to the original in req
+                // @ts-expect-error ts-migrate(2683) FIXME: 'this' implicitly has type 'any' because it does n... Remove this comment to see the full error message
                 const req = original.apply(this, arguments);
 
                 const host = outgoing.host || outgoing.hostname;
@@ -39,6 +44,7 @@ class OutgoingListener {
                     type: 'outgoing',
                     method,
                 });
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'eventName' implicitly has an 'any' type... Remove this comment to see the full error message
                 req.emit = function(eventName, response) {
                     switch (eventName) {
                         case 'response': {

@@ -1,5 +1,5 @@
 export default {
-    findOneBy: async function(query) {
+    findOneBy: async function(query: $TSFixMe) {
         const gfs = await Grid(mongoose.connection.db, mongoose.mongo);
         gfs.collection('uploads');
         if (!query) {
@@ -9,12 +9,13 @@ export default {
         const file = await gfs.files.findOne(query);
         if (!file) {
             const error = new Error('File is not found.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         return file;
     },
-    deleteOneBy: async function(query) {
+    deleteOneBy: async function(query: $TSFixMe) {
         const gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
             bucketName: 'uploads',
         });
@@ -26,6 +27,7 @@ export default {
             return 'file deleted successfully';
         } else {
             const error = new Error('Id is required.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -33,4 +35,5 @@ export default {
 };
 
 import mongoose from '../config/db'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'grid... Remove this comment to see the full error message
 import Grid from 'gridfs-stream'

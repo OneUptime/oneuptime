@@ -27,7 +27,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case types.FETCH_INCIDENT_NOTE_TEMPLATES_REQUEST:
             return {
@@ -110,8 +110,10 @@ export default (state = initialState, action) => {
                     ...state.noteTemplates,
                     templates: state.noteTemplates.templates.map(template => {
                         if (
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                             String(template._id) === String(action.payload._id)
                         ) {
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                             template = action.payload;
                         }
                         return template;

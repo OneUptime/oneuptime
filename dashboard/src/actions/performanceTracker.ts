@@ -2,8 +2,8 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
 
-export function setStartDate(date) {
-    return function(dispatch) {
+export function setStartDate(date: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: 'SET_START_DATE',
             payload: date,
@@ -11,8 +11,8 @@ export function setStartDate(date) {
     };
 }
 
-export function setEndDate(date) {
-    return function(dispatch) {
+export function setEndDate(date: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: 'SET_END_DATE',
             payload: date,
@@ -25,14 +25,14 @@ export const createPerformanceTrackerRequest = () => ({
     type: types.CREATE_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const createPerformanceTrackerSuccess = payload => ({
+export const createPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
+    payload
 });
 
-export const createPerformanceTrackerFailure = error => ({
+export const createPerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.CREATE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const createPerformanceTrackerReset = () => ({
@@ -42,8 +42,8 @@ export const createPerformanceTrackerReset = () => ({
 export const createPerformanceTracker = ({
     projectId,
     componentId,
-    values,
-}) => dispatch => {
+    values
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(createPerformanceTrackerRequest());
     const promise = postApi(
         `performanceTracker/${projectId}/${componentId}/create`,
@@ -52,6 +52,7 @@ export const createPerformanceTracker = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(createPerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -75,14 +76,14 @@ export const fetchPerformanceTrackerRequest = () => ({
     type: types.FETCH_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const fetchPerformanceTrackerSuccess = payload => ({
+export const fetchPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchPerformanceTrackerFailure = error => ({
+export const fetchPerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchPerformanceTrackerReset = () => ({
@@ -92,8 +93,8 @@ export const fetchPerformanceTrackerReset = () => ({
 export const fetchPerformanceTracker = ({
     projectId,
     performanceTrackerId,
-    slug,
-}) => dispatch => {
+    slug
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchPerformanceTrackerRequest());
     const promise = getApi(
         `performanceTracker/${projectId}/tracker/${performanceTrackerId}?slug=${slug}`
@@ -101,6 +102,7 @@ export const fetchPerformanceTracker = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchPerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -120,19 +122,19 @@ export const fetchPerformanceTracker = ({
 };
 
 // fetch performance tracker list
-export const fetchPerformanceTrackersRequest = fetchingPage => ({
+export const fetchPerformanceTrackersRequest = (fetchingPage: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_REQUEST,
-    payload: fetchingPage,
+    payload: fetchingPage
 });
 
-export const fetchPerformanceTrackersSuccess = payload => ({
+export const fetchPerformanceTrackersSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchPerformanceTrackersFailure = error => ({
+export const fetchPerformanceTrackersFailure = (error: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchPerformanceTrackersReset = () => ({
@@ -144,8 +146,8 @@ export const fetchPerformanceTrackers = ({
     componentId,
     skip = 0,
     limit = 0,
-    fetchingPage = false,
-}) => dispatch => {
+    fetchingPage = false
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchPerformanceTrackersRequest(fetchingPage));
     const promise = getApi(
         `performanceTracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
@@ -153,6 +155,7 @@ export const fetchPerformanceTrackers = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchPerformanceTrackersSuccess(response.data));
         },
         function(error) {
@@ -176,14 +179,14 @@ export const updatePerformanceTrackerRequest = () => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const updatePerformanceTrackerSuccess = payload => ({
+export const updatePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
+    payload
 });
 
-export const updatePerformanceTrackerFailure = error => ({
+export const updatePerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updatePerformanceTrackerReset = () => ({
@@ -194,8 +197,8 @@ export const updatePerformanceTracker = ({
     projectId,
     componentId,
     performanceTrackerId,
-    values,
-}) => dispatch => {
+    values
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(updatePerformanceTrackerRequest());
     const promise = putApi(
         `performanceTracker/${projectId}/${componentId}/update-tracker/${performanceTrackerId}`,
@@ -204,6 +207,7 @@ export const updatePerformanceTracker = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(updatePerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -227,14 +231,14 @@ export const deletePerformanceTrackerRequest = () => ({
     type: types.DELETE_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const deletePerformanceTrackerSuccess = payload => ({
+export const deletePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
+    payload
 });
 
-export const deletePerformanceTrackerFailure = error => ({
+export const deletePerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.DELETE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deletePerformanceTrackerReset = () => ({
@@ -243,15 +247,17 @@ export const deletePerformanceTrackerReset = () => ({
 
 export const deletePerformanceTracker = ({
     projectId,
-    performanceTrackerId,
-}) => dispatch => {
+    performanceTrackerId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deletePerformanceTrackerRequest());
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(
         `performanceTracker/${projectId}/tracker/${performanceTrackerId}`
     );
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(deletePerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -275,14 +281,14 @@ export const resetPerformanceTrackerKeyRequest = () => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_REQUEST,
 });
 
-export const resetPerformanceTrackerKeySuccess = payload => ({
+export const resetPerformanceTrackerKeySuccess = (payload: $TSFixMe) => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_SUCCESS,
-    payload,
+    payload
 });
 
-export const resetPerformanceTrackerKeyFailure = error => ({
+export const resetPerformanceTrackerKeyFailure = (error: $TSFixMe) => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const resetPerformanceTrackerKeyReset = () => ({
@@ -291,8 +297,8 @@ export const resetPerformanceTrackerKeyReset = () => ({
 
 export const resetPerformanceTrackerKey = ({
     projectId,
-    performanceTrackerId,
-}) => dispatch => {
+    performanceTrackerId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(resetPerformanceTrackerKeyRequest());
     const promise = putApi(
         `performanceTracker/${projectId}/reset-key/${performanceTrackerId}`,
@@ -301,6 +307,7 @@ export const resetPerformanceTrackerKey = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(resetPerformanceTrackerKeySuccess(response.data));
         },
         function(error) {
@@ -324,20 +331,20 @@ export const removeQuickStartRequest = () => ({
     type: types.REMOVE_QUICK_START_REQUEST,
 });
 
-export const removeQuickStartSuccess = payload => ({
+export const removeQuickStartSuccess = (payload: $TSFixMe) => ({
     type: types.REMOVE_QUICK_START_SUCCESS,
-    payload,
+    payload
 });
 
-export const removeQuickStartFailure = error => ({
+export const removeQuickStartFailure = (error: $TSFixMe) => ({
     type: types.REMOVE_QUICK_START_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const removeQuickStart = ({
     projectId,
-    performanceTrackerId,
-}) => dispatch => {
+    performanceTrackerId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(removeQuickStartRequest());
     const promise = putApi(
         `performanceTracker/${projectId}/remove-quickstart/${performanceTrackerId}`,
@@ -346,6 +353,7 @@ export const removeQuickStart = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(removeQuickStartSuccess(response.data));
         },
         function(error) {
@@ -369,22 +377,22 @@ export const fetchLastMetricsRequest = () => ({
     type: types.FETCH_LAST_METRICS_REQUEST,
 });
 
-export const fetchLastMetricsSuccess = payload => ({
+export const fetchLastMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_LAST_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchLastMetricsFailure = error => ({
+export const fetchLastMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_LAST_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchLastMetrics = ({
     projectId,
     performanceTrackerId,
     startDate,
-    endDate,
-}) => dispatch => {
+    endDate
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchLastMetricsRequest());
 
     startDate = encode(startDate);
@@ -396,6 +404,7 @@ export const fetchLastMetrics = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchLastMetricsSuccess(response.data));
         },
         function(error) {
@@ -414,7 +423,7 @@ export const fetchLastMetrics = ({
     return promise;
 };
 
-export const addPerformanceTracker = payload => dispatch => {
+export const addPerformanceTracker = (payload: $TSFixMe) => (dispatch: $TSFixMe) => {
     return dispatch({
         type: types.ADD_PERFORMANCE_TRACKER,
         payload,

@@ -8,7 +8,7 @@ import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader2 } from '../basic/Loader';
 
-function getComponentBadge(componentName) {
+function getComponentBadge(componentName: $TSFixMe) {
     return (
         <span className="Margin-right--8">
             <Badge>{componentName.substr(0, 1).toUpperCase()}</Badge>{' '}
@@ -19,11 +19,11 @@ function getComponentBadge(componentName) {
 getComponentBadge.displayName = 'getComponentBadge';
 
 function viewMore(
-    slug,
-    componentId,
-    componentSlug,
-    errorTrackerSlug,
-    errorEventId
+    slug: $TSFixMe,
+    componentId: $TSFixMe,
+    componentSlug: $TSFixMe,
+    errorTrackerSlug: $TSFixMe,
+    errorEventId: $TSFixMe
 ) {
     return history.push(
         '/dashboard/project/' +
@@ -36,7 +36,7 @@ function viewMore(
             errorEventId
     );
 }
-function isSelected(selectedErrorEvents, id) {
+function isSelected(selectedErrorEvents: $TSFixMe, id: $TSFixMe) {
     return selectedErrorEvents.indexOf(id) > -1 ? true : false;
 }
 function ErrorTrackerIssue({
@@ -49,8 +49,8 @@ function ErrorTrackerIssue({
     openEventMemberModal,
     resolveSingleIssue,
     errorTrackerStatus,
-    slug,
-}) {
+    slug
+}: $TSFixMe) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
             <td
@@ -179,10 +179,12 @@ function ErrorTrackerIssue({
                                         }}
                                     />
                                     <span className="Padding-left--8">
+                                        // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
                                         {moment(
                                             errorTrackerIssue.latestOccurennce
                                         ).fromNow()}{' '}
                                         -{' '}
+                                        // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
                                         {moment(
                                             errorTrackerIssue.earliestOccurennce
                                         ).fromNow()}
@@ -234,7 +236,7 @@ function ErrorTrackerIssue({
                     <div className="Padding-all--8">
                         <div className="">
                             {errorTrackerIssue.members.length > 0 ? (
-                                errorTrackerIssue.members.map((member, i) => {
+                                errorTrackerIssue.members.map((member: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <span
                                             key={i}

@@ -4,21 +4,21 @@ import errors from '../errors';
 
 //Array of email templates
 
-export function emailTemplatesRequest(promise) {
+export function emailTemplatesRequest(promise: $TSFixMe) {
     return {
         type: types.EMAIL_TEMPLATES_REQUEST,
         payload: promise,
     };
 }
 
-export function emailTemplatesError(error) {
+export function emailTemplatesError(error: $TSFixMe) {
     return {
         type: types.EMAIL_TEMPLATES_FAILED,
         payload: error,
     };
 }
 
-export function emailTemplatesSuccess(incidents) {
+export function emailTemplatesSuccess(incidents: $TSFixMe) {
     return {
         type: types.EMAIL_TEMPLATES_SUCCESS,
         payload: incidents,
@@ -32,13 +32,14 @@ export const emailTemplatesReset = () => {
 };
 
 // Calls the API to get email templates
-export function getEmailTemplates(projectId) {
-    return function(dispatch) {
+export function getEmailTemplates(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`emailTemplate/${projectId}`);
         dispatch(emailTemplatesRequest(promise));
 
         promise.then(
             function(emails) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(emailTemplatesSuccess(emails.data));
             },
             function(error) {
@@ -72,27 +73,28 @@ export function editEmailTemplateRequest() {
     };
 }
 
-export function editEmailTemplateSuccess(emailTemplates) {
+export function editEmailTemplateSuccess(emailTemplates: $TSFixMe) {
     return {
         type: types.EDIT_EMAIL_TEMPLATES_SUCCESS,
         payload: emailTemplates,
     };
 }
 
-export function editEmailTemplateError(error) {
+export function editEmailTemplateError(error: $TSFixMe) {
     return {
         type: types.EDIT_EMAIL_TEMPLATES_FAILED,
         payload: error,
     };
 }
 
-export function editEmailTemplates(projectId, data) {
-    return function(dispatch) {
+export function editEmailTemplates(projectId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`emailTemplate/${projectId}`, data);
         dispatch(editEmailTemplateRequest());
 
         promise.then(
             function(emailTemplate) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(editEmailTemplateSuccess(emailTemplate.data));
             },
             error => {
@@ -114,21 +116,21 @@ export function editEmailTemplates(projectId, data) {
 
 //Array of email templates
 
-export function resetEmailTemplatesRequest(promise) {
+export function resetEmailTemplatesRequest(promise: $TSFixMe) {
     return {
         type: types.RESET_EMAIL_TEMPLATES_REQUEST,
         payload: promise,
     };
 }
 
-export function resetEmailTemplatesError(error) {
+export function resetEmailTemplatesError(error: $TSFixMe) {
     return {
         type: types.RESET_EMAIL_TEMPLATES_FAILED,
         payload: error,
     };
 }
 
-export function resetEmailTemplatesSuccess(emailTemplates) {
+export function resetEmailTemplatesSuccess(emailTemplates: $TSFixMe) {
     return {
         type: types.RESET_EMAIL_TEMPLATES_SUCCESS,
         payload: emailTemplates,
@@ -136,8 +138,8 @@ export function resetEmailTemplatesSuccess(emailTemplates) {
 }
 
 // Calls the API to reset email templates
-export function resetEmailTemplates(projectId, templateId) {
-    return function(dispatch) {
+export function resetEmailTemplates(projectId: $TSFixMe, templateId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `emailTemplate/${projectId}/${templateId}/reset`
         );
@@ -145,6 +147,7 @@ export function resetEmailTemplates(projectId, templateId) {
 
         promise.then(
             function(emails) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(resetEmailTemplatesSuccess(emails.data));
             },
             function(error) {
@@ -164,21 +167,21 @@ export function resetEmailTemplates(projectId, templateId) {
     };
 }
 
-export function smtpConfigRequest(promise) {
+export function smtpConfigRequest(promise: $TSFixMe) {
     return {
         type: types.SMTP_CONFIG_REQUEST,
         payload: promise,
     };
 }
 
-export function smtpConfigError(error) {
+export function smtpConfigError(error: $TSFixMe) {
     return {
         type: types.SMTP_CONFIG_FAILED,
         payload: error,
     };
 }
 
-export function smtpConfigSuccess(config) {
+export function smtpConfigSuccess(config: $TSFixMe) {
     return {
         type: types.SMTP_CONFIG_SUCCESS,
         payload: config,
@@ -186,13 +189,14 @@ export function smtpConfigSuccess(config) {
 }
 
 // Calls the API to reset email templates
-export function getSmtpConfig(projectId) {
-    return function(dispatch) {
+export function getSmtpConfig(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`emailSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
             function(data) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -204,6 +208,7 @@ export function getSmtpConfig(projectId) {
                         payload: false,
                     });
                 }
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(smtpConfigSuccess(data.data));
             },
             function(error) {
@@ -223,14 +228,16 @@ export function getSmtpConfig(projectId) {
     };
 }
 
-export function postSmtpConfig(projectId, data) {
-    return function(dispatch) {
+export function postSmtpConfig(projectId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`emailSmtp/${projectId}`, data);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
             function(data) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(smtpConfigSuccess(data.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -260,35 +267,37 @@ export function postSmtpConfig(projectId, data) {
     };
 }
 
-export function deleteSmtpConfigRequest(promise) {
+export function deleteSmtpConfigRequest(promise: $TSFixMe) {
     return {
         type: types.DELETE_SMTP_CONFIG_REQUEST,
         payload: promise,
     };
 }
 
-export function deleteSmtpConfigError(error) {
+export function deleteSmtpConfigError(error: $TSFixMe) {
     return {
         type: types.DELETE_SMTP_CONFIG_FAILED,
         payload: error,
     };
 }
 
-export function deleteSmtpConfigSuccess(config) {
+export function deleteSmtpConfigSuccess(config: $TSFixMe) {
     return {
         type: types.DELETE_SMTP_CONFIG_SUCCESS,
         payload: config,
     };
 }
 
-export function deleteSmtpConfig(projectId, smtpId, data) {
-    return function(dispatch) {
+export function deleteSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`emailSmtp/${projectId}/${smtpId}`, data);
         dispatch(deleteSmtpConfigRequest(promise));
 
         promise.then(
             function(data) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteSmtpConfigSuccess(data.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -318,14 +327,16 @@ export function deleteSmtpConfig(projectId, smtpId, data) {
     };
 }
 
-export function updateSmtpConfig(projectId, smtpId, data) {
-    return function(dispatch) {
+export function updateSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`emailSmtp/${projectId}/${smtpId}`, data);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
             function(data) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(smtpConfigSuccess(data.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -355,8 +366,8 @@ export function updateSmtpConfig(projectId, smtpId, data) {
     };
 }
 
-export function changeShowingTemplate(emailTemplate) {
-    return function(dispatch) {
+export function changeShowingTemplate(emailTemplate: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: types.CHANGE_SHOWING_TEMPLATE,
             payload: emailTemplate,
@@ -364,8 +375,8 @@ export function changeShowingTemplate(emailTemplate) {
     };
 }
 
-export function setRevealVariable(emailtype) {
-    return function(dispatch) {
+export function setRevealVariable(emailtype: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: types.SET_REVEAL_VARIABLE,
             payload: emailtype,
@@ -373,8 +384,8 @@ export function setRevealVariable(emailtype) {
     };
 }
 
-export function setSmtpConfig(val) {
-    return function(dispatch) {
+export function setSmtpConfig(val: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: types.SET_SMTP_CONFIG,
             payload: val,

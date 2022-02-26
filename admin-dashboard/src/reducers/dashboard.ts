@@ -11,7 +11,7 @@ const initialState = {
     success: false,
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case DASHBOARD_LOAD_REQUEST:
             return Object.assign({}, state, {

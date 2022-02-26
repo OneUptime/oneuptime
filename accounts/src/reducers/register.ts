@@ -45,7 +45,7 @@ const initialState = {
     email: null,
 };
 
-export default function register(state = initialState, action) {
+export default function register(state = initialState, action: $TSFixMe) {
     let incCount, decCount, stage;
     switch (action.type) {
         case SIGNUP_REQUEST:
@@ -54,6 +54,7 @@ export default function register(state = initialState, action) {
                 error: null,
             });
         case SIGNUP_SUCCESS:
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cardRegistered' does not exist on type '... Remove this comment to see the full error message
             state.user.cardRegistered = action.payload.cardRegistered;
             return Object.assign({}, state, {
                 requesting: false,

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
@@ -13,8 +14,9 @@ import MonitorLighthouseLogsList from './MonitorLighthouseLogsList';
 import Select from '../../components/basic/Select';
 
 export class MonitorViewLighthouseLogsBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             addSiteUrlModalId: uuidv4(),
@@ -22,7 +24,8 @@ export class MonitorViewLighthouseLogsBox extends Component {
         };
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, monitor, fetchLighthouseLogs } = this.props;
         if (
             prevProps.monitor &&
@@ -35,7 +38,8 @@ export class MonitorViewLighthouseLogsBox extends Component {
         }
     }
 
-    prevClicked = (monitorId, skip, limit) => {
+    prevClicked = (monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchLighthouseLogs } = this.props;
         fetchLighthouseLogs(
             currentProject._id,
@@ -45,7 +49,8 @@ export class MonitorViewLighthouseLogsBox extends Component {
         );
     };
 
-    nextClicked = (monitorId, skip, limit) => {
+    nextClicked = (monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchLighthouseLogs } = this.props;
         fetchLighthouseLogs(
             currentProject._id,
@@ -55,10 +60,12 @@ export class MonitorViewLighthouseLogsBox extends Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'addSiteUrlModalId' does not exist on typ... Remove this comment to see the full error message
                     id: this.state.addSiteUrlModalId,
                 });
             default:
@@ -66,13 +73,15 @@ export class MonitorViewLighthouseLogsBox extends Component {
         }
     };
 
-    handleSiteChange = data => {
+    handleSiteChange = (data: $TSFixMe) => {
         this.setState({ siteValue: data });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, monitor, fetchLighthouseLogs } = this.props;
         fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
     scanWebsites = async () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, monitor, editMonitor } = this.props;
         if (monitor.name) {
             delete monitor.name;
@@ -82,20 +91,28 @@ export class MonitorViewLighthouseLogsBox extends Component {
             ...monitor,
             lighthouseScanStatus: 'scan',
         });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLighthouseLogs' does not exist on t... Remove this comment to see the full error message
         this.props.fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5);
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addSiteUrlModalId' does not exist on typ... Remove this comment to see the full error message
         const { addSiteUrlModalId } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
         const requesting = this.props.requesting
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             ? this.props.requesting
             : false;
 
         const siteUrls =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.siteUrls &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.siteUrls.length > 0
-                ? this.props.monitor.siteUrls.map(url => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                ? this.props.monitor.siteUrls.map((url: $TSFixMe) => {
                       return { value: url, label: url };
                   })
                 : [];
@@ -103,6 +120,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
         siteUrls.unshift({ value: '', label: 'All Site URLs' });
 
         const lighthouseScanStatus =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor && this.props.monitor.lighthouseScanStatus;
 
         return (
@@ -147,8 +165,11 @@ export class MonitorViewLighthouseLogsBox extends Component {
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.monitor &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.monitor.siteUrls &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.monitor.siteUrls.length > 0
                                 }
                             >
@@ -170,6 +191,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                                 lighthouseScanStatus ===
                                                     'scanning'))
                                     }
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     id={`scanWebsites_${this.props.monitor.name}`}
                                     onClick={() => this.scanWebsites()}
                                 >
@@ -211,15 +233,20 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                 }
                                 type="button"
                                 disabled={requesting}
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                 id={`addSiteUrl_${this.props.monitor.name}`}
                                 onClick={() =>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                     this.props.openModal({
                                         id: addSiteUrlModalId,
                                         content: DataPathHoC(AddSiteUrl, {
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                             monitorId: this.props.monitor._id,
                                             projectId:
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                 this.props.monitor.projectId
                                                     ._id ||
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                 this.props.monitor.projectId,
                                         }),
                                     })
@@ -236,8 +263,11 @@ export class MonitorViewLighthouseLogsBox extends Component {
                             </button>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.monitor &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.monitor.siteUrls &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.monitor.siteUrls.length > 1
                                 }
                             >
@@ -249,7 +279,9 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                     }}
                                 >
                                     <Select
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: any; onChange: (data:... Remove this comment to see the full error message
                                         name="site_selector"
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'siteValue' does not exist on type 'Reado... Remove this comment to see the full error message
                                         value={this.state.siteValue}
                                         onChange={this.handleSiteChange}
                                         placeholder="All Site URLs"
@@ -266,10 +298,13 @@ export class MonitorViewLighthouseLogsBox extends Component {
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <MonitorLighthouseLogsList
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; prevClicke... Remove this comment to see the full error message
                         componentId={this.props.componentId}
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                         monitor={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                         componentSlug={this.props.componentSlug}
                     />
                 </div>
@@ -278,8 +313,10 @@ export class MonitorViewLighthouseLogsBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorViewLighthouseLogsBox.displayName = 'MonitorViewLighthouseLogsBox';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorViewLighthouseLogsBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     componentSlug: PropTypes.string,
@@ -292,24 +329,24 @@ MonitorViewLighthouseLogsBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            editMonitor,
-            fetchLighthouseLogs,
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        editMonitor,
+        fetchLighthouseLogs,
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         currentProject: state.project.currentProject,
         requesting: state.monitor.editMonitor.requesting,
     };
 }
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 MonitorViewLighthouseLogsBox.contextTypes = {};
 
 export default connect(

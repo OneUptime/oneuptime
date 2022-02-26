@@ -3,11 +3,11 @@ import * as types from '../constants/probe';
 import errors from '../errors';
 
 // Fetch Project Probes list
-export function getProbes(projectId, skip, limit) {
+export function getProbes(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -20,8 +20,11 @@ export function getProbes(projectId, skip, limit) {
 
         promise.then(
             function(probes) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 probes.data.skip = skip || 0;
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 probes.data.limit = limit || 10;
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(probeSuccess(probes.data));
             },
             function(error) {
@@ -43,21 +46,21 @@ export function getProbes(projectId, skip, limit) {
     };
 }
 
-export function probeRequest(promise) {
+export function probeRequest(promise: $TSFixMe) {
     return {
         type: types.PROBE_REQUEST,
         payload: promise,
     };
 }
 
-export function probeError(error) {
+export function probeError(error: $TSFixMe) {
     return {
         type: types.PROBE_FAILED,
         payload: error,
     };
 }
 
-export function probeSuccess(probes) {
+export function probeSuccess(probes: $TSFixMe) {
     return {
         type: types.PROBE_SUCCESS,
         payload: probes,

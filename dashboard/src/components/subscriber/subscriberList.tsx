@@ -2,7 +2,9 @@ import React, { Component, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'coun... Remove this comment to see the full error message
 import countryTelephoneCode from 'country-telephone-code';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -15,7 +17,7 @@ import DataPathHoC from '../DataPathHoC';
 import DeleteSubscriber from '../modals/DeleteSubscriber';
 
 export class SubscriberList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             deleteSubscriberModalId: uuidv4(),
@@ -24,15 +26,20 @@ export class SubscriberList extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
             subProjectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
             monitorId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
             fetchMonitorsSubscribers,
         } = this.props;
         fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5);
     }
 
-    deleteSubscriber = async (projectId, _id, setLoading) => {
+    deleteSubscriber = async (projectId: $TSFixMe, _id: $TSFixMe, setLoading: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
         const { fetchMonitorsSubscribers, monitorId } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSubscriber' does not exist on type... Remove this comment to see the full error message
         const result = await this.props.deleteSubscriber(projectId, _id);
         if (result.status === 200) {
             setLoading(false);
@@ -41,13 +48,14 @@ export class SubscriberList extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
         const monitor = this.props.monitorState.monitorsList.monitors
-            .map(monitor =>
-                monitor.monitors.find(
-                    monitor => monitor._id === this.props.monitorId
-                )
+            .map((monitor: $TSFixMe) => monitor.monitors.find(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+            (monitor: $TSFixMe) => monitor._id === this.props.monitorId
+        )
             )
-            .filter(monitor => monitor)[0];
+            .filter((monitor: $TSFixMe) => monitor)[0];
         const subscribers = monitor.subscribers || {};
         const subProjectId = monitor.projectId._id || monitor.projectId;
         if (
@@ -160,6 +168,7 @@ export class SubscriberList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -173,6 +182,7 @@ export class SubscriberList extends Component {
                                 >
                                     <td
                                         id="overflow"
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                         type="action"
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
@@ -194,7 +204,7 @@ export class SubscriberList extends Component {
                             subscribers.subscribers &&
                             subscribers.subscribers.length > 0 ? (
                                 subscribers.subscribers.map(
-                                    (subscriber, index) => (
+                                    (subscriber: $TSFixMe, index: $TSFixMe) => (
                                         <tr
                                             className="subscriber-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                             key={subscriber._id}
@@ -366,11 +376,13 @@ export class SubscriberList extends Component {
                                                                         openModal={
                                                                             this
                                                                                 .props
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                                 .openModal
                                                                         }
                                                                         deleteSubscriberModalId={
                                                                             this
                                                                                 .state
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSubscriberModalId' does not exist ... Remove this comment to see the full error message
                                                                                 .deleteSubscriberModalId
                                                                         }
                                                                         deleteSubscriber={
@@ -383,9 +395,11 @@ export class SubscriberList extends Component {
                                                                         _id={
                                                                             subscriber._id
                                                                         }
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ openModal: any; deleteSubscriberModalId: a... Remove this comment to see the full error message
                                                                         loading={
                                                                             this
                                                                                 .state
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'loading' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                 .loading
                                                                         }
                                                                         index={
@@ -408,10 +422,13 @@ export class SubscriberList extends Component {
                     </table>
                 </div>
                 {(subscribers && subscribers.requesting) ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                 (this.props.monitorState &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                     this.props.monitorState.fetchMonitorsSubscriberRequest &&
                     subscribers.subscribers &&
                     subscribers.subscribers[0] &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                     this.props.monitorState.fetchMonitorsSubscriberRequest ===
                         subscribers.subscribers[0].monitorId) ? (
                     <ListLoader />
@@ -459,6 +476,7 @@ export class SubscriberList extends Component {
                             <div className="Box-root Margin-right--8">
                                 <button
                                     id="btnPrevSubscriber"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                     onClick={this.props.prevClicked}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -478,6 +496,7 @@ export class SubscriberList extends Component {
                             <div className="Box-root">
                                 <button
                                     id="btnNextSubscriber"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                     onClick={this.props.nextClicked}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -502,14 +521,14 @@ export class SubscriberList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { deleteSubscriber, fetchMonitorsSubscribers, openModal },
         dispatch
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
@@ -517,8 +536,10 @@ function mapStateToProps(state) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubscriberList.displayName = 'SubscriberList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubscriberList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,
@@ -532,7 +553,7 @@ SubscriberList.propTypes = {
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscriberList);
 
-const RemoveBtn = props => {
+const RemoveBtn = (props: $TSFixMe) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

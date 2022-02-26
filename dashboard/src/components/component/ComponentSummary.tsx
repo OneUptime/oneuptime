@@ -9,8 +9,8 @@ function ComponentSummary({
     componentId,
     fetchSummary,
     summary,
-    loading,
-}) {
+    loading
+}: $TSFixMe) {
     const [startDate, setStartDate] = useState(moment().subtract(30, 'd'));
     const [endDate, setEndDate] = useState(moment());
 
@@ -33,6 +33,7 @@ function ComponentSummary({
     }
 
     return (
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
         <div className="Box-root Card-shadow--medium" tabIndex="0">
             <div className="db-Trends-header">
                 <div className="db-Trends-title">
@@ -53,11 +54,9 @@ function ComponentSummary({
                                 startDate,
                                 endDate,
                             }}
-                            handleStartDateTimeChange={val =>
-                                setStartDate(moment(val))
+                            handleStartDateTimeChange={(val: $TSFixMe) => setStartDate(moment(val))
                             }
-                            handleEndDateTimeChange={val =>
-                                setEndDate(moment(val))
+                            handleEndDateTimeChange={(val: $TSFixMe) => setEndDate(moment(val))
                             }
                             formId={`componentSummaryDateTime`}
                             displayOnlyDate={true}

@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 // import PerformanceView from '../components/performanceTracker/PerformanceView';
 import WebTransactionsChart from '../components/performanceTracker/WebTransactionsChart';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import { fetchComponent } from '../actions/component';
 import {
@@ -32,20 +34,31 @@ class PerformanceTrackerView extends Component {
         showQuickStart: true,
     };
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerSlug' does not exist o... Remove this comment to see the full error message
             performanceTrackerSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPerformanceTracker' does not exist ... Remove this comment to see the full error message
             fetchPerformanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
             fetchComponent,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTimeMetrics' does not exist on typ... Remove this comment to see the full error message
             updateTimeMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateThroughputMetrics' does not exist ... Remove this comment to see the full error message
             updateThroughputMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateErrorMetrics' does not exist on ty... Remove this comment to see the full error message
             updateErrorMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
         } = this.props;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             prevProps.componentSlug !== this.props.componentSlug
         ) {
             currentProject && fetchComponent(currentProject._id, componentSlug);
@@ -63,14 +76,11 @@ class PerformanceTrackerView extends Component {
             if (performanceTracker) {
                 this.removeListeners();
 
-                socket.on(`timeMetrics-${performanceTracker._id}`, data =>
-                    updateTimeMetrics(data)
+                socket.on(`timeMetrics-${performanceTracker._id}`, (data: $TSFixMe) => updateTimeMetrics(data)
                 );
-                socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
-                    updateThroughputMetrics(data)
+                socket.on(`throughputMetrics-${performanceTracker._id}`, (data: $TSFixMe) => updateThroughputMetrics(data)
                 );
-                socket.on(`errorMetrics-${performanceTracker._id}`, data =>
-                    updateErrorMetrics(data)
+                socket.on(`errorMetrics-${performanceTracker._id}`, (data: $TSFixMe) => updateErrorMetrics(data)
                 );
             }
         }
@@ -78,27 +88,32 @@ class PerformanceTrackerView extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
             fetchComponent,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerSlug' does not exist o... Remove this comment to see the full error message
             performanceTrackerSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPerformanceTracker' does not exist ... Remove this comment to see the full error message
             fetchPerformanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPerformanceTrackerKeyReset' does no... Remove this comment to see the full error message
             resetPerformanceTrackerKeyReset,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateErrorMetrics' does not exist on ty... Remove this comment to see the full error message
             updateErrorMetrics,
         } = this.props;
 
         if (performanceTracker) {
             this.removeListeners();
 
-            socket.on(`timeMetrics-${performanceTracker._id}`, data =>
-                updateTimeMetrics(data)
+            socket.on(`timeMetrics-${performanceTracker._id}`, (data: $TSFixMe) => updateTimeMetrics(data)
             );
-            socket.on(`throughputMetrics-${performanceTracker._id}`, data =>
-                updateThroughputMetrics(data)
+            socket.on(`throughputMetrics-${performanceTracker._id}`, (data: $TSFixMe) => updateThroughputMetrics(data)
             );
-            socket.on(`errorMetrics-${performanceTracker._id}`, data =>
-                updateErrorMetrics(data)
+            socket.on(`errorMetrics-${performanceTracker._id}`, (data: $TSFixMe) => updateErrorMetrics(data)
             );
         }
 
@@ -116,8 +131,9 @@ class PerformanceTrackerView extends Component {
         this.removeListeners();
     }
 
-    tabSelected = index => {
+    tabSelected = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
+        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
             tabIndex: index,
@@ -125,6 +141,7 @@ class PerformanceTrackerView extends Component {
     };
 
     removeListeners = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
         const { performanceTracker } = this.props;
         if (performanceTracker) {
             socket.removeListener(`timeMetrics-${performanceTracker._id}`);
@@ -137,13 +154,21 @@ class PerformanceTrackerView extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeQuickStart' does not exist on type... Remove this comment to see the full error message
             removeQuickStart,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerObj' does not exist on type 'Read... Remove this comment to see the full error message
             trackerObj,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetTrackerObj' does not exist on type ... Remove this comment to see the full error message
             resetTrackerObj,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
 
@@ -163,6 +188,7 @@ class PerformanceTrackerView extends Component {
                         name={projectName}
                         projectId={projectId}
                         slug={currentProject ? currentProject.slug : null}
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                         switchToProjectViewerNav={switchToProjectViewerNav}
                     />
                     <BreadCrumbItem
@@ -191,6 +217,7 @@ class PerformanceTrackerView extends Component {
                         performanceTracker.showQuickStart &&
                         this.state.showQuickStart && (
                             <QuickStart
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ appId: any; appKey: any; close: () => any;... Remove this comment to see the full error message
                                 appId={performanceTracker._id}
                                 appKey={
                                     (resetTrackerObj.performanceTracker &&
@@ -223,7 +250,7 @@ class PerformanceTrackerView extends Component {
                         )}
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
-                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        onSelect={(tabIndex: $TSFixMe) => this.tabSelected(tabIndex)}
                         selectedIndex={this.state.tabIndex}
                     >
                         <div className="Flex-flex Flex-direction--columnReverse">
@@ -258,6 +285,7 @@ class PerformanceTrackerView extends Component {
                                         <div>
                                             <div>
                                                 <WebTransactionsChart
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ heading: string; title: never[]; subHeadin... Remove this comment to see the full error message
                                                     heading="Web Transactions Time"
                                                     title={[]}
                                                     subHeading="Average Response time of your HTTP Requests."
@@ -268,6 +296,7 @@ class PerformanceTrackerView extends Component {
                                         <div>
                                             <div>
                                                 <WebTransactionsChart
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ heading: string; title: never[]; subHeadin... Remove this comment to see the full error message
                                                     heading="Throughput"
                                                     title={[]}
                                                     subHeading="Number of HTTP requests per minute your app serves."
@@ -278,6 +307,7 @@ class PerformanceTrackerView extends Component {
                                         <div>
                                             <div>
                                                 <WebTransactionsChart
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ heading: string; title: never[]; subHeadin... Remove this comment to see the full error message
                                                     heading="Error Rate"
                                                     title={[]}
                                                     subHeading="Number of HTTP Error responses per minute served by your app."
@@ -304,6 +334,7 @@ class PerformanceTrackerView extends Component {
                                     <div>
                                         <div>
                                             <TransactionMetricsTable
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ heading: string; subHeading: string; type:... Remove this comment to see the full error message
                                                 heading="Incoming HTTP Requests"
                                                 subHeading="Shows list of all incoming HTTP requests received by your app."
                                                 type="incoming"
@@ -313,6 +344,7 @@ class PerformanceTrackerView extends Component {
                                     <div>
                                         <div>
                                             <TransactionMetricsTable
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ heading: string; subHeading: string; type:... Remove this comment to see the full error message
                                                 heading="Outgoing HTTP Requests"
                                                 subHeading="Shows a list of all the HTTP requests your app made."
                                                 type="outgoing"
@@ -329,8 +361,9 @@ class PerformanceTrackerView extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 PerformanceTrackerView.displayName = 'PerformanceTrackerView';
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchComponent,
@@ -344,7 +377,7 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { componentSlug, performanceTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     return {
@@ -361,6 +394,7 @@ const mapStateToProps = (state, ownProps) => {
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 PerformanceTrackerView.propTypes = {
     component: PropTypes.shape({
         name: PropTypes.any,

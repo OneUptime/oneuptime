@@ -25,7 +25,9 @@ export const INITIAL_STATE = {
 };
 
 
-const getReducer = ({ actionBase }) => {
+const getReducer = ({
+    actionBase
+}: $TSFixMe) => {
 
     const createConstants = actionBase.getCreateConstants();
     const listConstants = actionBase.getListConstants();
@@ -33,7 +35,7 @@ const getReducer = ({ actionBase }) => {
     const deleteConstants = actionBase.getDeleteConstants();
     const updateConstants = actionBase.getUpdateConstants();
 
-    return (state = INITIAL_STATE, action) => {
+    return (state = INITIAL_STATE, action: $TSFixMe) => {
         switch (action.type) {
 
 
@@ -271,7 +273,7 @@ const getReducer = ({ actionBase }) => {
             default:
                 return state;
         }
-    }
+    };
 }
 
 

@@ -1,11 +1,14 @@
 import ProbeService from '../services/probeService'
 const sendErrorResponse = require('./response').sendErrorResponse;
 import ErrorService from '../services/errorService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
 import { clusterKey: CLUSTER_KEY } from '../utils/config'
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
 global.probes = {};
 
 export default {
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
     isAuthorizedProbe: async function(req, res, next) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;
@@ -86,13 +89,16 @@ export default {
                 // because if the probe key does not match, we can update probe key later
                 // without updating mognodb database manually.
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                 if (global.probes[probeName]) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({ probeName });
 
                     if (probe && probe._id) {
                         probeId = probe._id;
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                         global.probes[probeName] = {
                             _id: probe._id,
                             probeKey: probe.probeKey,
@@ -101,7 +107,9 @@ export default {
                     }
                 }
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                 if (global.probes[probeName]) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({
@@ -111,6 +119,7 @@ export default {
 
                     if (probe && probe._id) {
                         probeId = probe._id;
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                         global.probes[probeName] = {
                             _id: probe._id,
                             probeKey: probe.probeKey,
@@ -137,6 +146,7 @@ export default {
 
                 probeId = probe._id;
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                 global.probes[probeName] = {
                     _id: probe._id,
                     probeKey: probe.probeKey,
@@ -144,6 +154,7 @@ export default {
                 };
             }
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
             if (global.probes[probeName].probeKey !== probeKey) {
                 //update probe key becasue it does not match.
                 await ProbeService.updateOneBy(
@@ -160,6 +171,7 @@ export default {
 
                 probeId = probe._id;
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                 global.probes[probeName] = {
                     _id: probe._id,
                     probeKey: probe.probeKey,
@@ -175,7 +187,9 @@ export default {
 
             if (
                 probeVersion &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                 (!global.probes[probeName].version ||
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
                     global.probes[probeName].version !== probeVersion)
             ) {
                 await ProbeService.updateOneBy(

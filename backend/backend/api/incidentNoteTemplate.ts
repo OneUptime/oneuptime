@@ -1,6 +1,7 @@
 import express from 'express'
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -14,21 +15,25 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (!name) {
             const error = new Error('Name must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (!incidentState) {
             const error = new Error('Incident state must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (!incidentNote) {
             const error = new Error('Incident note must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -56,6 +61,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -86,6 +92,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -93,21 +100,25 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Incident note template Id must be present'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (!name) {
             const error = new Error('Name must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (!incidentState) {
             const error = new Error('Incident state must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (!incidentNote) {
             const error = new Error('Incident note must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -133,6 +144,7 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -140,6 +152,7 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Incident note template Id must be present'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }

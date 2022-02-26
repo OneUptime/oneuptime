@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
@@ -17,9 +18,10 @@ class DeleteMonitorSlaModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -30,10 +32,15 @@ class DeleteMonitorSlaModal extends Component {
 
     handleDelete = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteError' does not exist on type 'Rea... Remove this comment to see the full error message
             deleteError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
             modalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteMonitorSla' does not exist on type... Remove this comment to see the full error message
             deleteMonitorSla,
         } = this.props;
         const { projectId, monitorSlaId } = data;
@@ -45,6 +52,7 @@ class DeleteMonitorSlaModal extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
         const { isRequesting, closeThisDialog, deleteError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -144,8 +152,10 @@ class DeleteMonitorSlaModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteMonitorSlaModal.displayName = 'DeleteMonitorSlaModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteMonitorSlaModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
@@ -156,7 +166,7 @@ DeleteMonitorSlaModal.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         isRequesting: state.monitorSla.monitorSlas.requesting,
         deleteError: state.monitorSla.monitorSlas.error,
@@ -164,8 +174,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, deleteMonitorSla }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteMonitorSla }, dispatch);
 
 export default connect(
     mapStateToProps,

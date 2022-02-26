@@ -1,6 +1,8 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find } from '../util/db'
 import payment from '../util/payment'
 import stripe from 'stripe')(payment.paymentPrivateKey
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/api"' has no exported member 'del... Remove this comment to see the full error message
 import { deleteApi } from '../util/api'
 
 const projectCollection = 'projects';
@@ -15,6 +17,7 @@ async function run() {
 
         // fetch the subscription
         if (stripeSubscriptionId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
             const subscription = await stripe.subscriptions.retrieve(
                 stripeSubscriptionId
             );

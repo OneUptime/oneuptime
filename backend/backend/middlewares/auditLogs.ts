@@ -1,22 +1,24 @@
 import url from 'url'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import _ from 'lodash'
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
 import AuditLogsService from '../services/auditLogsService'
 import ErrorService from 'common-server/utils/error'
 const sendErrorResponse = require('./response').sendErrorResponse;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./api"' has no exported member 'getProjec... Remove this comment to see the full error message
 import { getProjectId } from './api'
 import GlobalConfigService from '../services/globalConfigService'
 
 // TODO: This should be stored in a shared cache like redis.
-let shouldStoreLogs = null;
+let shouldStoreLogs: $TSFixMe = null;
 
 export default {
-    log: async function(req, res, next) {
+    log: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const blackListedRoutes = ['/audit-logs/'];
             const blackListedReqObjectPaths = ['body.password'];
-            const blackListedResObjectPaths = [];
+            const blackListedResObjectPaths: $TSFixMe = [];
             const blackListedResBodyObjectPaths = [
                 'gitCredential',
                 'dockerCredential',
@@ -76,8 +78,7 @@ export default {
                     );
                     const modifiedRes = _.omit(res, blackListedResObjectPaths);
                     if (Array.isArray(res.resBody)) {
-                        modifiedRes.resBody = res.resBody.map(element =>
-                            _.omit(element, blackListedResBodyObjectPaths)
+                        modifiedRes.resBody = res.resBody.map((element: $TSFixMe) => _.omit(element, blackListedResBodyObjectPaths)
                         );
                     }
 

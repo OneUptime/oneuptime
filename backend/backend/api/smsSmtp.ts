@@ -2,6 +2,7 @@ import express from 'express'
 import SmsSmtpService from '../services/smsSmtpService'
 import TwilioService from '../services/twilioService'
 const router = express.Router();
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserOwner = require('../middlewares/project').isUserOwner;

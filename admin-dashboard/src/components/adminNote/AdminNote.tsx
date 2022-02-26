@@ -1,12 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 
-const AdminNote = ({ fields, meta: { error, submitFailed } }) => {
+const AdminNote = ({
+    fields,
+    meta: { error, submitFailed }
+}: $TSFixMe) => {
     return (
         <ul>
-            {fields.map((val, i) => {
+            {fields.map((val: $TSFixMe, i: $TSFixMe) => {
                 return (
                     <li key={i}>
                         <div className="bs-Fieldset-row">

@@ -10,9 +10,11 @@ import KubernetesMonitors from './kubernetesMonitors'
 let limit = process.env.RESOURCES_LIMIT;
 
 if (limit && typeof limit === 'string') {
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
     limit = parseInt(limit);
 }
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'awai... Remove this comment to see the full error message
 import asyncSleep from 'await-sleep'
 
 const _this = {

@@ -20,8 +20,9 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export function postApi(url, data, licensing) {
+export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
 
@@ -40,6 +41,7 @@ export function postApi(url, data, licensing) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -52,8 +54,9 @@ export function postApi(url, data, licensing) {
     return deffered.promise;
 }
 
-export function getApi(url, licensing) {
+export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -70,6 +73,7 @@ export function getApi(url, licensing) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -83,8 +87,9 @@ export function getApi(url, licensing) {
     return deffered.promise;
 }
 
-export function putApi(url, data) {
+export function putApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -102,6 +107,7 @@ export function putApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -115,8 +121,9 @@ export function putApi(url, data) {
     return deffered.promise;
 }
 
-export function deleteApi(url, data) {
+export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -134,6 +141,7 @@ export function deleteApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -147,8 +155,9 @@ export function deleteApi(url, data) {
     return deffered.promise;
 }
 
-export function getApiDocs(url) {
+export function getApiDocs(url: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -165,6 +174,7 @@ export function getApiDocs(url) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -178,8 +188,9 @@ export function getApiDocs(url) {
     return deffered.promise;
 }
 
-export function getApiHelm(url) {
+export function getApiHelm(url: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -196,6 +207,7 @@ export function getApiHelm(url) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -209,8 +221,9 @@ export function getApiHelm(url) {
     return deffered.promise;
 }
 
-export function getApiDashboard(url) {
+export function getApiDashboard(url: $TSFixMe) {
     if (User.isLoggedIn())
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -227,6 +240,7 @@ export function getApiDashboard(url) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)

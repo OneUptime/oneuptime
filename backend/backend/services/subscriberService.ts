@@ -1,16 +1,26 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const _this = this;
         const subscriberModel = new SubscriberModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         subscriberModel.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
         subscriberModel.monitorId = data.monitorId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
         subscriberModel.statusPageId = data.statusPageId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type 'Docume... Remove this comment to see the full error message
         subscriberModel.alertVia = data.alertVia || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type 'Do... Remove this comment to see the full error message
         subscriberModel.contactEmail = data.contactEmail || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactPhone' does not exist on type 'Do... Remove this comment to see the full error message
         subscriberModel.contactPhone = data.contactPhone || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type 'Doc... Remove this comment to see the full error message
         subscriberModel.countryCode = data.countryCode || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactWebhook' does not exist on type '... Remove this comment to see the full error message
         subscriberModel.contactWebhook = data.contactWebhook || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationType' does not exist on type... Remove this comment to see the full error message
         subscriberModel.notificationType = data.notificationType || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'webhookMethod' does not exist on type 'D... Remove this comment to see the full error message
         subscriberModel.webhookMethod = data.webhookMethod || 'post';
         const subscriber = await subscriberModel.save();
         const populate = [
@@ -27,7 +37,7 @@ export default {
         });
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -45,7 +55,7 @@ export default {
         return updatedSubscriber;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -66,7 +76,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const subscriber = await SubscriberModel.findOneAndUpdate(
             query,
             {
@@ -83,7 +93,13 @@ export default {
         return subscriber;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 10;
         if (typeof skip === 'string') {
@@ -113,30 +129,44 @@ export default {
         const subscribersArr = [];
         for (const result of subscribers) {
             const temp = {};
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
             temp._id = result._id;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
             temp.projectId = result.projectId._id;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
             temp.projectName = result.projectId.name;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
             temp.monitorId = result.monitorId ? result.monitorId._id : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type '{}'... Remove this comment to see the full error message
             temp.monitorName = result.monitorId ? result.monitorId.name : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
             temp.statusPageId = result.statusPageId
                 ? result.statusPageId._id
                 : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageName' does not exist on type '... Remove this comment to see the full error message
             temp.statusPageName = result.statusPageId
                 ? result.statusPageId.name
                 : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
             temp.createdAt = result.createdAt;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
             temp.alertVia = result.alertVia;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
             temp.contactEmail = result.contactEmail;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactPhone' does not exist on type '{}... Remove this comment to see the full error message
             temp.contactPhone = result.contactPhone;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type '{}'... Remove this comment to see the full error message
             temp.countryCode = result.countryCode;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactWebhook' does not exist on type '... Remove this comment to see the full error message
             temp.contactWebhook = result.contactWebhook;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'webhookMethod' does not exist on type '{... Remove this comment to see the full error message
             temp.webhookMethod = result.webhookMethod;
             subscribersArr.push(temp);
         }
         return subscribersArr;
     },
 
-    subscribersForAlert: async function(query) {
+    subscribersForAlert: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -152,31 +182,46 @@ export default {
         const subscribersArr = [];
         for (const result of subscribers) {
             const temp = {};
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
             temp._id = result._id;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
             temp.projectId = result.projectId._id;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
             temp.projectName = result.projectId.name;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
             temp.monitorId = result.monitorId ? result.monitorId._id : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type '{}'... Remove this comment to see the full error message
             temp.monitorName = result.monitorId ? result.monitorId.name : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
             temp.statusPageId = result.statusPageId
                 ? result.statusPageId._id
                 : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageName' does not exist on type '... Remove this comment to see the full error message
             temp.statusPageName = result.statusPageId
                 ? result.statusPageId.name
                 : null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
             temp.createdAt = result.createdAt;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
             temp.alertVia = result.alertVia;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
             temp.contactEmail = result.contactEmail;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactPhone' does not exist on type '{}... Remove this comment to see the full error message
             temp.contactPhone = result.contactPhone;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type '{}'... Remove this comment to see the full error message
             temp.countryCode = result.countryCode;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactWebhook' does not exist on type '... Remove this comment to see the full error message
             temp.contactWebhook = result.contactWebhook;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'webhookMethod' does not exist on type '{... Remove this comment to see the full error message
             temp.webhookMethod = result.webhookMethod;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationType' does not exist on type... Remove this comment to see the full error message
             temp.notificationType = result.notificationType;
             subscribersArr.push(temp);
         }
         return subscribersArr;
     },
 
-    subscribe: async function(data, monitors) {
+    subscribe: async function(data: $TSFixMe, monitors: $TSFixMe) {
         const _this = this;
         const populateStatusPage = [
             { path: 'monitors.monitor', select: '_id' },
@@ -187,12 +232,13 @@ export default {
                 select: 'monitors',
                 populate: populateStatusPage,
             });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             monitors = statusPage.monitors.map(
-                monitorData => monitorData.monitor
+                (monitorData: $TSFixMe) => monitorData.monitor
             );
         }
 
-        const success = monitors.map(async monitor => {
+        const success = monitors.map(async (monitor: $TSFixMe) => {
             const newSubscriber = Object.assign({}, data, {
                 monitorId: monitor._id ?? monitor,
             });
@@ -201,6 +247,7 @@ export default {
                 const error = new Error(
                     'You are already subscribed to this monitor.'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 ErrorService.log('SubscriberService.subscribe', error);
                 throw error;
@@ -234,10 +281,10 @@ export default {
         return subscriber;
     },
 
-    subscribeFromCSVFile: async function(subscribers) {
+    subscribeFromCSVFile: async function(subscribers: $TSFixMe) {
         const _this = this;
         const { data, projectId, monitorId } = subscribers;
-        const success = data.map(async subscriber => {
+        const success = data.map(async (subscriber: $TSFixMe) => {
             const newSubscriber = Object.assign({}, subscriber, {
                 monitorId,
                 projectId,
@@ -251,7 +298,7 @@ export default {
         return await Promise.all(success);
     },
 
-    subscriberCheck: async function(subscriber) {
+    subscriberCheck: async function(subscriber: $TSFixMe) {
         const _this = this;
         const existingSubscriber = await _this.findByOne({
             query: {
@@ -277,7 +324,11 @@ export default {
         return existingSubscriber !== null;
     },
 
-    findByOne: async function({ query, select, populate }) {
+    findByOne: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -294,7 +345,7 @@ export default {
         return subscriber;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -304,23 +355,24 @@ export default {
         return count;
     },
 
-    removeBy: async function(query) {
+    removeBy: async function(query: $TSFixMe) {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         let subscriber = await _this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {
             const subscribers = await Promise.all(
                 subscriber.map(async subscriber => {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                     const subscriberId = subscriber._id;
                     subscriber = await _this.updateOneBy(
                         { _id: subscriberId, deleted: true },
@@ -335,8 +387,10 @@ export default {
             );
             return subscribers;
         } else {
+            // @ts-expect-error ts-migrate(2740) FIXME: Type '{}' is missing the following properties from... Remove this comment to see the full error message
             subscriber = subscriber[0];
             if (subscriber) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}[]'.
                 const subscriberId = subscriber._id;
                 subscriber = await _this.updateOneBy(
                     { _id: subscriberId, deleted: true },

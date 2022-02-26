@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -7,10 +8,11 @@ import { translateLanguage } from '../actions/status';
 
 import { openLanguageMenu } from '../actions/subscribe';
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutHandler from 'react-onclickout';
 
 class LanguageBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.translateButton = this.translateButton.bind(this);
         this.state = {
@@ -18,21 +20,25 @@ class LanguageBox extends Component {
         };
     }
     translateButton = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
         this.props.handleCloseButtonClick();
     };
-    handleChange = event => {
+    handleChange = (event: $TSFixMe) => {
         this.setState({
             ...this.state,
             language: event.target.value,
         });
     };
     handleTranslate = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'translateLanguage' does not exist on typ... Remove this comment to see the full error message
         this.props.translateLanguage(this.state.language);
         this.translateButton();
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { statusPage } = this.props;
         const languages = statusPage.multipleLanguages;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const theme = this.props.theme;
         return (
             <div className="subscribe-overlay">
@@ -108,23 +114,23 @@ class LanguageBox extends Component {
                             style={{ paddingTop: 0 }}
                         >
                             <select
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'language' does not exist on type 'Readon... Remove this comment to see the full error message
                                 value={this.state.language}
                                 onChange={this.handleChange}
                                 name="country"
                                 className="select-full"
                             >
-                                {languages.map(language => (
-                                    <option
-                                        value={language.toLowerCase()}
-                                        key={language}
-                                    >
-                                        {language}
-                                    </option>
-                                ))}
+                                {languages.map((language: $TSFixMe) => <option
+                                    value={language.toLowerCase()}
+                                    key={language}
+                                >
+                                    {language}
+                                </option>)}
                             </select>
                             <div style={{ marginTop: 10 }}>
                                 <button
                                     className={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                         this.props.theme
                                             ? 'subscribe-btn-full bs-theme-btn'
                                             : 'subscribe-btn-full'
@@ -143,17 +149,18 @@ class LanguageBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 LanguageBox.displayName = 'LanguageBox';
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
-    statusPage: state.status.statusPage,
+    statusPage: state.status.statusPage
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 LanguageBox.propTypes = {
     statusPage: PropTypes.object,
     theme: PropTypes.bool,

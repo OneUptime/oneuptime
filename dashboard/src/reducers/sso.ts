@@ -33,7 +33,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function sso(state = INITIAL_STATE, action) {
+export default function sso(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case types.CREATE_SSO_REQUEST:
             return {

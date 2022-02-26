@@ -1,4 +1,4 @@
-const acknowledgeLastIncident = (z, bundle) => {
+const acknowledgeLastIncident = (z: $TSFixMe, bundle: $TSFixMe) => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     const data = {
         monitors: bundle.inputData.monitors,
@@ -8,7 +8,7 @@ const acknowledgeLastIncident = (z, bundle) => {
         url: `${bundle.authData.serverUrl}/zapier/incident/acknowledgeLastIncident`,
         body: data,
     });
-    return responsePromise.then(response => JSON.parse(response.content));
+    return responsePromise.then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

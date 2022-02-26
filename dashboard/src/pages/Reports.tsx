@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
@@ -59,7 +60,7 @@ const endDate = moment();
 const startDate = moment().subtract(30, 'd');
 
 export class Reports extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             membersStart: startDate,
@@ -85,72 +86,80 @@ export class Reports extends Component {
         this.handleIncidentChange = this.handleIncidentChange.bind(this);
     }
 
-    handleMemberStartDateTimeChange = val => {
+    handleMemberStartDateTimeChange = (val: $TSFixMe) => {
         const startDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'membersEnd' does not exist on type 'Read... Remove this comment to see the full error message
         this.handleMembersChange(startDate, this.state.membersEnd);
     };
-    handleMemberEndDateTimeChange = val => {
+    handleMemberEndDateTimeChange = (val: $TSFixMe) => {
         const endDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'membersStart' does not exist on type 'Re... Remove this comment to see the full error message
         this.handleMembersChange(this.state.membersStart, endDate);
     };
-    handleMembersChange(startDate, endDate) {
+    handleMembersChange(startDate: $TSFixMe, endDate: $TSFixMe) {
         this.setState({
             membersStart: startDate,
             membersEnd: endDate,
         });
     }
 
-    handleMonitorStartDateTimeChange = val => {
+    handleMonitorStartDateTimeChange = (val: $TSFixMe) => {
         const startDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorEnd' does not exist on type 'Read... Remove this comment to see the full error message
         this.handleMonitorChange(startDate, this.state.monitorEnd);
     };
-    handleMonitorEndDateTimeChange = val => {
+    handleMonitorEndDateTimeChange = (val: $TSFixMe) => {
         const endDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStart' does not exist on type 'Re... Remove this comment to see the full error message
         this.handleMonitorChange(this.state.monitorStart, endDate);
     };
-    handleMonitorChange(startDate, endDate) {
+    handleMonitorChange(startDate: $TSFixMe, endDate: $TSFixMe) {
         this.setState({
             monitorStart: startDate,
             monitorEnd: endDate,
         });
     }
 
-    handleResolveTimeFilterChange(filter) {
+    handleResolveTimeFilterChange(filter: $TSFixMe) {
         this.setState({
             resolveTimeFilter: filter,
         });
     }
 
-    handleIncidentFilterChange(filter) {
+    handleIncidentFilterChange(filter: $TSFixMe) {
         this.setState({
             incidentFilter: filter,
         });
     }
 
-    handleStartDateTimeChange = val => {
+    handleStartDateTimeChange = (val: $TSFixMe) => {
         const startDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeEnd' does not exist on type '... Remove this comment to see the full error message
         this.handleResolveTimeChange(startDate, this.state.resolveTimeEnd);
     };
-    handleEndDateTimeChange = val => {
+    handleEndDateTimeChange = (val: $TSFixMe) => {
         const endDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeStart' does not exist on type... Remove this comment to see the full error message
         this.handleResolveTimeChange(this.state.resolveTimeStart, endDate);
     };
-    handleResolveTimeChange(startDate, endDate) {
+    handleResolveTimeChange(startDate: $TSFixMe, endDate: $TSFixMe) {
         this.setState({
             resolveTimeStart: startDate,
             resolveTimeEnd: endDate,
         });
     }
-    handleIncidentStartDateTimeChange = val => {
+    handleIncidentStartDateTimeChange = (val: $TSFixMe) => {
         const startDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentEnd' does not exist on type 'Rea... Remove this comment to see the full error message
         this.handleIncidentChange(startDate, this.state.incidentEnd);
     };
-    handleIncidentEndDateTimeChange = val => {
+    handleIncidentEndDateTimeChange = (val: $TSFixMe) => {
         const endDate = moment(val);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentStart' does not exist on type 'R... Remove this comment to see the full error message
         this.handleIncidentChange(this.state.incidentStart, endDate);
     };
 
-    handleIncidentChange(startDate, endDate) {
+    handleIncidentChange(startDate: $TSFixMe, endDate: $TSFixMe) {
         this.setState({
             incidentStart: startDate,
             incidentEnd: endDate,
@@ -159,8 +168,11 @@ export class Reports extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
@@ -172,6 +184,7 @@ export class Reports extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem route={pathname} name="Reports" />
@@ -224,6 +237,7 @@ export class Reports extends Component {
                                                                     <div
                                                                         className="db-DateRangeInput-input"
                                                                         role="button"
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                                         tabIndex="0"
                                                                         style={{
                                                                             cursor:
@@ -232,10 +246,12 @@ export class Reports extends Component {
                                                                     >
                                                                         <span className="db-DateRangeInput-start">
                                                                             <Select
+                                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: any; className: strin... Remove this comment to see the full error message
                                                                                 name="filter"
                                                                                 value={
                                                                                     this
                                                                                         .state
+                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeFilter' does not exist on typ... Remove this comment to see the full error message
                                                                                         .resolveTimeFilter
                                                                                 }
                                                                                 className="db-select-ne"
@@ -287,9 +303,11 @@ export class Reports extends Component {
                                                                 currentDateRange={{
                                                                     startDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeStart' does not exist on type... Remove this comment to see the full error message
                                                                         .resolveTimeStart,
                                                                     endDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeEnd' does not exist on type '... Remove this comment to see the full error message
                                                                         .resolveTimeEnd,
                                                                 }}
                                                                 handleStartDateTimeChange={
@@ -311,21 +329,26 @@ export class Reports extends Component {
                                                         </div>
                                                     </div>
                                                     <ResolveTime
+                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ filter: any; startDate: any; endDate: any;... Remove this comment to see the full error message
                                                         filter={
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeFilter' does not exist on typ... Remove this comment to see the full error message
                                                                 .resolveTimeFilter
                                                                 .value
                                                         }
                                                         startDate={
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeStart' does not exist on type... Remove this comment to see the full error message
                                                                 .resolveTimeStart
                                                         }
                                                         endDate={
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeEnd' does not exist on type '... Remove this comment to see the full error message
                                                                 .resolveTimeEnd
                                                         }
                                                         currentProject={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                                                                 .currentProjectId
                                                         }
                                                     />
@@ -377,6 +400,7 @@ export class Reports extends Component {
                                                                     <div
                                                                         className="db-DateRangeInput-input"
                                                                         role="button"
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                                         tabIndex="0"
                                                                         style={{
                                                                             cursor:
@@ -385,10 +409,12 @@ export class Reports extends Component {
                                                                     >
                                                                         <span className="db-DateRangeInput-start">
                                                                             <Select
+                                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: any; className: strin... Remove this comment to see the full error message
                                                                                 name="filter"
                                                                                 value={
                                                                                     this
                                                                                         .state
+                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentFilter' does not exist on type '... Remove this comment to see the full error message
                                                                                         .incidentFilter
                                                                                 }
                                                                                 className="db-select-ne"
@@ -440,9 +466,11 @@ export class Reports extends Component {
                                                                 currentDateRange={{
                                                                     startDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentStart' does not exist on type 'R... Remove this comment to see the full error message
                                                                         .incidentStart,
                                                                     endDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentEnd' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                         .incidentEnd,
                                                                 }}
                                                                 handleStartDateTimeChange={
@@ -465,21 +493,26 @@ export class Reports extends Component {
                                                     </div>
 
                                                     <Incidents
+                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ filter: any; startDate: any; endDate: any;... Remove this comment to see the full error message
                                                         filter={
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentFilter' does not exist on type '... Remove this comment to see the full error message
                                                                 .incidentFilter
                                                                 .value
                                                         }
                                                         startDate={
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentStart' does not exist on type 'R... Remove this comment to see the full error message
                                                                 .incidentStart
                                                         }
                                                         endDate={
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentEnd' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .incidentEnd
                                                         }
                                                         currentProject={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                                                                 .currentProjectId
                                                         }
                                                     />
@@ -523,9 +556,11 @@ export class Reports extends Component {
                                                                 currentDateRange={{
                                                                     startDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'membersStart' does not exist on type 'Re... Remove this comment to see the full error message
                                                                         .membersStart,
                                                                     endDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'membersEnd' does not exist on type 'Read... Remove this comment to see the full error message
                                                                         .membersEnd,
                                                                 }}
                                                                 handleStartDateTimeChange={
@@ -548,14 +583,18 @@ export class Reports extends Component {
                                                     </div>
                                                 </div>
                                                 <Members
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ startDate: any; endDate: any; currentProje... Remove this comment to see the full error message
                                                     startDate={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'membersStart' does not exist on type 'Re... Remove this comment to see the full error message
                                                         this.state.membersStart
                                                     }
                                                     endDate={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'membersEnd' does not exist on type 'Read... Remove this comment to see the full error message
                                                         this.state.membersEnd
                                                     }
                                                     currentProject={
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                                                             .currentProjectId
                                                     }
                                                     styles={styles.number}
@@ -595,9 +634,11 @@ export class Reports extends Component {
                                                                 currentDateRange={{
                                                                     startDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStart' does not exist on type 'Re... Remove this comment to see the full error message
                                                                         .monitorStart,
                                                                     endDate: this
                                                                         .state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorEnd' does not exist on type 'Read... Remove this comment to see the full error message
                                                                         .monitorEnd,
                                                                 }}
                                                                 handleStartDateTimeChange={
@@ -620,14 +661,18 @@ export class Reports extends Component {
                                                     </div>
                                                 </div>
                                                 <Monitors
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ startDate: any; endDate: any; currentProje... Remove this comment to see the full error message
                                                     startDate={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStart' does not exist on type 'Re... Remove this comment to see the full error message
                                                         this.state.monitorStart
                                                     }
                                                     endDate={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorEnd' does not exist on type 'Read... Remove this comment to see the full error message
                                                         this.state.monitorEnd
                                                     }
                                                     currentProject={
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
                                                             .currentProjectId
                                                     }
                                                     styles={styles.number}
@@ -645,7 +690,7 @@ export class Reports extends Component {
     }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProjectId:
             state.project.currentProject && state.project.currentProject._id,
@@ -654,6 +699,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Reports.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
@@ -663,6 +709,7 @@ Reports.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Reports.displayName = 'Reports';
 
 export default connect(mapStateToProps, {})(Reports);

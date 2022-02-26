@@ -2,7 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import {
     fetchNumbers,
@@ -17,7 +19,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
 
 class RoutingNumberModal extends React.Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { countryCode: '', numberType: '' };
     }
@@ -26,16 +28,22 @@ class RoutingNumberModal extends React.Component {
     }
 
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetFetchNumbers' does not exist on typ... Remove this comment to see the full error message
         this.props.resetFetchNumbers();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetAddCallRoutingNumber' does not exis... Remove this comment to see the full error message
         this.props.resetAddCallRoutingNumber();
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
     submitForm = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchNumber' does not exist on type 'Rea... Remove this comment to see the full error message
             fetchNumber,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCallRoutingNumber' does not exist on ... Remove this comment to see the full error message
             addCallRoutingNumber,
         } = this.props;
         const {
@@ -46,6 +54,7 @@ class RoutingNumberModal extends React.Component {
             price,
             priceUnit,
         } = fetchNumber.numbers;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type 'Rea... Remove this comment to see the full error message
         const { countryCode, numberType } = this.state;
         const postObj = {
             projectId: currentProject._id,
@@ -59,34 +68,42 @@ class RoutingNumberModal extends React.Component {
             numberType,
         };
         addCallRoutingNumber(currentProject._id, postObj).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'saveNumber' does not exist on type 'Read... Remove this comment to see the full error message
             if (this.props.saveNumber && !this.props.saveNumber.error) {
                 closeThisDialog();
             }
         });
     };
-    changeCountryCode = (event, value) => {
+    changeCountryCode = (event: $TSFixMe, value: $TSFixMe) => {
         this.setState({ countryCode: value });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberType' does not exist on type 'Read... Remove this comment to see the full error message
         if (value && this.state.numberType && this.state.numberType.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberType' does not exist on type 'Read... Remove this comment to see the full error message
             this.getNumbers(value, this.state.numberType);
         }
     };
-    changeNumberType = (event, value) => {
+    changeNumberType = (event: $TSFixMe, value: $TSFixMe) => {
         this.setState({ numberType: value });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type 'Rea... Remove this comment to see the full error message
         if (value && this.state.countryCode && this.state.countryCode.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type 'Rea... Remove this comment to see the full error message
             this.getNumbers(this.state.countryCode, value);
         }
     };
-    getNumbers = (countryCode, numberType) => {
+    getNumbers = (countryCode: $TSFixMe, numberType: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchNumbers } = this.props;
         const projectId =
             currentProject && currentProject._id ? currentProject._id : null;
         fetchNumbers(projectId, countryCode, numberType);
     };
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('addNumber').click();
             default:
                 return false;
@@ -94,6 +111,7 @@ class RoutingNumberModal extends React.Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchNumber' does not exist on type 'Rea... Remove this comment to see the full error message
         const { fetchNumber, saveNumber, closeThisDialog } = this.props;
         const isRequesting = saveNumber && saveNumber.requesting ? true : false;
         const isFetching = fetchNumber && fetchNumber.requesting ? true : false;
@@ -134,6 +152,7 @@ class RoutingNumberModal extends React.Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -344,9 +363,11 @@ class RoutingNumberModal extends React.Component {
                                                                         this.getNumbers(
                                                                             this
                                                                                 .state
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                 .countryCode,
                                                                             this
                                                                                 .state
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberType' does not exist on type 'Read... Remove this comment to see the full error message
                                                                                 .numberType
                                                                         )
                                                                     }
@@ -632,6 +653,7 @@ class RoutingNumberModal extends React.Component {
                                         </ShouldRender>
                                         <ShouldRender if={isFetching}>
                                             <td
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                 colSpan="5"
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             >
@@ -762,6 +784,7 @@ class RoutingNumberModal extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RoutingNumberModal.displayName = 'RoutingNumberModal';
 
 const NewRoutingNumberModal = reduxForm({
@@ -770,6 +793,7 @@ const NewRoutingNumberModal = reduxForm({
     destroyOnUnmount: true,
 })(RoutingNumberModal);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RoutingNumberModal.propTypes = {
     addCallRoutingNumber: PropTypes.func,
     closeThisDialog: PropTypes.func,
@@ -809,18 +833,17 @@ RoutingNumberModal.propTypes = {
     }),
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchNumbers,
-            addCallRoutingNumber,
-            resetFetchNumbers,
-            resetAddCallRoutingNumber,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchNumbers,
+        addCallRoutingNumber,
+        resetFetchNumbers,
+        resetAddCallRoutingNumber,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         fetchNumber: state.callRouting.fetchNumber,
         saveNumber: state.callRouting.saveNumber,

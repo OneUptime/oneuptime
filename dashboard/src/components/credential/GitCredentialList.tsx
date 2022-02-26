@@ -20,11 +20,11 @@ const GitCredentialList = ({
     deleteError,
     openModal,
     getGitSecurities,
-    modalId,
-}) => {
+    modalId
+}: $TSFixMe) => {
     const [page, setPage] = useState(1);
 
-    const handleDelete = credentialId => {
+    const handleDelete = (credentialId: $TSFixMe) => {
         getGitSecurities({ projectId, credentialId });
 
         openModal({
@@ -52,7 +52,7 @@ const GitCredentialList = ({
         });
     };
 
-    const handleCredentialUpdate = credentialId => {
+    const handleCredentialUpdate = (credentialId: $TSFixMe) => {
         openModal({
             id: projectId,
             content: GitCredentialModal,
@@ -60,7 +60,7 @@ const GitCredentialList = ({
         });
     };
 
-    const handleKeyboard = e => {
+    const handleKeyboard = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
@@ -91,7 +91,7 @@ const GitCredentialList = ({
     };
 
     const { next_page, pre_page, data, count } = paginate(
-        gitCredentials.filter(obj => obj.gitUsername),
+        gitCredentials.filter((obj: $TSFixMe) => obj.gitUsername),
         page,
         10
     );
@@ -172,7 +172,7 @@ const GitCredentialList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {gitCredentials.map((gitCredential, index) => (
+                            {gitCredentials.map((gitCredential: $TSFixMe, index: $TSFixMe) => (
                                 <tr
                                     key={gitCredential._id}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
@@ -329,6 +329,7 @@ const GitCredentialList = ({
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${!pre_page &&
                                         'Is--disabled'}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
                                     disabled=""
                                     type="button"
                                     onClick={prev}
@@ -345,6 +346,7 @@ const GitCredentialList = ({
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${!next_page &&
                                         'Is--disabled'}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
                                     disabled=""
                                     type="button"
                                     onClick={next}
@@ -378,13 +380,12 @@ GitCredentialList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { deleteGitCredential, openModal, getGitSecurities },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { deleteGitCredential, openModal, getGitSecurities },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleteError: state.credential.deleteCredential.error,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

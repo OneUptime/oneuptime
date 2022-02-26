@@ -2,6 +2,7 @@ import express from 'express'
 import ZapierService from '../services/zapierService'
 import MonitorService from '../services/monitorService'
 import ProjectService from '../services/projectService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -23,20 +24,21 @@ router.get('/test', isAuthorized, async function(req, res) {
 router.get('/monitors', isAuthorized, async function(req, res) {
     try {
         const projectId = req.query.projectId;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ _id: string |... Remove this comment to see the full error message
         const projects = await ProjectService.findBy({
             query: {
                 $or: [{ _id: projectId }, { parentProjectId: projectId }],
             },
             select: '_id',
         });
-        const projectIds = projects.map(project => project._id);
+        const projectIds = projects.map((project: $TSFixMe) => project._id);
         let monitors = await MonitorService.findBy({
             query: { projectId: { $in: projectIds } },
             select: '_id name',
         });
         if (monitors) {
             if (monitors.length) {
-                monitors = monitors.map(resp => {
+                monitors = monitors.map((resp: $TSFixMe) => {
                     return { id: resp._id, name: resp.name };
                 });
             }
@@ -159,6 +161,7 @@ router.get('/incident/acknowledged', isAuthorized, async function(req, res) {
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
         const incidents = await ZapierService.getAcknowledgedIncidents(
             projectId,
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 3.
             true,
             false
         );

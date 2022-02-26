@@ -5,21 +5,21 @@ import { saveFile } from '../config';
 
 // Create a new subscriber
 
-export function createSubscriberRequest(promise) {
+export function createSubscriberRequest(promise: $TSFixMe) {
     return {
         type: types.CREATE_SUBSCRIBER_REQUEST,
         payload: promise,
     };
 }
 
-export function createSubscriberError(error) {
+export function createSubscriberError(error: $TSFixMe) {
     return {
         type: types.CREATE_SUBSCRIBER_FAILED,
         payload: error,
     };
 }
 
-export function createSubscriberSuccess(subscriber) {
+export function createSubscriberSuccess(subscriber: $TSFixMe) {
     return {
         type: types.CREATE_SUBSCRIBER_SUCCESS,
         payload: subscriber,
@@ -33,8 +33,8 @@ export const resetCreateSubscriber = () => {
 };
 
 // Calls the API to create new subscriber.
-export function createSubscriber(projectId, monitorId, data) {
-    return function(dispatch) {
+export function createSubscriber(projectId: $TSFixMe, monitorId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `subscriber/${projectId}/subscribe/${monitorId}`,
             data
@@ -44,6 +44,7 @@ export function createSubscriber(projectId, monitorId, data) {
 
         promise.then(
             function(createSubscriber) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function(error) {
@@ -67,21 +68,21 @@ export function createSubscriber(projectId, monitorId, data) {
 
 // Export subscribers to csv
 
-export function exportCsvRequest(promise) {
+export function exportCsvRequest(promise: $TSFixMe) {
     return {
         type: types.EXPORT_CSV_REQUEST,
         payload: promise,
     };
 }
 
-export function exportCsvError(error) {
+export function exportCsvError(error: $TSFixMe) {
     return {
         type: types.EXPORT_CSV_FAILED,
         payload: error,
     };
 }
 
-export function exportCsvSuccess(data) {
+export function exportCsvSuccess(data: $TSFixMe) {
     return {
         type: types.EXPORT_CSV_SUCCESS,
         payload: data,
@@ -95,8 +96,8 @@ export const resetExportCsv = () => {
 };
 
 // Calls the API to export subscribers to csv
-export function exportCSV(projectId, monitorId, skip, limit, csv) {
-    return function(dispatch) {
+export function exportCSV(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe, csv: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
         );
@@ -105,7 +106,9 @@ export function exportCSV(projectId, monitorId, skip, limit, csv) {
 
         promise.then(
             function(csvData) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 saveFile(csvData.data.data, 'subscriber.csv');
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
             function(error) {
@@ -129,21 +132,21 @@ export function exportCSV(projectId, monitorId, skip, limit, csv) {
 
 // Delete a subscriber
 
-export function deleteSubscriberRequest(promise) {
+export function deleteSubscriberRequest(promise: $TSFixMe) {
     return {
         type: types.DELETE_SUBSCRIBER_REQUEST,
         payload: promise,
     };
 }
 
-export function deleteSubscriberError(error) {
+export function deleteSubscriberError(error: $TSFixMe) {
     return {
         type: types.DELETE_SUBSCRIBER_FAILED,
         payload: error,
     };
 }
 
-export function deleteSubscriberSuccess(subscriber) {
+export function deleteSubscriberSuccess(subscriber: $TSFixMe) {
     return {
         type: types.DELETE_SUBSCRIBER_SUCCESS,
         payload: subscriber,
@@ -157,8 +160,8 @@ export const resetDeleteSubscriber = () => {
 };
 
 // Calls the API to delete a subscriber.
-export function deleteSubscriber(projectId, subscriberId) {
-    return function(dispatch) {
+export function deleteSubscriber(projectId: $TSFixMe, subscriberId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subscriber/${projectId}/${subscriberId}`,
             {}
@@ -168,9 +171,11 @@ export function deleteSubscriber(projectId, subscriberId) {
 
         promise.then(
             function(subscriber) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteSubscriberSuccess(subscriber.data));
                 dispatch({
                     type: 'REMOVE_MONITORS_SUBSCRIBERS',
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     payload: subscriber.data,
                 });
             },
@@ -200,7 +205,7 @@ export const downloadCsvTemplateRequest = () => {
     };
 };
 
-export const downloadCsvTemplateError = error => {
+export const downloadCsvTemplateError = (error: $TSFixMe) => {
     return {
         type: types.DOWNLOAD_CSV_TEMPLATE_FAILED,
         payload: error,
@@ -219,7 +224,7 @@ export const downloadCsvTemplateSuccess = () => {
 export function downloadCsvTemplate() {
     const fields =
         'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(downloadCsvTemplateRequest());
         try {
             saveFile(fields, 'subscribers.csv');
@@ -236,8 +241,8 @@ export function downloadCsvTemplate() {
  * @param {*} projectId
  * @param {*} monitorId
  */
-export function importSubscribersFromCsvFile(data, projectId, monitorId) {
-    return function(dispatch) {
+export function importSubscribersFromCsvFile(data: $TSFixMe, projectId: $TSFixMe, monitorId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `subscriber/${projectId}/${monitorId}/csv`,
             data
@@ -247,6 +252,7 @@ export function importSubscribersFromCsvFile(data, projectId, monitorId) {
 
         promise.then(
             function(createSubscriber) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function(error) {

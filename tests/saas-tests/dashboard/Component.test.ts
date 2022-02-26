@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
@@ -14,11 +15,14 @@ const newComponentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const newMonitorName = utils.generateRandomString();
 const applicationLogName = utils.generateRandomString();
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Components', () => {
     const operationTimeOut = init.timeout;
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
     beforeAll(async () => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch({
@@ -31,32 +35,38 @@ describe('Components', () => {
         await init.registerUser(user, page);
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create new component',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
             // Fill and submit New Component form
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-component');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', componentName);
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', e => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
 
             let spanElement;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}`
@@ -69,24 +79,32 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create a new monitor in component and confirm that monitor quick tip shows',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[id=name]');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', monitorName);
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#url');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
@@ -100,6 +118,7 @@ describe('Components', () => {
 
             const customTutorialType = 'monitor';
             // find monitor quick tip and confirm it shows
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const monitorQuickTip = await init.pageWaitForSelector(
                 page,
                 `#quick-tip-${customTutorialType}`
@@ -110,26 +129,36 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create a new monitor in component and goto the details page after creating',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const newMonitorName = `another-${monitorName}`;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#cbMonitors');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#newFormId');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[id=name]');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', newMonitorName);
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#url');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${newMonitorName}`
@@ -139,6 +168,7 @@ describe('Components', () => {
             spanElement.should.be.exactly(newMonitorName);
 
             // check if the tabs on the details page are defined
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const monitorTabsComponent = await init.pageWaitForSelector(
                 page,
                 `#customTabList`
@@ -149,9 +179,10 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should show the correct path on the breadcrumbs when viewing a particular monitor',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const monitorDetailsBtn = `#more-details-${monitorName}`;
@@ -159,7 +190,7 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, monitorDetailsBtn, e => e.click());
+            await init.page$Eval(page, monitorDetailsBtn, (e: $TSFixMe) => e.click());
 
             const projectSelector = `#cbUnnamedProject`;
             const componentSelector = `#cb${componentName}`;
@@ -178,18 +209,15 @@ describe('Components', () => {
             });
 
             const projectBreadcrumb = await page.evaluate(
-                projectSelector =>
-                    document.querySelector(projectSelector).textContent,
+                (projectSelector: $TSFixMe) => document.querySelector(projectSelector).textContent,
                 projectSelector
             );
             const componentBreadcrumb = await page.evaluate(
-                componentSelector =>
-                    document.querySelector(componentSelector).textContent,
+                (componentSelector: $TSFixMe) => document.querySelector(componentSelector).textContent,
                 componentSelector
             );
             const monitorBreadcrumb = await page.evaluate(
-                monitorSelector =>
-                    document.querySelector(monitorSelector).textContent,
+                (monitorSelector: $TSFixMe) => document.querySelector(monitorSelector).textContent,
                 monitorSelector
             );
             expect(projectBreadcrumb).toBe('Unnamed Project');
@@ -201,21 +229,27 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create a new log container in component',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#logs');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#logs');
 
             // Fill and submit New Application  log form
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-application-log');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', applicationLogName);
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
 
             let spanElement;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#application-log-title-${applicationLogName}`
@@ -228,42 +262,55 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create a new monitor in a new component and get list of resources',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
 
             // Fill and submit New Component form
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#cbComponents');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#newFormId');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-component');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', newComponentName);
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[id=name]');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', newMonitorName);
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#url');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
             await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await page.goto(utils.DASHBOARD_URL);
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -277,19 +324,21 @@ describe('Components', () => {
             const newComponentSelector = `#count_${newComponentName}`;
             const componentSelector = `#count_${componentName}`;
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, newComponentSelector);
             const newResourceCount = await init.page$Eval(
                 page,
                 newComponentSelector,
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(newResourceCount).toEqual('1 Resource');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, componentSelector);
             const firstResourceCount = await init.page$Eval(
                 page,
                 componentSelector,
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(firstResourceCount).toEqual('3 Resources');
             done();
@@ -297,28 +346,32 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should get list of resources and confirm their types match',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#count_${componentName}`);
             const firstResourceCount = await init.page$Eval(
                 page,
                 `#count_${componentName}`,
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(firstResourceCount).toEqual('3 Resources');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#resource_type_${monitorName}`
@@ -328,6 +381,7 @@ describe('Components', () => {
 
             expect(spanElement).toMatch('Website Monitor');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             spanElement = await init.pageWaitForSelector(
                 page,
                 `#resource_type_${applicationLogName}`
@@ -337,6 +391,7 @@ describe('Components', () => {
 
             expect(spanElement).toMatch('Log Container');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             spanElement = await init.pageWaitForSelector(
                 page,
                 `#resource_status_${applicationLogName}`
@@ -350,34 +405,38 @@ describe('Components', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should get list of resources and  navigate to each page',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#count_${componentName}`);
             const firstResourceCount = await init.page$Eval(
                 page,
                 `#count_${componentName}`,
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(firstResourceCount).toEqual('3 Resources'); // one log container and two monitor
 
             await init.page$Eval(
                 page,
                 `#view-resource-${applicationLogName}`,
-                e => e.click()
+                (e: $TSFixMe) => e.click()
             );
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#application-log-title-${applicationLogName}`

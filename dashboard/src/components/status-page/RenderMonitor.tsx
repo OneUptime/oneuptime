@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, formValueSelector, change } from 'redux-form';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -7,7 +8,12 @@ import ShouldRender from '../basic/ShouldRender';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 
-const Checkbox = ({ label, name, disabled, id }) => (
+const Checkbox = ({
+    label,
+    name,
+    disabled,
+    id
+}: $TSFixMe) => (
     <div className="bs-Fieldset-fields" style={{ maxHeight: '20px' }}>
         <div className="Box-root" style={{ height: '5px' }}></div>
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -54,18 +60,16 @@ let RenderMonitor = ({
     dispatch,
     errors,
     form = 'StatuspageMonitors',
-    statusPageCategory,
-}) => {
+    statusPageCategory
+}: $TSFixMe) => {
     const currentMonitorForm = monitors[monitorIndex];
     const { monitor: currentMonitorID } = currentMonitorForm;
-    const getParentComponent = monitor =>
-        allComponents.filter(
-            component =>
-                component._id === monitor.componentId._id || monitor.componentId
-        )[0];
+    const getParentComponent = (monitor: $TSFixMe) => allComponents.filter(
+        (component: $TSFixMe) => component._id === monitor.componentId._id || monitor.componentId
+    )[0];
 
     const selectedMonitor = allMonitors.filter(
-        monitor => monitor._id === currentMonitorID
+        (monitor: $TSFixMe) => monitor._id === currentMonitorID
     )[0];
     const { type = null } = !!selectedMonitor && selectedMonitor;
 
@@ -114,13 +118,14 @@ let RenderMonitor = ({
                                 component={RenderSelect}
                                 options={[
                                     ...allMonitors
-                                        .filter(m => getParentComponent(m))
-                                        .map(m => ({
-                                            value: m._id,
-                                            label: `${
-                                                getParentComponent(m).name
-                                            } / ${m.name}`,
-                                        })),
+                                        .filter((m: $TSFixMe) => getParentComponent(m))
+                                        .map((m: $TSFixMe) => ({
+                                        value: m._id,
+
+                                        label: `${
+                                            getParentComponent(m).name
+                                        } / ${m.name}`
+                                    })),
                                 ]}
                                 onChange={() => resetSelectedCharts()}
                             />
@@ -295,21 +300,20 @@ let RenderMonitor = ({
     );
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const selector = formValueSelector(ownProps.form);
     const { subProject } = ownProps;
     const subProjectId = subProject?._id;
 
     const allComponents = state.component.componentList.components
         .filter(
-            component =>
-                String(component._id._id || component._id) ===
-                String(subProjectId)
+            (component: $TSFixMe) => String(component._id._id || component._id) ===
+            String(subProjectId)
         )
-        .map(component => component.components)
+        .map((component: $TSFixMe) => component.components)
         .flat();
     const allMonitors = state.monitor.monitorsList.monitors
-        .map(monitor => monitor.monitors)
+        .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
     const monitors = selector(state, 'monitors');
 
@@ -318,7 +322,7 @@ const mapStateToProps = (state, ownProps) => {
      * monitor.monitor is the required id used in setting the initial values by default.
      */
     monitors &&
-        monitors.map(monitor => {
+        monitors.map((monitor: $TSFixMe) => {
             if (monitor.monitor && typeof monitor.monitor === 'object') {
                 monitor.monitor = monitor.monitor._id;
             }
@@ -338,9 +342,12 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'ConnectedComponent<({ subProject, monitorInd... Remove this comment to see the full error message
 RenderMonitor = connect(mapStateToProps)(RenderMonitor);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
 RenderMonitor.displayName = 'RenderMonitor';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ su... Remove this comment to see the full error message
 RenderMonitor.propTypes = {
     subProject: PropTypes.object.isRequired,
     monitorIndex: PropTypes.number.isRequired,

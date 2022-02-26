@@ -8,22 +8,22 @@ export const fetchTimeMetricsRequest = () => ({
     type: types.FETCH_TIME_METRICS_REQUEST,
 });
 
-export const fetchTimeMetricsSuccess = payload => ({
+export const fetchTimeMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_TIME_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchTimeMetricsFailure = error => ({
+export const fetchTimeMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_TIME_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchTimeMetrics = ({
     appId,
     key,
     startDate,
-    endDate,
-}) => dispatch => {
+    endDate
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchTimeMetricsRequest());
 
     startDate = encode(moment(startDate).format());
@@ -35,6 +35,7 @@ export const fetchTimeMetrics = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchTimeMetricsSuccess(response.data));
         },
         function(error) {
@@ -58,22 +59,22 @@ export const fetchThroughputMetricsRequest = () => ({
     type: types.FETCH_THROUGHPUT_METRICS_REQUEST,
 });
 
-export const fetchThroughputMetricsSuccess = payload => ({
+export const fetchThroughputMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_THROUGHPUT_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchThroughputMetricsFailure = error => ({
+export const fetchThroughputMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_THROUGHPUT_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchThroughputMetrics = ({
     appId,
     key,
     startDate,
-    endDate,
-}) => dispatch => {
+    endDate
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchThroughputMetricsRequest());
 
     startDate = encode(moment(startDate).format());
@@ -85,6 +86,7 @@ export const fetchThroughputMetrics = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchThroughputMetricsSuccess(response.data));
         },
         function(error) {
@@ -108,22 +110,22 @@ export const fetchErrorMetricsRequest = () => ({
     type: types.FETCH_ERROR_METRICS_REQUEST,
 });
 
-export const fetchErrorMetricsSuccess = payload => ({
+export const fetchErrorMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_ERROR_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchErrorMetricsFailure = error => ({
+export const fetchErrorMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_ERROR_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchErrorMetrics = ({
     appId,
     key,
     startDate,
-    endDate,
-}) => dispatch => {
+    endDate
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchErrorMetricsRequest());
 
     startDate = encode(moment(startDate).format());
@@ -135,6 +137,7 @@ export const fetchErrorMetrics = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchErrorMetricsSuccess(response.data));
         },
         function(error) {
@@ -154,75 +157,80 @@ export const fetchErrorMetrics = ({
 };
 
 // handle setting startDate/endDate - (TIME || THROUGHPUT || ERROR)
-export const setTimeStartDate = date => ({
+export const setTimeStartDate = (date: $TSFixMe) => ({
     type: types.SET_TIME_STARTDATE,
-    payload: date,
+    payload: date
 });
 
-export const setTimeEndDate = date => ({
+export const setTimeEndDate = (date: $TSFixMe) => ({
     type: types.SET_TIME_ENDDATE,
-    payload: date,
+    payload: date
 });
 
-export const setThroughputStartDate = date => ({
+export const setThroughputStartDate = (date: $TSFixMe) => ({
     type: types.SET_THROUGHPUT_STARTDATE,
-    payload: date,
+    payload: date
 });
 
-export const setThroughputEndDate = date => ({
+export const setThroughputEndDate = (date: $TSFixMe) => ({
     type: types.SET_THROUGHPUT_ENDDATE,
-    payload: date,
+    payload: date
 });
 
-export const setErrorStartDate = date => ({
+export const setErrorStartDate = (date: $TSFixMe) => ({
     type: types.SET_ERROR_STARTDATE,
-    payload: date,
+    payload: date
 });
 
-export const setErrorEndDate = date => ({
+export const setErrorEndDate = (date: $TSFixMe) => ({
     type: types.SET_ERROR_ENDDATE,
-    payload: date,
+    payload: date
 });
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetTimeDate = (startDate, endDate) => ({
     type: types.RESET_TIME_DATE,
-    payload: { startDate, endDate },
+    payload: { startDate, endDate }
 });
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetThroughputDate = (startDate, endDate) => ({
     type: types.RESET_THROUGHPUT_DATE,
-    payload: { startDate, endDate },
+    payload: { startDate, endDate }
 });
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetErrorDate = (startDate, endDate) => ({
     type: types.RESET_ERROR_DATE,
-    payload: { startDate, endDate },
+    payload: { startDate, endDate }
 });
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetIncomingDate = (startDate, endDate) => ({
     type: types.RESET_INCOMING_DATE,
-    payload: { startDate, endDate },
+    payload: { startDate, endDate }
 });
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetOutgoingDate = (startDate, endDate) => ({
     type: types.RESET_OUTGOING_DATE,
-    payload: { startDate, endDate },
+    payload: { startDate, endDate }
 });
 
 // update metrics from realtime update
-export const updateTimeMetrics = payload => ({
+export const updateTimeMetrics = (payload: $TSFixMe) => ({
     type: types.UPDATE_TIME_METRICS,
-    payload,
+    payload
 });
 
-export const updateThroughputMetrics = payload => ({
+export const updateThroughputMetrics = (payload: $TSFixMe) => ({
     type: types.UPDATE_THROUGHPUT_METRICS,
-    payload,
+    payload
 });
 
-export const updateErrorMetrics = payload => ({
+export const updateErrorMetrics = (payload: $TSFixMe) => ({
     type: types.UPDATE_ERROR_METRICS,
-    payload,
+    payload
 });
 
 // fetch all performance metrics (incoming/outgoing)
@@ -230,14 +238,14 @@ export const fetchIncomingMetricsRequest = () => ({
     type: types.FETCH_INCOMING_METRICS_REQUEST,
 });
 
-export const fetchIncomingMetricsSuccess = payload => ({
+export const fetchIncomingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_INCOMING_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchIncomingMetricsFailure = error => ({
+export const fetchIncomingMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_INCOMING_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchIncomingMetrics = ({
@@ -246,8 +254,8 @@ export const fetchIncomingMetrics = ({
     skip,
     limit,
     startDate,
-    endDate,
-}) => dispatch => {
+    endDate
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchIncomingMetricsRequest());
 
     startDate = encode(moment(startDate).format());
@@ -259,6 +267,7 @@ export const fetchIncomingMetrics = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchIncomingMetricsSuccess(response.data));
         },
         function(error) {
@@ -281,14 +290,14 @@ export const fetchOutgoingMetricsRequest = () => ({
     type: types.FETCH_OUTGOING_METRICS_REQUEST,
 });
 
-export const fetchOutgoingMetricsSuccess = payload => ({
+export const fetchOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_OUTGOING_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchOutgoingMetricsFailing = error => ({
+export const fetchOutgoingMetricsFailing = (error: $TSFixMe) => ({
     type: types.FETCH_OUTGOING_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchOutgoingMetrics = ({
@@ -297,8 +306,8 @@ export const fetchOutgoingMetrics = ({
     skip,
     limit,
     startDate,
-    endDate,
-}) => dispatch => {
+    endDate
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchOutgoingMetricsRequest());
 
     startDate = encode(moment(startDate).format());
@@ -310,6 +319,7 @@ export const fetchOutgoingMetrics = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchOutgoingMetricsSuccess(response.data));
         },
         function(error) {
@@ -328,24 +338,24 @@ export const fetchOutgoingMetrics = ({
     return promise;
 };
 
-export const setIncomingStartDate = payload => ({
+export const setIncomingStartDate = (payload: $TSFixMe) => ({
     type: types.SET_INCOMING_STARTDATE,
-    payload,
+    payload
 });
 
-export const setIncomingEndDate = payload => ({
+export const setIncomingEndDate = (payload: $TSFixMe) => ({
     type: types.SET_INCOMING_ENDDATE,
-    payload,
+    payload
 });
 
-export const setOutgoingStartDate = payload => ({
+export const setOutgoingStartDate = (payload: $TSFixMe) => ({
     type: types.SET_OUTGOING_STARTDATE,
-    payload,
+    payload
 });
 
-export const setOutgoingEndDate = payload => ({
+export const setOutgoingEndDate = (payload: $TSFixMe) => ({
     type: types.SET_OUTGOING_ENDDATE,
-    payload,
+    payload
 });
 
 // delete a particular performance metrics (incoming/outgoing)
@@ -353,29 +363,35 @@ export const deleteIncomingMetricsRequest = () => ({
     type: types.DELETE_INCOMING_METRICS_REQUEST,
 });
 
-export const deleteIncomingMetricsSuccess = payload => ({
+export const deleteIncomingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCOMING_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteIncomingMetricsFailure = error => ({
+export const deleteIncomingMetricsFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCOMING_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const resetIncomingDelete = () => ({
     type: types.RESET_INCOMING_DELETE,
 });
 
-export const deleteIncomingMetrics = ({ appId, key, metricId }) => dispatch => {
+export const deleteIncomingMetrics = ({
+    appId,
+    key,
+    metricId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deleteIncomingMetricsRequest());
 
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(
         `performanceMetric/${appId}/key/${key}/${metricId}`
     );
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(deleteIncomingMetricsSuccess(response.data));
         },
         function(error) {
@@ -398,29 +414,35 @@ export const deleteOutgoingMetricsRequest = () => ({
     type: types.DELETE_OUTGOING_METRICS_REQUEST,
 });
 
-export const deleteOutgoingMetricsSuccess = payload => ({
+export const deleteOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_OUTGOING_METRICS_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteOutgoingMetricsFailure = error => ({
+export const deleteOutgoingMetricsFailure = (error: $TSFixMe) => ({
     type: types.DELETE_OUTGOING_METRICS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const resetOutgoingDelete = () => ({
     type: types.RESET_OUTGOING_DELETE,
 });
 
-export const deleteOutgoingMetrics = ({ appId, key, metricId }) => dispatch => {
+export const deleteOutgoingMetrics = ({
+    appId,
+    key,
+    metricId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deleteOutgoingMetricsRequest());
 
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(
         `performanceMetric/${appId}/key/${key}/${metricId}`
     );
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(deleteOutgoingMetricsSuccess(response.data));
         },
         function(error) {

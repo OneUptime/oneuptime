@@ -18,7 +18,9 @@ import EditMonitorSlaModal from './EditMonitorSlaModal';
 import DeleteMonitorSlaModal from './DeleteMonitorSlaModal';
 
 class MonitorSla extends Component {
+    limit: $TSFixMe;
     constructor() {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
         super();
         this.limit = 10;
         this.state = {
@@ -28,14 +30,17 @@ class MonitorSla extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, fetchMonitorSlas } = this.props;
         if (projectId) {
             fetchMonitorSlas(projectId, 0, this.limit);
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         if (prevProps.currentProject !== this.props.currentProject) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             const { currentProject, fetchMonitorSlas } = this.props;
             if (currentProject) {
                 fetchMonitorSlas(currentProject._id, 0, this.limit);
@@ -43,7 +48,8 @@ class MonitorSla extends Component {
         }
     }
 
-    prevClicked = (skip, limit) => {
+    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, fetchMonitorSlas } = this.props;
         this.setState({
             flag: false,
@@ -55,28 +61,35 @@ class MonitorSla extends Component {
             limit
         );
         this.setState({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
-    nextClicked = (skip, limit) => {
+    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, fetchMonitorSlas } = this.props;
         this.setState({
             flag: false,
         });
 
         fetchMonitorSlas(projectId, skip + limit, limit);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: this.state.page + 1 });
     };
 
-    setAsDefault = ({ projectId, monitorSlaId }) => {
+    setAsDefault = ({
+        projectId,
+        monitorSlaId
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateMonitorSla' does not exist on type... Remove this comment to see the full error message
         const { updateMonitorSla, setActiveMonitorSla } = this.props;
         const data = { isDefault: true };
         setActiveMonitorSla(monitorSlaId);
         updateMonitorSla(projectId, monitorSlaId, data, true);
     };
 
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'No monitor in this event';
         }
@@ -96,11 +109,17 @@ class MonitorSla extends Component {
 
     handleMonitorSlas = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlas' does not exist on type 'Rea... Remove this comment to see the full error message
             monitorSlas,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeSla' does not exist on type 'Reado... Remove this comment to see the full error message
             activeSla,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
             monitors,
         } = this.props;
 
@@ -108,12 +127,11 @@ class MonitorSla extends Component {
             <tbody id="monitorSettings">
                 {monitorSlas &&
                     monitorSlas.length > 0 &&
-                    monitorSlas.map((monitorSla, index) => {
+                    monitorSlas.map((monitorSla: $TSFixMe, index: $TSFixMe) => {
                         const slaMonitors = monitors.filter(
-                            monitor =>
-                                monitor.monitorSla &&
-                                String(monitor.monitorSla._id) ===
-                                    String(monitorSla._id)
+                            (monitor: $TSFixMe) => monitor.monitorSla &&
+                            String(monitor.monitorSla._id) ===
+                                String(monitorSla._id)
                         );
                         return (
                             <tr
@@ -318,13 +336,21 @@ class MonitorSla extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSlaError' does not exist on type 'R... Remove this comment to see the full error message
             fetchSlaError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlas' does not exist on type 'Rea... Remove this comment to see the full error message
             monitorSlas,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -351,6 +377,7 @@ class MonitorSla extends Component {
                                 <button
                                     id="addMonitorSlaBtn"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                         this.props.openModal({
                                             id: projectId,
                                             content: DataPathHoC(
@@ -427,6 +454,7 @@ class MonitorSla extends Component {
                                 </ShouldRender>
                             </div>
                         </div>
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'flag' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                         <ShouldRender if={requesting && !this.state.flag}>
                             <ListLoader />
                         </ShouldRender>
@@ -469,15 +497,20 @@ class MonitorSla extends Component {
                                         >
                                             {numberOfPage > 0
                                                 ? `Page ${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                       this.state.page
                                                   } of ${numberOfPage} (${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count
                                                   } SLA${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count > 1
                                                           ? 's'
                                                           : ''
                                                   })`
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                 : `${this.props.count} SLA${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count > 1
                                                           ? 's'
                                                           : ''
@@ -540,8 +573,10 @@ class MonitorSla extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorSla.displayName = 'MonitorSla';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorSla.propTypes = {
     openModal: PropTypes.func.isRequired,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -562,22 +597,21 @@ MonitorSla.propTypes = {
     // paginateNext: PropTypes.func, imported and dispatched but not used in the code
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            fetchMonitorSlas,
-            updateMonitorSla,
-            setActiveMonitorSla,
-            paginateNext,
-            paginatePrev,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        fetchMonitorSlas,
+        updateMonitorSla,
+        setActiveMonitorSla,
+        paginateNext,
+        paginatePrev,
+    },
+    dispatch
+);
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const monitorData = state.monitor.monitorsList.monitors.find(
-        data => String(data._id) === String(ownProps.projectId)
+        (data: $TSFixMe) => String(data._id) === String(ownProps.projectId)
     );
     const monitors = monitorData ? monitorData.monitors : [];
     return {

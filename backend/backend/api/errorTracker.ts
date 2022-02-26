@@ -2,6 +2,7 @@ import express from 'express'
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
@@ -14,6 +15,7 @@ import NotificationService from '../services/notificationService'
 import RealTimeService from '../services/realTimeService'
 import ErrorTrackerService from '../services/errorTrackerService'
 import ResourceCategoryService from '../services/resourceCategoryService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import uuid from 'uuid'
 const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
@@ -44,6 +46,7 @@ router.post(
                     message: "values can't be null",
                 });
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             data.createdById = req.user ? req.user.id : null;
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -73,14 +76,17 @@ router.post(
                     populate: populateComponent,
                 }),
                 UserService.findOneBy({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                     query: { _id: req.user.id },
                     select: 'name _id',
                 }),
             ]);
 
             try {
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
                 NotificationService.create(
                     component.projectId._id,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
                     `A New Error Tracker was Created with name ${errorTracker.name} by ${user.name}`,
                     user._id,
                     'errortrackeraddremove'
@@ -140,6 +146,7 @@ router.delete(
                     _id: errorTrackerId,
                     componentId: componentId,
                 },
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                 req.user.id
             );
             if (errorTracker) {
@@ -216,6 +223,7 @@ router.put(
                 message: "values can't be null",
             });
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         data.createdById = req.user ? req.user.id : null;
         if (!data.name && data.showQuickStart === undefined) {
             return sendErrorResponse(req, res, {
@@ -247,6 +255,7 @@ router.put(
             componentId: componentId,
         };
         if (data.resourceCategory != '') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
             existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingErrorTracking = await ErrorTrackerService.findBy({
@@ -277,9 +286,11 @@ router.put(
         // Error Tracker is valid
         const errorTrackerUpdate = {};
         if (data.name) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
             errorTrackerUpdate.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showQuickStart' does not exist on type '... Remove this comment to see the full error message
             errorTrackerUpdate.showQuickStart = data.showQuickStart;
         }
 
@@ -293,6 +304,7 @@ router.put(
                 }
             );
             if (resourceCategoryCount && resourceCategoryCount > 0) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
                 errorTrackerUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };
@@ -303,6 +315,7 @@ router.put(
             const errorTracker = await ErrorTrackerService.updateOneBy(
                 { _id: currentErrorTracker._id },
                 errorTrackerUpdate,
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ resourceCategory: string; } | ... Remove this comment to see the full error message
                 unsetData
             );
             return sendItemResponse(req, res, errorTracker);
@@ -404,13 +417,16 @@ router.post(
 
             const query = {};
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerId' does not exist on type '... Remove this comment to see the full error message
             if (errorTrackerId) query.errorTrackerId = errorTrackerId;
 
             if (startDate && endDate)
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             if (filters) {
                 for (const [key, value] of Object.entries(filters)) {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     query[key] = value;
                 }
             }
@@ -608,6 +624,7 @@ router.post(
                     updateData = {
                         ignored: true,
                         ignoredAt: new Date(),
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                         ignoredById: req.user.id,
                         resolved: false,
                         resolvedAt: '',
@@ -641,6 +658,7 @@ router.post(
                         ignoredById: null,
                         resolved: true,
                         resolvedAt: new Date(),
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                         resolvedById: req.user.id,
                     };
                     break;
@@ -662,6 +680,7 @@ router.post(
                     // add action to timeline for this particular issue
                     const timelineData = {
                         issueId: currentIssueId,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                         createdById: req.user ? req.user.id : null,
                         status: action,
                     };
@@ -749,11 +768,14 @@ router.post(
 
             const query = {};
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprintHash' does not exist on type ... Remove this comment to see the full error message
             query.fingerprintHash = fingerprintHash;
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerId' does not exist on type '... Remove this comment to see the full error message
             if (errorTrackerId) query.errorTrackerId = errorTrackerId;
 
             if (startDate && endDate)
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             const errorEvents = await ErrorEventService.findBy({
@@ -946,6 +968,7 @@ router.post(
                         const data = {
                             issueId,
                             userId: teamMemberUserId,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                             createdById: req.user ? req.user.id : null,
                         };
                         // find if the issue member exist in the project
@@ -1093,6 +1116,7 @@ router.post(
                         const data = {
                             removed: true,
                             removedAt: new Date(),
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                             removedById: req.user ? req.user.id : null,
                         };
                         // find the issueMember by the 3 parameters, and update it
@@ -1179,6 +1203,7 @@ router.delete(
                     _id: issueId,
                     errorTrackerId,
                 },
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
                 req.user.id,
                 componentId
             );

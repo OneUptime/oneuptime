@@ -8,10 +8,15 @@ import UserService from './userService'
 import SmsCountService from './smsCountService'
 import CallLogsService from './callLogsService'
 import AlertService from './alertService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
 import { IS_TESTING } from '../config/server'
 
 const _this = {
-    findByOne: async function({ query, select, populate }) {
+    findByOne: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -25,9 +30,10 @@ const _this = {
         return twilioSettings;
     },
 
-    getClient: (accountSid, authToken) => {
+    getClient: (accountSid: $TSFixMe, authToken: $TSFixMe) => {
         if (!accountSid || !authToken) {
             const error = new Error('Twilio credentials not found.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return error;
         }
@@ -44,20 +50,21 @@ const _this = {
         }
 
         const error = new Error('Twilio settings not found.');
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
         error.code = 400;
         throw error;
     },
 
     sendIncidentCreatedMessage: async function(
-        incidentTime,
-        monitorName,
-        number,
-        incidentId,
-        userId,
-        name,
-        incidentType,
-        projectId,
-        smsProgress
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        number: $TSFixMe,
+        incidentId: $TSFixMe,
+        userId: $TSFixMe,
+        name: $TSFixMe,
+        incidentType: $TSFixMe,
+        projectId: $TSFixMe,
+        smsProgress: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -79,11 +86,16 @@ const _this = {
                 populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{ body: st... Remove this comment to see the full error message
                 options.from = customTwilioSettings.phoneNumber;
                 const incidentSMSAction = new incidentSMSActionModel();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
                 incidentSMSAction.incidentId = incidentId;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
                 incidentSMSAction.userId = userId;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'number' does not exist on type 'Document... Remove this comment to see the full error message
                 incidentSMSAction.number = number;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
 
@@ -91,7 +103,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     userId,
                     number,
@@ -109,6 +123,7 @@ const _this = {
 
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         userId,
@@ -124,15 +139,22 @@ const _this = {
                     projectId
                 );
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{ body: st... Remove this comment to see the full error message
                     options.from = creds.phone;
                     // create incidentSMSAction entry for matching sms from twilio.
                     const incidentSMSAction = new incidentSMSActionModel();
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
                     incidentSMSAction.incidentId = incidentId;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
                     incidentSMSAction.userId = userId;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'number' does not exist on type 'Document... Remove this comment to see the full error message
                     incidentSMSAction.number = number;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
                     incidentSMSAction.name = name;
                     await incidentSMSAction.save();
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         userId,
                         number,
@@ -145,6 +167,7 @@ const _this = {
                     const error = new Error(
                         'Alerts limit reached for the day.'
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         userId,
@@ -171,16 +194,16 @@ const _this = {
     },
 
     sendIncidentCreatedMessageToSubscriber: async function(
-        incidentTime,
-        monitorName,
-        number,
-        smsTemplate,
-        incident,
-        projectName,
-        projectId,
-        componentName,
-        statusPageUrl,
-        customFields
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe,
+        componentName: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        customFields: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -197,6 +220,7 @@ const _this = {
                 statusPageUrl,
                 ...customFields,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -218,7 +242,9 @@ const _this = {
                     customTwilioSettings.authToken
                 );
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -231,6 +257,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -258,7 +285,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -279,6 +308,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -297,17 +327,17 @@ const _this = {
     },
 
     sendInvestigationNoteToSubscribers: async function(
-        incidentTime,
-        monitorName,
-        number,
-        smsTemplate,
-        incident,
-        projectName,
-        projectId,
-        componentName,
-        statusUrl,
-        customFields,
-        note
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe,
+        componentName: $TSFixMe,
+        statusUrl: $TSFixMe,
+        customFields: $TSFixMe,
+        note: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -325,6 +355,7 @@ const _this = {
                 ...customFields,
                 incidentNote: note,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -344,7 +375,9 @@ const _this = {
                     customTwilioSettings.authToken
                 );
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -357,6 +390,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -384,7 +418,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -405,6 +441,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -423,17 +460,17 @@ const _this = {
     },
 
     sendIncidentAcknowledgedMessageToSubscriber: async function(
-        incidentTime,
-        monitorName,
-        number,
-        smsTemplate,
-        incident,
-        projectName,
-        projectId,
-        componentName,
-        statusPageUrl,
-        customFields,
-        length
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe,
+        componentName: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        customFields: $TSFixMe,
+        length: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -452,6 +489,7 @@ const _this = {
                 ...customFields,
                 length,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -471,7 +509,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -484,6 +524,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -511,7 +552,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -532,6 +575,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -550,17 +594,17 @@ const _this = {
     },
 
     sendIncidentResolvedMessageToSubscriber: async function(
-        incidentTime,
-        monitorName,
-        number,
-        smsTemplate,
-        incident,
-        projectName,
-        projectId,
-        componentName,
-        statusPageUrl,
-        customFields,
-        length
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe,
+        componentName: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        customFields: $TSFixMe,
+        length: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -579,6 +623,7 @@ const _this = {
                 ...customFields,
                 length,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -598,7 +643,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -611,6 +658,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -638,7 +686,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -659,6 +709,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -676,7 +727,7 @@ const _this = {
         }
     },
 
-    test: async function(data) {
+    test: async function(data: $TSFixMe) {
         try {
             const options = {
                 body: 'This is a test SMS from OneUptime',
@@ -689,7 +740,9 @@ const _this = {
                 data.authToken
             );
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
             const message = await twilioClient.messages.create(options);
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
             await SmsCountService.create(
                 null,
                 options.to,
@@ -713,12 +766,12 @@ const _this = {
     },
 
     sendScheduledMaintenanceCreatedToSubscriber: async function(
-        incidentTime,
-        number,
-        smsTemplate,
-        schedule,
-        projectName,
-        projectId
+        incidentTime: $TSFixMe,
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        schedule: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -735,6 +788,7 @@ const _this = {
                 eventEndTime: schedule.endDate,
                 projectName,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -752,7 +806,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -765,6 +821,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -792,7 +849,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -813,6 +872,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -830,12 +890,12 @@ const _this = {
         }
     },
     sendScheduledMaintenanceNoteCreatedToSubscriber: async function(
-        number,
-        smsTemplate,
-        scheduleName,
-        message,
-        projectName,
-        projectId
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        scheduleName: $TSFixMe,
+        message: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -852,6 +912,7 @@ const _this = {
                 eventNoteType: message.type,
                 projectName,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -869,7 +930,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -882,6 +945,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -909,7 +973,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -930,6 +996,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -948,11 +1015,11 @@ const _this = {
     },
 
     sendScheduledMaintenanceResolvedToSubscriber: async function(
-        number,
-        smsTemplate,
-        schedule,
-        projectName,
-        projectId
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        schedule: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -966,6 +1033,7 @@ const _this = {
                 eventResolveTime: schedule.resolvedAt,
                 projectName,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -983,7 +1051,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -996,6 +1066,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -1023,7 +1094,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -1044,6 +1117,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -1061,11 +1135,11 @@ const _this = {
         }
     },
     sendScheduledMaintenanceCancelledToSubscriber: async function(
-        number,
-        smsTemplate,
-        schedule,
-        projectName,
-        projectId
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        schedule: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -1079,6 +1153,7 @@ const _this = {
                 eventCancelTime: schedule.cancelledAt,
                 projectName,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -1096,7 +1171,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -1109,6 +1186,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -1136,7 +1214,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -1157,6 +1237,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -1175,12 +1256,12 @@ const _this = {
     },
 
     sendAnnouncementNotificationToSubscriber: async function(
-        number,
-        smsTemplate,
-        title,
-        description,
-        projectName,
-        projectId
+        number: $TSFixMe,
+        smsTemplate: $TSFixMe,
+        title: $TSFixMe,
+        description: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -1194,6 +1275,7 @@ const _this = {
                 announcementDescription: description,
                 projectName,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -1211,7 +1293,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 const message = await twilioClient.messages.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await SmsCountService.create(
                     null,
                     number,
@@ -1224,6 +1308,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -1251,7 +1336,9 @@ const _this = {
                 );
 
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     const message = await twilioClient.messages.create(options);
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                     await SmsCountService.create(
                         null,
                         number,
@@ -1272,6 +1359,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     return error;
                 }
@@ -1290,14 +1378,14 @@ const _this = {
     },
 
     sendIncidentCreatedCall: async function(
-        incidentTime,
-        monitorName,
-        number,
-        accessToken,
-        incidentId,
-        projectId,
-        incidentType,
-        callProgress
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        number: $TSFixMe,
+        accessToken: $TSFixMe,
+        incidentId: $TSFixMe,
+        projectId: $TSFixMe,
+        incidentType: $TSFixMe,
+        callProgress: $TSFixMe
     ) {
         let callBody;
         try {
@@ -1328,12 +1416,15 @@ const _this = {
             });
 
             if (customTwilioSettings) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{ twiml: s... Remove this comment to see the full error message
                 options.from = customTwilioSettings.phoneNumber;
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'calls' does not exist on type 'Error | T... Remove this comment to see the full error message
                 const call = await twilioClient.calls.create(options);
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                 await CallLogsService.create(
                     '+15005550006',
                     number,
@@ -1350,6 +1441,7 @@ const _this = {
                 );
                 if (!creds['call-enabled']) {
                     const error = new Error('Call Not Enabled');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await CallLogsService.create(
                         '+15005550006',
@@ -1366,9 +1458,12 @@ const _this = {
                     projectId
                 );
                 if (alertLimit) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{ twiml: s... Remove this comment to see the full error message
                     options.from = creds.phone;
                     if (twilioClient) {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'calls' does not exist on type 'Error | T... Remove this comment to see the full error message
                         const call = await twilioClient.calls.create(options);
+                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                         await CallLogsService.create(
                             '+15005550006',
                             number,
@@ -1382,6 +1477,7 @@ const _this = {
                     const error = new Error(
                         'Alerts limit reached for the day.'
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     await CallLogsService.create(
                         '+15005550006',
@@ -1407,7 +1503,7 @@ const _this = {
         }
     },
 
-    getProgressText: async function(number) {
+    getProgressText: async function(number: $TSFixMe) {
         const special = [
             'zeroth',
             'first',
@@ -1447,7 +1543,7 @@ const _this = {
         return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
     },
 
-    getTemplate: async function(smsTemplate, smsTemplateType) {
+    getTemplate: async function(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe) {
         const defaultTemplate = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
@@ -1463,10 +1559,10 @@ const _this = {
         return { template };
     },
     sendVerificationSMS: async function(
-        to,
-        userId,
-        projectId,
-        validationResult
+        to: $TSFixMe,
+        userId: $TSFixMe,
+        projectId: $TSFixMe,
+        validationResult: $TSFixMe
     ) {
         let smsBody;
         try {
@@ -1495,6 +1591,7 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                 await twilioClient.messages.create(options);
                 await UserService.updateOneBy(
                     { _id: userId },
@@ -1521,6 +1618,7 @@ const _this = {
                 if (alertLimit) {
                     if (!creds['sms-enabled']) {
                         const error = new Error('SMS Not Enabled');
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                         error.code = 400;
                         throw error;
                     }
@@ -1531,8 +1629,10 @@ const _this = {
                         from: creds.phone,
                         to,
                     };
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'messages' does not exist on type 'Error ... Remove this comment to see the full error message
                     await twilioClient.messages.create(options);
                     await Promise.all([
+                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
                         SmsCountService.create(
                             userId,
                             to,
@@ -1563,6 +1663,7 @@ const _this = {
                         'Error',
                         error.message
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     throw error;
                 }
@@ -1581,7 +1682,7 @@ const _this = {
     },
 
     // Fetch Available numbers to buy from twilio
-    fetchPhoneNumbers: async (projectId, countryCode, numberType) => {
+    fetchPhoneNumbers: async (projectId: $TSFixMe, countryCode: $TSFixMe, numberType: $TSFixMe) => {
         let accountSid = null;
         let authToken = null;
         let numbers;
@@ -1606,6 +1707,7 @@ const _this = {
             authToken = creds['authentication-token'];
         }
         const twilioClient = _this.getClient(accountSid, authToken);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pricing' does not exist on type 'Error |... Remove this comment to see the full error message
         const priceList = await twilioClient.pricing.v1.phoneNumbers
             .countries(countryCode)
             .fetch();
@@ -1614,15 +1716,21 @@ const _this = {
         const tollFreePrice = {};
         priceList &&
             priceList.phoneNumberPrices &&
-            priceList.phoneNumberPrices.map(p => {
+            priceList.phoneNumberPrices.map((p: $TSFixMe) => {
                 if (p.number_type && p.number_type === 'local') {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'basePrice' does not exist on type '{}'.
                     localPrice.basePrice = p.base_price;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPrice' does not exist on type '{}... Remove this comment to see the full error message
                     localPrice.currentPrice = p.current_price;
                 } else if (p.number_type && p.number_type === 'toll free') {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'basePrice' does not exist on type '{}'.
                     mobilePrice.basePrice = p.base_price;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPrice' does not exist on type '{}... Remove this comment to see the full error message
                     mobilePrice.currentPrice = p.current_price;
                 } else if (p.number_type && p.number_type === 'mobile') {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'basePrice' does not exist on type '{}'.
                     tollFreePrice.basePrice = p.base_price;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPrice' does not exist on type '{}... Remove this comment to see the full error message
                     tollFreePrice.currentPrice = p.current_price;
                 }
                 return p;
@@ -1632,26 +1740,38 @@ const _this = {
 
         if (numberType === 'Local') {
             numbers = await twilioClient
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'availablePhoneNumbers' does not exist on... Remove this comment to see the full error message
                 .availablePhoneNumbers(countryCode)
                 .local.list({ limit: 1 });
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | number' is not assignable to type '... Remove this comment to see the full error message
             data.price = await _this.calculatePrice(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPrice' does not exist on type '{}... Remove this comment to see the full error message
                 localPrice.currentPrice,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'basePrice' does not exist on type '{}'.
                 localPrice.basePrice
             );
         } else if (numberType === 'Mobile') {
             numbers = await twilioClient
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'availablePhoneNumbers' does not exist on... Remove this comment to see the full error message
                 .availablePhoneNumbers(countryCode)
                 .mobile.list({ limit: 1 });
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | number' is not assignable to type '... Remove this comment to see the full error message
             data.price = await _this.calculatePrice(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPrice' does not exist on type '{}... Remove this comment to see the full error message
                 mobilePrice.currentPrice,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'basePrice' does not exist on type '{}'.
                 mobilePrice.basePrice
             );
         } else if (numberType === 'TollFree') {
             numbers = await twilioClient
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'availablePhoneNumbers' does not exist on... Remove this comment to see the full error message
                 .availablePhoneNumbers(countryCode)
                 .tollFree.list({ limit: 1 });
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | number' is not assignable to type '... Remove this comment to see the full error message
             data.price = await _this.calculatePrice(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPrice' does not exist on type '{}... Remove this comment to see the full error message
                 tollFreePrice.currentPrice,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'basePrice' does not exist on type '{}'.
                 tollFreePrice.basePrice
             );
         }
@@ -1666,7 +1786,7 @@ const _this = {
         return data;
     },
 
-    buyPhoneNumber: async (projectId, phoneNumber) => {
+    buyPhoneNumber: async (projectId: $TSFixMe, phoneNumber: $TSFixMe) => {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await _this.findByOne({
@@ -1683,17 +1803,20 @@ const _this = {
         }
         const twilioClient = _this.getClient(accountSid, authToken);
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingPhoneNumbers' does not exist on ... Remove this comment to see the full error message
         const numbers = await twilioClient.incomingPhoneNumbers.create({
             phoneNumber: phoneNumber,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
             voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
             voiceMethod: 'POST',
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
             statusCallback: `${global.apiHost}/callRouting/statusCallback`,
             statusCallbackMethod: 'POST',
         });
         return numbers;
     },
 
-    releasePhoneNumber: async (projectId, sid) => {
+    releasePhoneNumber: async (projectId: $TSFixMe, sid: $TSFixMe) => {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await _this.findByOne({
@@ -1710,11 +1833,12 @@ const _this = {
         }
         const twilioClient = _this.getClient(accountSid, authToken);
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingPhoneNumbers' does not exist on ... Remove this comment to see the full error message
         const numbers = await twilioClient.incomingPhoneNumbers(sid).remove();
         return numbers;
     },
 
-    getCallDetails: async (projectId, CallSid) => {
+    getCallDetails: async (projectId: $TSFixMe, CallSid: $TSFixMe) => {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await _this.findByOne({
@@ -1731,11 +1855,12 @@ const _this = {
         }
         const twilioClient = _this.getClient(accountSid, authToken);
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'calls' does not exist on type 'Error | T... Remove this comment to see the full error message
         const details = await twilioClient.calls(CallSid).fetch();
         return details;
     },
 
-    calculatePrice: async (currentPrice, basePrice) => {
+    calculatePrice: async (currentPrice: $TSFixMe, basePrice: $TSFixMe) => {
         let price =
             currentPrice && basePrice
                 ? currentPrice > basePrice
@@ -1747,7 +1872,7 @@ const _this = {
         return price;
     },
 
-    hasCustomSettings: async function(projectId) {
+    hasCustomSettings: async function(projectId: $TSFixMe) {
         return await _this.findByOne({
             query: { projectId, enabled: true },
             select: '_id',

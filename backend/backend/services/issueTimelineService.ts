@@ -1,12 +1,15 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const _this = this;
 
         // prepare issue timeline model
         const issueTimeline = new IssueTimelineModel();
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
         issueTimeline.status = data.status;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'issueId' does not exist on type 'Documen... Remove this comment to see the full error message
         issueTimeline.issueId = data.issueId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         issueTimeline.createdById = data.createdById;
 
         let savedIssueTimeline = await issueTimeline.save();
@@ -25,7 +28,11 @@ export default {
         });
         return savedIssueTimeline;
     },
-    async findOneBy({ query, select, populate }) {
+    async findOneBy({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -41,7 +48,11 @@ export default {
         return issueTimeline;
     },
     // get a list of IssueTimeline
-    async findBy({ query, select, populate }) {
+    async findBy({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }

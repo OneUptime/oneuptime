@@ -1,7 +1,7 @@
 import { connect } from 'react-redux';
 import { User } from '../../config';
 
-export function RenderIfViewer(props) {
+export function RenderIfViewer(props: $TSFixMe) {
     const { currentProject, children } = props;
     const userId = User.getUserId();
     let renderItems = null;
@@ -11,7 +11,7 @@ export function RenderIfViewer(props) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user => user.userId === userId && user.role === 'Viewer'
+            (user: $TSFixMe) => user.userId === userId && user.role === 'Viewer'
         ).length > 0
     ) {
         renderItems = children;
@@ -20,7 +20,7 @@ export function RenderIfViewer(props) {
     return renderItems;
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         currentProject: state.project.currentProject,
     };

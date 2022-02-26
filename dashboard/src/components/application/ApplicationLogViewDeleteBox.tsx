@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
@@ -12,35 +14,42 @@ import DataPathHoC from '../DataPathHoC';
 import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 
 class ApplicationLogViewDeleteBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
     }
     deleteApplicationLog = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
         const applicationLog = this.props.applicationLog;
         const componentId = applicationLog.componentId._id;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const currentProjectId = this.props.currentProject._id;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteApplicationLog' does not exist on ... Remove this comment to see the full error message
         const promise = this.props.deleteApplicationLog(
             currentProjectId,
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
             this.props.applicationLog._id
         );
         history.push(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-log`
         );
 
         return promise;
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
         }
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
         return (
             <div
@@ -67,6 +76,7 @@ class ApplicationLogViewDeleteBox extends Component {
                                     <button
                                         className="bs-Button bs-Button--red Box-background--red"
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.openModal({
                                                 id: deleteModalId,
                                                 onClose: () => '',
@@ -77,6 +87,7 @@ class ApplicationLogViewDeleteBox extends Component {
                                                     {
                                                         applicationLog: this
                                                             .props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                                                             .applicationLog,
                                                     }
                                                 ),
@@ -94,21 +105,22 @@ class ApplicationLogViewDeleteBox extends Component {
         );
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ApplicationLogViewDeleteBox.displayName = 'ApplicationLogViewDeleteBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { openModal, closeModal, deleteApplicationLog },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { openModal, closeModal, deleteApplicationLog },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         applicationLogState: state.applicationLog,
         currentProject: state.project.currentProject,
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ApplicationLogViewDeleteBox.propTypes = {
     currentProject: PropTypes.object,
     componentId: PropTypes.string.isRequired,

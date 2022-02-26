@@ -1,8 +1,8 @@
 export default {
-    sendSuccessResponse: function(req, res, data) {
+    sendSuccessResponse: function(req: $TSFixMe, res: $TSFixMe, data: $TSFixMe) {
         return res.status(200).send(data);
     },
-    sendErrorResponse: function(req, res, error) {
+    sendErrorResponse: function(req: $TSFixMe, res: $TSFixMe, error: $TSFixMe) {
         if (
             error.message &&
             error.code !== 'ENOTFOUND' &&

@@ -3,21 +3,21 @@ import * as types from '../constants/invoice';
 
 // Array of invoices
 
-export function getInvoiceRequest(promise) {
+export function getInvoiceRequest(promise: $TSFixMe) {
     return {
         type: types.GET_INVOICE_REQUEST,
         payload: promise,
     };
 }
 
-export function getInvoiceError(error) {
+export function getInvoiceError(error: $TSFixMe) {
     return {
         type: types.GET_INVOICE_FAILED,
         payload: error,
     };
 }
 
-export function getInvoiceSuccess(invoices) {
+export function getInvoiceSuccess(invoices: $TSFixMe) {
     return {
         type: types.GET_INVOICE_SUCCESS,
         payload: invoices,
@@ -43,8 +43,8 @@ export function decrementNextCount() {
 }
 
 // Get invoice from the backend
-export function getInvoice(projectId, startingAfter, endingBefore) {
-    return function(dispatch) {
+export function getInvoice(projectId: $TSFixMe, startingAfter: $TSFixMe, endingBefore: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         const reqFornext = Boolean(startingAfter) && !endingBefore;
         const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter);
@@ -67,6 +67,7 @@ export function getInvoice(projectId, startingAfter, endingBefore) {
 
         promise.then(
             function(invoices) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getInvoiceSuccess(invoices.data));
                 if (reqFornext) {
                     dispatch(incrementNextCount());

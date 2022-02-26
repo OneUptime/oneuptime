@@ -1,5 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
@@ -22,12 +23,14 @@ const bulletpoints = {
     listStylePosition: 'inside',
 };
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.subject)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
         errors.subject = 'Please enter email subject';
     }
     if (!Validate.text(values.body)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type '{}'.
         errors.body = 'Please enter email body';
     }
     return errors;
@@ -36,9 +39,13 @@ function validate(values) {
 export class TemplatesFormBox extends Component {
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type 'Readon... Remove this comment to see the full error message
             template,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editEmailTemplates' does not exist on ty... Remove this comment to see the full error message
             editEmailTemplates,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetEmailTemplates' does not exist on t... Remove this comment to see the full error message
             resetEmailTemplates,
         } = this.props;
         return (
@@ -53,6 +60,7 @@ export class TemplatesFormBox extends Component {
                                 <span>
                                     {template
                                         ? emailTemplateTitles[
+                                              // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
                                               [template.emailType]
                                           ]
                                         : 'Default Email Template'}
@@ -62,6 +70,7 @@ export class TemplatesFormBox extends Component {
                                 <span>
                                     {template
                                         ? emailTemplateDescriptions[
+                                              // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
                                               [template.emailType]
                                           ]
                                         : 'Default Email Template'}
@@ -71,6 +80,7 @@ export class TemplatesFormBox extends Component {
                     </div>
                     <form
                         id="frmEmailTemplate"
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'submitForm' does not exist on type 'Read... Remove this comment to see the full error message
                         onSubmit={handleSubmit(this.props.submitForm)}
                     >
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -132,8 +142,10 @@ export class TemplatesFormBox extends Component {
                                                 if={
                                                     !(
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
                                                             .revealVariable &&
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
                                                             .revealVariable ===
                                                             template.emailType
                                                     )
@@ -149,6 +161,7 @@ export class TemplatesFormBox extends Component {
                                                     <button
                                                         className="button-as-anchor"
                                                         onClick={() =>
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setRevealVariable' does not exist on typ... Remove this comment to see the full error message
                                                             this.props.setRevealVariable(
                                                                 template.emailType
                                                             )
@@ -162,8 +175,10 @@ export class TemplatesFormBox extends Component {
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
                                                     this.props.revealVariable &&
                                                     this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
                                                         .revealVariable ===
                                                         template.emailType
                                                 }
@@ -189,11 +204,12 @@ export class TemplatesFormBox extends Component {
                                                     {template &&
                                                         template.allowedVariables &&
                                                         template.allowedVariables.map(
-                                                            (allowed, j) => {
+                                                            (allowed: $TSFixMe, j: $TSFixMe) => {
                                                                 return (
                                                                     <span
                                                                         key={j}
                                                                         className="template-variables"
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ display: string; listStyleType: string; li... Remove this comment to see the full error message
                                                                         style={
                                                                             bulletpoints
                                                                         }
@@ -286,6 +302,7 @@ export class TemplatesFormBox extends Component {
                                             }
                                             type="button"
                                             onClick={() => {
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetTemplate' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.resetTemplate(
                                                     template._id
                                                 );
@@ -323,8 +340,10 @@ export class TemplatesFormBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 TemplatesFormBox.displayName = 'TemplatesFormBox';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TemplatesFormBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     setRevealVariable: PropTypes.func.isRequired,
@@ -342,7 +361,7 @@ const TemplatesFormBoxForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(TemplatesFormBox);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             setRevealVariable,
@@ -351,7 +370,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     const template = state.emailTemplates.showingTemplate;
     const val = {
         subject: template.subject,

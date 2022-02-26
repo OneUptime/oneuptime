@@ -1,7 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const Button = ({ id, onClick = () => {}, text, shortcut }) => (
+const Button = ({
+    id,
+    onClick = () => {},
+    text,
+    shortcut
+}: $TSFixMe) => (
     <button
         id={id}
         className="bs-Button bs-ButtonLegacy ActionIconParent"

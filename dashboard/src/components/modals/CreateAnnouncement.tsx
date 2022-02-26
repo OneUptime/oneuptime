@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { closeModal } from '../../actions/modal';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, FieldArray, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -15,13 +17,15 @@ import {
 } from '../../actions/statusPage';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!values.name) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         errors.name = 'Announcement name is required';
     }
     if (!values.description) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
         errors.description = 'Announcement description is required';
     }
     return errors;
@@ -39,12 +43,13 @@ class CreateAnnouncement extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = event => {
+    handleKeyBoard = (event: $TSFixMe) => {
         if (event.target.localName !== 'textarea' && event.key) {
             switch (event.key) {
                 case 'Escape':
                     return this.handleCloseModal();
                 case 'Enter':
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     return document
                         .getElementById('createAnnouncementBtn')
                         .click();
@@ -55,33 +60,47 @@ class CreateAnnouncement extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createScheduledEventModalId' does not ex... Remove this comment to see the full error message
             id: this.props.createScheduledEventModalId,
         });
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAnnouncement' does not exist on ty... Remove this comment to see the full error message
             createAnnouncement,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { projectId, statusPage },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
             fetchAnnouncements,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             formValues,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'mergeMonitors' does not exist on type 'R... Remove this comment to see the full error message
             mergeMonitors,
         } = this.props;
         const postObj = {};
         if (values.monitors && values.monitors.length > 0) {
             const monitors = values.monitors.filter(
-                monitorId => typeof monitorId === 'string'
+                (monitorId: $TSFixMe) => typeof monitorId === 'string'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             postObj.monitors = monitors;
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             postObj.monitors = [];
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         postObj.name = values.name;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
         postObj.description = values[`description`];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideAnnouncement' does not exist on type... Remove this comment to see the full error message
         postObj.hideAnnouncement = values.hideAnnouncement ? true : false;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
         const isDuplicate = postObj.monitors
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
                 : true
@@ -95,242 +114,250 @@ class CreateAnnouncement extends Component {
         }
 
         if (formValues && formValues.selectAllMonitors) {
-            postObj.monitors = mergeMonitors.map(monitor => monitor._id);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            postObj.monitors = mergeMonitors.map((monitor: $TSFixMe) => monitor._id);
         }
 
         createAnnouncement(projectId, statusPage._id, { data: postObj })
-            .then(res => {
+            .then((res: $TSFixMe) => {
                 if (res) {
                     this.handleCloseModal();
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);
                 }
             })
-            .catch(err => {
+            .catch((err: $TSFixMe) => {
                 if (!err) {
                     this.handleCloseModal();
                 }
             });
     };
 
-    onContentChange = val => {
+    onContentChange = (val: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         this.props.change('description', val);
     };
 
-    renderMonitors = ({ fields }) => {
+    renderMonitors = ({
+        fields
+    }: $TSFixMe) => {
         const { monitorError } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues, mergeMonitors } = this.props;
 
-        return (
-            <>
-                {formValues && formValues.selectAllMonitors && (
+        return <>
+            {formValues && formValues.selectAllMonitors && (
+                <div
+                    className="bs-Fieldset-row"
+                    style={{ padding: 0, width: '100%' }}
+                >
                     <div
-                        className="bs-Fieldset-row"
-                        style={{ padding: 0, width: '100%' }}
+                        className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                        style={{ padding: 0 }}
                     >
                         <div
-                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
-                            style={{ padding: 0 }}
-                        >
-                            <div
-                                className="Box-root"
-                                style={{
-                                    height: '5px',
-                                }}
-                            ></div>
-                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                <label
-                                    className="Checkbox"
-                                    htmlFor="selectAllMonitorsBox"
-                                >
-                                    <Field
-                                        component="input"
-                                        type="checkbox"
-                                        name="selectAllMonitors"
-                                        className="Checkbox-source"
-                                        id="selectAllMonitorsBox"
-                                    />
-                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                        <div className="Checkbox-target Box-root">
-                                            <div className="Checkbox-color Box-root"></div>
-                                        </div>
-                                    </div>
-                                    <div className="Checkbox-label Box-root Margin-left--8">
-                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            <span>All Monitors Selected</span>
-                                        </span>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {formValues && !formValues.selectAllMonitors && (
-                    <div
-                        style={{
-                            width: '100%',
-                            position: 'relative',
-                        }}
-                    >
-                        <button
-                            id="addMoreMonitor"
-                            className="Button bs-ButtonLegacy ActionIconParent"
+                            className="Box-root"
                             style={{
-                                position: 'absolute',
-                                zIndex: 1,
-                                right: 0,
+                                height: '5px',
                             }}
-                            type="button"
-                            onClick={() => {
-                                fields.push();
-                            }}
-                        >
-                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                <span>Add Monitor</span>
-                            </span>
-                        </button>
-                        {fields.length === 0 && !formValues.selectAllMonitors && (
-                            <div
-                                className="bs-Fieldset-row"
-                                style={{ padding: 0, width: '100%' }}
+                        ></div>
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                            <label
+                                className="Checkbox"
+                                htmlFor="selectAllMonitorsBox"
                             >
-                                <div
-                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
-                                    style={{ padding: 0 }}
-                                >
-                                    <div
-                                        className="Box-root"
-                                        style={{
-                                            height: '5px',
-                                        }}
-                                    ></div>
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                        <label
-                                            className="Checkbox"
-                                            htmlFor="selectAllMonitorsBox"
-                                        >
-                                            <Field
-                                                component="input"
-                                                type="checkbox"
-                                                name="selectAllMonitors"
-                                                className="Checkbox-source"
-                                                id="selectAllMonitorsBox"
-                                            />
-                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                <div className="Checkbox-target Box-root">
-                                                    <div className="Checkbox-color Box-root"></div>
-                                                </div>
-                                            </div>
-                                            <div className="Checkbox-label Box-root Margin-left--8">
-                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>
-                                                        Select All Monitors
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </label>
+                                <Field
+                                    component="input"
+                                    type="checkbox"
+                                    name="selectAllMonitors"
+                                    className="Checkbox-source"
+                                    id="selectAllMonitorsBox"
+                                />
+                                <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                    <div className="Checkbox-target Box-root">
+                                        <div className="Checkbox-color Box-root"></div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                        {fields.map((field, index) => {
-                            return (
-                                <div
-                                    style={{
-                                        width: '65%',
-                                        marginBottom: 10,
-                                    }}
-                                    key={index}
-                                >
-                                    <Field
-                                        className="db-select-nw Table-cell--width--maximized"
-                                        component={RenderSelect}
-                                        name={field}
-                                        id={`monitorfield_${index}`}
-                                        placeholder="Monitor"
-                                        style={{
-                                            height: '28px',
-                                            width: '100%',
-                                        }}
-                                        options={[
-                                            {
-                                                value: '',
-                                                label:
-                                                    mergeMonitors.length > 0
-                                                        ? 'Select a Monitor'
-                                                        : 'No Monitor available',
-                                            },
-                                            ...(mergeMonitors &&
-                                            mergeMonitors.length > 0
-                                                ? mergeMonitors.map(
-                                                      monitor => ({
-                                                          value: monitor._id,
-                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
-                                                      })
-                                                  )
-                                                : []),
-                                        ]}
-                                    />
-                                    <button
-                                        id="addMoreMonitor"
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        style={{
-                                            marginTop: 10,
-                                        }}
-                                        type="button"
-                                        onClick={() => {
-                                            fields.remove(index);
-                                            this.setState({
-                                                monitorError: null,
-                                            });
-                                        }}
-                                    >
-                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                            <span>Remove Monitor</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {monitorError && (
-                            <div
-                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                style={{
-                                    marginTop: '5px',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <div
-                                    className="Box-root Margin-right--8"
-                                    style={{ marginTop: '2px' }}
-                                >
-                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                </div>
-                                <div className="Box-root">
-                                    <span
-                                        id="monitorError"
-                                        style={{ color: 'red' }}
-                                    >
-                                        {monitorError}
+                                <div className="Checkbox-label Box-root Margin-left--8">
+                                    <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>All Monitors Selected</span>
                                     </span>
                                 </div>
-                            </div>
-                        )}
+                            </label>
+                        </div>
                     </div>
-                )}
-            </>
-        );
+                </div>
+            )}
+            {formValues && !formValues.selectAllMonitors && (
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    <button
+                        id="addMoreMonitor"
+                        className="Button bs-ButtonLegacy ActionIconParent"
+                        style={{
+                            position: 'absolute',
+                            zIndex: 1,
+                            right: 0,
+                        }}
+                        type="button"
+                        onClick={() => {
+                            fields.push();
+                        }}
+                    >
+                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                            <span>Add Monitor</span>
+                        </span>
+                    </button>
+                    {fields.length === 0 && !formValues.selectAllMonitors && (
+                        <div
+                            className="bs-Fieldset-row"
+                            style={{ padding: 0, width: '100%' }}
+                        >
+                            <div
+                                className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                style={{ padding: 0 }}
+                            >
+                                <div
+                                    className="Box-root"
+                                    style={{
+                                        height: '5px',
+                                    }}
+                                ></div>
+                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                    <label
+                                        className="Checkbox"
+                                        htmlFor="selectAllMonitorsBox"
+                                    >
+                                        <Field
+                                            component="input"
+                                            type="checkbox"
+                                            name="selectAllMonitors"
+                                            className="Checkbox-source"
+                                            id="selectAllMonitorsBox"
+                                        />
+                                        <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                            <div className="Checkbox-target Box-root">
+                                                <div className="Checkbox-color Box-root"></div>
+                                            </div>
+                                        </div>
+                                        <div className="Checkbox-label Box-root Margin-left--8">
+                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <span>
+                                                    Select All Monitors
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {fields.map((field: $TSFixMe, index: $TSFixMe) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '65%',
+                                    marginBottom: 10,
+                                }}
+                                key={index}
+                            >
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized"
+                                    component={RenderSelect}
+                                    name={field}
+                                    id={`monitorfield_${index}`}
+                                    placeholder="Monitor"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    options={[
+                                        {
+                                            value: '',
+                                            label:
+                                                mergeMonitors.length > 0
+                                                    ? 'Select a Monitor'
+                                                    : 'No Monitor available',
+                                        },
+                                        ...(mergeMonitors &&
+                                        mergeMonitors.length > 0
+                                            ? mergeMonitors.map(
+                                                  (monitor: $TSFixMe) => ({
+                                                      value: monitor._id,
+                                                      label: `${monitor.componentId.name} / ${monitor.name}`
+                                                  })
+                                              )
+                                            : []),
+                                    ]}
+                                />
+                                <button
+                                    id="addMoreMonitor"
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    style={{
+                                        marginTop: 10,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        fields.remove(index);
+                                        this.setState({
+                                            monitorError: null,
+                                        });
+                                    }}
+                                >
+                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                        <span>Remove Monitor</span>
+                                    </span>
+                                </button>
+                            </div>
+                        );
+                    })}
+                    {monitorError && (
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                marginTop: '5px',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <div
+                                className="Box-root Margin-right--8"
+                                style={{ marginTop: '2px' }}
+                            >
+                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                            </div>
+                            <div className="Box-root">
+                                <span
+                                    id="monitorError"
+                                    style={{ color: 'red' }}
+                                >
+                                    {monitorError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </>;
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createError' does not exist on type 'Rea... Remove this comment to see the full error message
             createError,
         } = this.props;
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -494,6 +521,7 @@ class CreateAnnouncement extends Component {
                                             onClick={() =>
                                                 closeModal({
                                                     id: this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createScheduledEventModalId' does not ex... Remove this comment to see the full error message
                                                         .createScheduledEventModalId,
                                                 })
                                             }
@@ -530,6 +558,7 @@ class CreateAnnouncement extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CreateAnnouncement.displayName = 'CreateAnnouncement';
 
 const CreateAnnouncementForm = reduxForm({
@@ -539,6 +568,7 @@ const CreateAnnouncementForm = reduxForm({
     destroyOnUnmount: true,
 })(CreateAnnouncement);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CreateAnnouncement.propTypes = {
     closeModal: PropTypes.func,
     createScheduledEventModalId: PropTypes.string,
@@ -553,18 +583,18 @@ CreateAnnouncement.propTypes = {
     change: PropTypes.func,
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const {
         data: { projectId },
     } = ownProps;
     const allMonitors = state.monitor.monitorsList.monitors
-        .filter(monitor => String(monitor._id) === String(projectId))
-        .map(monitor => monitor.monitors)
+        .filter((monitor: $TSFixMe) => String(monitor._id) === String(projectId))
+        .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
     const monitors = state.statusPage.status.monitors;
-    const mergeMonitors = [];
-    allMonitors.forEach(allMon => {
-        monitors.forEach(mon => {
+    const mergeMonitors: $TSFixMe = [];
+    allMonitors.forEach((allMon: $TSFixMe) => {
+        monitors.forEach((mon: $TSFixMe) => {
             if (allMon._id === mon.monitor) {
                 mergeMonitors.push(allMon);
             }
@@ -585,11 +615,10 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { closeModal, createAnnouncement, fetchAnnouncements },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { closeModal, createAnnouncement, fetchAnnouncements },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

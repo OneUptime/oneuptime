@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../../config';
 import { connect } from 'react-redux';
@@ -9,26 +10,29 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
 export class Themes extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             type: props.data.theme,
         };
     }
 
-    changeBox = (e, value) => {
+    changeBox = (e: $TSFixMe, value: $TSFixMe) => {
         this.setState({ type: value });
     };
-    submitForm = value => {
+    submitForm = (value: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { statusPageId, projectId } = this.props.data;
         const data = {
             ...value,
             statusPageId,
         };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTheme' does not exist on type 'Rea... Remove this comment to see the full error message
         this.props.updateTheme(projectId, data);
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit, statusPage } = this.props;
         const requesting = statusPage.theme.requesting;
         const error = statusPage.theme.error;
@@ -87,6 +91,7 @@ export class Themes extends Component {
                                                                     border: `1px solid ${
                                                                         this
                                                                             .state
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                             .type ===
                                                                         theme.value
                                                                             ? 'black'
@@ -113,8 +118,8 @@ export class Themes extends Component {
                                                                                 requesting
                                                                             }
                                                                             onChange={(
-                                                                                e,
-                                                                                v
+                                                                                e: $TSFixMe,
+                                                                                v: $TSFixMe
                                                                             ) => {
                                                                                 this.changeBox(
                                                                                     e,
@@ -132,6 +137,7 @@ export class Themes extends Component {
                                                                                 fontWeight:
                                                                                     this
                                                                                         .state
+                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                                         .type ===
                                                                                     theme.value
                                                                                         ? '600'
@@ -202,6 +208,7 @@ export class Themes extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Themes.displayName = 'Themes';
 
 const ThemesForm = new reduxForm({
@@ -210,14 +217,14 @@ const ThemesForm = new reduxForm({
     enableReinitialize: true,
 })(Themes);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            updateTheme,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        updateTheme,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Themes.propTypes = {
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -226,7 +233,7 @@ Themes.propTypes = {
     initialValues: PropTypes.shape({ theme: PropTypes.string }),
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { theme } = ownProps.data;
     return {
         statusPage: state.statusPage,

@@ -1,5 +1,5 @@
 export default {
-    async create(user, clientIP, userAgent, status) {
+    async create(user: $TSFixMe, clientIP: $TSFixMe, userAgent: $TSFixMe, status: $TSFixMe) {
         const detector = new DeviceDetector();
         const result = detector.detect(userAgent);
         const ipLocation = await UserService.getUserIpLocation(clientIP);
@@ -22,7 +22,13 @@ export default {
             ErrorService.log('mailService.sendLoginEmail', error);
         }
     },
-    async findBy({ query, skip, limit, select, populate }) {
+    async findBy({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;

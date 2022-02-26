@@ -10,7 +10,7 @@ export default {
             );
             if (securities && securities.length > 0) {
                 await Promise.all(
-                    securities.map(security => {
+                    securities.map((security: $TSFixMe) => {
                         return ApplicationSecurity.scan(security);
                     })
                 );

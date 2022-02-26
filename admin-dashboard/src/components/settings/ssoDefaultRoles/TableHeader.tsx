@@ -64,6 +64,7 @@ const TableHeader = () => (
             </td>
             <td
                 id="overflow"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                 type="action"
                 className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                 style={{ height: '1px' }}

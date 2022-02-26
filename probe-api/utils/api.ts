@@ -1,4 +1,5 @@
 import axios from 'axios'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./config"' has no exported member 'cluste... Remove this comment to see the full error message
 import { clusterKey, serverUrl } from './config'
 
 const _this = {
@@ -10,7 +11,7 @@ const _this = {
             clusterKey,
         };
     },
-    postApi: (url, data, withBaseUrl = false) => {
+    postApi: (url: $TSFixMe, data: $TSFixMe, withBaseUrl = false) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {

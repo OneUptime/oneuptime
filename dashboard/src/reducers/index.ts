@@ -1,7 +1,9 @@
 import { combineReducers } from 'redux';
 import component from './component';
 import monitor from './monitor';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { routerReducer } from 'react-router-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reducer as formReducer } from 'redux-form';
 import alert from './alert';
 import team from './team';
@@ -116,7 +118,7 @@ const appReducer = combineReducers({
 
 // Global Actions. 
 
-export default (state, action) => {
+export default (state: $TSFixMe, action: $TSFixMe) => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }

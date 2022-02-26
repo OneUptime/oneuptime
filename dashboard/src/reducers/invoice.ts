@@ -8,7 +8,7 @@ const getInitialState = () => ({
     nextCount: 0,
 });
 
-export default function getInvoice(state = getInitialState(), action) {
+export default function getInvoice(state = getInitialState(), action: $TSFixMe) {
     switch (action.type) {
         case types.GET_INVOICE_REQUEST:
             return Object.assign({}, state, {

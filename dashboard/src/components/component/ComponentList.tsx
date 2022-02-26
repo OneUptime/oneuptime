@@ -7,7 +7,7 @@ import ComponentDetail from './ComponentDetail';
 // import sortByName from '../../utils/sortByName';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-function ComponentList(props) {
+function ComponentList(props: $TSFixMe) {
     let componentDetails = null;
 
     const components = props.components ? props.components : [];
@@ -22,7 +22,7 @@ function ComponentList(props) {
         : Math.ceil(parseInt(count) / limit);
 
     if (components && components.length > 0) {
-        componentDetails = components.map((component, i) => (
+        componentDetails = components.map((component: $TSFixMe, i: $TSFixMe) => (
             <div id={`component${i}`} key={component._id}>
                 <RenderIfUserInSubProject
                     subProjectId={
@@ -47,6 +47,7 @@ function ComponentList(props) {
         <div>
             {componentDetails}
 
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
             <div className="Box-root Card-shadow--medium" tabIndex="0">
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
@@ -176,10 +177,10 @@ ComponentList.propTypes = {
     requestErrorObject: PropTypes.object,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = state => ({
-    currentProject: state.project.currentProject,
+const mapStateToProps = (state: $TSFixMe) => ({
+    currentProject: state.project.currentProject
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentList);

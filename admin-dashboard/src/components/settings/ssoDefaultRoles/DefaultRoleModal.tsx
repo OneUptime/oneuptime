@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { RenderSelect } from '../../basic/RenderSelect';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../../../config';
@@ -37,18 +38,21 @@ const fields = [
 ];
 
 // Client side validation
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.domain)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type '{}'.
         errors.domain = 'Domain is required.';
     }
 
     if (!Validate.text(values.project)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type '{}'.
         errors.project = 'Project is required.';
     }
 
     if (!Validate.text(values.role)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type '{}'.
         errors.role = 'Role is required.';
     }
 
@@ -63,18 +67,24 @@ const Form = ({
     errorMessage,
     handleSubmit,
     fetchSsoDefaultRoles,
-    closeThisDialog,
-}) => {
+    closeThisDialog
+}: $TSFixMe) => {
     const optionsArray = [
-        ssos.map(sso => ({ value: sso._id, label: sso.domain })),
-        projects.map(project => ({ value: project._id, label: project.name })),
+        ssos.map((sso: $TSFixMe) => ({
+            value: sso._id,
+            label: sso.domain
+        })),
+        projects.map((project: $TSFixMe) => ({
+            value: project._id,
+            label: project.name
+        })),
         [
             { value: 'Administrator', label: 'Administrator' },
             { value: 'Member', label: 'Member' },
             { value: 'Viewer', label: 'Viewer' },
         ],
     ];
-    const submitForm = async data => {
+    const submitForm = async (data: $TSFixMe) => {
         const { _id: id } = data;
         const success = await onSubmit({ id, data });
         if (!success) return;
@@ -85,6 +95,7 @@ const Form = ({
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -154,6 +165,7 @@ const Form = ({
                                                             marginTop: '10px',
                                                         }}
                                                     >
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{ k... Remove this comment to see the full error message
                                                         {field.description}
                                                     </span>
                                                 </div>
@@ -222,12 +234,19 @@ Form.propTypes = {
 export const CreateDefaultRoleModal = connect(
     state => ({
         formTitle: 'Create New Default Role',
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'DefaultRoot... Remove this comment to see the full error message
         ssos: state.sso.ssos.ssos,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Default... Remove this comment to see the full error message
         projects: state.project.projects.projects,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
         errorMessage: state.ssoDefaultRoles.addSsoDefaultRole.error,
     }),
     dispatch => ({
-        onSubmit: ({ data }) => dispatch(addSsoDefaultRole({ data })),
+        onSubmit: ({
+            data
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(dispatch: $TSFixMe) => Promise<... Remove this comment to see the full error message
+        }: $TSFixMe) => dispatch(addSsoDefaultRole({ data })),
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(dispatch: $TSFixMe) => Promise<... Remove this comment to see the full error message
         fetchSsoDefaultRoles: () => dispatch(fetchSsoDefaultRoles()),
     })
 )(ReduxConnectedForm);
@@ -235,19 +254,24 @@ export const CreateDefaultRoleModal = connect(
 export const UpdateDefaultRoleModal = connect(
     state => {
         const initialValues = {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
             ...state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
             ...(state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.domain
                 ? {
                       domain:
+                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
                           state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole
                               .domain._id,
                   }
                 : {
                       domain: null,
                   }),
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
             ...(state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.project
                 ? {
                       project:
+                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
                           state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole
                               .project._id,
                   }
@@ -257,14 +281,22 @@ export const UpdateDefaultRoleModal = connect(
         };
         return {
             initialValues,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'DefaultRoot... Remove this comment to see the full error message
             ssos: state.sso.ssos.ssos,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Default... Remove this comment to see the full error message
             projects: state.project.projects.projects,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
             errorMessage: state.ssoDefaultRoles.updateSsoDefaultRole.error,
         };
     },
     dispatch => ({
-        onSubmit: ({ id, data }) =>
+        onSubmit: ({
+            id,
+            data
+        }: $TSFixMe) =>
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(dispatch: $TSFixMe) => Promise<... Remove this comment to see the full error message
             dispatch(updateSsoDefaultRole({ id, data })),
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(dispatch: $TSFixMe) => Promise<... Remove this comment to see the full error message
         fetchSsoDefaultRoles: () => dispatch(fetchSsoDefaultRoles()),
     })
 )(ReduxConnectedForm);

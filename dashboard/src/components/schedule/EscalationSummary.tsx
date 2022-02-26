@@ -6,14 +6,16 @@ import { ListLoader } from '../basic/Loader';
 import EscalationSummarySingle from './EscalationSummarySingle';
 
 export class EscalationSummary extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {};
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onEditClicked' does not exist on type 'R... Remove this comment to see the full error message
         const { onEditClicked, escalations, teamMembers, groups } = this.props;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isLoading' does not exist on type 'Reado... Remove this comment to see the full error message
         const { isLoading, error } = this.state;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -56,7 +58,7 @@ export class EscalationSummary extends Component {
                             !error &&
                             escalations &&
                             escalations.length > 0 &&
-                            escalations.map((escalation, i) => {
+                            escalations.map((escalation: $TSFixMe, i: $TSFixMe) => {
                                 return (
                                     <div
                                         key={escalation.id}
@@ -95,6 +97,7 @@ export class EscalationSummary extends Component {
                                             <div>
                                                 {escalation &&
                                                     escalation.activeTeam && (
+                                                        // @ts-expect-error ts-migrate(2741) FIXME: Property 'isNextActiveTeam' is missing in type '{ ... Remove this comment to see the full error message
                                                         <EscalationSummarySingle
                                                             isActiveTeam={true}
                                                             teamMemberList={
@@ -119,6 +122,7 @@ export class EscalationSummary extends Component {
 
                                                 {escalation &&
                                                     escalation.nextActiveTeam && (
+                                                        // @ts-expect-error ts-migrate(2741) FIXME: Property 'isActiveTeam' is missing in type '{ isNe... Remove this comment to see the full error message
                                                         <EscalationSummarySingle
                                                             isNextActiveTeam={
                                                                 true
@@ -193,8 +197,10 @@ export class EscalationSummary extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EscalationSummary.displayName = 'EscalationSummary';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EscalationSummary.propTypes = {
     onEditClicked: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
@@ -202,7 +208,7 @@ EscalationSummary.propTypes = {
     groups: PropTypes.array,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
 const mapStateToProps = () => {
     return {};

@@ -4,8 +4,11 @@ const router = express.Router();
 import AutomatedScriptService from '../services/automatedScriptService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/response"' has no exported... Remove this comment to see the full error message
 import { sendItemResponse } from '../middlewares/response'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
 import { getUser } from '../middlewares/user'
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
@@ -48,10 +51,12 @@ router.get(
             });
 
             if (details.successEvent.length > 0) {
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                 details.successEvent = formatEvent(details.successEvent);
             }
 
             if (details.failureEvent.length > 0) {
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                 details.failureEvent = formatEvent(details.failureEvent);
             }
 
@@ -216,6 +221,7 @@ router.put(
     async (req, res) => {
         try {
             const { automatedScriptId } = req.params;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const triggeredId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.runResource({
                 triggeredId,
@@ -247,6 +253,7 @@ router.delete(
                 select,
                 populate,
             });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.deleteBy(
                 {
@@ -265,7 +272,7 @@ router.delete(
     }
 );
 
-const formatEvent = (arr, type) => {
+const formatEvent = (arr: $TSFixMe, type: $TSFixMe) => {
     const result = [];
     for (const item of arr) {
         if (type) {

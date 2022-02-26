@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 
-function ScheduleCalender({ escalations, requestingEscalations }) {
+function ScheduleCalender({
+    escalations,
+    requestingEscalations
+}: $TSFixMe) {
     const [dayOffset, setDayOffset] = useState(47);
     const [defaultDate, setDefaultDate] = useState(new Date());
 
-    const teamSchedules = [];
-    escalations.forEach(escalation => {
+    const teamSchedules: $TSFixMe = [];
+    escalations.forEach((escalation: $TSFixMe) => {
         if (escalation.activeTeam) {
             if (escalation.activeTeam.teamMembers.length) {
                 teamSchedules.push(...escalation.activeTeam.teamMembers);
@@ -22,7 +26,8 @@ function ScheduleCalender({ escalations, requestingEscalations }) {
         }
     });
 
-    const extendedSchedule = [];
+    const extendedSchedule: $TSFixMe = [];
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'schedule' implicitly has an 'any' type.
     teamSchedules.forEach(schedule => {
         for (let i = 0; i <= dayOffset; i++) {
             const currentStart = new Date(schedule.startTime);
@@ -46,7 +51,7 @@ function ScheduleCalender({ escalations, requestingEscalations }) {
     // to the correct localizer.
     const localizer = momentLocalizer(moment); // or globalizeLocalizer
 
-    const handleNavigate = (date, view, action) => {
+    const handleNavigate = (date: $TSFixMe, view: $TSFixMe, action: $TSFixMe) => {
         setDefaultDate(date);
         if (view === 'month') {
             setDayOffset(prevState => {
@@ -94,7 +99,7 @@ function ScheduleCalender({ escalations, requestingEscalations }) {
         }
     };
 
-    const handleView = view => {
+    const handleView = (view: $TSFixMe) => {
         setDefaultDate(new Date());
         if (view === 'month') setDayOffset(47);
         if (view === 'week') setDayOffset(7);
@@ -159,8 +164,8 @@ function ScheduleCalender({ escalations, requestingEscalations }) {
                                             'agenda',
                                         ]}
                                         showMultiDayTimes={true}
-                                        onView={view => handleView(view)}
-                                        onNavigate={(date, view, action) =>
+                                        onView={(view: $TSFixMe) => handleView(view)}
+                                        onNavigate={(date: $TSFixMe, view: $TSFixMe, action: $TSFixMe) =>
                                             handleNavigate(date, view, action)
                                         }
                                         popup={true}

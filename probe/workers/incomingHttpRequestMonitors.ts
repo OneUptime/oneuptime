@@ -5,7 +5,9 @@ import ErrorService from '../utils/errorService'
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 export default {
-    run: async ({ monitor }) => {
+    run: async ({
+        monitor
+    }: $TSFixMe) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.link && monitor.criteria) {
@@ -36,7 +38,7 @@ export default {
     },
 };
 
-const checkCondition = async condition => {
+const checkCondition = async (condition: $TSFixMe) => {
     let response = false;
     if (condition && condition.and && condition.and.length) {
         for (let i = 0; i < condition.and.length; i++) {

@@ -17,14 +17,16 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
 import express from 'express'
 import path from 'path'
 const app = express();
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'comp... Remove this comment to see the full error message
 import compression from 'compression'
 
 app.use(compression());
 
-app.get(['/env.js', '/accounts/env.js'], function(req, res) {
+app.get(['/env.js', '/accounts/env.js'], function(req: $TSFixMe, res: $TSFixMe) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         REACT_APP_DISABLE_SIGNUP: process.env.DISABLE_SIGNUP,
@@ -81,7 +83,7 @@ app.use(
 
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
-app.get('/*', function(req, res) {
+app.get('/*', function(req: $TSFixMe, res: $TSFixMe) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

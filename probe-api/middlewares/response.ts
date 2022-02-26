@@ -1,5 +1,5 @@
 export default {
-    sendErrorResponse: function(req, res, error) {
+    sendErrorResponse: function(req: $TSFixMe, res: $TSFixMe, error: $TSFixMe) {
         //log error to the console.
         // eslint-disable-next-line no-console
         console.error(error);
@@ -32,7 +32,7 @@ export default {
         }
     },
 
-    sendListResponse: async function(req, res, list, count) {
+    sendListResponse: async function(req: $TSFixMe, res: $TSFixMe, list: $TSFixMe, count: $TSFixMe) {
         // remove __v, deleted, deletedAt and deletedById if not Master Admin
         const response = {};
 
@@ -41,20 +41,25 @@ export default {
         }
 
         if (list) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
             response.data = list;
         }
 
         if (count) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
             response.count = count;
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
             if (list) response.count = list.length;
         }
 
         if (req.query.skip) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type '{}'.
             response.skip = parseInt(req.query.skip);
         }
 
         if (req.query.limit) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type '{}'.
             response.limit = parseInt(req.query.limit);
         }
 

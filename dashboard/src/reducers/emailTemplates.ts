@@ -33,7 +33,7 @@ const initialState = {
     showEmailSmtpConfiguration: false,
 };
 
-export default function incident(state = initialState, action) {
+export default function incident(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.EMAIL_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {
@@ -89,7 +89,8 @@ export default function incident(state = initialState, action) {
                     success: true,
                 },
                 showingTemplate: action.payload.find(
-                    temp => temp.emailType === state.showingTemplate.emailType
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type '{}'.
+                    (temp: $TSFixMe) => temp.emailType === state.showingTemplate.emailType
                 ),
             });
 
@@ -136,7 +137,8 @@ export default function incident(state = initialState, action) {
                     success: false,
                 },
                 showingTemplate: action.payload.find(
-                    temp => temp.emailType === state.showingTemplate.emailType
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type '{}'.
+                    (temp: $TSFixMe) => temp.emailType === state.showingTemplate.emailType
                 ),
             });
 
@@ -161,6 +163,7 @@ export default function incident(state = initialState, action) {
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
                 showingTemplate: state.emailTemplates.templates.find(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type 'never... Remove this comment to see the full error message
                     temp => temp.emailType === action.payload
                 ),
             });

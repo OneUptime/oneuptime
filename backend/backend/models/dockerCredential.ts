@@ -2,6 +2,7 @@ import mongoose from '../config/db'
 
 const Schema = mongoose.Schema;
 
+// @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof Schema' is not callable. Did... Remove this comment to see the full error message
 const dockerCredentialSchema = Schema(
     {
         dockerRegistryUrl: String,

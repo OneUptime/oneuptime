@@ -3,7 +3,11 @@ import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -18,7 +22,7 @@ export default {
         return customField;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         let customField = await MonitorCustomFieldModel.create({
             ...data,
         });
@@ -36,7 +40,7 @@ export default {
         return customField;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -63,6 +67,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -70,7 +75,13 @@ export default {
         return customField;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -102,7 +113,7 @@ export default {
         return customFields;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -111,7 +122,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         const customField = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
             {
@@ -125,6 +136,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -132,7 +144,7 @@ export default {
         return customField;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -157,7 +169,7 @@ export default {
         return updatedCustomField;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await MonitorCustomFieldModel.deleteMany(query);
         return 'Monitor Custom field(s) removed successfully!';
     },

@@ -40,7 +40,7 @@ const initialState = {
     activeSubProject: null,
 };
 
-export default function subProject(state = initialState, action) {
+export default function subProject(state = initialState, action: $TSFixMe) {
     let subProjects, index;
     switch (action.type) {
         case types.SUBPROJECTS_SUCCESS:
@@ -119,6 +119,7 @@ export default function subProject(state = initialState, action) {
                     subProjects: state.subProjects.subProjects.concat(
                         action.payload
                     ),
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.subProjects.count + 1,
                     skip: state.subProjects.skip,
                     limit: state.subProjects.limit,
@@ -146,8 +147,10 @@ export default function subProject(state = initialState, action) {
         case types.RESET_SUBPROJECT_TOKEN_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
             index = subProjects.findIndex(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 subProject => subProject._id === action.payload._id
             );
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
             subProjects[index] = action.payload;
             return Object.assign({}, state, {
                 subProjects: {
@@ -197,8 +200,10 @@ export default function subProject(state = initialState, action) {
         case types.RENAME_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
             index = subProjects.findIndex(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 subProject => subProject._id === action.payload._id
             );
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
             subProjects[index] = action.payload;
             return Object.assign({}, state, {
                 subProjects: {
@@ -247,6 +252,7 @@ export default function subProject(state = initialState, action) {
         case types.DELETE_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
             subProjects = subProjects.filter(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 subProject => subProject._id !== action.payload
             );
             return Object.assign({}, state, {
@@ -260,6 +266,7 @@ export default function subProject(state = initialState, action) {
                     error: null,
                     success: false,
                     subProjects,
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.subProjects.count - 1,
                     skip: state.subProjects.skip,
                     limit: state.subProjects.limit,
@@ -324,6 +331,7 @@ export default function subProject(state = initialState, action) {
         case types.CHANGE_SUBPROJECT_ROLES:
             return Object.assign({}, state, {
                 currentSubProject: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentSubProject' does not exist on typ... Remove this comment to see the full error message
                     ...state.currentSubProject,
                     users: action.payload,
                 },

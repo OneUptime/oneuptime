@@ -7,21 +7,21 @@ export const createStatusPageCategoryRequest = () => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,
 });
 
-export const createStatusPageCategorySuccess = payload => ({
+export const createStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload,
+    payload
 });
 
-export const createStatusPageCategoryFailure = error => ({
+export const createStatusPageCategoryFailure = (error: $TSFixMe) => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const createStatusPageCategory = ({
     projectId,
     statusPageId,
-    statusPageCategoryName,
-}) => dispatch => {
+    statusPageCategoryName
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const promise = postApi(`statusPageCategory/${projectId}/${statusPageId}`, {
         statusPageCategoryName,
     });
@@ -29,6 +29,7 @@ export const createStatusPageCategory = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(createStatusPageCategorySuccess(response.data));
         },
         function(error) {
@@ -53,21 +54,21 @@ export const updateStatusPageCategoryRequest = () => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_REQUEST,
 });
 
-export const updateStatusPageCategorySuccess = payload => ({
+export const updateStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateStatusPageCategoryFailure = error => ({
+export const updateStatusPageCategoryFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateStatusPageCategory = ({
     projectId,
     statusPageCategoryId,
-    statusPageCategoryName,
-}) => dispatch => {
+    statusPageCategoryName
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const promise = putApi(
         `statusPageCategory/${projectId}/${statusPageCategoryId}`,
         {
@@ -78,6 +79,7 @@ export const updateStatusPageCategory = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(updateStatusPageCategorySuccess(response.data));
         },
         function(error) {
@@ -102,22 +104,22 @@ export const fetchStatusPageCategoriesRequest = () => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_REQUEST,
 });
 
-export const fetchStatusPageCategoriesSuccess = payload => ({
+export const fetchStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchStatusPageCategoriesFailure = error => ({
+export const fetchStatusPageCategoriesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchStatusPageCategories = ({
     projectId,
     statusPageId,
     skip,
-    limit,
-}) => dispatch => {
+    limit
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     if (!skip) {
         skip = 0;
     }
@@ -131,6 +133,7 @@ export const fetchStatusPageCategories = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchStatusPageCategoriesSuccess(response.data));
         },
         function(error) {
@@ -155,22 +158,22 @@ export const fetchAllStatusPageCategoriesRequest = () => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST,
 });
 
-export const fetchAllStatusPageCategoriesSuccess = payload => ({
+export const fetchAllStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchAllStatusPageCategoriesFailure = error => ({
+export const fetchAllStatusPageCategoriesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchAllStatusPageCategories = ({
     projectId,
     statusPageId,
     skip,
-    limit,
-}) => dispatch => {
+    limit
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     if (!skip) {
         skip = 0;
     }
@@ -184,6 +187,7 @@ export const fetchAllStatusPageCategories = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
         },
         function(error) {
@@ -208,20 +212,21 @@ export const deleteStatusPageCategoryRequest = () => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_REQUEST,
 });
 
-export const deleteStatusPageCategorySuccess = payload => ({
+export const deleteStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteStatusPageCategoryFailure = error => ({
+export const deleteStatusPageCategoryFailure = (error: $TSFixMe) => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteStatusPageCategory = ({
     projectId,
-    statusPageCategoryId,
-}) => dispatch => {
+    statusPageCategoryId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(
         `statusPageCategory/${projectId}/${statusPageCategoryId}`
     );
@@ -229,6 +234,7 @@ export const deleteStatusPageCategory = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(updateStatusPageCategorySuccess(response.data));
         },
         function(error) {

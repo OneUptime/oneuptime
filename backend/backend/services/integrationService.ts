@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -25,26 +31,33 @@ export default {
 
     // create a new integration
     create: async function(
-        projectId,
-        userId,
-        data,
-        integrationType,
-        notificationOptions
+        projectId: $TSFixMe,
+        userId: $TSFixMe,
+        data: $TSFixMe,
+        integrationType: $TSFixMe,
+        notificationOptions: $TSFixMe
     ) {
         const _this = this;
         const integrationModel = new IntegrationModel(data);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         integrationModel.projectId = projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         integrationModel.createdById = userId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Document<a... Remove this comment to see the full error message
         integrationModel.data = data;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'integrationType' does not exist on type ... Remove this comment to see the full error message
         integrationModel.integrationType = integrationType;
         data.monitors =
             data.monitors &&
-            data.monitors.map(monitor => ({
-                monitorId: monitor,
+            data.monitors.map((monitor: $TSFixMe) => ({
+                monitorId: monitor
             }));
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
         integrationModel.monitorId = data.monitorId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
         integrationModel.monitors = data.monitors || [];
         if (notificationOptions) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationOptions' does not exist on t... Remove this comment to see the full error message
             integrationModel.notificationOptions = notificationOptions;
         }
 
@@ -68,7 +81,7 @@ export default {
         return integration;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -78,7 +91,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -93,7 +106,11 @@ export default {
         return integration;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (query.deleted) query.deleted = false;
@@ -107,13 +124,14 @@ export default {
         return result;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
         }
 
         if (!data._id) {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
             const integration = await _this.create(
                 data.projectId,
                 data.userId,
@@ -165,7 +183,7 @@ export default {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -189,11 +207,12 @@ export default {
         return updatedData;
     },
 
-    removeMonitor: async function(monitorId, userId) {
+    removeMonitor: async function(monitorId: $TSFixMe, userId: $TSFixMe) {
         let query = {};
         if (monitorId) {
             query = { monitorId: monitorId };
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
         query.deleted = false;
         const integrations = await IntegrationModel.updateMany(query, {
             $set: {
@@ -205,7 +224,7 @@ export default {
         return integrations;
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         const select =
@@ -222,7 +241,7 @@ export default {
         const integration = await _this.findBy({ query, select, populate });
         if (integration && integration.length > 1) {
             const integrations = await Promise.all(
-                integration.map(async integration => {
+                integration.map(async (integration: $TSFixMe) => {
                     const integrationId = integration._id;
                     integration = await _this.updateOneBy(
                         {
@@ -240,7 +259,7 @@ export default {
             return integrations;
         }
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await IntegrationModel.deleteMany(query);
         return 'Integration(s) Removed Successfully!';
     },

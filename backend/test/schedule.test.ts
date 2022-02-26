@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -5,7 +6,9 @@ import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 // let log = require('./data/log');
 import UserService from '../backend/services/userService'
@@ -15,21 +18,23 @@ import AirtableService from '../backend/services/airtableService'
 
 import VerificationTokenModel from '../backend/models/verificationToken'
 
-let token, projectId, scheduleId, userId;
+let token: $TSFixMe, projectId: $TSFixMe, scheduleId: $TSFixMe, userId;
 
-describe('Schedule API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Schedule API', function(this: $TSFixMe) {
     this.timeout(30000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
@@ -41,7 +46,7 @@ describe('Schedule API', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -51,6 +56,7 @@ describe('Schedule API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ScheduleService.hardDeleteBy({ _id: scheduleId });
@@ -58,19 +64,21 @@ describe('Schedule API', function() {
     });
 
     // 'post /schedule/:projectId/create'
-    it('should reject the request of an unauthenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/schedule/${projectId}`)
             .send({
                 name: 'New Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not create a schedule when the `name` field is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a schedule when the `name` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -78,13 +86,14 @@ describe('Schedule API', function() {
             .send({
                 name: null,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new schedule when `name` is given by an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a new schedule when `name` is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -92,7 +101,7 @@ describe('Schedule API', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 scheduleId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -100,12 +109,13 @@ describe('Schedule API', function() {
             });
     });
 
-    it('should get schedules for an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get schedules for an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/schedule/${projectId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -114,7 +124,8 @@ describe('Schedule API', function() {
             });
     });
 
-    it('should rename a schedule when the `projectId` is valid and the `scheduleName` is given', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should rename a schedule when the `projectId` is valid and the `scheduleName` is given', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put(`/schedule/${projectId}/${scheduleId}`)
@@ -122,7 +133,7 @@ describe('Schedule API', function() {
             .send({
                 name: 'Renamed Schedule',
             })
-            .end(function(err, response) {
+            .end(function(err: $TSFixMe, response: $TSFixMe) {
                 scheduleId = response.body[0]._id;
                 expect(response).to.have.status(200);
                 expect(response.body).to.be.an('array');
@@ -131,7 +142,8 @@ describe('Schedule API', function() {
             });
     });
 
-    it('should delete a schedule when the `projectId` and `scheduleId` is valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete a schedule when the `projectId` and `scheduleId` is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -139,11 +151,11 @@ describe('Schedule API', function() {
             .send({
                 name: 'Delete Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 request
                     .delete(`/schedule/${projectId}/${res.body._id}`)
                     .set('Authorization', authorization)
-                    .end(function(err, response) {
+                    .end(function(err: $TSFixMe, response: $TSFixMe) {
                         expect(response).to.have.status(200);
                         ScheduleService.hardDeleteBy({ _id: res.body._id });
                         done();
@@ -153,11 +165,13 @@ describe('Schedule API', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId, newUserToken, subProjectScheduleId;
+let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectScheduleId: $TSFixMe;
 
-describe('Schedule API with Sub-Projects', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Schedule API with Sub-Projects', function(this: $TSFixMe) {
     this.timeout(30000);
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
@@ -166,13 +180,13 @@ describe('Schedule API with Sub-Projects', function() {
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function(err, res) {
+                .end(function(err: $TSFixMe, res: $TSFixMe) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err, res) {
+                    createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
                         VerificationTokenModel.findOne(
                             { userId: res.body.id },
-                            function(err, verificationToken) {
+                            function(err: $TSFixMe, verificationToken: $TSFixMe) {
                                 request
                                     .get(
                                         `/user/confirmation/${verificationToken.token}`
@@ -186,7 +200,7 @@ describe('Schedule API with Sub-Projects', function() {
                                                 password:
                                                     userData.newUser.password,
                                             })
-                                            .end(function(err, res) {
+                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                                 newUserToken =
                                                     res.body.tokens
                                                         .jwtAccessToken;
@@ -218,6 +232,7 @@ describe('Schedule API with Sub-Projects', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -234,11 +249,12 @@ describe('Schedule API with Sub-Projects', function() {
         });
     });
 
-    it('should not create a schedule for user not present in project', function(done) {
-        createUser(request, userData.anotherUser, function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a schedule for user not present in project', function(done: $TSFixMe) {
+        createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function(
-                err,
-                res
+                err: $TSFixMe,
+                res: $TSFixMe
             ) {
                 request
                     .get(`/user/confirmation/${res.token}`)
@@ -250,7 +266,7 @@ describe('Schedule API with Sub-Projects', function() {
                                 email: userData.anotherUser.email,
                                 password: userData.anotherUser.password,
                             })
-                            .end(function(err, res) {
+                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                 const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/schedule/${projectId}`)
@@ -258,7 +274,7 @@ describe('Schedule API with Sub-Projects', function() {
                                     .send({
                                         name: 'Valid Schedule',
                                     })
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
                                             'You are not present in this project.'
@@ -271,7 +287,8 @@ describe('Schedule API with Sub-Projects', function() {
         });
     });
 
-    it('should not create a schedule for user that is not `admin` in sub-project.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a schedule for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .post(`/schedule/${subProjectId}`)
@@ -279,7 +296,7 @@ describe('Schedule API with Sub-Projects', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -288,7 +305,8 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should create a schedule in parent project by valid admin.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a schedule in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -296,7 +314,7 @@ describe('Schedule API with Sub-Projects', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 scheduleId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('Valid Schedule');
@@ -304,7 +322,8 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should create a schedule in parent project by valid admin.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a schedule in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${subProjectId}`)
@@ -312,7 +331,7 @@ describe('Schedule API with Sub-Projects', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 subProjectScheduleId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('Valid Schedule');
@@ -320,12 +339,13 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it("should get only sub-project's schedules for valid sub-project user", function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it("should get only sub-project's schedules for valid sub-project user", function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/schedule/${subProjectId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -335,12 +355,13 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should get both project and sub-project schedule for valid parent project user.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get both project and sub-project schedule for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/schedule/${projectId}/schedules`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('schedules');
@@ -352,12 +373,13 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should not delete a schedule for user that is not `admin` in sub-project.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete a schedule for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/schedule/${subProjectId}/${subProjectScheduleId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -366,23 +388,25 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should delete sub-project schedule', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete sub-project schedule', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/schedule/${subProjectId}/${subProjectScheduleId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete project schedule', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete project schedule', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/schedule/${projectId}/${scheduleId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });

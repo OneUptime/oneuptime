@@ -11,14 +11,14 @@ export function updateProfileSettingRequest() {
     };
 }
 
-export function updateProfileSettingSuccess(profileSetting) {
+export function updateProfileSettingSuccess(profileSetting: $TSFixMe) {
     return {
         type: types.UPDATE_PROFILE_SETTING_SUCCESS,
         payload: profileSetting,
     };
 }
 
-export function updateProfileSettingError(error) {
+export function updateProfileSettingError(error: $TSFixMe) {
     return {
         type: types.UPDATE_PROFILE_SETTING_FAILURE,
         payload: error,
@@ -31,14 +31,14 @@ export function updatePushNotificationRequest() {
     };
 }
 
-export function updatePushNotificationError(error) {
+export function updatePushNotificationError(error: $TSFixMe) {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_ERROR,
         payload: error,
     };
 }
 
-export function updatePushNotificationSuccess(data) {
+export function updatePushNotificationSuccess(data: $TSFixMe) {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_SUCCESS,
         payload: data,
@@ -47,8 +47,8 @@ export function updatePushNotificationSuccess(data) {
 
 // Calls the API to update setting.
 
-export function updateProfileSetting(values) {
-    return function(dispatch) {
+export function updateProfileSetting(values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const data = new FormData();
         if (values.profilePic && values.profilePic !== 'null') {
             if (!values.removedPic) {
@@ -79,6 +79,7 @@ export function updateProfileSetting(values) {
         dispatch(updateProfileSettingRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const profileSettings = response.data;
                 dispatch(updateProfileSettingSuccess(profileSettings));
                 return profileSettings;
@@ -103,12 +104,13 @@ export function updateProfileSetting(values) {
 }
 
 // Update push notification
-export function updatePushNotification(data) {
-    return function(dispatch) {
+export function updatePushNotification(data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi('user/push-notification', data);
         dispatch(updatePushNotificationRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const profileSettings = response.data;
                 dispatch(updatePushNotificationSuccess(profileSettings));
                 return profileSettings;
@@ -139,26 +141,27 @@ export function twoFactorAuthTokenRequest() {
     };
 }
 
-export function twoFactorAuthTokenSuccess(payload) {
+export function twoFactorAuthTokenSuccess(payload: $TSFixMe) {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
         payload: payload,
     };
 }
 
-export function twoFactorAuthTokenError(error) {
+export function twoFactorAuthTokenError(error: $TSFixMe) {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
     };
 }
 
-export function verifyTwoFactorAuthToken(values) {
-    return function(dispatch) {
+export function verifyTwoFactorAuthToken(values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi('user/totp/verifyToken', values);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
@@ -189,26 +192,28 @@ export function generateTwoFactorQRCodeRequest() {
     };
 }
 
-export function generateTwoFactorQRCodeSuccess(payload) {
+export function generateTwoFactorQRCodeSuccess(payload: $TSFixMe) {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_SUCCESS,
         payload: payload,
     };
 }
 
-export function generateTwoFactorQRCodeError(error) {
+export function generateTwoFactorQRCodeError(error: $TSFixMe) {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_FAILURE,
         payload: error,
     };
 }
 
-export function generateTwoFactorQRCode(userId) {
-    return function(dispatch) {
+export function generateTwoFactorQRCode(userId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = postApi(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const payload = response.data;
                 dispatch(generateTwoFactorQRCodeSuccess(payload));
                 return payload;
@@ -234,12 +239,13 @@ export function generateTwoFactorQRCode(userId) {
 
 // Update user twoFactorAuthToken
 
-export function updateTwoFactorAuthToken(data) {
-    return function(dispatch) {
+export function updateTwoFactorAuthToken(data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi('user/profile', data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
@@ -277,7 +283,7 @@ export function updateChangePasswordSettingSuccess() {
     };
 }
 
-export function updateChangePasswordSettingError(error) {
+export function updateChangePasswordSettingError(error: $TSFixMe) {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_FAILURE,
         payload: error,
@@ -285,8 +291,8 @@ export function updateChangePasswordSettingError(error) {
 }
 
 // Calls the API to update change password setting.
-export function updateChangePasswordSetting(data) {
-    return function(dispatch) {
+export function updateChangePasswordSetting(data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi('user/changePassword', data);
         dispatch(updateChangePasswordSettingRequest());
 
@@ -313,14 +319,14 @@ export function updateChangePasswordSetting(data) {
     };
 }
 
-export function showProfileMenu(position) {
+export function showProfileMenu(position: $TSFixMe) {
     return {
         type: types.SHOW_PROFILE_MENU,
         payload: position,
     };
 }
 
-export function hideProfileMenu(error) {
+export function hideProfileMenu(error: $TSFixMe) {
     return {
         type: types.HIDE_PROFILE_MENU,
         payload: error,
@@ -335,14 +341,14 @@ export function userSettingsRequest() {
     };
 }
 
-export function userSettingsSuccess(settings) {
+export function userSettingsSuccess(settings: $TSFixMe) {
     return {
         type: types.USER_SETTINGS_SUCCESS,
         payload: settings,
     };
 }
 
-export function userSettingsError(error) {
+export function userSettingsError(error: $TSFixMe) {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
@@ -351,12 +357,13 @@ export function userSettingsError(error) {
 
 // Calls the API to update on cal alert setting.
 export function userSettings() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi('user/profile');
         dispatch(userSettingsRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const settings = response.data;
                 dispatch(userSettingsSuccess(settings));
                 return settings;
@@ -380,14 +387,14 @@ export function userSettings() {
     };
 }
 
-export function logFile(file) {
-    return function(dispatch) {
+export function logFile(file: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 }
 
 export function resetFile() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch({ type: 'RESET_FILE' });
     };
 }
@@ -398,14 +405,14 @@ export function sendVerificationSMSRequest() {
     };
 }
 
-export function sendVerificationSMSSuccess(verificationAction) {
+export function sendVerificationSMSSuccess(verificationAction: $TSFixMe) {
     return {
         type: types.SEND_VERIFICATION_SMS_SUCCESS,
         payload: verificationAction,
     };
 }
 
-export function sendVerificationSMSError(error) {
+export function sendVerificationSMSError(error: $TSFixMe) {
     return {
         type: types.SEND_VERIFICATION_SMS_FAILURE,
         payload: error,
@@ -413,7 +420,7 @@ export function sendVerificationSMSError(error) {
 }
 
 export function sendVerificationSMSReset() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch({ type: types.SEND_VERIFICATION_SMS_RESET });
     };
 }
@@ -424,22 +431,22 @@ export function sendEmailVerificationRequest() {
     };
 }
 
-export function sendEmailVerificationSuccess(payload) {
+export function sendEmailVerificationSuccess(payload: $TSFixMe) {
     return {
         type: types.SEND_EMAIL_VERIFICATION_SUCCESS,
         payload,
     };
 }
 
-export function sendEmailVerificationError(error) {
+export function sendEmailVerificationError(error: $TSFixMe) {
     return {
         type: types.SEND_EMAIL_VERIFICATION_FAILURE,
         payload: error,
     };
 }
 
-export function sendEmailVerificationLink(values) {
-    return function(dispatch) {
+export function sendEmailVerificationLink(values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi('user/resend', values);
         dispatch(sendEmailVerificationRequest());
 
@@ -465,8 +472,8 @@ export function sendEmailVerificationLink(values) {
     };
 }
 
-export function sendVerificationSMS(projectId, values) {
-    return function(dispatch) {
+export function sendVerificationSMS(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `twilio/sms/sendVerificationToken?projectId=${projectId}`,
             values
@@ -475,6 +482,7 @@ export function sendVerificationSMS(projectId, values) {
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const vericationAction = response.data;
                 dispatch(sendVerificationSMSSuccess(vericationAction));
                 return vericationAction;
@@ -503,14 +511,14 @@ export function verifySMSCodeRequest() {
     };
 }
 
-export function verifySMSCodeSuccess(verificationResult) {
+export function verifySMSCodeSuccess(verificationResult: $TSFixMe) {
     return {
         type: types.VERIFY_SMS_CODE_SUCCESS,
         payload: verificationResult,
     };
 }
 
-export function verifySMSCodeError(error) {
+export function verifySMSCodeError(error: $TSFixMe) {
     return {
         type: types.VERIFY_SMS_CODE_FAILURE,
         payload: error,
@@ -518,13 +526,13 @@ export function verifySMSCodeError(error) {
 }
 
 export function verifySMSCodeReset() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch({ type: types.VERIFY_SMS_CODE_RESET });
     };
 }
 
-export function verifySMSCode(projectId, values) {
-    return function(dispatch) {
+export function verifySMSCode(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `twilio/sms/verify?projectId=${projectId}`,
             values
@@ -533,6 +541,7 @@ export function verifySMSCode(projectId, values) {
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const verificationResult = response.data;
                 dispatch(verifySMSCodeSuccess(verificationResult));
                 return verificationResult;
@@ -556,91 +565,91 @@ export function verifySMSCode(projectId, values) {
     };
 }
 
-export function setAlertPhoneNumber(number) {
+export function setAlertPhoneNumber(number: $TSFixMe) {
     return {
         type: types.SET_ALERT_PHONE_NUMBER,
         payload: number,
     };
 }
 
-export function setTwoFactorAuth(enabled) {
+export function setTwoFactorAuth(enabled: $TSFixMe) {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
     };
 }
 
-export function setInitAlertEmail(email) {
+export function setInitAlertEmail(email: $TSFixMe) {
     return {
         type: types.SET_INIT_ALERT_EMAIL,
         payload: email,
     };
 }
 
-export function setVerified(value) {
+export function setVerified(value: $TSFixMe) {
     return {
         type: types.SET_VERIFIED,
         payload: value,
     };
 }
 
-export function setInitPhoneVerificationNumber(number) {
+export function setInitPhoneVerificationNumber(number: $TSFixMe) {
     return {
         type: types.SET_INIT_PHONE_VERIFICATION_NUMBER,
         payload: number,
     };
 }
 
-export function setInitPhoneVerification(value) {
+export function setInitPhoneVerification(value: $TSFixMe) {
     return {
         type: types.SET_INIT_PHONE_VERIFICATION,
         payload: value,
     };
 }
 
-export function setProfilePic(value) {
+export function setProfilePic(value: $TSFixMe) {
     return {
         type: types.SET_PROFILE_PIC,
         payload: value,
     };
 }
 
-export function setRemovedPic(value) {
+export function setRemovedPic(value: $TSFixMe) {
     return {
         type: types.SET_REMOVED_PIC,
         payload: value,
     };
 }
 
-export function setFileInputKey(value) {
+export function setFileInputKey(value: $TSFixMe) {
     return {
         type: types.SET_FILE_INPUT_KEY,
         payload: value,
     };
 }
 
-export function setIsVerified(value) {
+export function setIsVerified(value: $TSFixMe) {
     return {
         type: types.SET_IS_VERIFIED,
         payload: value,
     };
 }
 
-export function setInitialAlertPhoneNumber(value) {
+export function setInitialAlertPhoneNumber(value: $TSFixMe) {
     return {
         type: types.SET_INITIAL_ALERT_PHONE_NUMBER,
         payload: value,
     };
 }
 
-export function setUserEmail(value) {
+export function setUserEmail(value: $TSFixMe) {
     return {
         type: types.SET_USER_EMAIL,
         payload: value,
     };
 }
 
-export function setResendTimer(value) {
+export function setResendTimer(value: $TSFixMe) {
     return {
         type: types.SET_RESEND_TIMER,
         payload: value,
@@ -654,27 +663,28 @@ export function deleteAccountRequest() {
     };
 }
 
-export function deleteAccountSuccess(promise) {
+export function deleteAccountSuccess(promise: $TSFixMe) {
     return {
         type: types.USER_SETTINGS_SUCCESS,
         payload: promise,
     };
 }
 
-export function deleteAccountFailure(error) {
+export function deleteAccountFailure(error: $TSFixMe) {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
     };
 }
 
-export function deleteAccount(userId, confirmation) {
-    return function(dispatch) {
+export function deleteAccount(userId: $TSFixMe, confirmation: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteAccountSuccess(response.data));
                 return response;
             },
@@ -702,23 +712,25 @@ const generateBackupCodesRequest = () => ({
     type: types.GENERATE_BACKUP_CODES_REQUEST,
 });
 
-const generateBackupCodesSuccess = payload => ({
+const generateBackupCodesSuccess = (payload: $TSFixMe) => ({
     type: types.GENERATE_BACKUP_CODES_SUCCESS,
-    payload,
+    payload
 });
 
-const generateBackupCodesFailure = payload => ({
+const generateBackupCodesFailure = (payload: $TSFixMe) => ({
     type: types.GENERATE_BACKUP_CODES_FAILURE,
-    payload,
+    payload
 });
 
 export const generateBackupCodes = () => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = postApi(`user/generate/backupCode`);
         dispatch(generateBackupCodesRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(generateBackupCodesSuccess(response.data));
                 return response;
             },

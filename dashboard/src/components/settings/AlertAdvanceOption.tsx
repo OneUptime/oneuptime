@@ -1,15 +1,18 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, change } from 'redux-form';
 import { ValidateField, User } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { alertOptionsUpdate } from '../../actions/project';
 import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
@@ -24,13 +27,19 @@ export class AlertAdvanceOption extends Component {
         MessageBoxId: uuidv4(),
     };
 
-    submitForm = value => {
+    submitForm = (value: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             formValues,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertOptionsUpdate' does not exist on ty... Remove this comment to see the full error message
             alertOptionsUpdate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'balance' does not exist on type 'Readonl... Remove this comment to see the full error message
             balance,
         } = this.props;
         value._id = projectId;
@@ -43,6 +52,7 @@ export class AlertAdvanceOption extends Component {
                     title: 'Message',
                     onConfirm: () => {
                         return alertOptionsUpdate(projectId, value).then(() => {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paymentIntent' does not exist on type 'R... Remove this comment to see the full error message
                             const { paymentIntent } = this.props;
                             if (paymentIntent) {
                                 //init payment
@@ -56,6 +66,7 @@ export class AlertAdvanceOption extends Component {
                 });
             } else {
                 alertOptionsUpdate(projectId, value).then(() => {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'paymentIntent' does not exist on type 'R... Remove this comment to see the full error message
                     const { paymentIntent } = this.props;
                     if (paymentIntent) {
                         //init payment
@@ -71,10 +82,11 @@ export class AlertAdvanceOption extends Component {
         }
     };
 
-    handlePaymentIntent = paymentIntentClientSecret => {
+    handlePaymentIntent = (paymentIntentClientSecret: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripe' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { stripe, openModal, balance } = this.props;
         const { MessageBoxId } = this.state;
-        stripe.handleCardPayment(paymentIntentClientSecret).then(result => {
+        stripe.handleCardPayment(paymentIntentClientSecret).then((result: $TSFixMe) => {
             if (
                 result.paymentIntent &&
                 result.paymentIntent.status === 'succeeded'
@@ -101,31 +113,39 @@ export class AlertAdvanceOption extends Component {
     };
 
     componentDidUpdate() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues } = this.props;
         const rechargeToBalance = Number(formValues.rechargeToBalance);
         const minimumBalance = Number(formValues.minimumBalance);
 
         if (formValues.billingUS && minimumBalance < 20) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.change('minimumBalance', '20');
         }
         if (formValues.billingUS && rechargeToBalance < 40) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.change('rechargeToBalance', '40');
         }
         if (formValues.billingNonUSCountries && minimumBalance < 50) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.change('minimumBalance', '50');
         }
         if (formValues.billingNonUSCountries && rechargeToBalance < 100) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.change('rechargeToBalance', '100');
         }
         if (formValues.billingRiskCountries && minimumBalance < 100) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.change('minimumBalance', '100');
         }
         if (formValues.billingRiskCountries && rechargeToBalance < 200) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             this.props.change('rechargeToBalance', '200');
         }
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertEnable' does not exist on type 'Rea... Remove this comment to see the full error message
         const { alertEnable, formValues } = this.props;
 
         return (
@@ -150,6 +170,7 @@ export class AlertAdvanceOption extends Component {
                                     </div>
                                 </div>
                                 <form
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
                                     onSubmit={this.props.handleSubmit(
                                         this.submitForm
                                     )}
@@ -435,6 +456,7 @@ export class AlertAdvanceOption extends Component {
                                                                         },
                                                                     ]}
                                                                 />
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
                                                                 <Tooltip title="SMS and Call Alert Charges">
                                                                     <div
                                                                         style={{
@@ -881,18 +903,21 @@ export class AlertAdvanceOption extends Component {
                                                 id="alertOptionSave"
                                                 className="bs-Button bs-Button--blue"
                                                 disabled={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                     this.props.isRequesting
                                                 }
                                                 type="submit"
                                             >
                                                 <ShouldRender
                                                     if={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                         !this.props.isRequesting
                                                     }
                                                 >
                                                     <span>Save</span>
                                                 </ShouldRender>
                                                 <ShouldRender
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                     if={this.props.isRequesting}
                                                 >
                                                     <FormLoader />
@@ -910,8 +935,10 @@ export class AlertAdvanceOption extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AlertAdvanceOption.displayName = 'AlertAdvanceOption';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AlertAdvanceOption.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,
@@ -933,12 +960,12 @@ const AlertAdvanceOptionForm = new reduxForm({
     form: formName,
 })(AlertAdvanceOption);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,
     project: state.project.currentProject,
+
     initialValues: {
         alertEnable: state.project.currentProject.alertEnable,
         billingNonUSCountries:
@@ -954,19 +981,25 @@ const mapStateToProps = state => ({
             ? state.project.currentProject.alertOptions.rechargeToBalance.toString()
             : null,
     },
+
     alertEnable:
         state.form.AlertAdvanceOption &&
         state.form.AlertAdvanceOption.values.alertEnable,
+
     formValues:
         state.form.AlertAdvanceOption && state.form.AlertAdvanceOption.values,
+
     isRequesting: state.project.alertOptionsUpdate.requesting,
     error: state.project.alertOptionsUpdate.error,
+
     paymentIntent:
         state.project.alertOptionsUpdate.project &&
         state.project.alertOptionsUpdate.project.paymentIntent,
+
     balance:
         state.project.currentProject && state.project.currentProject.balance,
-    currentProject: state.project.currentProject,
+
+    currentProject: state.project.currentProject
 });
 
 const AlertAdvanceOptionFormStripe = injectStripe(
@@ -984,4 +1017,5 @@ export default class AlertAdvanceOptionWithCheckout extends Component {
         );
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AlertAdvanceOptionWithCheckout.displayName = 'AlertAdvanceOptionWithCheckout';

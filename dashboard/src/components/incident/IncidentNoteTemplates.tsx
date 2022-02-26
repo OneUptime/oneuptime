@@ -12,7 +12,9 @@ import DeleteIncidentNoteTemplate from '../modals/DeleteIncidentNoteTemplate';
 import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
 
 class IncidentNoteTemplates extends Component {
+    limit: $TSFixMe;
     constructor() {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
         super();
         this.limit = 10;
         this.state = {
@@ -22,6 +24,7 @@ class IncidentNoteTemplates extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
             fetchIncidentNoteTemplates({
@@ -32,13 +35,17 @@ class IncidentNoteTemplates extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.currentProject) !==
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             JSON.stringify(this.props.currentProject)
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             if (this.props.currentProject) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNoteTemplates' does not exi... Remove this comment to see the full error message
                 this.props.fetchIncidentNoteTemplates({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                     projectId: this.props.currentProject._id,
                     skip: 0,
                     limit: this.limit,
@@ -47,7 +54,8 @@ class IncidentNoteTemplates extends Component {
         }
     }
 
-    prevClicked = (skip, limit) => {
+    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
             this.setState({
@@ -61,12 +69,14 @@ class IncidentNoteTemplates extends Component {
             });
 
             this.setState({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 page: this.state.page > 1 ? this.state.page - 1 : 1,
             });
         }
     };
 
-    nextClicked = (skip, limit) => {
+    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
             this.setState({
@@ -79,114 +89,124 @@ class IncidentNoteTemplates extends Component {
             });
             this.setState({
                 page:
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                     this.state.page < this.props.count
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                         ? this.state.page + 1
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                         : this.props.count,
             });
         }
     };
 
     handleTemplateList = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, openModal, templates } = this.props;
 
-        return (
-            currentProject &&
-            templates &&
-            templates.length > 0 &&
-            templates.map(template => {
-                return (
+        return currentProject &&
+        templates &&
+        templates.length > 0 &&
+        templates.map((template: $TSFixMe) => {
+            return (
+                <div
+                    key={template._id}
+                    id={`incident_note_template_${template.name}`}
+                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                    style={{
+                        backgroundColor: 'white',
+                        cursor: 'pointer',
+                    }}
+                >
                     <div
-                        key={template._id}
-                        id={`incident_note_template_${template.name}`}
-                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                        className="bs-ObjectList-cell bs-u-v-middle"
                         style={{
-                            backgroundColor: 'white',
-                            cursor: 'pointer',
+                            display: 'flex',
+                            width: '20vw',
                         }}
                     >
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{
-                                display: 'flex',
-                                width: '20vw',
-                            }}
-                        >
-                            <div className="bs-ObjectList-cell-row">
-                                {template.name}
-                            </div>
-                        </div>
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{ width: '20vw' }}
-                        >
-                            <div
-                                className="bs-ObjectList-cell-row"
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-end',
-                                    marginRight: 15,
-                                }}
-                            >
-                                <button
-                                    id={`editIncidentNoteTemplateBtn_${template.name}`}
-                                    title="edit"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                    style={{
-                                        marginLeft: 20,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        openModal({
-                                            id: template._id,
-                                            content: DataPathHoC(
-                                                EditIncidentNoteTemplate,
-                                                { template }
-                                            ),
-                                        });
-                                    }}
-                                >
-                                    <span>Edit</span>
-                                </button>
-                                <button
-                                    id={`deleteIncidentNoteTemplateBtn_${template.name}`}
-                                    title="delete"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                    style={{
-                                        marginLeft: 20,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        openModal({
-                                            content: DeleteIncidentNoteTemplate,
-                                            templateId: template._id,
-                                            projectId: currentProject._id,
-                                        });
-                                    }}
-                                >
-                                    <span>Delete</span>
-                                </button>
-                            </div>
+                        <div className="bs-ObjectList-cell-row">
+                            {template.name}
                         </div>
                     </div>
-                );
-            })
-        );
+                    <div
+                        className="bs-ObjectList-cell bs-u-v-middle"
+                        style={{ width: '20vw' }}
+                    >
+                        <div
+                            className="bs-ObjectList-cell-row"
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                marginRight: 15,
+                            }}
+                        >
+                            <button
+                                id={`editIncidentNoteTemplateBtn_${template.name}`}
+                                title="edit"
+                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                style={{
+                                    marginLeft: 20,
+                                }}
+                                type="button"
+                                onClick={() => {
+                                    openModal({
+                                        id: template._id,
+                                        content: DataPathHoC(
+                                            EditIncidentNoteTemplate,
+                                            { template }
+                                        ),
+                                    });
+                                }}
+                            >
+                                <span>Edit</span>
+                            </button>
+                            <button
+                                id={`deleteIncidentNoteTemplateBtn_${template.name}`}
+                                title="delete"
+                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                style={{
+                                    marginLeft: 20,
+                                }}
+                                type="button"
+                                onClick={() => {
+                                    openModal({
+                                        content: DeleteIncidentNoteTemplate,
+                                        templateId: template._id,
+                                        projectId: currentProject._id,
+                                    });
+                                }}
+                            >
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingTemplates' does not exist on typ... Remove this comment to see the full error message
             fetchingTemplates,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTemplateError' does not exist on ty... Remove this comment to see the full error message
             fetchTemplateError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'templates' does not exist on type 'Reado... Remove this comment to see the full error message
             templates,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -209,6 +229,7 @@ class IncidentNoteTemplates extends Component {
                                 <button
                                     id="addIncidentNoteTemplateBtn"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                         this.props.openModal({
                                             id: currentProject
                                                 ? currentProject._id
@@ -276,6 +297,7 @@ class IncidentNoteTemplates extends Component {
                             </div>
                         </div>
                         <ShouldRender
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'flag' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                             if={fetchingTemplates && !this.state.flag}
                         >
                             <ListLoader />
@@ -320,17 +342,22 @@ class IncidentNoteTemplates extends Component {
                                         >
                                             {numberOfPages > 0
                                                 ? `Page ${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                       this.state.page
                                                   } of ${numberOfPages} (${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count
                                                   } Template${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count === 1
                                                           ? ''
                                                           : 's'
                                                   })`
                                                 : `${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count
                                                   } Template${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count === 1
                                                           ? ''
                                                           : 's'
@@ -393,8 +420,10 @@ class IncidentNoteTemplates extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncidentNoteTemplates.displayName = 'IncidentNoteTemplates';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncidentNoteTemplates.propTypes = {
     openModal: PropTypes.func.isRequired,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -407,16 +436,15 @@ IncidentNoteTemplates.propTypes = {
     fetchIncidentNoteTemplates: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            fetchIncidentNoteTemplates,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        fetchIncidentNoteTemplates,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         fetchingTemplates: state.incidentNoteTemplate.noteTemplates.requesting,
         skip: state.incidentNoteTemplate.noteTemplates.skip,

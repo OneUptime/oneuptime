@@ -3,10 +3,20 @@ import Util from './util';
 import Http from 'http';
 import Https from 'https';
 class OneUptimeListener {
-    constructor(eventId, isWindow, options) {
+    BASE_URL: $TSFixMe;
+    currentEventId: $TSFixMe;
+    debounceDuration: $TSFixMe;
+    isWindow: $TSFixMe;
+    keypressTimeout: $TSFixMe;
+    lastEvent: $TSFixMe;
+    options: $TSFixMe;
+    timelineObj: $TSFixMe;
+    utilObj: $TSFixMe;
+    constructor(eventId: $TSFixMe, isWindow: $TSFixMe, options: $TSFixMe) {
         this.options = options;
         this.isWindow = isWindow;
         this.timelineObj = new OneUptimeTimelineManager(options);
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         this.utilObj = new Util();
         this.currentEventId = eventId;
         this.BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
@@ -30,7 +40,7 @@ class OneUptimeListener {
         // this always get the current state of the timeline array
         return this.timelineObj.getTimeline();
     }
-    clearTimeline(eventId) {
+    clearTimeline(eventId: $TSFixMe) {
         // set a new eventId
         this.currentEventId = eventId;
         // this will reset the state of the timeline array
@@ -42,25 +52,25 @@ class OneUptimeListener {
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
         const console = (function(oldCons) {
             return {
-                log: function(text) {
+                log: function(text: $TSFixMe) {
                     oldCons.log(text);
                     // _this._logConsoleEvent(text, _this.utilObj.getErrorType().INFO);
                 },
-                info: function(text) {
+                info: function(text: $TSFixMe) {
                     oldCons.info(text);
                     _this._logConsoleEvent(
                         text,
                         _this.utilObj.getErrorType().INFO
                     );
                 },
-                warn: function(text) {
+                warn: function(text: $TSFixMe) {
                     oldCons.warn(text);
                     _this._logConsoleEvent(
                         text,
                         _this.utilObj.getErrorType().WARNING
                     );
                 },
-                error: function(text) {
+                error: function(text: $TSFixMe) {
                     oldCons.error(text);
                     _this._logConsoleEvent(
                         text,
@@ -70,6 +80,7 @@ class OneUptimeListener {
             };
         })(global.console);
         //Then redefine the old console
+        // @ts-expect-error ts-migrate(2740) FIXME: Type '{ log: (text: any) => void; info: (text: any... Remove this comment to see the full error message
         global.console = console;
     }
     // set up dom listener
@@ -105,20 +116,20 @@ class OneUptimeListener {
     _setUpXhrListener() {
         const open = window.XMLHttpRequest.prototype.open;
         const _this = this;
-        function openReplacement(method, url) {
+        function openReplacement(this: $TSFixMe, method: $TSFixMe, url: $TSFixMe) {
             const obj = {
                 method,
                 url,
                 status_code: '',
             };
-            this.addEventListener('load', function() {
+            this.addEventListener('load', function(this: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = this.status;
                     _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });
-            this.addEventListener('error', function() {
+            this.addEventListener('error', function(this: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = this.status;
@@ -127,6 +138,7 @@ class OneUptimeListener {
             });
 
             // set up how to send this log to the server to take this log
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'IArguments' is not assignable to... Remove this comment to see the full error message
             return open.apply(this, arguments);
         }
 
@@ -146,12 +158,14 @@ class OneUptimeListener {
             // Do something with the promise
             promise.then(
                 res => {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
                     obj.status_code = res.status;
                 },
                 err => {
                     obj.status_code = err.status;
                 }
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startsWith' does not exist on type 'Requ... Remove this comment to see the full error message
             if (!url.startsWith(_this.BASE_URL)) {
                 _this._logFetchEvent(obj, _this.utilObj.getErrorType().INFO);
             }
@@ -163,15 +177,15 @@ class OneUptimeListener {
         override(Http);
         override(Https);
         const _this = this;
-        function override(module) {
+        function override(module: $TSFixMe) {
             const original = module.request;
 
-            function wrapper(outgoing) {
+            function wrapper(this: $TSFixMe, outgoing: $TSFixMe) {
                 // Store a call to the original in req
                 const req = original.apply(this, arguments);
                 const log = requestDetails(outgoing);
                 const emit = req.emit;
-                req.emit = function(eventName, response) {
+                req.emit = function(eventName: $TSFixMe, response: $TSFixMe) {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {
@@ -193,7 +207,7 @@ class OneUptimeListener {
             }
             module.request = wrapper;
         }
-        function requestDetails(req) {
+        function requestDetails(req: $TSFixMe) {
             const log = {
                 method: req.method || 'GET',
                 host: req.host || req.hostname || '<no host>',
@@ -210,7 +224,7 @@ class OneUptimeListener {
             return log;
         }
     }
-    _logConsoleEvent(content, type) {
+    _logConsoleEvent(content: $TSFixMe, type: $TSFixMe) {
         const timelineObj = {
             category: 'console',
             data: {
@@ -222,7 +236,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logXHREvent(content, type) {
+    _logXHREvent(content: $TSFixMe, type: $TSFixMe) {
         const timelineObj = {
             category: 'xhr',
             data: {
@@ -234,7 +248,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logFetchEvent(content, type) {
+    _logFetchEvent(content: $TSFixMe, type: $TSFixMe) {
         const timelineObj = {
             category: 'fetch',
             data: {
@@ -246,7 +260,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logHttpRequestEvent(content, type) {
+    _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe) {
         const timelineObj = {
             category: type, // HTTP
             data: {
@@ -258,7 +272,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logErrorEvent(content, category = 'exception') {
+    logErrorEvent(content: $TSFixMe, category = 'exception') {
         const timelineObj = {
             category,
             data: {
@@ -270,13 +284,13 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logCustomTimelineEvent(timelineObj) {
+    logCustomTimelineEvent(timelineObj: $TSFixMe) {
         timelineObj.eventId = this.currentEventId;
 
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logClickEvent(event, type) {
+    _logClickEvent(event: $TSFixMe, type: $TSFixMe) {
         // preepare the event tree
         const content = this._getEventTree(event);
         const timelineObj = {
@@ -290,7 +304,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _getEventTree(event) {
+    _getEventTree(event: $TSFixMe) {
         const tree = [];
         const MAX_UP_TREE = 5; // we just want to go up the DOM for 5 times
         let current = 0;
@@ -310,7 +324,7 @@ class OneUptimeListener {
                 let classes = [];
                 classes = currentElem.classList; // get all classes
                 let classesForElement = '';
-                classes.forEach(element => {
+                classes.forEach((element: $TSFixMe) => {
                     classesForElement += `.${element}`;
                 });
                 elementPath += classesForElement;
@@ -345,19 +359,23 @@ class OneUptimeListener {
             current = current + 1;
         }
         let path = fullPath.reverse();
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'string[]'... Remove this comment to see the full error message
         path = path.join(' > ');
         return { tree, path }; // return the final tree which contains a max of 5 elements
     }
-    _getElementAttributes(elem) {
+    _getElementAttributes(elem: $TSFixMe) {
         const attributes = [];
         const elementAtrributes = elem.attributes; // get all the attritubtes related to the element
         const excludedAttributes = ['class', 'value']; // exclude items that are nnot needed
         // eslint-disable-next-line no-unused-vars
         for (const [key, value] of Object.entries(elementAtrributes)) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             if (!excludedAttributes.includes(value.name)) {
                 // if each attribute doesnt exist in the excluded one, we get the value and make an object
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const attribute = elem[value.name];
                 attributes.push({
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     key: value.name,
                     value: attribute,
                 });

@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
@@ -12,6 +13,7 @@ import {
     User,
 } from './config';
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'quer... Remove this comment to see the full error message
 import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
@@ -23,7 +25,7 @@ import { LoadingState } from './components/basic/Loader';
 const cookies = new Cookies();
 
 if (!isServer) {
-    history.listen(location => {
+    history.listen((location: $TSFixMe) => {
         ReactGA.set({ page: location.pathname });
         ReactGA.pageview(location.pathname);
     });
@@ -52,8 +54,8 @@ if (userIsLoggedIn) {
 const App = ({
     masterAdmin: { exists },
     checkIfMasterAdminExists,
-    saveStatusPage,
-}) => {
+    saveStatusPage
+}: $TSFixMe) => {
     useEffect(() => {
         // store initialUrl in sessionStorage
         User.setInitialUrl(window.location.href);
@@ -84,6 +86,7 @@ const App = ({
                             .map((route, index) => {
                                 return (
                                     <Route
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'exact' does not exist on type '{ title: ... Remove this comment to see the full error message
                                         exact={route.exact}
                                         path={route.path}
                                         key={index}
@@ -109,10 +112,10 @@ App.propTypes = {
     masterAdmin: PropTypes.object,
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return state.login;
 }
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: $TSFixMe) {
     return bindActionCreators(
         { saveStatusPage, checkIfMasterAdminExists },
         dispatch

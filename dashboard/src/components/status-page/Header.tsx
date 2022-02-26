@@ -6,9 +6,11 @@ import { IS_LOCALHOST } from '../../config';
 
 export class StatusHeader extends Component {
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { statusPage } = this.props;
         let publicStatusPageUrl, statusPageSlug;
         if (statusPage && statusPage.status && statusPage.status.slug) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             statusPageSlug = this.props.statusPage.status.slug;
         }
 
@@ -60,15 +62,17 @@ export class StatusHeader extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 StatusHeader.displayName = 'StatusHeader';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 StatusHeader.propTypes = {
     statusPage: PropTypes.object.isRequired,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const { statusPage } = state;
     return { statusPage };
 };

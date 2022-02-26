@@ -10,42 +10,42 @@ import Cookies from 'universal-cookie';
 
 const cookies = new Cookies();
 
-export function signupError(error) {
+export function signupError(error: $TSFixMe) {
     return {
         type: types.SIGNUP_FAILED,
         payload: error,
     };
 }
 
-export function saveUserState(values) {
+export function saveUserState(values: $TSFixMe) {
     return {
         type: types.SAVE_USER_STATE,
         payload: values,
     };
 }
 
-export function savePlanId(planId) {
+export function savePlanId(planId: $TSFixMe) {
     return {
         type: types.SAVE_PLAN_ID,
         payload: planId,
     };
 }
 
-export function saveCardState(values) {
+export function saveCardState(values: $TSFixMe) {
     return {
         type: types.SAVE_CARD_STATE,
         payload: values,
     };
 }
 
-export function saveCompanyState(values) {
+export function saveCompanyState(values: $TSFixMe) {
     return {
         type: types.SAVE_COMPANY_STATE,
         payload: values,
     };
 }
 
-export function signUpRequest(promise) {
+export function signUpRequest(promise: $TSFixMe) {
     return {
         type: types.SIGNUP_REQUEST,
         payload: promise,
@@ -58,7 +58,7 @@ export function signUpReset() {
     };
 }
 
-export function signupSuccess(user) {
+export function signupSuccess(user: $TSFixMe) {
     return {
         type: types.SIGNUP_SUCCESS,
         payload: user,
@@ -72,26 +72,32 @@ export const resetSignup = () => {
 };
 
 // Calls the API to register a user.
-export function signupUser(values) {
+export function signupUser(values: $TSFixMe) {
     // This is basically for users redirected to oneuptime
     const redirectSource = cookies.get('source');
     if (redirectSource) {
         values.source = redirectSource;
     }
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`user/signup?token=${values.token}`, values);
         dispatch(signUpRequest(promise));
         promise.then(
             function(user) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(signupSuccess(user.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     dispatch(loginSuccess(user.data));
                     dispatch(masterAdminExistsSuccess({ result: true }));
                 }
                 if (values.token) {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     dispatch(loginSuccess(user.data));
                 }
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 if (user.data.cardRegistered) {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     dispatch(loginSuccess(user.data));
                 }
             },
@@ -136,7 +142,7 @@ export const decrementStep = () => {
 // There are three possible states for our login
 // process and we need actions for each of them
 
-export function isUserInvitedRequest(promise) {
+export function isUserInvitedRequest(promise: $TSFixMe) {
     return {
         type: types.IS_USER_INVITED_REQUEST,
         payload: promise,
@@ -149,14 +155,14 @@ export function isUserInvitedReset() {
     };
 }
 
-export function isUserInvitedError(error) {
+export function isUserInvitedError(error: $TSFixMe) {
     return {
         type: types.IS_USER_INVITED_RESET,
         payload: error,
     };
 }
 
-export function isUserInvitedSuccess(data) {
+export function isUserInvitedSuccess(data: $TSFixMe) {
     return {
         type: types.IS_USER_INVITED_SUCCESS,
         payload: data,
@@ -170,12 +176,13 @@ export const resetIsUserInvited = () => {
 };
 
 // Calls the API to register a user.
-export function isUserInvited(values) {
-    return function(dispatch) {
+export function isUserInvited(values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi('user/isInvited', values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(isUserInvitedSuccess(response.data));
             },
             function(error) {
@@ -197,35 +204,36 @@ export function isUserInvited(values) {
     };
 }
 
-export function addCardRequest(promise) {
+export function addCardRequest(promise: $TSFixMe) {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
 }
 
-export function addCardFailed(error) {
+export function addCardFailed(error: $TSFixMe) {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
 }
 
-export function addCardSuccess(card) {
+export function addCardSuccess(card: $TSFixMe) {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
 }
 
-export function addCard(data) {
-    return function(dispatch) {
+export function addCard(data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi('stripe/checkCard', data);
 
         dispatch(addCardRequest(promise));
 
         promise.then(
             function(card) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(addCardSuccess(card.data));
             },
             function(error) {
@@ -246,18 +254,19 @@ export function addCard(data) {
     };
 }
 
-export function getEmailSuccess(email) {
+export function getEmailSuccess(email: $TSFixMe) {
     return {
         type: types.GET_EMAIL_FROM_TOKEN,
         payload: email,
     };
 }
 
-export function getEmailFromToken(token) {
-    return function(dispatch) {
+export function getEmailFromToken(token: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`user/${token}/email`);
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getEmailSuccess(response.data));
             },
             function(error) {

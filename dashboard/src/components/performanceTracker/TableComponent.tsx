@@ -22,20 +22,30 @@ import { openModal } from '../../actions/modal';
 import paginate from '../../utils/paginate';
 
 class TableComponent extends Component {
+    currentDate: $TSFixMe;
+    startDate: $TSFixMe;
     state = {
         page: 1,
     };
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
     prev = () => this.setState(prevState => ({ page: prevState.page - 1 }));
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
     next = () => this.setState(prevState => ({ page: prevState.page + 1 }));
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchOutgoingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetIncomingDate' does not exist on typ... Remove this comment to see the full error message
             resetIncomingDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetOutgoingDate' does not exist on typ... Remove this comment to see the full error message
             resetOutgoingDate,
         } = this.props;
 
@@ -70,15 +80,20 @@ class TableComponent extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.performanceTracker) !==
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             JSON.stringify(this.props.performanceTracker)
         ) {
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
                 performanceTracker,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 type,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
                 fetchIncomingMetrics,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
                 fetchOutgoingMetrics,
             } = this.props;
 
@@ -110,15 +125,23 @@ class TableComponent extends Component {
         return { startDate: this.startDate, endDate: this.currentDate };
     };
 
-    handleStartDate = val => {
+    handleStartDate = (val: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setIncomingStartDate' does not exist on ... Remove this comment to see the full error message
             setIncomingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setOutgoingStartDate' does not exist on ... Remove this comment to see the full error message
             setOutgoingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchOutgoingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingEndDate' does not exist on type ... Remove this comment to see the full error message
             incomingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingEndDate' does not exist on type ... Remove this comment to see the full error message
             outgoingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
         } = this.props;
 
@@ -145,15 +168,23 @@ class TableComponent extends Component {
         }
     };
 
-    handleEndDate = val => {
+    handleEndDate = (val: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setIncomingEndDate' does not exist on ty... Remove this comment to see the full error message
             setIncomingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setOutgoingEndDate' does not exist on ty... Remove this comment to see the full error message
             setOutgoingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchOutgoingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingStartDate' does not exist on typ... Remove this comment to see the full error message
             incomingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingStartDate' does not exist on typ... Remove this comment to see the full error message
             outgoingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
         } = this.props;
 
@@ -184,15 +215,23 @@ class TableComponent extends Component {
         }
     };
 
-    handlePrev = (skip, limit) => {
+    handlePrev = (skip: $TSFixMe, limit: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingStartDate' does not exist on typ... Remove this comment to see the full error message
             incomingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingEndDate' does not exist on type ... Remove this comment to see the full error message
             incomingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingStartDate' does not exist on typ... Remove this comment to see the full error message
             outgoingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingEndDate' does not exist on type ... Remove this comment to see the full error message
             outgoingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchOutgoingMetrics,
         } = this.props;
 
@@ -220,15 +259,23 @@ class TableComponent extends Component {
         }
     };
 
-    handleNext = (skip, limit) => {
+    handleNext = (skip: $TSFixMe, limit: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingStartDate' does not exist on typ... Remove this comment to see the full error message
             incomingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingEndDate' does not exist on type ... Remove this comment to see the full error message
             incomingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingStartDate' does not exist on typ... Remove this comment to see the full error message
             outgoingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingEndDate' does not exist on type ... Remove this comment to see the full error message
             outgoingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchOutgoingMetrics,
         } = this.props;
 
@@ -258,16 +305,27 @@ class TableComponent extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'heading' does not exist on type 'Readonl... Remove this comment to see the full error message
             heading,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subHeading' does not exist on type 'Read... Remove this comment to see the full error message
             subHeading,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingMetrics' does not exist on type ... Remove this comment to see the full error message
             incomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingMetrics' does not exist on type ... Remove this comment to see the full error message
             outgoingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
             performanceTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingStartDate' does not exist on typ... Remove this comment to see the full error message
             incomingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingEndDate' does not exist on type ... Remove this comment to see the full error message
             incomingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingStartDate' does not exist on typ... Remove this comment to see the full error message
             outgoingStartDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingEndDate' does not exist on type ... Remove this comment to see the full error message
             outgoingEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
         } = this.props;
         const { page } = this.state;
@@ -309,15 +367,13 @@ class TableComponent extends Component {
                                     <div className="db-Trends-timeControls">
                                         <DateTimeRangePicker
                                             currentDateRange={this.handleCurrentDateRange()}
-                                            handleStartDateTimeChange={val =>
-                                                this.handleStartDate(
-                                                    moment(val).format()
-                                                )
+                                            handleStartDateTimeChange={(val: $TSFixMe) => this.handleStartDate(
+                                                moment(val).format()
+                                            )
                                             }
-                                            handleEndDateTimeChange={val =>
-                                                this.handleEndDate(
-                                                    moment(val).format()
-                                                )
+                                            handleEndDateTimeChange={(val: $TSFixMe) => this.handleEndDate(
+                                                moment(val).format()
+                                            )
                                             }
                                             formId={`performanceTrackeringDateTime-${heading}`}
                                         />
@@ -402,8 +458,8 @@ class TableComponent extends Component {
                                                                 0 &&
                                                             incomingMetricsData.data.map(
                                                                 (
-                                                                    metric,
-                                                                    index
+                                                                    metric: $TSFixMe,
+                                                                    index: $TSFixMe
                                                                 ) => (
                                                                     <div
                                                                         key={
@@ -700,8 +756,8 @@ class TableComponent extends Component {
                                                                 0 &&
                                                             outgoingMetricsData.data.map(
                                                                 (
-                                                                    metric,
-                                                                    index
+                                                                    metric: $TSFixMe,
+                                                                    index: $TSFixMe
                                                                 ) => (
                                                                     <div
                                                                         key={
@@ -958,12 +1014,15 @@ class TableComponent extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 TableComponent.displayName = 'TableComponent';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultProps' does not exist on type 'ty... Remove this comment to see the full error message
 TableComponent.defaultProps = {
     title: [],
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TableComponent.propTypes = {
     heading: PropTypes.any,
     subHeading: PropTypes.any,
@@ -989,23 +1048,22 @@ TableComponent.propTypes = {
     resetIncomingDate: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchIncomingMetrics,
-            fetchOutgoingMetrics,
-            setIncomingStartDate,
-            setIncomingEndDate,
-            setOutgoingStartDate,
-            setOutgoingEndDate,
-            openModal,
-            resetOutgoingDate,
-            resetIncomingDate,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchIncomingMetrics,
+        fetchOutgoingMetrics,
+        setIncomingStartDate,
+        setIncomingEndDate,
+        setOutgoingStartDate,
+        setOutgoingEndDate,
+        openModal,
+        resetOutgoingDate,
+        resetIncomingDate,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         incomingStartDate: state.performanceTrackerMetric.incomingStartDate,

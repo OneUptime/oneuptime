@@ -4,9 +4,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Link, withRouter } from 'react-router-dom';
 import ShouldRender from './basic/ShouldRender';
 import ProfileMenu from './profile/ProfileMenu';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
@@ -23,10 +25,15 @@ import { loadDashboard } from '../actions/dashboard';
 export class DashboardApp extends Component {
     componentDidMount = async () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLicense' does not exist on type 'Re... Remove this comment to see the full error message
             fetchLicense,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             user,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'license' does not exist on type 'Readonl... Remove this comment to see the full error message
             license,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSettings' does not exist on type 'R... Remove this comment to see the full error message
             fetchSettings,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadDashboard' does not exist on type 'R... Remove this comment to see the full error message
             loadDashboard,
         } = this.props;
         if (
@@ -51,20 +58,25 @@ export class DashboardApp extends Component {
     };
 
     showProjectForm = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showForm' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.showForm();
     };
 
     hideProfileMenu = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
         this.props.hideProfileMenu();
     };
     closeNotificationMenu = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeNotificationMenu' does not exist on... Remove this comment to see the full error message
         this.props.closeNotificationMenu();
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeNotificationMenu' does not exist on... Remove this comment to see the full error message
                 this.props.closeNotificationMenu();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
                 this.props.hideProfileMenu();
                 return true;
             default:
@@ -73,27 +85,36 @@ export class DashboardApp extends Component {
     };
 
     closeModal = () =>
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentModal' does not exist on type 'Re... Remove this comment to see the full error message
             id: this.props.currentModal ? this.props.currentModal.id : '',
         });
 
     render() {
         const {
             children,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'license' does not exist on type 'Readonl... Remove this comment to see the full error message
             license,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'settings' does not exist on type 'Readon... Remove this comment to see the full error message
             settings,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'twilio' does not exist on type 'Readonly... Remove this comment to see the full error message
             twilio,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtp' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             smtp,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardLoadState' does not exist on ty... Remove this comment to see the full error message
             dashboardLoadState,
         } = this.props;
 
         return (
             <Fragment>
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ visible: any; }' is not assignable to type... Remove this comment to see the full error message
                     <ProfileMenu visible={this.props.profile.menuVisible} />
                 </ClickOutside>
                 <ClickOutside onClickOutside={this.closeNotificationMenu}>
                     <NotificationMenu
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ visible: any; }' is not assignable to type... Remove this comment to see the full error message
                         visible={this.props.notification.notificationsVisible}
                     />
                 </ClickOutside>
@@ -128,6 +149,7 @@ export class DashboardApp extends Component {
                                             }
                                         >
                                             <AlertPanel
+                                                // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                                                 className="bs-ContentSection Card-root"
                                                 message={
                                                     <span>
@@ -154,6 +176,7 @@ export class DashboardApp extends Component {
                                             }
                                         >
                                             <AlertPanel
+                                                // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                                                 className="bs-ContentSection Card-root"
                                                 message={
                                                     <span>
@@ -240,8 +263,10 @@ export class DashboardApp extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DashboardApp.displayName = 'DashboardApp';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DashboardApp.propTypes = {
     profile: PropTypes.object.isRequired,
     notification: PropTypes.object.isRequired,
@@ -262,7 +287,7 @@ DashboardApp.propTypes = {
     loadDashboard: PropTypes.func,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     profile: state.profileSettings,
     notification: state.notifications,
     user: state.user,
@@ -270,27 +295,29 @@ const mapStateToProps = state => ({
     settings: state.settings,
     twilio: state.settings.twilio,
     smtp: state.settings.smtp,
+
     currentModal:
         state.modal.modals && state.modal.modals.length > 0
             ? state.modal.modals[state.modal.modals.length - 1]
             : '',
-    dashboardLoadState: state.dashboard,
+
+    dashboardLoadState: state.dashboard
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            hideProfileMenu,
-            closeNotificationMenu,
-            fetchUsers,
-            fetchLicense,
-            fetchSettings,
-            closeModal,
-            loadDashboard,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        hideProfileMenu,
+        closeNotificationMenu,
+        fetchUsers,
+        fetchLicense,
+        fetchSettings,
+        closeModal,
+        loadDashboard,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 DashboardApp.contextTypes = {};
 
 export default withRouter(

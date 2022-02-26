@@ -41,8 +41,8 @@ function ProbeBar({
     status,
     selectbutton,
     activeProbe,
-    lastAlive,
-}) {
+    lastAlive
+}: $TSFixMe) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
@@ -97,6 +97,7 @@ ProbeBar.propTypes = {
     selectbutton: PropTypes.func,
     activeProbe: PropTypes.number,
     lastAlive: PropTypes.oneOfType([
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
         PropTypes.instanceOf(moment),
         PropTypes.string,
     ]),

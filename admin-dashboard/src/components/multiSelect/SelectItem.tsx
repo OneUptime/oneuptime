@@ -3,13 +3,19 @@ import PropTypes from 'prop-types';
 
 //#region
 
-const DefaultRenderer = ({ checked, option, disabled, onClick }) => (
+const DefaultRenderer = ({
+    checked,
+    option,
+    disabled,
+    onClick
+}: $TSFixMe) => (
     <span className="db-MultiSelect-item-renderer">
         <input
             type="checkbox"
             onChange={onClick}
             checked={checked}
             disabled={disabled}
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
             tabIndex="-1"
         />
         <span className="db-MultiSelect-renderer-label">{option.label}</span>
@@ -21,6 +27,7 @@ DefaultRenderer.displayName = 'DefaultRenderer';
 DefaultRenderer.propTypes = {
     checked: PropTypes.bool.isRequired,
     option: PropTypes.objectOf({
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ label: PropTypes.Validator<str... Remove this comment to see the full error message
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
     }),
@@ -30,6 +37,8 @@ DefaultRenderer.propTypes = {
 //#endregion
 
 class SelectItem extends React.Component {
+    handleClick: $TSFixMe;
+    labelRef: $TSFixMe;
     state = {
         hovered: false,
     };
@@ -42,7 +51,8 @@ class SelectItem extends React.Component {
         this.updateFocus();
     }
 
-    onChecked = e => {
+    onChecked = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onSelectionChanged' does not exist on ty... Remove this comment to see the full error message
         const { onSelectionChanged } = this.props;
         const { checked } = e.target;
 
@@ -50,11 +60,13 @@ class SelectItem extends React.Component {
     };
 
     toggleChecked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'checked' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { checked, onSelectionChanged } = this.props;
         onSelectionChanged(!checked);
     };
 
     updateFocus() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'focused' does not exist on type '{ hover... Remove this comment to see the full error message
         const { focused } = this.state;
 
         if (focused && this.labelRef) {
@@ -62,7 +74,7 @@ class SelectItem extends React.Component {
         }
     }
 
-    handleKeyDown = e => {
+    handleKeyDown = (e: $TSFixMe) => {
         switch (e) {
             case 13:
                 break;
@@ -76,6 +88,7 @@ class SelectItem extends React.Component {
         e.preventDefault();
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'option' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { option, checked, disabled, ItemRenderer, focused } = this.props;
         const { hovered } = this.state;
 
@@ -86,6 +99,7 @@ class SelectItem extends React.Component {
                 aria-required="true"
                 selected={checked}
                 ref={ref => (this.labelRef = ref)}
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 className={`db-MultiSelect-select-container ${(hovered ||
                     focused) &&
@@ -114,11 +128,14 @@ class SelectItem extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SelectItem.displayName = 'SelectItem';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SelectItem.propTypes = {
     checked: PropTypes.bool.isRequired,
     option: PropTypes.objectOf({
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ label: PropTypes.Validator<str... Remove this comment to see the full error message
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
         key: PropTypes.string,

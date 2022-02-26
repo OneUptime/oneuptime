@@ -26,13 +26,17 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 import fs from 'fs'
 import util from './util/db'
 import scripts from './scripts'
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
 import express from 'express'
 const app = express();
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./util/db"' has no exported member 'find'... Remove this comment to see the full error message
 import { find, save, update, removeMany } from './util/db'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
 import bodyParser from 'body-parser'
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
 import cors from 'cors'
 
-async function interactWithDB(req, res) {
+async function interactWithDB(req: $TSFixMe, res: $TSFixMe) {
     if (req.params.dbFunction === 'find') {
         res.send(await find(req.body.collection, req.body.query));
     }
@@ -61,11 +65,11 @@ if (process.env['NODE_ENV'] === 'development') {
         console.log('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async function(req, res) {
+    app.get('/:dbFunction', async function(req: $TSFixMe, res: $TSFixMe) {
         return await interactWithDB(req, res);
     });
 
-    app.post('/:dbFunction', async function(req, res) {
+    app.post('/:dbFunction', async function(req: $TSFixMe, res: $TSFixMe) {
         return await interactWithDB(req, res);
     });
 }
@@ -77,6 +81,7 @@ async function run() {
     console.log('Connecting to MongoDB.');
 
     const connection = await util.connectToDb();
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
     global.db = connection.db();
 
     // eslint-disable-next-line no-console

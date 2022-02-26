@@ -4,11 +4,12 @@
 import { performance, PerformanceObserver } from 'perf_hooks';
 import DataStore from './dataStore';
 class PerfTimer {
+    obs: $TSFixMe;
     #dataStore;
     #apiUrl;
     #appId;
     #appKey;
-    constructor(apiUrl, appId, appKey) {
+    constructor(apiUrl: $TSFixMe, appId: $TSFixMe, appKey: $TSFixMe) {
         this.#apiUrl = apiUrl;
         this.#appId = appId;
         this.#appKey = appKey;
@@ -32,12 +33,12 @@ class PerfTimer {
         this.obs.observe({ entryTypes: ['measure'] });
     }
 
-    start = (id, log) => {
+    start = (id: $TSFixMe, log: $TSFixMe) => {
         this.#dataStore.setValue(id, log);
         return performance.mark(`start-${id}`);
     };
 
-    end = (id, result, type) => {
+    end = (id: $TSFixMe, result: $TSFixMe, type: $TSFixMe) => {
         performance.mark(`end-${id}`);
         return performance.measure(`${type}-${id}`, `start-${id}`, `end-${id}`);
     };

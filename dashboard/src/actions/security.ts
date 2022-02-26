@@ -6,21 +6,21 @@ export const addContainerSecurityRequest = () => ({
     type: types.ADD_CONTAINER_SECURITY_REQUEST,
 });
 
-export const addContainerSecuritySuccess = payload => ({
+export const addContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.ADD_CONTAINER_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const addContainerSecurityFailure = error => ({
+export const addContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.ADD_CONTAINER_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const addContainerSecurity = ({
     projectId,
     componentId,
-    data,
-}) => async dispatch => {
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addContainerSecurityRequest());
 
     try {
@@ -28,6 +28,7 @@ export const addContainerSecurity = ({
             `security/${projectId}/${componentId}/container`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(addContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -47,27 +48,28 @@ export const getContainerSecurityRequest = () => ({
     type: types.GET_CONTAINER_SECURITY_REQUEST,
 });
 
-export const getContainerSecuritySuccess = payload => ({
+export const getContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const getContainerSecurityFailure = error => ({
+export const getContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getContainerSecurity = ({
     projectId,
     componentId,
-    containerSecurityId,
-}) => async dispatch => {
+    containerSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityRequest());
 
     try {
         const response = await getApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -85,14 +87,15 @@ export const getContainerSecurity = ({
 export const getContainerSecurityBySlug = ({
     projectId,
     componentId,
-    containerSecuritySlug,
-}) => async dispatch => {
+    containerSecuritySlug
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityRequest());
 
     try {
         const response = await getApi(
             `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -108,19 +111,19 @@ export const getContainerSecurityBySlug = ({
 };
 
 // Get all Container Security
-export const getContainerSecuritiesRequest = fetchingPage => ({
+export const getContainerSecuritiesRequest = (fetchingPage: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITIES_REQUEST,
-    payload: fetchingPage,
+    payload: fetchingPage
 });
 
-export const getContainerSecuritiesSuccess = payload => ({
+export const getContainerSecuritiesSuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITIES_SUCCESS,
-    payload,
+    payload
 });
 
-export const getContainerSecuritiesFailure = error => ({
+export const getContainerSecuritiesFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITIES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getContainerSecurities = ({
@@ -128,14 +131,15 @@ export const getContainerSecurities = ({
     componentId,
     skip = 0,
     limit = 0,
-    fetchingPage = false,
-}) => async dispatch => {
+    fetchingPage = false
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecuritiesRequest(fetchingPage));
 
     try {
         const response = await getApi(
             `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getContainerSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -155,27 +159,29 @@ export const deleteContainerSecurityRequest = () => ({
     type: types.DELETE_CONTAINER_SECURITY_REQUEST,
 });
 
-export const deleteContainerSecuritySuccess = payload => ({
+export const deleteContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_CONTAINER_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteContainerSecurityFailure = error => ({
+export const deleteContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.DELETE_CONTAINER_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteContainerSecurity = ({
     projectId,
     componentId,
-    containerSecurityId,
-}) => async dispatch => {
+    containerSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteContainerSecurityRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteContainerSecuritySuccess(response.data));
 
         // update the list of container securities
@@ -198,24 +204,25 @@ export const scanContainerSecurityRequest = () => ({
     type: types.SCAN_CONTAINER_SECURITY_REQUEST,
 });
 
-export const scanContainerSecuritySuccess = payload => ({
+export const scanContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.SCAN_CONTAINER_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const scanContainerSecurityFailure = error => ({
+export const scanContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.SCAN_CONTAINER_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const scanContainerSecurity = ({
     projectId,
-    containerSecurityId,
-}) => async dispatch => {
+    containerSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(scanContainerSecurityRequest());
     dispatch(setActiveContainerSecurity(containerSecurityId));
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         await postApi(
             `security/${projectId}/container/scan/${containerSecurityId}`
         );
@@ -237,27 +244,28 @@ export const getContainerSecurityLogRequest = () => ({
     type: types.GET_CONTAINER_SECURITY_LOG_REQUEST,
 });
 
-export const getContainerSecurityLogSuccess = payload => ({
+export const getContainerSecurityLogSuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOG_SUCCESS,
-    payload,
+    payload
 });
 
-export const getContainerSecurityLogFailure = error => ({
+export const getContainerSecurityLogFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOG_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getContainerSecurityLog = ({
     projectId,
     componentId,
-    containerSecurityId,
-}) => async dispatch => {
+    containerSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityLogRequest());
 
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -275,14 +283,15 @@ export const getContainerSecurityLog = ({
 export const getContainerSecurityLogBySlug = ({
     projectId,
     componentId,
-    containerSecuritySlug,
-}) => async dispatch => {
+    containerSecuritySlug
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityLogRequest());
 
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -302,26 +311,27 @@ export const getContainerSecurityLogsRequest = () => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_REQUEST,
 });
 
-export const getContainerSecurityLogsSuccess = payload => ({
+export const getContainerSecurityLogsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_SUCCESS,
-    payload,
+    payload
 });
 
-export const getContainerSecurityLogsFailure = error => ({
+export const getContainerSecurityLogsFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getContainerSecurityLogs = ({
     projectId,
-    componentId,
-}) => async dispatch => {
+    componentId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityLogsRequest());
 
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getContainerSecurityLogsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -341,23 +351,23 @@ export const editContainerSecurityRequest = () => ({
     type: types.EDIT_CONTAINER_SECURITY_REQUEST,
 });
 
-export const editContainerSecuritySuccess = payload => ({
+export const editContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.EDIT_CONTAINER_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const editContainerSecurityFailure = error => ({
+export const editContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.EDIT_CONTAINER_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export function editContainerSecurity({
     projectId,
     componentId,
     containerSecurityId,
-    data,
-}) {
-    return function(dispatch) {
+    data
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
@@ -366,6 +376,7 @@ export function editContainerSecurity({
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(editContainerSecuritySuccess(response.data));
             },
             function(error) {
@@ -390,21 +401,21 @@ export const addApplicationSecurityRequest = () => ({
     type: types.ADD_APPLICATION_SECURITY_REQUEST,
 });
 
-export const addApplicationSecuritySuccess = payload => ({
+export const addApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.ADD_APPLICATION_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const addApplicationSecurityFailure = error => ({
+export const addApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.ADD_APPLICATION_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const addApplicationSecurity = ({
     projectId,
     componentId,
-    data,
-}) => async dispatch => {
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addApplicationSecurityRequest());
 
     try {
@@ -412,6 +423,7 @@ export const addApplicationSecurity = ({
             `security/${projectId}/${componentId}/application`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(addApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -431,27 +443,28 @@ export const getApplicationSecurityRequest = () => ({
     type: types.GET_APPLICATION_SECURITY_REQUEST,
 });
 
-export const getApplicationSecuritySuccess = payload => ({
+export const getApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const getApplicationSecurityFailure = error => ({
+export const getApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getApplicationSecurity = ({
     projectId,
     componentId,
-    applicationSecurityId,
-}) => async dispatch => {
+    applicationSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityRequest());
 
     try {
         const response = await getApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -469,14 +482,15 @@ export const getApplicationSecurity = ({
 export const getApplicationSecurityBySlug = ({
     projectId,
     componentId,
-    applicationSecuritySlug,
-}) => async dispatch => {
+    applicationSecuritySlug
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityRequest());
 
     try {
         const response = await getApi(
             `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -492,19 +506,19 @@ export const getApplicationSecurityBySlug = ({
 };
 
 // Get all Application Security
-export const getApplicationSecuritiesRequest = fetchingPage => ({
+export const getApplicationSecuritiesRequest = (fetchingPage: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITIES_REQUEST,
-    payload: fetchingPage,
+    payload: fetchingPage
 });
 
-export const getApplicationSecuritiesSuccess = payload => ({
+export const getApplicationSecuritiesSuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITIES_SUCCESS,
-    payload,
+    payload
 });
 
-export const getApplicationSecuritiesFailure = error => ({
+export const getApplicationSecuritiesFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITIES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getApplicationSecurities = ({
@@ -512,14 +526,15 @@ export const getApplicationSecurities = ({
     componentId,
     skip = 0,
     limit = 0,
-    fetchingPage = false,
-}) => async dispatch => {
+    fetchingPage = false
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
     try {
         const response = await getApi(
             `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getApplicationSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -539,27 +554,29 @@ export const deleteApplicationSecurityRequest = () => ({
     type: types.DELETE_APPLICATION_SECURITY_REQUEST,
 });
 
-export const deleteApplicationSecuritySuccess = payload => ({
+export const deleteApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_APPLICATION_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteApplicationSecurityFailure = error => ({
+export const deleteApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.DELETE_APPLICATION_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteApplicationSecurity = ({
     projectId,
     componentId,
-    applicationSecurityId,
-}) => async dispatch => {
+    applicationSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteApplicationSecurityRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteApplicationSecuritySuccess(response.data));
 
         // update the list of application securities
@@ -582,23 +599,24 @@ export const scanApplicationSecurityRequest = () => ({
     type: types.SCAN_APPLICATION_SECURITY_REQUEST,
 });
 
-export const scanApplicationSecuritySuccess = payload => ({
+export const scanApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.SCAN_APPLICATION_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const scanApplicationSecurityFailure = error => ({
+export const scanApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.SCAN_APPLICATION_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const scanApplicationSecurity = ({
     projectId,
-    applicationSecurityId,
-}) => async dispatch => {
+    applicationSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(scanApplicationSecurityRequest());
     dispatch(setActiveApplicationSecurity(applicationSecurityId));
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         await postApi(
             `security/${projectId}/application/scan/${applicationSecurityId}`
         );
@@ -620,27 +638,28 @@ export const getApplicationSecurityLogRequest = () => ({
     type: types.GET_APPLICATION_SECURITY_LOG_REQUEST,
 });
 
-export const getApplicationSecurityLogSuccess = payload => ({
+export const getApplicationSecurityLogSuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOG_SUCCESS,
-    payload,
+    payload
 });
 
-export const getApplicationSecurityLogFailure = error => ({
+export const getApplicationSecurityLogFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOG_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getApplicationSecurityLog = ({
     projectId,
     componentId,
-    applicationSecurityId,
-}) => async dispatch => {
+    applicationSecurityId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityLogRequest());
 
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -658,14 +677,15 @@ export const getApplicationSecurityLog = ({
 export const getApplicationSecurityLogBySlug = ({
     projectId,
     componentId,
-    applicationSecuritySlug,
-}) => async dispatch => {
+    applicationSecuritySlug
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityLogRequest());
 
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -685,26 +705,27 @@ export const getApplicationSecurityLogsRequest = () => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_REQUEST,
 });
 
-export const getApplicationSecurityLogsSuccess = payload => ({
+export const getApplicationSecurityLogsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_SUCCESS,
-    payload,
+    payload
 });
 
-export const getApplicationSecurityLogsFailure = error => ({
+export const getApplicationSecurityLogsFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getApplicationSecurityLogs = ({
     projectId,
-    componentId,
-}) => async dispatch => {
+    componentId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityLogsRequest());
 
     try {
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getApplicationSecurityLogsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -724,23 +745,23 @@ export const editApplicationSecurityRequest = () => ({
     type: types.EDIT_APPLICATION_SECURITY_REQUEST,
 });
 
-export const editApplicationSecuritySuccess = payload => ({
+export const editApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.EDIT_APPLICATION_SECURITY_SUCCESS,
-    payload,
+    payload
 });
 
-export const editApplicationSecurityFailure = error => ({
+export const editApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.EDIT_APPLICATION_SECURITY_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export function editApplicationSecurity({
     projectId,
     componentId,
     applicationSecurityId,
-    data,
-}) {
-    return function(dispatch) {
+    data
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data
@@ -749,6 +770,7 @@ export function editApplicationSecurity({
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
             function(error) {
@@ -768,12 +790,12 @@ export function editApplicationSecurity({
     };
 }
 
-export const setActiveApplicationSecurity = payload => ({
+export const setActiveApplicationSecurity = (payload: $TSFixMe) => ({
     type: types.SET_ACTIVE_APPLICATION_SECURITY,
-    payload,
+    payload
 });
 
-export const setActiveContainerSecurity = payload => ({
+export const setActiveContainerSecurity = (payload: $TSFixMe) => ({
     type: types.SET_ACTIVE_CONTAINER_SECURITY,
-    payload,
+    payload
 });

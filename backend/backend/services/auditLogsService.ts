@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, skip, limit, populate, select }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,7 +30,9 @@ export default {
         return auditLogs;
     },
 
-    countBy: async function({ query }) {
+    countBy: async function({
+        query
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -33,7 +41,7 @@ export default {
         return count;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const auditLogsModel = new AuditLogsModel({
             userId: data.userId,
             projectId: data.projectId,
@@ -45,7 +53,11 @@ export default {
         return auditLog;
     },
 
-    search: async function({ filter, skip, limit }) {
+    search: async function({
+        filter,
+        skip,
+        limit
+    }: $TSFixMe) {
         const _this = this;
         const query = {
             'request.apiSection': {
@@ -75,7 +87,9 @@ export default {
         return { searchedAuditLogs, totalSearchCount };
     },
 
-    hardDeleteBy: async function({ query }) {
+    hardDeleteBy: async function({
+        query
+    }: $TSFixMe) {
         await AuditLogsModel.deleteMany(query);
     },
 };

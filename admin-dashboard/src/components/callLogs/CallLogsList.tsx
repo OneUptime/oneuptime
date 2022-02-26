@@ -2,6 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 
@@ -13,13 +14,15 @@ import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { history } from '../../store';
 
 export class CallLogsList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
     }
 
     handleDelete = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
         openModal({
             id: deleteModalId,
@@ -27,9 +30,10 @@ export class CallLogsList extends Component {
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -38,40 +42,58 @@ export class CallLogsList extends Component {
 
     render() {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs.skip &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             typeof this.props.callLogs.skip === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs.skip = parseInt(this.props.callLogs.skip, 10);
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs.limit &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             typeof this.props.callLogs.limit === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs.limit = parseInt(this.props.callLogs.limit, 10);
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
         if (!this.props.callLogs.skip) this.props.callLogs.skip = 0;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
         if (!this.props.callLogs.limit) this.props.callLogs.limit = 0;
 
         let canNext =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs.count &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs.count >
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                 this.props.callLogs.skip + this.props.callLogs.limit
                 ? true
                 : false;
         let canPrev =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs && this.props.callLogs.skip <= 0 ? false : true;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.callLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.requesting || !this.props.callLogs.callLogs)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages = Math.ceil(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
             parseInt(this.props.callLogs && this.props.callLogs.count) / 10
         );
         return (
@@ -146,6 +168,7 @@ export class CallLogsList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                             {this.props.requesting ? (
                                 <Fragment>
                                     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -166,10 +189,14 @@ export class CallLogsList extends Component {
                                         </td>
                                     </tr>
                                 </Fragment>
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                             ) : this.props.callLogs &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                               this.props.callLogs.callLogs &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                               this.props.callLogs.callLogs.length > 0 ? (
-                                this.props.callLogs.callLogs.map(callLog => {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
+                                this.props.callLogs.callLogs.map((callLog: $TSFixMe) => {
                                     return (
                                         <tr
                                             key={callLog._id}
@@ -214,6 +241,7 @@ export class CallLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'Te... Remove this comment to see the full error message
                                                     textDecoration: callLog.projectId
                                                         ? 'underline'
                                                         : null,
@@ -319,20 +347,19 @@ export class CallLogsList extends Component {
                                                                 <span>
                                                                     <button
                                                                         onClick={() => {
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                             this.props.openModal(
                                                                                 {
                                                                                     id: uuidv4(),
                                                                                     onConfirm: () => {
                                                                                         return Promise.resolve();
                                                                                     },
-                                                                                    content: props => (
-                                                                                        <CallLogsContentViewModal
-                                                                                            {...props}
-                                                                                            content={
-                                                                                                callLog.content
-                                                                                            }
-                                                                                        />
-                                                                                    ),
+                                                                                    content: (props: $TSFixMe) => <CallLogsContentViewModal
+                                                                                        {...props}
+                                                                                        content={
+                                                                                            callLog.content
+                                                                                        }
+                                                                                    />,
                                                                                 }
                                                                             );
                                                                         }}
@@ -347,20 +374,19 @@ export class CallLogsList extends Component {
                                                                     {callLog.error ? (
                                                                         <button
                                                                             onClick={() => {
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                                 this.props.openModal(
                                                                                     {
                                                                                         id: uuidv4(),
                                                                                         onConfirm: () => {
                                                                                             return Promise.resolve();
                                                                                         },
-                                                                                        content: props => (
-                                                                                            <CallLogsErrorViewModal
-                                                                                                {...props}
-                                                                                                content={
-                                                                                                    callLog.error
-                                                                                                }
-                                                                                            />
-                                                                                        ),
+                                                                                        content: (props: $TSFixMe) => <CallLogsErrorViewModal
+                                                                                            {...props}
+                                                                                            content={
+                                                                                                callLog.error
+                                                                                            }
+                                                                                        />,
                                                                                     }
                                                                                 );
                                                                             }}
@@ -392,14 +418,21 @@ export class CallLogsList extends Component {
                     id="logsStatus"
                     style={{ textAlign: 'center', marginTop: '10px' }}
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                     {this.props.callLogs &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                     (!this.props.callLogs.callLogs ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                         !this.props.callLogs.callLogs.length) &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                     !this.props.requesting &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                     !this.props.callLogs.error
                         ? "We don't have any logs yet"
                         : null}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                     {this.props.callLogs && this.props.callLogs.error
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                         ? this.props.callLogs.error
                         : null}
                 </div>
@@ -411,14 +444,21 @@ export class CallLogsList extends Component {
                                     id="log-count"
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                     {this.props.callLogs &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                     this.props.callLogs.count
                                         ? `Page ${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                               this.props.page
                                           } of ${numberOfPages} (${this.props
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                               .callLogs &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.callLogs.count} Log${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.callLogs &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.callLogs.count === 1
                                                   ? ''
                                                   : 's'
@@ -434,8 +474,11 @@ export class CallLogsList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.prevClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.callLogs.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.callLogs.limit
                                         );
                                     }}
@@ -458,8 +501,11 @@ export class CallLogsList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.nextClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.callLogs.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogs' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.callLogs.limit
                                         );
                                     }}
@@ -485,6 +531,7 @@ export class CallLogsList extends Component {
                                     className={'Button bs-ButtonLegacy'}
                                     // data-db-analytics-name="list_view.pagination.next"
                                     type="button"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                     disabled={this.props.requesting}
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -502,19 +549,21 @@ export class CallLogsList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         users: state.user.users.users,
         deleteRequest: state.callLogs.callLogs.deleteRequest,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CallLogsList.displayName = 'ProjectList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CallLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

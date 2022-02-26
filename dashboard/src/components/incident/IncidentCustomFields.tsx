@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -15,36 +16,49 @@ import EditCustomField from '../modals/EditCustomField';
 
 class IncidentCustomFields extends Component {
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
         const { fetchCustomFields, currentProject, limit } = this.props;
         const projectId = currentProject._id;
         fetchCustomFields(projectId, 0, limit);
     }
 
-    prevClicked = projectId => {
+    prevClicked = (projectId: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
         const { fetchCustomFields, skip, limit } = this.props;
         fetchCustomFields(
             projectId,
             skip ? Number(skip) - limit : limit,
             limit
         );
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.paginate('prev');
     };
 
-    nextClicked = projectId => {
+    nextClicked = (projectId: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
         const { fetchCustomFields, skip, limit } = this.props;
         fetchCustomFields(projectId, skip ? Number(skip) + limit : limit, 10);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.paginate('next');
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
             customFields,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -73,6 +87,7 @@ class IncidentCustomFields extends Component {
                                 <button
                                     id="addCustomField"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                         this.props.openModal({
                                             id: currentProject._id,
                                             content: DataPathHoC(
@@ -130,7 +145,7 @@ class IncidentCustomFields extends Component {
                                     </div>
                                 </header>
                                 {customFields.length > 0 &&
-                                    customFields.map((field, index) => (
+                                    customFields.map((field: $TSFixMe, index: $TSFixMe) => (
                                         <div
                                             key={field._id}
                                             className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
@@ -294,6 +309,7 @@ class IncidentCustomFields extends Component {
                                         >
                                             {numberOfPages > 0
                                                 ? `Page ${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                       this.props.page
                                                   } of ${numberOfPages} (${count} Custom field${
                                                       count === 1 ? '' : 's'
@@ -313,6 +329,7 @@ class IncidentCustomFields extends Component {
                                             onClick={() =>
                                                 this.prevClicked(
                                                     currentProject._id,
+                                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
                                                     skip
                                                 )
                                             }
@@ -337,6 +354,7 @@ class IncidentCustomFields extends Component {
                                             onClick={() =>
                                                 this.nextClicked(
                                                     currentProject._id,
+                                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
                                                     skip
                                                 )
                                             }
@@ -365,8 +383,10 @@ class IncidentCustomFields extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncidentCustomFields.displayName = 'IncidentCustomFields';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncidentCustomFields.propTypes = {
     currentProject: PropTypes.object,
     error: PropTypes.string,
@@ -381,17 +401,16 @@ IncidentCustomFields.propTypes = {
     page: PropTypes.number,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            fetchCustomFields,
-            paginate,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        fetchCustomFields,
+        paginate,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         customFields: state.customField.customFields.fields,

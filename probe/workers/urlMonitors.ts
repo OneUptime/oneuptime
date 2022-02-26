@@ -8,13 +8,16 @@ import pingfetch from '../utils/pingFetch'
 // creates incident if a website is down and resolves it when they come back up
 
 export default {
-    ping: async ({ monitor }) => {
+    ping: async ({
+        monitor
+    }: $TSFixMe) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
                     let retry = true;
                     let retryCount = 0;
                     while (retry || retryCount > 2) {
+                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 1.
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url
                         );

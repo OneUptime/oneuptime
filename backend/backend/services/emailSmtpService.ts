@@ -1,33 +1,49 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const iv = Crypto.randomBytes(16);
         data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
         const emailSmtpModel = new EmailSmtpModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         emailSmtpModel.projectId = data.projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailSmtpModel.user = data.user;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pass' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailSmtpModel.pass = data.pass;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'host' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailSmtpModel.host = data.host;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'port' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailSmtpModel.port = data.port;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailSmtpModel.from = data.from;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         emailSmtpModel.name = data.name;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'secure' does not exist on type 'Document... Remove this comment to see the full error message
         emailSmtpModel.secure = false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
         emailSmtpModel.iv = iv;
         if (data.secure) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'secure' does not exist on type 'Document... Remove this comment to see the full error message
             emailSmtpModel.secure = data.secure;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enabled' does not exist on type 'Documen... Remove this comment to see the full error message
         emailSmtpModel.enabled = true;
         const emailSmtp = await emailSmtpModel.save();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pass' does not exist on type 'Document<a... Remove this comment to see the full error message
         if (emailSmtp && emailSmtp.pass && emailSmtp.iv) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pass' does not exist on type 'Document<a... Remove this comment to see the full error message
             emailSmtp.pass = await EncryptDecrypt.decrypt(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pass' does not exist on type 'Document<a... Remove this comment to see the full error message
                 emailSmtp.pass,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
                 emailSmtp.iv
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
             delete emailSmtp.iv;
         }
         return emailSmtp;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -59,7 +75,7 @@ export default {
         return updatedEmailSmtp;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -88,7 +104,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const emailSmtp = await EmailSmtpModel.findOneAndUpdate(
             query,
             {
@@ -105,7 +121,13 @@ export default {
         return emailSmtp;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -147,7 +169,11 @@ export default {
         return emailSmtp;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -173,7 +199,7 @@ export default {
         return emailSmtp;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -183,7 +209,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await EmailSmtpModel.deleteMany(query);
         return 'Email Smtp(s) removed successfully';
     },

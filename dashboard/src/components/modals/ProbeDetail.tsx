@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ProbeStatus from '../probe/ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
@@ -15,7 +17,7 @@ class ProbeDetail extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
@@ -26,12 +28,15 @@ class ProbeDetail extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.props.data.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             id: this.props.data.ProbeDetailModalId,
         });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { ProbeDetailModalId, closeModal, probesData } = this.props.data;
         const isOffline =
             (probesData.lastAlive &&
@@ -158,8 +163,10 @@ class ProbeDetail extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ProbeDetail.displayName = 'ProbeDetail';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ProbeDetail.propTypes = {
     data: PropTypes.shape({
         ProbeDetailModalId: PropTypes.string,

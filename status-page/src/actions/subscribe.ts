@@ -23,14 +23,14 @@ export const openLanguageMenu = () => {
     };
 };
 
-export const selectedMenu = data => {
+export const selectedMenu = (data: $TSFixMe) => {
     return {
         type: SELECTED_MENU,
         payload: data,
     };
 };
 
-export const userData = data => {
+export const userData = (data: $TSFixMe) => {
     return {
         type: USER_DATA,
         payload: data,
@@ -55,14 +55,14 @@ export const subscribeSuccess = () => {
     };
 };
 
-export const subscribeFailure = data => {
+export const subscribeFailure = (data: $TSFixMe) => {
     return {
         type: SUBSCRIBE_FAILURE,
         payload: data,
     };
 };
 
-export const validationError = error => {
+export const validationError = (error: $TSFixMe) => {
     return {
         type: VALIDATION_ERROR,
         payload: error,
@@ -70,13 +70,13 @@ export const validationError = error => {
 };
 // Calls the API to get status
 export const subscribeUser = (
-    userDetails,
-    monitors,
-    projectId,
-    statusPageId,
-    notificationType
+    userDetails: $TSFixMe,
+    monitors: $TSFixMe,
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe,
+    notificationType: $TSFixMe
 ) => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`subscriber/${projectId}/${statusPageId}`, {
             userDetails,
             monitors,

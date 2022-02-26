@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
 import { FormLoader, ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -13,15 +15,19 @@ import { fetchCustomFields } from '../../actions/monitorCustomField';
 class ThirdPartyVariables extends Component {
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
             fetchCustomFields,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetEditMonitor' does not exist on type... Remove this comment to see the full error message
             resetEditMonitor,
         } = this.props;
         fetchCustomFields(currentProject._id);
         resetEditMonitor();
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, monitor, customFields } = this.props;
         const projectId = monitor.projectId._id || monitor.projectId;
         const postObj = {
@@ -29,24 +35,31 @@ class ThirdPartyVariables extends Component {
             projectId,
         };
 
-        postObj.customFields = customFields.map(field => ({
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type '{ ... Remove this comment to see the full error message
+        postObj.customFields = customFields.map((field: $TSFixMe) => ({
             fieldName: field.fieldName,
             uniqueField: field.uniqueField,
             fieldType: field.fieldType,
+
             fieldValue:
                 field.fieldType === 'number'
                     ? parseFloat(values[field.fieldName])
-                    : values[field.fieldName],
+                    : values[field.fieldName]
         }));
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitor' does not exist on type 'Rea... Remove this comment to see the full error message
         this.props.editMonitor(currentProject._id, postObj);
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingMonitor' does not exist on type '... Remove this comment to see the full error message
             editingMonitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editError' does not exist on type 'Reado... Remove this comment to see the full error message
             editError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
             customFields,
         } = this.props;
 
@@ -90,71 +103,69 @@ class ThirdPartyVariables extends Component {
                                                             customFields.length >
                                                                 0 &&
                                                             customFields.map(
-                                                                field => (
-                                                                    <fieldset
-                                                                        key={
-                                                                            field._id
-                                                                        }
-                                                                        data-test="RetrySettings-failedAndExpiring"
-                                                                        className="bs-Fieldset"
-                                                                        style={{
-                                                                            padding: 0,
-                                                                        }}
-                                                                    >
-                                                                        <div className="bs-Fieldset-rows">
-                                                                            <div className="bs-Fieldset-row">
-                                                                                <label className="bs-Fieldset-label">
-                                                                                    <span>
-                                                                                        {
-                                                                                            field.fieldName
-                                                                                        }
-                                                                                    </span>
-                                                                                </label>
-                                                                                <div className="bs-Fieldset-fields">
-                                                                                    <div
-                                                                                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
-                                                                                        style={{
-                                                                                            width:
-                                                                                                '100%',
-                                                                                        }}
-                                                                                    >
-                                                                                        <div className="Flex-flex">
-                                                                                            <div
-                                                                                                className="bs-Fieldset-field"
+                                                                (field: $TSFixMe) => <fieldset
+                                                                    key={
+                                                                        field._id
+                                                                    }
+                                                                    data-test="RetrySettings-failedAndExpiring"
+                                                                    className="bs-Fieldset"
+                                                                    style={{
+                                                                        padding: 0,
+                                                                    }}
+                                                                >
+                                                                    <div className="bs-Fieldset-rows">
+                                                                        <div className="bs-Fieldset-row">
+                                                                            <label className="bs-Fieldset-label">
+                                                                                <span>
+                                                                                    {
+                                                                                        field.fieldName
+                                                                                    }
+                                                                                </span>
+                                                                            </label>
+                                                                            <div className="bs-Fieldset-fields">
+                                                                                <div
+                                                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '100%',
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="Flex-flex">
+                                                                                        <div
+                                                                                            className="bs-Fieldset-field"
+                                                                                            style={{
+                                                                                                width:
+                                                                                                    '100%',
+                                                                                            }}
+                                                                                        >
+                                                                                            <Field
+                                                                                                component={
+                                                                                                    RenderField
+                                                                                                }
+                                                                                                name={
+                                                                                                    field.fieldName
+                                                                                                }
+                                                                                                id={
+                                                                                                    field.fieldName
+                                                                                                }
+                                                                                                type={
+                                                                                                    field.fieldType
+                                                                                                }
+                                                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                                                 style={{
                                                                                                     width:
                                                                                                         '100%',
+                                                                                                    padding:
+                                                                                                        '3px 5px',
                                                                                                 }}
-                                                                                            >
-                                                                                                <Field
-                                                                                                    component={
-                                                                                                        RenderField
-                                                                                                    }
-                                                                                                    name={
-                                                                                                        field.fieldName
-                                                                                                    }
-                                                                                                    id={
-                                                                                                        field.fieldName
-                                                                                                    }
-                                                                                                    type={
-                                                                                                        field.fieldType
-                                                                                                    }
-                                                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                                                    style={{
-                                                                                                        width:
-                                                                                                            '100%',
-                                                                                                        padding:
-                                                                                                            '3px 5px',
-                                                                                                    }}
-                                                                                                />
-                                                                                            </div>
+                                                                                            />
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
-                                                                    </fieldset>
-                                                                )
+                                                                    </div>
+                                                                </fieldset>
                                                             )}
 
                                                         {customFields &&
@@ -255,8 +266,10 @@ class ThirdPartyVariables extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ThirdPartyVariables.displayName = 'ThirdPartyVariables';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ThirdPartyVariables.propTypes = {
     currentProject: PropTypes.object,
     editMonitor: PropTypes.func,
@@ -275,22 +288,22 @@ const ThirdPartyVariableForm = reduxForm({
     destroyOnUnmount: true,
 })(ThirdPartyVariables);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            editMonitor,
-            fetchCustomFields,
-            resetEditMonitor,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        editMonitor,
+        fetchCustomFields,
+        resetEditMonitor,
+    },
+    dispatch
+);
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { monitor } = ownProps;
     const initialValues = {};
     if (monitor && monitor.customFields && monitor.customFields.length > 0) {
         monitor.customFields.forEach(
-            field => (initialValues[field.fieldName] = field.fieldValue)
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            (field: $TSFixMe) => initialValues[field.fieldName] = field.fieldValue
         );
     }
 

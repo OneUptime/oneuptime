@@ -1,4 +1,6 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -6,31 +8,35 @@ import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
 import AirtableService from '../backend/services/airtableService'
 
-let token, projectId, userId;
+let token, projectId: $TSFixMe, userId: $TSFixMe;
 import VerificationTokenModel from '../backend/models/verificationToken'
 
-let cardId, authorization;
+let cardId: $TSFixMe, authorization: $TSFixMe;
 
-describe('Stripe payment API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Stripe payment API', function(this: $TSFixMe) {
     this.timeout(50000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
@@ -42,7 +48,7 @@ describe('Stripe payment API', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     token = res.body.tokens.jwtAccessToken;
                                     authorization = `Basic ${token}`;
                                     done();
@@ -53,6 +59,7 @@ describe('Stripe payment API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -68,11 +75,12 @@ describe('Stripe payment API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should sign up and a transaction of 1 $ should be made', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should sign up and a transaction of 1 $ should be made', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/charges`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -86,11 +94,12 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should return payment intent when valid details are passed ', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return payment intent when valid details are passed ', function(done: $TSFixMe) {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_amex'}/pi`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 cardId = res.body.source;
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
@@ -102,11 +111,12 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should return 2 cards attached to customer', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return 2 cards attached to customer', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -114,11 +124,12 @@ describe('Stripe payment API', function() {
                 done();
             });
     });
-    it('should update default card for customer', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should update default card for customer', function(done: $TSFixMe) {
         request
             .put(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('default_source');
@@ -126,11 +137,12 @@ describe('Stripe payment API', function() {
                 done();
             });
     });
-    it('should return 2 cards attached to customer', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return 2 cards attached to customer', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -139,11 +151,12 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should fetch a single card', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should fetch a single card', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('id');
@@ -154,11 +167,12 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should delete a card', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete a card', function(done: $TSFixMe) {
         request
             .delete(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('id');
@@ -167,16 +181,17 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should not delete a single left card', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete a single left card', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 cardId = res.body.data[0].id;
                 request
                     .delete(`/stripe/${userId}/creditCard/${cardId}`)
                     .set('Authorization', authorization)
-                    .end(function(err, res) {
+                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(403);
                         expect(res.body.message).to.be.equal(
                             'Cannot delete the only card'
@@ -186,11 +201,12 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should not create a payment intent when token(generated from client) is invalid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a payment intent when token(generated from client) is invalid', function(done: $TSFixMe) {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_invalid'}/pi`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "No such token: 'tok_invalid'"
@@ -198,14 +214,15 @@ describe('Stripe payment API', function() {
                 done();
             });
     });
-    it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function(done: $TSFixMe) {
         request
             .post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({
                 rechargeBalanceAmount: '43_',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Amount should be present and it should be a valid number.'
@@ -213,14 +230,15 @@ describe('Stripe payment API', function() {
                 done();
             });
     });
-    it('should return payment intent if rechargeBalanceAmount is a valid integer', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return payment intent if rechargeBalanceAmount is a valid integer', function(done: $TSFixMe) {
         request
             .post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({
                 rechargeBalanceAmount: '100',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
                 expect(res.body).to.have.property('client_secret');

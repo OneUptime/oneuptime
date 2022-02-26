@@ -1,18 +1,21 @@
 import winston from 'winston'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'wins... Remove this comment to see the full error message
 import logstash from 'winston-logstash-transport'
 import Slack from 'winston-slack-webhook-transport'
 
 const MESSAGE = Symbol.for('message');
 const LEVEL = Symbol.for('level');
 
-const errorToLog = log => {
+const errorToLog = (log: $TSFixMe) => {
     // convert an instance of the Error class to a formatted log
     const formatted = {
         message: null,
         level: 'error',
     };
+    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     formatted[LEVEL] = 'error';
     if (log.message) {
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'null'.
         formatted.message = `${log.message}: \n${log.stack}`;
     } else {
         formatted.message = log.stack;
@@ -23,7 +26,7 @@ const errorToLog = log => {
 
 // TODO:
 // add a handler for normal info logs
-const logFormatter = logEntry => {
+const logFormatter = (logEntry: $TSFixMe) => {
     if (logEntry instanceof Error) {
         // an error object was passed in
         return errorToLog(logEntry);
@@ -68,7 +71,7 @@ const logstashTransport = new logstash.LogstashTransport({
     port: process.env.LOGSTASH_PORT,
 });
 
-const envTag = logEntry => {
+const envTag = (logEntry: $TSFixMe) => {
     const tag = {
         env: process.env.NODE_ENV || 'development',
         containerName: process.env.CONTAINER_NAME,
@@ -102,8 +105,9 @@ if (
 }
 
 logger.stream = {
+    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ write: (message: any, _encoding: any) => v... Remove this comment to see the full error message
     // eslint-disable-next-line no-unused-vars
-    write: function(message, _encoding) {
+    write: function(message: $TSFixMe, _encoding: $TSFixMe) {
         logger.http(message);
     },
 };

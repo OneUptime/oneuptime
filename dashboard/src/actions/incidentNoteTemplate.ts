@@ -6,22 +6,26 @@ export const createIncidentNoteTemplateRequest = () => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_REQUEST,
 });
 
-export const createIncidentNoteTemplateSuccess = payload => ({
+export const createIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const createIncidentNoteTemplateFailure = error => ({
+export const createIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const createIncidentNoteTemplate = ({ projectId, data }) => dispatch => {
+export const createIncidentNoteTemplate = ({
+    projectId,
+    data
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(createIncidentNoteTemplateRequest());
     const promise = postApi(`incidentNoteTemplate/${projectId}`, data);
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(createIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {
@@ -45,21 +49,21 @@ export const fetchIncidentNoteTemplatesRequest = () => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_REQUEST,
 });
 
-export const fetchIncidentNoteTemplatesSuccess = payload => ({
+export const fetchIncidentNoteTemplatesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchIncidentNoteTemplatesFailure = error => ({
+export const fetchIncidentNoteTemplatesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchIncidentNoteTemplates = ({
     projectId,
     skip = 0,
-    limit = 0,
-}) => dispatch => {
+    limit = 0
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchIncidentNoteTemplatesRequest());
     const promise = getApi(
         `incidentNoteTemplate/${projectId}?skip=${skip}&limit=${limit}`
@@ -67,6 +71,7 @@ export const fetchIncidentNoteTemplates = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
         },
         function(error) {
@@ -90,21 +95,21 @@ export const updateIncidentNoteTemplateRequest = () => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_REQUEST,
 });
 
-export const updateIncidentNoteTemplateSuccess = payload => ({
+export const updateIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateIncidentNoteTemplateFailure = error => ({
+export const updateIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateIncidentNoteTemplate = ({
     projectId,
     templateId,
-    data,
-}) => dispatch => {
+    data
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(updateIncidentNoteTemplateRequest());
     const promise = putApi(
         `incidentNoteTemplate/${projectId}/${templateId}`,
@@ -113,6 +118,7 @@ export const updateIncidentNoteTemplate = ({
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(updateIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {
@@ -136,27 +142,29 @@ export const deleteIncidentNoteTemplateRequest = () => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_REQUEST,
 });
 
-export const deleteIncidentNoteTemplateSuccess = payload => ({
+export const deleteIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteIncidentNoteTemplateFailure = error => ({
+export const deleteIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteIncidentNoteTemplate = ({
     projectId,
-    templateId,
-}) => dispatch => {
+    templateId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deleteIncidentNoteTemplateRequest());
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(
         `incidentNoteTemplate/${projectId}/${templateId}`
     );
 
     promise.then(
         function(response) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(deleteIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {

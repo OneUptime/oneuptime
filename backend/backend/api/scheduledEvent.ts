@@ -1,12 +1,15 @@
 import express from 'express'
 const router = express.Router();
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
 import { getUser, checkUserBelongToProject } from '../middlewares/user'
 import ScheduledEventService from '../services/scheduledEventService'
 import AlertService from '../services/alertService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/subProject"' has no export... Remove this comment to see the full error message
 import { getSubProjects } from '../middlewares/subProject'
 import ScheduledEventNoteService from '../services/scheduledEventNoteService'
 import moment from 'moment'
@@ -17,6 +20,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
         const data = req.body;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         data.createdById = req.user ? req.user.id : null;
 
         if (!data) {
@@ -83,6 +87,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const scheduledEvent = await ScheduledEventService.create(
             { projectId },
             data
@@ -213,6 +218,7 @@ router.put(
     async function(req, res) {
         try {
             const data = {};
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedBy' does not exist on type '{}'.
             data.resolvedBy = req.user ? req.user.id : null;
             const { eventId } = req.params;
 
@@ -256,6 +262,7 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     res
 ) {
     try {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         const { eventId } = req.params;
 
@@ -276,6 +283,7 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
     res
 ) {
     try {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         const { eventId } = req.params;
 
@@ -300,7 +308,7 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
 
         if (fetchEvent && !fetchEvent.monitorDuringEvent) {
             await MonitorService.markMonitorsAsShouldMonitor(
-                fetchEvent.monitors.map(monitor => {
+                fetchEvent.monitors.map((monitor: $TSFixMe) => {
                     return monitor.monitorId._id || monitor.monitorId;
                 })
             );
@@ -330,6 +338,7 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
                 });
             }
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
                 scheduledEventId: scheduledEvent._id,
@@ -411,8 +420,10 @@ router.get(
         try {
             const currentDate = moment();
             // this contains both projectIds and subProjectIds
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                ? req.user.subProjects.map(project => project._id)
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             const ongoingScheduledEvents = await ScheduledEventService.getSubProjectOngoingScheduledEvents(
@@ -552,8 +563,10 @@ router.get(
     async function(req, res) {
         try {
             // this contains both projectIds and subProjectIds
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                ? req.user.subProjects.map(project => project._id)
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             const scheduledEvents = await ScheduledEventService.getSubProjectScheduledEvents(
@@ -651,6 +664,7 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
 ) {
     try {
         const { eventId, projectId } = req.params;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         const data = req.body;
         data.scheduledEventId = eventId;
@@ -874,6 +888,7 @@ router.delete(
     async function(req, res) {
         try {
             const { eventId, noteId, projectId } = req.params;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
 
             const deletedEventMessage = await ScheduledEventNoteService.deleteBy(

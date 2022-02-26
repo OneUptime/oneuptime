@@ -6,7 +6,7 @@ import moment from 'moment'
 // This runs the lighthouse of URL Monitors
 
 export default {
-    ping: async monitor => {
+    ping: async (monitor: $TSFixMe) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
@@ -59,7 +59,7 @@ export default {
     },
 };
 
-const lighthouseFetch = url => {
+const lighthouseFetch = (url: $TSFixMe) => {
     return new Promise((resolve, reject) => {
         const lighthouseWorker = fork('./utils/lighthouse');
         const timeoutHandler = setTimeout(async () => {
@@ -74,7 +74,7 @@ const lighthouseFetch = url => {
             await processLighthouseScan(result);
         });
 
-        async function processLighthouseScan(result) {
+        async function processLighthouseScan(result: $TSFixMe) {
             clearTimeout(timeoutHandler);
             lighthouseWorker.removeAllListeners();
             if (result.error) {

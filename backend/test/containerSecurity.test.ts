@@ -1,4 +1,6 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai'
 const expect = require('chai').expect;
@@ -6,8 +8,10 @@ import userData from './data/user'
 import dockerCredential from './data/dockerCredential'
 import app from '../server'
 chai.use(require('chai-http'));
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import VerificationTokenModel from '../backend/models/verificationToken'
 import UserService from '../backend/services/userService'
@@ -18,19 +22,21 @@ import ContainerSecurityService from '../backend/services/containerSecurityServi
 import ContainerSecurityLogService from '../backend/services/containerSecurityLogService'
 import AirtableService from '../backend/services/airtableService'
 
-describe('Container Security API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Container Security API', function(this: $TSFixMe) {
     const timeout = 30000;
-    let projectId,
-        componentId,
-        userId,
-        token,
-        containerSecurityId,
-        credentialId;
+    let projectId: $TSFixMe,
+        componentId: $TSFixMe,
+        userId: $TSFixMe,
+        token: $TSFixMe,
+        containerSecurityId: $TSFixMe,
+        credentialId: $TSFixMe;
 
     this.timeout(timeout);
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -40,8 +46,8 @@ describe('Container Security API', function() {
                     { role: 'master-admin' }
                 ).then(function() {
                     VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
+                        err: $TSFixMe,
+                        verificationToken: $TSFixMe
                     ) {
                         request
                             .get(
@@ -55,7 +61,7 @@ describe('Container Security API', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         token = res.body.tokens.jwtAccessToken;
                                         const authorization = `Basic ${token}`;
 
@@ -63,7 +69,7 @@ describe('Container Security API', function() {
                                             .post(`/component/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({ name: 'Test Component' })
-                                            .end(function(err, res) {
+                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                                 componentId = res.body._id;
                                                 done();
                                             });
@@ -75,6 +81,7 @@ describe('Container Security API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -88,7 +95,8 @@ describe('Container Security API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a container security', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         DockerCredentialService.create({
@@ -109,7 +117,7 @@ describe('Container Security API', function() {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function(err, res) {
+                .end(function(err: $TSFixMe, res: $TSFixMe) {
                     containerSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -121,7 +129,8 @@ describe('Container Security API', function() {
         });
     });
 
-    it('should update a container security', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should update a container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const update = { name: 'Container Test' };
 
@@ -131,14 +140,15 @@ describe('Container Security API', function() {
             )
             .set('Authorization', authorization)
             .send(update)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(update.name);
                 done();
             });
     });
 
-    it('should get a particular container security in a component', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get a particular container security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -146,7 +156,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(
                     String(containerSecurityId)
@@ -158,33 +168,36 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should get all the container security in a component', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get all the container security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should get all the container security with a particular credential', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get all the container security with a particular credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/container/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should scan a container security', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should scan a container security', function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
 
@@ -193,13 +206,14 @@ describe('Container Security API', function() {
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should throw error if scanning with an invalid docker credentials or invalid image path', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
         const data = {
@@ -213,14 +227,14 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 const containerSecurityId = res.body._id;
                 request
                     .post(
                         `/security/${projectId}/container/scan/${containerSecurityId}`
                     )
                     .set('Authorization', authorization)
-                    .end(function(err, res) {
+                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(400);
                         expect(res.body.message).to.be.equal(
                             'Scanning failed please check your docker credential or image path/tag'
@@ -230,7 +244,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if name already exist in the component', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a container security if name already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Container Test',
@@ -243,7 +258,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security with this name already exist in this component'
@@ -252,7 +267,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if image path already exist in the component', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a container security if image path already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -265,7 +281,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security with this image path already exist in this component'
@@ -274,7 +290,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if name is missing or undefined in the request body', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a container security if name is missing or undefined in the request body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
             dockerCredential: credentialId,
@@ -286,7 +303,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security Name is required'
@@ -295,7 +312,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if image path is missing or undefined in the request body', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a container security if image path is missing or undefined in the request body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -307,14 +325,15 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Image Path is required');
                 done();
             });
     });
 
-    it('should not create a container security if dockerCredential is missing or undefined in the request body', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a container security if dockerCredential is missing or undefined in the request body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -326,7 +345,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential is required'
@@ -335,7 +354,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should delete a particular container security', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete a particular container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -343,14 +363,15 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.deleted).to.be.true;
                 done();
             });
     });
 
-    it('should not scan a container security if it does not exist', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not scan a container security if it does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -359,7 +380,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security not found or does not exist'
@@ -368,7 +389,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not delete a non-existing container security', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete a non-existing container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -377,7 +399,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security not found or does not exist'
@@ -386,7 +408,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not get a non-existing container security', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not get a non-existing container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -395,7 +418,7 @@ describe('Container Security API', function() {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security not found or does not exist'
@@ -404,7 +427,8 @@ describe('Container Security API', function() {
             });
     });
 
-    it('should not create a container security if dockerCredential does not exist', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a container security if dockerCredential does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -417,7 +441,7 @@ describe('Container Security API', function() {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential not found or does not exist'

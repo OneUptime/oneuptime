@@ -1,5 +1,12 @@
 export default {
-    findBy: async function({ query, skip, limit, sort, populate, select }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        sort,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -42,22 +49,30 @@ export default {
         activeEscalation,
         schedule,
         escalations,
-        incidentAcknowledged,
-    }) {
+        incidentAcknowledged
+    }: $TSFixMe) {
         let item = new OnCallScheduleStatusModel();
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Documen... Remove this comment to see the full error message
         item.project = project;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeEscalation' does not exist on type... Remove this comment to see the full error message
         item.activeEscalation = activeEscalation;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Docume... Remove this comment to see the full error message
         item.schedule = schedule;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentAcknowledged' does not exist on ... Remove this comment to see the full error message
         item.incidentAcknowledged = incidentAcknowledged;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Docume... Remove this comment to see the full error message
         item.incident = incident;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalations' does not exist on type 'Doc... Remove this comment to see the full error message
         item.escalations = escalations;
 
         item = await item.save();
         return item;
     },
 
-    countBy: async function({ query }) {
+    countBy: async function({
+        query
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -67,7 +82,10 @@ export default {
         return count;
     },
 
-    updateOneBy: async function({ query, data }) {
+    updateOneBy: async function({
+        query,
+        data
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -85,7 +103,10 @@ export default {
         return item;
     },
 
-    updateBy: async function({ query, data }) {
+    updateBy: async function({
+        query,
+        data
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -116,7 +137,10 @@ export default {
         return items;
     },
 
-    deleteBy: async function({ query, userId }) {
+    deleteBy: async function({
+        query,
+        userId
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -138,7 +162,9 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({ query }) {
+    hardDeleteBy: async function({
+        query
+    }: $TSFixMe) {
         await OnCallScheduleStatusModel.deleteMany(query);
     },
 };

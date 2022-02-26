@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import {
     editEmailTemplates,
@@ -14,10 +15,12 @@ import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 
 class EmailTemplatesBox extends React.Component {
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
         const val = this.props.emailTemplates.emailTemplates.templates.map(
-            tmp => {
+            (tmp: $TSFixMe) => {
                 if (tmp.emailType === values.email_type) {
                     tmp.subject = values.subject;
                     tmp.body = values.body;
@@ -27,22 +30,30 @@ class EmailTemplatesBox extends React.Component {
                 }
             }
         );
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editEmailTemplates' does not exist on ty... Remove this comment to see the full error message
         this.props.editEmailTemplates(currentProject._id, val);
     };
 
-    resetTemplate = templateId => {
+    resetTemplate = (templateId: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetEmailTemplates' does not exist on t... Remove this comment to see the full error message
         this.props.resetEmailTemplates(currentProject._id, templateId);
     };
 
-    templateChange = (e, value) => {
+    templateChange = (e: $TSFixMe, value: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeShowingTemplate' does not exist on... Remove this comment to see the full error message
         this.props.changeShowingTemplate(value);
     };
     render() {
         const templates =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
             this.props.emailTemplates &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
             this.props.emailTemplates.emailTemplates &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
             this.props.emailTemplates.emailTemplates.templates
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
                 ? this.props.emailTemplates.emailTemplates.templates
                 : [];
         return (
@@ -51,8 +62,11 @@ class EmailTemplatesBox extends React.Component {
                     <div className="Box-root Margin-bottom--12">
                         <div
                             className={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
                                 this.props.emailTemplates &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
                                 this.props.emailTemplates.showingTemplate &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
                                 this.props.emailTemplates.showingTemplate
                                     .emailType
                                     ? ''
@@ -78,7 +92,9 @@ class EmailTemplatesBox extends React.Component {
                                         </div>
                                     </div>
                                 </div>
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                 {IsAdmin(this.props.currentProject) ||
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                 IsOwner(this.props.currentProject) ? (
                                     <form>
                                         <div
@@ -97,7 +113,7 @@ class EmailTemplatesBox extends React.Component {
                                                         id="type"
                                                         placeholder="Templates"
                                                         required="required"
-                                                        onChange={(e, v) =>
+                                                        onChange={(e: $TSFixMe, v: $TSFixMe) =>
                                                             this.templateChange(
                                                                 e,
                                                                 v
@@ -115,11 +131,12 @@ class EmailTemplatesBox extends React.Component {
                                                             ...(templates &&
                                                             templates.length > 0
                                                                 ? templates.map(
-                                                                      template => ({
+                                                                      (template: $TSFixMe) => ({
                                                                           value:
                                                                               template.emailType,
+
                                                                           label:
-                                                                              template.emailType,
+                                                                              template.emailType
                                                                       })
                                                                   )
                                                                 : []),
@@ -150,11 +167,14 @@ class EmailTemplatesBox extends React.Component {
                                     </div>
                                 )}
                             </div>
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
                             {this.props.emailTemplates.showingTemplate &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailTemplates' does not exist on type '... Remove this comment to see the full error message
                             this.props.emailTemplates.showingTemplate
                                 .emailType ? (
                                 <div className="bs-ContentSection Card-root Card-shadow--medium Margin-vertical--12">
                                     <TemplatesFormBox
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ submitForm: (values: any) => void; resetTe... Remove this comment to see the full error message
                                         submitForm={this.submitForm}
                                         resetTemplate={this.resetTemplate}
                                     />
@@ -170,6 +190,7 @@ class EmailTemplatesBox extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EmailTemplatesBox.displayName = 'EmailTemplatesBox';
 
 const EmailTemplatesBoxForm = new reduxForm({
@@ -178,6 +199,7 @@ const EmailTemplatesBoxForm = new reduxForm({
     destroyOnUnmount: false,
 })(EmailTemplatesBox);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EmailTemplatesBox.propTypes = {
     emailTemplates: PropTypes.object.isRequired,
     editEmailTemplates: PropTypes.func.isRequired,
@@ -186,13 +208,12 @@ EmailTemplatesBox.propTypes = {
     changeShowingTemplate: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { editEmailTemplates, resetEmailTemplates, changeShowingTemplate },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { editEmailTemplates, resetEmailTemplates, changeShowingTemplate },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         monitor: state.monitor,
         currentProject: state.project.currentProject,

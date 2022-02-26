@@ -1,5 +1,11 @@
 export default {
-    async findBy({ query, skip, limit, populate, select }) {
+    async findBy({
+        query,
+        skip,
+        limit,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 20;
@@ -30,7 +36,7 @@ export default {
         return notifications;
     },
 
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -40,7 +46,7 @@ export default {
         return count;
     },
 
-    create: async function(projectId, message, userId, icon, meta) {
+    create: async function(projectId: $TSFixMe, message: $TSFixMe, userId: $TSFixMe, icon: $TSFixMe, meta: $TSFixMe) {
         try {
             if (!meta) {
                 meta = {};
@@ -62,10 +68,15 @@ export default {
             const selectNotification =
                 'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
             let notification = new NotificationModel();
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
             notification.projectId = projectId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'Documen... Remove this comment to see the full error message
             notification.message = message;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'icon' does not exist on type 'Document<a... Remove this comment to see the full error message
             notification.icon = icon;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdBy' does not exist on type 'Docum... Remove this comment to see the full error message
             notification.createdBy = userId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'meta' does not exist on type 'Document<a... Remove this comment to see the full error message
             notification.meta = meta;
             notification = await notification.save();
             const populatedNotification = await this.findOneBy({
@@ -86,14 +97,14 @@ export default {
         }
     },
 
-    updateManyBy: async function(query, data) {
+    updateManyBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const notifications = await NotificationModel.updateMany(query, {
             $addToSet: data,
         });
         return notifications;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -133,7 +144,7 @@ export default {
         return notification;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -148,19 +159,23 @@ export default {
         return updatedData;
     },
 
-    delete: async function(notificationId) {
+    delete: async function(notificationId: $TSFixMe) {
         const result = await NotificationModel.findById(
             notificationId
         ).remove();
         return result;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await NotificationModel.deleteMany(query);
         return 'Notification(s) removed successfully!';
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }

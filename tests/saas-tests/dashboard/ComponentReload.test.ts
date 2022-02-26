@@ -1,8 +1,9 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 const user = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -14,10 +15,13 @@ const componentName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('OneUptime Component Reload', () => {
     const operationTimeOut = init.timeout;
 
-    beforeAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    beforeAll(async (done: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,14 +32,16 @@ describe('OneUptime Component Reload', () => {
         done();
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create a component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.addComponent(componentName, page);
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -48,14 +54,16 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should create a component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#incidentLog', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#incidentLog');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -72,14 +80,16 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Log page inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#logs', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#logs');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -96,14 +106,16 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Error tracking page inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#errorTracking', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#errorTracking');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -120,14 +132,16 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Performance tracker page inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#performanceTracker', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#performanceTracker');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -144,14 +158,16 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Container security page inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#security');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -168,19 +184,22 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Application security inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#application');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -197,19 +216,22 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Component-Settings(Basic) inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#componentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#componentSettings');
             await init.pageWaitForSelector(page, '#basic', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#basic');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -226,19 +248,22 @@ describe('OneUptime Component Reload', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to Component-Settings(Advanced) inside component and confirm there are no errors',
-        async done => {
+        async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#componentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#componentSettings');
             await init.pageWaitForSelector(page, '#advanced', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#advanced');
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });

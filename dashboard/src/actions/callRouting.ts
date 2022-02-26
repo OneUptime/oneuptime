@@ -2,10 +2,10 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/callRouting';
 import errors from '../errors';
 
-export function getCallRoutingNumbers(projectId, skip, limit) {
+export function getCallRoutingNumbers(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
     if (!skip) skip = 0;
     if (!limit) limit = 10;
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `callRouting/${projectId}?skip=${skip}&limit=${limit}`
         );
@@ -13,6 +13,7 @@ export function getCallRoutingNumbers(projectId, skip, limit) {
 
         promise.then(
             function(numbers) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -34,7 +35,7 @@ export function getCallRoutingNumbers(projectId, skip, limit) {
     };
 }
 
-export function getCallRoutingNumbersSuccess(numbers) {
+export function getCallRoutingNumbersSuccess(numbers: $TSFixMe) {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_SUCCESS,
         payload: numbers,
@@ -47,15 +48,15 @@ export function getCallRoutingNumbersRequest() {
     };
 }
 
-export function getCallRoutingNumbersFailure(error) {
+export function getCallRoutingNumbersFailure(error: $TSFixMe) {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_FAILURE,
         payload: error,
     };
 }
 
-export function getTeamAndSchedules(projectId) {
-    return function(dispatch) {
+export function getTeamAndSchedules(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const schedules = getApi(`schedule/${projectId}?skip=${0}&limit=${0}`);
         const teams = getApi(`team/${projectId}`);
         const promise = Promise.all([schedules, teams]);
@@ -64,7 +65,9 @@ export function getTeamAndSchedules(projectId) {
         promise.then(
             function([schedule, team]) {
                 const data = {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     teams: team.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     schedules: schedule.data.data,
                 };
                 dispatch(getTeamAndSchedulesSuccess(data));
@@ -88,7 +91,7 @@ export function getTeamAndSchedules(projectId) {
     };
 }
 
-export function getTeamAndSchedulesSuccess(data) {
+export function getTeamAndSchedulesSuccess(data: $TSFixMe) {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_SUCCESS,
         payload: data,
@@ -101,15 +104,15 @@ export function getTeamAndSchedulesRequest() {
     };
 }
 
-export function getTeamAndSchedulesFailure(error) {
+export function getTeamAndSchedulesFailure(error: $TSFixMe) {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_FAILURE,
         payload: error,
     };
 }
 
-export function addCallRoutingNumber(projectId, values) {
-    return function(dispatch) {
+export function addCallRoutingNumber(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `callRouting/${projectId}/routingNumber`,
             values
@@ -118,6 +121,7 @@ export function addCallRoutingNumber(projectId, values) {
 
         promise.then(
             function(number) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
             function(error) {
@@ -140,7 +144,7 @@ export function addCallRoutingNumber(projectId, values) {
     };
 }
 
-export function addCallRoutingNumberSuccess(number) {
+export function addCallRoutingNumberSuccess(number: $TSFixMe) {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_SUCCESS,
         payload: number,
@@ -153,7 +157,7 @@ export function addCallRoutingNumberRequest() {
     };
 }
 
-export function addCallRoutingNumberFailure(error) {
+export function addCallRoutingNumberFailure(error: $TSFixMe) {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_FAILURE,
         payload: error,
@@ -167,12 +171,12 @@ export function resetAddCallRoutingNumber() {
 }
 
 export function uploadCallRoutingAudio(
-    projectId,
-    callRoutingId,
-    values,
-    audioFieldName
+    projectId: $TSFixMe,
+    callRoutingId: $TSFixMe,
+    values: $TSFixMe,
+    audioFieldName: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `callRouting/${projectId}/${callRoutingId}/${audioFieldName}`,
             values
@@ -185,6 +189,7 @@ export function uploadCallRoutingAudio(
                     uploadCallRoutingAudioSuccess(
                         callRoutingId,
                         audioFieldName,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         data.data
                     )
                 );
@@ -216,9 +221,9 @@ export function uploadCallRoutingAudio(
 }
 
 export function uploadCallRoutingAudioSuccess(
-    callRoutingId,
-    audioFieldName,
-    data
+    callRoutingId: $TSFixMe,
+    audioFieldName: $TSFixMe,
+    data: $TSFixMe
 ) {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS,
@@ -226,7 +231,7 @@ export function uploadCallRoutingAudioSuccess(
     };
 }
 
-export function uploadCallRoutingAudioRequest(callRoutingId, audioFieldName) {
+export function uploadCallRoutingAudioRequest(callRoutingId: $TSFixMe, audioFieldName: $TSFixMe) {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST,
         payload: { callRoutingId, audioFieldName },
@@ -234,9 +239,9 @@ export function uploadCallRoutingAudioRequest(callRoutingId, audioFieldName) {
 }
 
 export function uploadCallRoutingAudioFailure(
-    error,
-    callRoutingId,
-    audioFieldName
+    error: $TSFixMe,
+    callRoutingId: $TSFixMe,
+    audioFieldName: $TSFixMe
 ) {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE,
@@ -244,8 +249,8 @@ export function uploadCallRoutingAudioFailure(
     };
 }
 
-export function addCallRoutingSchedule(projectId, callRoutingId, values) {
-    return function(dispatch) {
+export function addCallRoutingSchedule(projectId: $TSFixMe, callRoutingId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `callRouting/${projectId}/${callRoutingId}`,
             values
@@ -254,6 +259,7 @@ export function addCallRoutingSchedule(projectId, callRoutingId, values) {
 
         promise.then(
             function(data) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
             function(error) {
@@ -276,7 +282,7 @@ export function addCallRoutingSchedule(projectId, callRoutingId, values) {
     };
 }
 
-export function addCallRoutingScheduleSuccess(data) {
+export function addCallRoutingScheduleSuccess(data: $TSFixMe) {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_SUCCESS,
         payload: data,
@@ -289,15 +295,15 @@ export function addCallRoutingScheduleRequest() {
     };
 }
 
-export function addCallRoutingScheduleFailure(error) {
+export function addCallRoutingScheduleFailure(error: $TSFixMe) {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_FAILURE,
         payload: error,
     };
 }
 
-export function fetchNumbers(projectId, countryCode, numberType) {
-    return function(dispatch) {
+export function fetchNumbers(projectId: $TSFixMe, countryCode: $TSFixMe, numberType: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `callRouting/${projectId}/routingNumbers?countryCode=${countryCode}&numberType=${numberType}`
         );
@@ -305,6 +311,7 @@ export function fetchNumbers(projectId, countryCode, numberType) {
 
         promise.then(
             function(numbers) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -326,7 +333,7 @@ export function fetchNumbers(projectId, countryCode, numberType) {
     };
 }
 
-export function fetchNumbersSuccess(numbers) {
+export function fetchNumbersSuccess(numbers: $TSFixMe) {
     return {
         type: types.FETCH_NUMBERS_SUCCESS,
         payload: numbers,
@@ -339,7 +346,7 @@ export function fetchNumbersRequest() {
     };
 }
 
-export function fetchNumbersFailure(error) {
+export function fetchNumbersFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_NUMBERS_FAILURE,
         payload: error,
@@ -352,8 +359,8 @@ export function resetFetchNumbers() {
     };
 }
 
-export function removeNumbers(projectId, callRoutingId) {
-    return function(dispatch) {
+export function removeNumbers(projectId: $TSFixMe, callRoutingId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`callRouting/${projectId}/${callRoutingId}`, {
             callRoutingId,
         });
@@ -361,6 +368,7 @@ export function removeNumbers(projectId, callRoutingId) {
 
         promise.then(
             function(numbers) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(removeNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -382,29 +390,29 @@ export function removeNumbers(projectId, callRoutingId) {
     };
 }
 
-export function removeNumbersSuccess(numbers) {
+export function removeNumbersSuccess(numbers: $TSFixMe) {
     return {
         type: types.REMOVE_NUMBERS_SUCCESS,
         payload: numbers,
     };
 }
 
-export function removeNumbersRequest(callRoutingId) {
+export function removeNumbersRequest(callRoutingId: $TSFixMe) {
     return {
         type: types.REMOVE_NUMBERS_REQUEST,
         payload: callRoutingId,
     };
 }
 
-export function removeNumbersFailure(error) {
+export function removeNumbersFailure(error: $TSFixMe) {
     return {
         type: types.REMOVE_NUMBERS_FAILURE,
         payload: error,
     };
 }
 
-export function getCallRoutingLogs(projectId, skip, limit) {
-    return function(dispatch) {
+export function getCallRoutingLogs(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `callRouting/${projectId}/logs?skip=${skip}&limit=${limit}`
         );
@@ -414,7 +422,9 @@ export function getCallRoutingLogs(projectId, skip, limit) {
             function(logs) {
                 dispatch(
                     getCallRoutingLogsSuccess({
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         logs: logs.data,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         count: logs.data.length,
                         skip,
                         limit,
@@ -440,7 +450,7 @@ export function getCallRoutingLogs(projectId, skip, limit) {
     };
 }
 
-export function getCallRoutingLogsSuccess(logs) {
+export function getCallRoutingLogsSuccess(logs: $TSFixMe) {
     return {
         type: types.GET_CALL_ROUTING_LOGS_SUCCESS,
         payload: logs,
@@ -453,7 +463,7 @@ export function getCallRoutingLogsRequest() {
     };
 }
 
-export function getCallRoutingLogsFailure(error) {
+export function getCallRoutingLogsFailure(error: $TSFixMe) {
     return {
         type: types.GET_CALL_ROUTING_LOGS_FAILURE,
         payload: error,
@@ -466,8 +476,8 @@ export function getCallRoutingLogsReset() {
     };
 }
 
-export function removeIntroAudio(projectId, callRoutingId, backup) {
-    return function(dispatch) {
+export function removeIntroAudio(projectId: $TSFixMe, callRoutingId: $TSFixMe, backup: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `callRouting/${projectId}/${callRoutingId}/removeAudio`,
             {
@@ -479,6 +489,7 @@ export function removeIntroAudio(projectId, callRoutingId, backup) {
 
         promise.then(
             function(numbers) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             function(error) {
@@ -500,7 +511,7 @@ export function removeIntroAudio(projectId, callRoutingId, backup) {
     };
 }
 
-export function removeIntroAudioSuccess(numbers, backup) {
+export function removeIntroAudioSuccess(numbers: $TSFixMe, backup: $TSFixMe) {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS,
@@ -514,7 +525,7 @@ export function removeIntroAudioSuccess(numbers, backup) {
     }
 }
 
-export function removeIntroAudioRequest(callRoutingId, backup) {
+export function removeIntroAudioRequest(callRoutingId: $TSFixMe, backup: $TSFixMe) {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST,
@@ -528,7 +539,7 @@ export function removeIntroAudioRequest(callRoutingId, backup) {
     }
 }
 
-export function removeIntroAudioFailure(error, backup) {
+export function removeIntroAudioFailure(error: $TSFixMe, backup: $TSFixMe) {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE,

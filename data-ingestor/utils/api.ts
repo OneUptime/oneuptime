@@ -1,4 +1,5 @@
 import axios from 'axios'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./config"' has no exported member 'cluste... Remove this comment to see the full error message
 import { clusterKey, serverUrl, dataIngestorVersion } from './config'
 
 const _this = {
@@ -11,7 +12,7 @@ const _this = {
             dataIngestorVersion,
         };
     },
-    postApi: (url, data, withBaseUrl = false) => {
+    postApi: (url: $TSFixMe, data: $TSFixMe, withBaseUrl = false) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
@@ -39,7 +40,7 @@ const _this = {
         });
     },
 
-    getApi: (url, withBaseUrl = false) => {
+    getApi: (url: $TSFixMe, withBaseUrl = false) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -61,7 +62,7 @@ const _this = {
         });
     },
 
-    putApi: (url, data, withBaseUrl) => {
+    putApi: (url: $TSFixMe, data: $TSFixMe, withBaseUrl: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
@@ -88,7 +89,7 @@ const _this = {
         });
     },
 
-    deleteApi: (url, data, withBaseUrl) => {
+    deleteApi: (url: $TSFixMe, data: $TSFixMe, withBaseUrl: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({

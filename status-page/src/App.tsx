@@ -6,6 +6,7 @@ import {
     Route,
     Switch,
     Redirect,
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 } from 'react-router-dom';
 import { User } from './config';
 import queryString from 'query-string';

@@ -1,21 +1,24 @@
 import axios from 'axios';
 class Logger {
-    constructor(apiUrl, applicationLogId, applicationLogKey) {
+    apiUrl: $TSFixMe;
+    applicationLogId: $TSFixMe;
+    applicationLogKey: $TSFixMe;
+    constructor(apiUrl: $TSFixMe, applicationLogId: $TSFixMe, applicationLogKey: $TSFixMe) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
     }
-    _setApplicationLogId(applicationLogId) {
+    _setApplicationLogId(applicationLogId: $TSFixMe) {
         this.applicationLogId = applicationLogId;
     }
-    _setApplicationLogKey(applicationLogKey) {
+    _setApplicationLogKey(applicationLogKey: $TSFixMe) {
         this.applicationLogKey = applicationLogKey;
     }
-    _setApiUrl(apiUrl) {
+    _setApiUrl(apiUrl: $TSFixMe) {
         this.apiUrl = `${apiUrl}/application-log/${this.applicationLogId}/log`;
     }
 
-    async log(data, tags = null) {
+    async log(data: $TSFixMe, tags = null) {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
@@ -31,7 +34,7 @@ class Logger {
         // make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
-    async warning(data, tags = null) {
+    async warning(data: $TSFixMe, tags = null) {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
@@ -47,7 +50,7 @@ class Logger {
         // make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
-    async error(data, tags = null) {
+    async error(data: $TSFixMe, tags = null) {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
@@ -64,13 +67,14 @@ class Logger {
         return await this._makeApiRequest(data, logType, tags);
     }
 
-    _makeApiRequest(data, logType, tags = null) {
+    _makeApiRequest(data: $TSFixMe, logType: $TSFixMe, tags = null) {
         const requestData = {
             content: data,
             applicationLogKey: this.applicationLogKey,
             type: logType,
         };
         if (tags) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type '{ content:... Remove this comment to see the full error message
             requestData.tags = tags;
         }
         return new Promise((resolve, reject) => {

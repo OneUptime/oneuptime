@@ -12,19 +12,22 @@ const RenderCodeEditor = ({
     mode,
     placeholder,
     readOnly,
+
     style = {
         backgroundColor: '#fff',
         borderRadius: '4px',
         boxShadow:
             '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
     },
+
     wrapEnabled = false,
     height,
     width,
     onLoad = () => {},
-    name,
-}) => (
+    name
+}: $TSFixMe) => (
     <AceEditor
+        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ id: any; name: any; mode: any; theme: stri... Remove this comment to see the full error message
         id={id}
         name={name || id}
         mode={mode}

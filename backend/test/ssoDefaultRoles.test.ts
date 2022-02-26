@@ -1,11 +1,14 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
@@ -17,17 +20,18 @@ import SsoDefaultRolesService from '../backend/services/ssoDefaultRolesService'
 import queryString from 'query-string'
 import testUtils from './utils/test-utils'
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'setShared' does not exist on type '{ get... Remove this comment to see the full error message
 testUtils.setShared({ request });
-let adminId,
-    userId,
-    adminAuthorizationHeader,
-    projectId1,
-    projectId2,
-    ssoId1,
-    ssoId2,
-    ssoDefaultRole1,
-    ssoDefaultRole2,
-    ssoDefaultRole3;
+let adminId: $TSFixMe,
+    userId: $TSFixMe,
+    adminAuthorizationHeader: $TSFixMe,
+    projectId1: $TSFixMe,
+    projectId2: $TSFixMe,
+    ssoId1: $TSFixMe,
+    ssoId2: $TSFixMe,
+    ssoDefaultRole1: $TSFixMe,
+    ssoDefaultRole2: $TSFixMe,
+    ssoDefaultRole3: $TSFixMe;
 
 /**
  *  ssoId1 <-> ssoDefaultRole1  <-> projectId1
@@ -74,9 +78,11 @@ const projectCreationPayloads = [
     },
 ];
 
-describe('SSO DEFAULT ROLES API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('SSO DEFAULT ROLES API', function(this: $TSFixMe) {
     this.timeout(300000);
-    before(async function() {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(async function(this: $TSFixMe) {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         const response = await createUser(request, userData.adminUser);
@@ -94,6 +100,7 @@ describe('SSO DEFAULT ROLES API', function() {
         adminAuthorizationHeader = testUtils.getAuthorizationHeader({
             jwtToken: response1.body.tokens.jwtAccessToken,
         });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setShared' does not exist on type '{ get... Remove this comment to see the full error message
         testUtils.setShared({ authorization: adminAuthorizationHeader });
         await UserService.updateBy(
             {
@@ -118,6 +125,7 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoId2 = sso2.body._id;
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
@@ -144,6 +152,7 @@ describe('SSO DEFAULT ROLES API', function() {
         });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it("should not create an 'Owner' role as default SSO role for a domain, in a project", async () => {
         const payload = {
             domain: ssoId1,
@@ -157,6 +166,7 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(response.body.message).to.equal('Invalid role.');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create a default SSO role for a domain, in a project', async () => {
         const payload = {
             domain: ssoId1,
@@ -173,18 +183,21 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoDefaultRole1 = response.body._id;
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create a default SSO role for a domain that already has a default role for a specific project', async () => {
         const payload = {
             domain: ssoId1,
             project: projectId1,
         };
         for (const role of roles) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type '{ domain: ... Remove this comment to see the full error message
             payload.role = role;
             const response = await testUtils.createSsoDefaultRole({ payload });
             expect(response).to.have.status(400);
         }
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should create a new default SSO role for a different SSO domain, in the same project', async () => {
         const payload = {
             domain: ssoId2,
@@ -201,7 +214,9 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoDefaultRole2 = response.body._id;
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should fetch the existing default sso roles', async () => {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         const result = await testUtils.fetchSsoDefaultRoles();
         expect(result.body).to.be.an('Object');
         expect(result.body).to.have.property('count');
@@ -209,6 +224,7 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(result.body.count).to.equal(2);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should update the existing default SSO role', async () => {
         const payload = {
             domain: ssoId1,
@@ -231,8 +247,10 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(getEndpointResponse.body.role).to.equal('Administrator');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should automatically add the new SSO users to the existing projects with roles defined on default SSO roles', async () => {
         const user = ssoUsers[0];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'unsetShared' does not exist on type '{ g... Remove this comment to see the full error message
         testUtils.unsetShared('authorization');
         const ssoLoginRequest = await testUtils.ssoLogin({ email: user.email });
         expect(ssoLoginRequest).to.have.status(200);
@@ -251,6 +269,7 @@ describe('SSO DEFAULT ROLES API', function() {
         const {
             header: { location: loginLink },
         } = response;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setShared' does not exist on type '{ get... Remove this comment to see the full error message
         testUtils.setShared({ authorization: adminAuthorizationHeader });
         const projectRequest = await testUtils.fetchProject({
             projectId: projectId1,
@@ -264,11 +283,12 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(projectRequest.body.users).to.be.an('Array');
         expect(
             projectRequest.body.users.some(
-                user => user.role === 'Administrator' && user.userId === userId
+                (user: $TSFixMe) => user.role === 'Administrator' && user.userId === userId
             )
         ).to.equal(true);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should automatically add existing SSO users to the new projects with roles defined on SSO default roles', async () => {
         const project = await testUtils.createProject({
             payload: projectCreationPayloads[1],
@@ -298,11 +318,12 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(projectRequest.body.users).to.be.an('Array');
         expect(
             projectRequest.body.users.some(
-                user => user.role === 'Member' && user.userId === userId
+                (user: $TSFixMe) => user.role === 'Member' && user.userId === userId
             )
         ).to.equal(true);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should delete the existing default sso roles with removing the SSO users from existing the projects', async () => {
         const deleteResponse = await testUtils.deleteSsoDefaultRole({
             id: ssoDefaultRole3,
@@ -317,11 +338,12 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(projectRequest.body.users).to.be.an('Array');
         expect(
             projectRequest.body.users.some(
-                user => user.role === 'Member' && user.userId === userId
+                (user: $TSFixMe) => user.role === 'Member' && user.userId === userId
             )
         ).to.equal(true);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should delete all default SSO roles related to a SSO, when the SSO is deleted', async () => {
         const deleteResponse = await testUtils.deleteSso({ id: ssoId2 });
         expect(deleteResponse).to.have.status(200);
@@ -330,6 +352,7 @@ describe('SSO DEFAULT ROLES API', function() {
         });
         expect(fetchResponse).to.have.status(404);
     });
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should delete all default SSO roles related to a project, when the project is deleted', async () => {
         const deleteResponse = await testUtils.deleteProject({
             id: projectId2,

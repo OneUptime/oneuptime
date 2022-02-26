@@ -1,7 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function KubeIndicator({ status, resourceName, index }) {
+function KubeIndicator({
+    status,
+    resourceName,
+    index
+}: $TSFixMe) {
     let statusColor, content;
 
     switch (status) {

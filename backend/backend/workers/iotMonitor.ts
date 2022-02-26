@@ -7,14 +7,17 @@ const MonitorService = require('../services/monitorService'),
 export default {
     checkAllDeviceMonitor: async () => {
         try {
+            // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
             const newDate = new moment();
             const resDate = new Date();
             const monitors = await MonitorService.getDeviceMonitorsPing();
             if (monitors) {
-                monitors.forEach(async monitor => {
+                monitors.forEach(async (monitor: $TSFixMe) => {
+                    // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
                     const d = new moment(monitor.lastPingTime);
 
                     if (newDate.diff(d, 'minutes') > 3) {
+                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                         await job(monitor);
                     } else {
                         const res = new Date().getTime() - resDate.getTime();
@@ -31,7 +34,7 @@ export default {
     },
 };
 
-const job = async (monitor, res) => {
+const job = async (monitor: $TSFixMe, res: $TSFixMe) => {
     try {
         const populate = [
             {

@@ -9,40 +9,58 @@ import { history } from '../../store';
 export class ProjectList extends Component {
     render() {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects.skip &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             typeof this.props.projects.skip === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects.skip = parseInt(this.props.projects.skip, 10);
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects.limit &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             typeof this.props.projects.limit === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects.limit = parseInt(this.props.projects.limit, 10);
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
         if (!this.props.projects.skip) this.props.projects.skip = 0;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
         if (!this.props.projects.limit) this.props.projects.limit = 0;
 
         let canNext =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects.count &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects.count >
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                 this.props.projects.skip + this.props.projects.limit
                 ? true
                 : false;
         let canPrev =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects && this.props.projects.skip <= 0 ? false : true;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.projects &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.requesting || !this.props.projects.projects)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages = Math.ceil(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
             parseInt(this.props.projects && this.props.projects.count) / 10
         );
         return (
@@ -131,6 +149,7 @@ export class ProjectList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -142,6 +161,7 @@ export class ProjectList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                             {this.props.requesting ? (
                                 <Fragment>
                                     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -162,14 +182,18 @@ export class ProjectList extends Component {
                                         </td>
                                     </tr>
                                 </Fragment>
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                             ) : this.props.projects &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                               this.props.projects.projects &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                               this.props.projects.projects.length > 0 ? (
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.projects.projects.map(
-                                    (project, index) => {
+                                    (project: $TSFixMe, index: $TSFixMe) => {
                                         const projectOwner =
                                             project.users.find(
-                                                user => user.role === 'Owner'
+                                                (user: $TSFixMe) => user.role === 'Owner'
                                             ) || project.users.length > 0
                                                 ? project.users[0]
                                                 : {};
@@ -365,14 +389,21 @@ export class ProjectList extends Component {
                     </table>
                 </div>
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                     {this.props.projects &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                     (!this.props.projects.projects ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                         !this.props.projects.projects.length) &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                     !this.props.requesting &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                     !this.props.projects.error
                         ? "We don't have any projects yet"
                         : null}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                     {this.props.projects && this.props.projects.error
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                         ? this.props.projects.error
                         : null}
                 </div>
@@ -383,22 +414,33 @@ export class ProjectList extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
                                         ? `Page ${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                               this.props.page
                                           } of ${numberOfPages} (${this.props
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               .projects &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.projects
                                                   .count} Project${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.projects &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.projects.count === 1
                                                   ? ''
                                                   : 's'
                                           })`
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                         : this.props.projects &&
+                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                           this.props.projects.count
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                         ? `${this.props.projects &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.projects
                                                   .count} Project${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.projects &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                               this.props.projects.count === 1
                                                   ? ''
                                                   : 's'
@@ -414,8 +456,11 @@ export class ProjectList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.prevClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.projects.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.projects.limit
                                         );
                                     }}
@@ -438,8 +483,11 @@ export class ProjectList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.nextClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.projects.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.projects.limit
                                         );
                                     }}
@@ -466,18 +514,20 @@ export class ProjectList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         users: state.user.users.users,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ProjectList.displayName = 'ProjectList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ProjectList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import ShouldRender from '../basic/ShouldRender';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
@@ -21,9 +22,10 @@ class RunAutomationScript extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.runScript();
@@ -34,10 +36,15 @@ class RunAutomationScript extends Component {
 
     runScript = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { automatedScriptId, projectId, automatedSlug, navigate },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'runScript' does not exist on type 'Reado... Remove this comment to see the full error message
             runScript,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAutomatedScript' does not exist on ... Remove this comment to see the full error message
             fetchAutomatedScript,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSingleAutomatedScript' does not exi... Remove this comment to see the full error message
             fetchSingleAutomatedScript,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
         } = this.props;
         runScript(projectId, automatedScriptId).then(() => {
@@ -45,6 +52,7 @@ class RunAutomationScript extends Component {
             const pathName = history.location.pathname;
             if (navigate) {
                 history.push({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                     pathname: `${pathName}/${this.props.data.automatedSlug}`,
                 });
             } else {
@@ -55,7 +63,9 @@ class RunAutomationScript extends Component {
     };
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scriptRun' does not exist on type 'Reado... Remove this comment to see the full error message
             scriptRun: { error, requesting },
         } = this.props;
 
@@ -157,8 +167,10 @@ class RunAutomationScript extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RunAutomationScript.displayName = 'RunAutomationScript';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RunAutomationScript.propTypes = {
     closeThisDialog: PropTypes.func,
     data: PropTypes.object,
@@ -169,17 +181,16 @@ RunAutomationScript.propTypes = {
     fetchSingleAutomatedScript: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         scriptRun: state.automatedScripts.runScript,
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { runScript, fetchAutomatedScript, fetchSingleAutomatedScript },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { runScript, fetchAutomatedScript, fetchSingleAutomatedScript },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

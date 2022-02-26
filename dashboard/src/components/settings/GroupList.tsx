@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import GroupTable from './GroupTable';
 import GroupForm from './GroupForm';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -15,7 +16,7 @@ import Unauthorised from '../modals/Unauthorised';
 import Badge from '../common/Badge';
 
 export class GroupList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { groupModalId: uuidv4() };
     }
@@ -28,8 +29,10 @@ export class GroupList extends Component {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
-    handleKeyboard = e => {
+    handleKeyboard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { modalId, modalList } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
         const { subProjectModalId } = this.state;
 
         if (e.target.localName === 'body' && e.key) {
@@ -51,50 +54,73 @@ export class GroupList extends Component {
     };
 
     paginatePrev = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { skip, getProjectGroups } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         getProjectGroups(this.props.project.id, skip ? skip - 10 : 10, 10);
         this.setState({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     paginateNext = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { skip, getProjectGroups } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         getProjectGroups(this.props.project.id, skip ? skip + 10 : 10, 10);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: this.state.page + 1 });
     };
 
     handleAddSubProject = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, openModal } = this.props;
         const userId = User.getUserId();
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupModalId' does not exist on type 'Re... Remove this comment to see the full error message
                   id: this.state.groupModalId,
                   content: DataPathHoC(GroupForm, {
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupModalId' does not exist on type 'Re... Remove this comment to see the full error message
                       groupModalId: this.state.groupModalId,
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                       projectModa: this.props.project,
                       editGroup: false,
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                       subProjectId: this.props.project,
                       subProjectTitle: null,
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                       projectId: this.props.project.id,
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProject' does not exist on type 'R... Remove this comment to see the full error message
                       parentProject: this.props.parentProject,
                   }),
               })
             : openModal({
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupModalId' does not exist on type 'Re... Remove this comment to see the full error message
                   id: this.state.groupModalId,
+                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                   content: DataPathHoC(Unauthorised),
               });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupError' does not exist on type 'Read... Remove this comment to see the full error message
             groupError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groups' does not exist on type 'Readonly... Remove this comment to see the full error message
             groups,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
             project,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProject' does not exist on type 'R... Remove this comment to see the full error message
             parentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createGroupRequest' does not exist on ty... Remove this comment to see the full error message
             createGroupRequest,
         } = this.props;
         const canNext = count > skip + limit ? false : true;
@@ -202,9 +228,10 @@ export class GroupList extends Component {
                                                 </div>
                                             </header>
                                             {groups && groups.length > 0
-                                                ? groups.map(group => {
+                                                ? groups.map((group: $TSFixMe) => {
                                                       return (
                                                           <GroupTable
+                                                              // @ts-expect-error ts-migrate(2322) FIXME: Type '{ group: any; projectId: any; key: any; }' i... Remove this comment to see the full error message
                                                               group={group}
                                                               projectId={
                                                                   group
@@ -321,8 +348,10 @@ export class GroupList extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 GroupList.displayName = 'GroupList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 GroupList.propTypes = {
     count: PropTypes.number,
     currentProject: PropTypes.object,
@@ -339,14 +368,14 @@ GroupList.propTypes = {
     createGroupRequest: PropTypes.object,
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { openModal, closeModal, getProjectGroups },
         dispatch
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         groupError: state.groups.getGroups,
         currentProject: state.project.currentProject,

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { formValueSelector } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderMember } from './RenderMember';
@@ -11,13 +12,13 @@ let RenderMembers = ({
     subProjectId,
     policyIndex,
     teamIndex,
-    form,
-}) => {
+    form
+}: $TSFixMe) => {
     const policyRotation = form[policyIndex].teams[teamIndex];
 
     return (
         <ul>
-            {fields.map((inputarray, i) => {
+            {fields.map((inputarray: $TSFixMe, i: $TSFixMe) => {
                 const memberValue = policyRotation.teamMembers[i];
                 return (
                     <RenderMember
@@ -78,8 +79,10 @@ let RenderMembers = ({
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
 RenderMembers.displayName = 'RenderMembers';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ fi... Remove this comment to see the full error message
 RenderMembers.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     meta: PropTypes.object.isRequired,
@@ -89,7 +92,7 @@ RenderMembers.propTypes = {
     form: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
 
@@ -98,6 +101,7 @@ function mapStateToProps(state) {
     };
 }
 
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'ConnectedComponent<({ fields, meta: { error,... Remove this comment to see the full error message
 RenderMembers = connect(mapStateToProps)(RenderMembers);
 
 export { RenderMembers };

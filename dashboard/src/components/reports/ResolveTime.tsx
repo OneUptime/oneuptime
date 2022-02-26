@@ -18,7 +18,7 @@ const noDataStyle = {
 };
 
 class ResolveTime extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             resolveTime: [],
@@ -27,17 +27,22 @@ class ResolveTime extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getResolveTime' does not exist on type '... Remove this comment to see the full error message
             getResolveTime,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type 'Readonly... Remove this comment to see the full error message
             filter,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
             startDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
             endDate,
         } = this.props;
 
         getResolveTime(currentProject, filter, startDate, endDate);
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps, prevState) {
+    UNSAFE_componentWillReceiveProps(nextProps: $TSFixMe, prevState: $TSFixMe) {
         const {
             getResolveTime,
             currentProject,
@@ -48,9 +53,13 @@ class ResolveTime extends Component {
         } = nextProps;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type 'Readonly... Remove this comment to see the full error message
             filter !== this.props.filter ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
             startDate !== this.props.startDate ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
             endDate !== this.props.endDate ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject !== this.props.currentProject
         ) {
             getResolveTime(currentProject, filter, startDate, endDate);
@@ -64,13 +73,17 @@ class ResolveTime extends Component {
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTime' does not exist on type 'Rea... Remove this comment to see the full error message
         const { resolveTime } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTimeReports' does not exist on ty... Remove this comment to see the full error message
         const { resolveTimeReports, filter } = this.props;
 
-        const chartData = [];
-        resolveTime.map(element => {
+        const chartData: $TSFixMe = [];
+        resolveTime.map((element: $TSFixMe) => {
             const value = {};
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTime' does not exist on type '{}'... Remove this comment to see the full error message
             value.resolveTime = element.averageResolved;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
             value.date = element[filter];
             chartData.push(value);
             return element;
@@ -144,6 +157,7 @@ class ResolveTime extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResolveTime.displayName = 'ResolveTime';
 
 const actionCreators = {
@@ -153,14 +167,15 @@ const actionCreators = {
     getResolveTimeSuccess,
 };
 
-const mapStateToProps = state => ({
-    resolveTimeReports: state.report.averageTime,
+const mapStateToProps = (state: $TSFixMe) => ({
+    resolveTimeReports: state.report.averageTime
 });
 
-const mapDispatchToProps = dispatch => ({
-    ...bindActionCreators(actionCreators, dispatch),
+const mapDispatchToProps = (dispatch: $TSFixMe) => ({
+    ...bindActionCreators(actionCreators, dispatch)
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResolveTime.propTypes = {
     getResolveTime: PropTypes.func,
     filter: PropTypes.string,

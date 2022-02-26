@@ -1,13 +1,16 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const _this = this;
 
         // prepare issue member model
         let issueMember = new IssueMemberModel();
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
         issueMember.userId = data.userId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'issueId' does not exist on type 'Documen... Remove this comment to see the full error message
         issueMember.issueId = data.issueId;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         issueMember.createdById = data.createdById;
 
         const savedIssueMember = await issueMember.save();
@@ -28,7 +31,11 @@ export default {
         return issueMember;
     },
     // find a list of Members assigned to an Issue
-    async findBy({ query, select, populate }) {
+    async findBy({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -41,7 +48,11 @@ export default {
         const issues = await issuesQuery;
         return issues;
     },
-    async findOneBy({ query, select, populate }) {
+    async findOneBy({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -55,7 +66,7 @@ export default {
 
         return issueMember;
     },
-    updateOneBy: async function(query, data, unsetData = null) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -69,6 +80,7 @@ export default {
         );
 
         if (unsetData) {
+            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
             issueMember = await IssueMemberModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

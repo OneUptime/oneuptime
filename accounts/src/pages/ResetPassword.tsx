@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ResetPasswordForm from '../components/auth/ResetPasswordForm';
@@ -11,6 +12,7 @@ class ResetPasswordPage extends React.Component {
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'masterAdminExists' does not exist on typ... Remove this comment to see the full error message
         const { masterAdminExists, requestingMasterAdmin } = this.props;
 
         return (
@@ -57,15 +59,17 @@ class ResetPasswordPage extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResetPasswordPage.displayName = 'ResetPasswordPage';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         masterAdminExists: state.login.masterAdmin.exists,
         requestingMasterAdmin: state.login.masterAdmin.requesting,
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResetPasswordPage.propTypes = {
     masterAdminExists: PropTypes.bool,
     requestingMasterAdmin: PropTypes.bool,

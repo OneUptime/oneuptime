@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import LoadingIndicator from './LoadingIndicator';
 
 class Dropdown extends React.Component {
+    wrapper: $TSFixMe;
     state = {
         hasFocus: false,
         expanded: false,
@@ -18,13 +19,13 @@ class Dropdown extends React.Component {
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
 
-    handleDocumentClick = e => {
+    handleDocumentClick = (e: $TSFixMe) => {
         if (this.wrapper && this.wrapper.contains(e.target)) {
             this.setState({ expanded: false });
         }
     };
 
-    handleKeyDown = e => {
+    handleKeyDown = (e: $TSFixMe) => {
         switch (e) {
             case 27:
                 this.toggleExpanded(false);
@@ -40,7 +41,8 @@ class Dropdown extends React.Component {
         }
     };
 
-    toggleExpanded = value => {
+    toggleExpanded = (value: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isLoading' does not exist on type 'Reado... Remove this comment to see the full error message
         const { isLoading } = this.props;
         const { expanded } = this.state;
 
@@ -65,7 +67,7 @@ class Dropdown extends React.Component {
         }
     };
 
-    handleFocus = e => {
+    handleFocus = (e: $TSFixMe) => {
         const { hasFocus } = this.state;
 
         if (e.target === this.wrapper && !hasFocus) {
@@ -81,7 +83,8 @@ class Dropdown extends React.Component {
         this.handleHover(false);
     };
 
-    handleHover = toggleExpanded => {
+    handleHover = (toggleExpanded: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shouldToggleOnHover' does not exist on t... Remove this comment to see the full error message
         const { shouldToggleOnHover } = this.props;
 
         if (shouldToggleOnHover) {
@@ -90,6 +93,7 @@ class Dropdown extends React.Component {
     };
 
     renderPanel = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ContentComponent' does not exist on type... Remove this comment to see the full error message
         const { ContentComponent, contentProps } = this.props;
 
         return (
@@ -101,11 +105,13 @@ class Dropdown extends React.Component {
 
     render() {
         const { expanded, hasFocus } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isLoading' does not exist on type 'Reado... Remove this comment to see the full error message
         const { children, isLoading, disabled } = this.props;
 
         return (
             <div
                 className="dropdown db-MultiSelect-dropdown-container"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="0"
                 role="combobox"
                 aria-expanded={expanded}
@@ -126,6 +132,7 @@ class Dropdown extends React.Component {
                         ${expanded &&
                             'db-MultiSelect-dropdown-header--expanded'}
                     `}
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
                     onClick={() => this.toggleExpanded()}
                 >
                     <span
@@ -167,8 +174,10 @@ class Dropdown extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Dropdown.displayName = 'Dropdown';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Dropdown.propTypes = {
     children: PropTypes.object,
     disabled: PropTypes.bool,

@@ -1,20 +1,18 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const FeatureList = props => (
-    <li className="Margin-vertical--4">
-        <img
-            alt="check"
-            src="/dashboard/assets/img/icons/acceptance.svg"
-            style={{
-                height: '13px',
-                width: '13px',
-                marginRight: '5px',
-            }}
-        />
-        {props.content}
-    </li>
-);
+const FeatureList = (props: $TSFixMe) => <li className="Margin-vertical--4">
+    <img
+        alt="check"
+        src="/dashboard/assets/img/icons/acceptance.svg"
+        style={{
+            height: '13px',
+            width: '13px',
+            marginRight: '5px',
+        }}
+    />
+    {props.content}
+</li>;
 
 FeatureList.displayName = 'FeatureList';
 FeatureList.propTypes = {

@@ -20,9 +20,10 @@ const isLocalhost = Boolean(
         )
 );
 
-export function register(config) {
+export function register(config: $TSFixMe) {
     if ('serviceWorker' in navigator) {
         // The URL constructor is available in all browsers that support SW.
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
         if (publicUrl.origin !== window.location.origin) {
             // Our service worker won't work if PUBLIC_URL is on a different origin
@@ -46,12 +47,15 @@ export function register(config) {
         });
 
         window.addEventListener('fetch', event => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'respondWith' does not exist on type 'Eve... Remove this comment to see the full error message
             event.respondWith(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'Event'.
                 caches.match(event.request).then(function(response) {
                     // Cache hit - return response
                     if (response) {
                         return response;
                     }
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'Event'.
                     return fetch(event.request);
                 })
             );
@@ -59,7 +63,7 @@ export function register(config) {
     }
 }
 
-function registerValidSW(swUrl, config) {
+function registerValidSW(swUrl: $TSFixMe, config: $TSFixMe) {
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
@@ -99,7 +103,7 @@ function registerValidSW(swUrl, config) {
         });
 }
 
-function checkValidServiceWorker(swUrl, config) {
+function checkValidServiceWorker(swUrl: $TSFixMe, config: $TSFixMe) {
     // Check if the service worker can be found. If it can't reload the page.
     fetch(swUrl)
         .then(response => {

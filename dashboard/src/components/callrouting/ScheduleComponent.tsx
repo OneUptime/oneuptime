@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
@@ -13,20 +14,35 @@ import { FormLoader2 } from '../basic/Loader';
 export class ScheduleComponent extends Component {
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'Rea... Remove this comment to see the full error message
             teamMembers,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'Reado... Remove this comment to see the full error message
             schedules,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeButton' does not exist on type 'Re... Remove this comment to see the full error message
             changeButton,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'stateData' does not exist on type 'Reado... Remove this comment to see the full error message
             stateData,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backup' does not exist on type 'Readonly... Remove this comment to see the full error message
             backup,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeBackupButton' does not exist on ty... Remove this comment to see the full error message
             changeBackupButton,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'disabled' does not exist on type 'Readon... Remove this comment to see the full error message
             disabled,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadIntroAudioState' does not exist on... Remove this comment to see the full error message
             uploadIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadBackupIntroAudioState' does not ex... Remove this comment to see the full error message
             uploadBackupIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeIntroAudioState' does not exist on... Remove this comment to see the full error message
             removeIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeBackupIntroAudioState' does not ex... Remove this comment to see the full error message
             removeBackupIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changefile' does not exist on type 'Read... Remove this comment to see the full error message
             changefile,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeIntroAudio' does not exist on type... Remove this comment to see the full error message
             removeIntroAudio,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeBackupFile' does not exist on type... Remove this comment to see the full error message
             changeBackupFile,
         } = this.props;
         const introAudioLoading =
@@ -127,6 +143,7 @@ export class ScheduleComponent extends Component {
                                         <div>
                                             <label
                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                 type="button"
                                             >
                                                 <ShouldRender
@@ -404,7 +421,7 @@ export class ScheduleComponent extends Component {
                                             placeholder="Select team member"
                                             options={
                                                 teamMembers &&
-                                                teamMembers.map(t => {
+                                                teamMembers.map((t: $TSFixMe) => {
                                                     return {
                                                         value: t.id,
                                                         label: t.name,
@@ -542,7 +559,7 @@ export class ScheduleComponent extends Component {
                                             placeholder="Select a schedule"
                                             options={
                                                 schedules &&
-                                                schedules.map(s => {
+                                                schedules.map((s: $TSFixMe) => {
                                                     return {
                                                         value: s.id,
                                                         label: s.name,
@@ -694,12 +711,13 @@ export class ScheduleComponent extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ScheduleComponent.displayName = 'ScheduleComponent';
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         currentProject: state.project.currentProject,
         uploadIntroAudioState: state.callRouting.uploadIntroAudioState,
@@ -711,6 +729,7 @@ function mapStateToProps(state) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ScheduleComponent.propTypes = {
     backup: PropTypes.any,
     changeBackupButton: PropTypes.any,

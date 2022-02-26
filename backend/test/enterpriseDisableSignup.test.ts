@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user'
@@ -5,15 +6,18 @@ import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
 
-describe('Disable Sign up test', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Disable Sign up test', function(this: $TSFixMe) {
     this.timeout(200000);
-    let token = null;
-    this.beforeAll(async function() {
+    let token: $TSFixMe = null;
+    this.beforeAll(async function(this: $TSFixMe) {
         this.timeout(400000);
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
@@ -34,15 +38,17 @@ describe('Disable Sign up test', function() {
         process.env.DISABLE_SIGNUP = undefined;
     });
 
-    it('should not sign up the user when sign up is disabled', done => {
-        createUser(request, data.user, function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not sign up the user when sign up is disabled', (done: $TSFixMe) => {
+        createUser(request, data.user, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('Sign up is disabled.');
             done();
         });
     });
 
-    it('should sign up a new user when user is admin', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should sign up a new user when user is admin', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
             .post('/user/signup')
@@ -50,7 +56,7 @@ describe('Disable Sign up test', function() {
             .send({
                 ...data.anotherUser,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('email');
                 expect(res.body).to.have.property('role');

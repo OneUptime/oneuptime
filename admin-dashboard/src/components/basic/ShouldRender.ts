@@ -3,6 +3,6 @@
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-export default function ShouldRender(props) {
+export default function ShouldRender(props: $TSFixMe) {
     return props.if ? props.children : null;
 }

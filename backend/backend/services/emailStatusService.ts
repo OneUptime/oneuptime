@@ -1,5 +1,12 @@
 export default {
-    findBy: async function({ query, limit, skip, sort, populate, select }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        sort,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -40,8 +47,8 @@ export default {
         template,
         content,
         error,
-        smtpServer,
-    }) {
+        smtpServer
+    }: $TSFixMe) {
         const globalConfig = await GlobalConfigService.findOneBy({
             query: { name: 'emailLogMonitoringStatus' },
             select: 'value',
@@ -49,14 +56,23 @@ export default {
         if (globalConfig && globalConfig.value) {
             let item = new EmailStatusModel();
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
             item.status = status;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type 'Document<a... Remove this comment to see the full error message
             item.from = from;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type 'Document<any... Remove this comment to see the full error message
             item.to = to;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type 'Documen... Remove this comment to see the full error message
             item.subject = subject;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Document<a... Remove this comment to see the full error message
             item.body = body;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type 'Docume... Remove this comment to see the full error message
             item.template = template;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
             item.content = content;
+            // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
             item.error = error;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpServer' does not exist on type 'Docu... Remove this comment to see the full error message
             item.smtpServer = smtpServer;
             item = await item.save();
 
@@ -65,7 +81,7 @@ export default {
         return;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -75,7 +91,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -91,7 +107,9 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({ query }) {
+    hardDeleteBy: async function({
+        query
+    }: $TSFixMe) {
         await EmailStatusModel.deleteMany(query);
     },
 
@@ -99,7 +117,11 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with item or error.
-    findOneBy: async function({ query, populate, select }) {
+    findOneBy: async function({
+        query,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -114,7 +136,7 @@ export default {
         return item;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -131,7 +153,7 @@ export default {
         return updatedEmailStatus;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -150,7 +172,11 @@ export default {
         return updatedData;
     },
 
-    search: async function({ filter, skip, limit }) {
+    search: async function({
+        filter,
+        skip,
+        limit
+    }: $TSFixMe) {
         const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },

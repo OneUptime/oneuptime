@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import moment from 'moment';
@@ -15,10 +16,11 @@ class KubeDeploymentData extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Enter':
             case 'Escape':
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 0 arguments, but got 1.
                 return this.handleCloseModal(e);
             default:
                 return false;
@@ -26,10 +28,11 @@ class KubeDeploymentData extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal();
     };
 
-    handleKey = key => {
+    handleKey = (key: $TSFixMe) => {
         switch (key) {
             case 'deploymentName':
                 return 'Name';
@@ -63,8 +66,8 @@ class KubeDeploymentData extends React.Component {
         }
     };
 
-    handleCondition = (deploymentData, key) => {
-        return deploymentData[key].map((condition, index) => {
+    handleCondition = (deploymentData: $TSFixMe, key: $TSFixMe) => {
+        return deploymentData[key].map((condition: $TSFixMe, index: $TSFixMe) => {
             const dataKeys = Object.keys(condition);
             return (
                 <div
@@ -76,8 +79,10 @@ class KubeDeploymentData extends React.Component {
                     {dataKeys.map(key => {
                         let output = moment(condition[key]);
                         if (output.isValid()) {
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Moment'.
                             output = output.format('LLL');
                         } else {
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Moment'.
                             output = String(condition[key]);
                         }
 
@@ -126,6 +131,7 @@ class KubeDeploymentData extends React.Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data } = this.props;
         const deploymentData = data.data;
         const logTitle = data.data['deploymentName'];
@@ -135,6 +141,7 @@ class KubeDeploymentData extends React.Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -229,10 +236,12 @@ class KubeDeploymentData extends React.Component {
                                                         'desiredDeployment' &&
                                                     key !== 'deploymentName'
                                                 ) {
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Moment'.
                                                     output = output.format(
                                                         'LLL'
                                                     );
                                                 } else {
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Moment'.
                                                     output = String(
                                                         deploymentData[key]
                                                     );
@@ -310,19 +319,20 @@ class KubeDeploymentData extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 KubeDeploymentData.displayName = 'KubeDeploymentData';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 KubeDeploymentData.propTypes = {
     closeModal: PropTypes.func.isRequired,
     data: PropTypes.object,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+    },
+    dispatch
+);
 
 export default connect(null, mapDispatchToProps)(KubeDeploymentData);

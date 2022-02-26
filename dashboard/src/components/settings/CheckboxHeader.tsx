@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const CheckboxHeader = ({ text }) => {
+const CheckboxHeader = ({
+    text
+}: $TSFixMe) => {
     return (
         <div className="bs-Fieldset-row">
             <label

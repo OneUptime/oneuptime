@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { RenderIfAdmin } from '../basic/RenderIfAdmin';
 import ShouldRender from '../basic/ShouldRender';
@@ -9,8 +10,9 @@ import TooltipMini from '../basic/TooltipMini';
 import { API_URL } from '../../config';
 
 class ViewApplicationLogKey extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             hidden: true,
@@ -28,22 +30,27 @@ class ViewApplicationLogKey extends Component {
 
     toggleConfirmationBox = () => {
         this.setState(state => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmBoxHidden' does not exist on type... Remove this comment to see the full error message
             confirmBoxHidden: !state.confirmBoxHidden,
         }));
     };
     changeAPIKeyVisualState = () => {
         this.setState(state => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hidden' does not exist on type 'Readonly... Remove this comment to see the full error message
             hidden: !state.hidden,
         }));
     };
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter': {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmBoxHidden' does not exist on type... Remove this comment to see the full error message
                 if (this.state.confirmBoxHidden) {
                     return this.toggleConfirmationBox();
                 } else {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                     return this.props.confirmThisDialog();
                 }
             }
@@ -53,7 +60,9 @@ class ViewApplicationLogKey extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hidden' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { hidden } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -99,10 +108,12 @@ class ViewApplicationLogKey extends Component {
                                                                     'bold',
                                                             }}
                                                         >
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                             {this.props.data
                                                                 .applicationLog !==
                                                             null
                                                                 ? this.props
+                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                       .data
                                                                       .applicationLog
                                                                       ._id
@@ -150,6 +161,7 @@ class ViewApplicationLogKey extends Component {
                                                                     this
                                                                         .changeAPIKeyVisualState
                                                                 }
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                 id={`show_application_log_key_${this.props.data.applicationLog.name}`}
                                                             >
                                                                 Click here to
@@ -162,6 +174,7 @@ class ViewApplicationLogKey extends Component {
                                                         >
                                                             <div className="Flex-flex">
                                                                 <span
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                     id={`application_log_key_${this.props.data.applicationLog.name}`}
                                                                     className="value"
                                                                     style={{
@@ -172,11 +185,13 @@ class ViewApplicationLogKey extends Component {
                                                                     }}
                                                                 >
                                                                     {this.props
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                         .data
                                                                         .applicationLog !==
                                                                     null
                                                                         ? this
                                                                               .props
+                                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                               .data
                                                                               .applicationLog
                                                                               .key
@@ -187,6 +202,7 @@ class ViewApplicationLogKey extends Component {
                                                                         this
                                                                             .changeAPIKeyVisualState
                                                                     }
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                     id={`hide_application_log_key_${this.props.data.applicationLog.name}`}
                                                                     className="Flex-flex Flex-alignItems--center Padding-left--8"
                                                                 >
@@ -216,6 +232,7 @@ class ViewApplicationLogKey extends Component {
                                         </fieldset>
                                     </div>
                                     <ShouldRender
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmBoxHidden' does not exist on type... Remove this comment to see the full error message
                                         if={!this.state.confirmBoxHidden}
                                     >
                                         <div
@@ -250,9 +267,11 @@ class ViewApplicationLogKey extends Component {
                                 <div className="bs-Modal-footer">
                                     <div className="bs-Modal-footer-actions">
                                         <button
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                             id={`cancel_application_log_key_${this.props.data.applicationLog.name}`}
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -264,9 +283,11 @@ class ViewApplicationLogKey extends Component {
                                             currentProject={currentProject}
                                         >
                                             <ShouldRender
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmBoxHidden' does not exist on type... Remove this comment to see the full error message
                                                 if={this.state.confirmBoxHidden}
                                             >
                                                 <button
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     id={`reset_application_log_key_${this.props.data.applicationLog.name}`}
                                                     className="bs-Button bs-Button--blue btn__modal"
                                                     onClick={
@@ -278,6 +299,7 @@ class ViewApplicationLogKey extends Component {
                                                     <ShouldRender
                                                         if={
                                                             !this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                                 .isRequesting
                                                         }
                                                     >
@@ -291,6 +313,7 @@ class ViewApplicationLogKey extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                                 .isRequesting
                                                         }
                                                     >
@@ -300,21 +323,25 @@ class ViewApplicationLogKey extends Component {
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmBoxHidden' does not exist on type... Remove this comment to see the full error message
                                                     !this.state.confirmBoxHidden
                                                 }
                                             >
                                                 <button
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     id={`confirm_reset_application_log_key_${this.props.data.applicationLog.name}`}
                                                     className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                                     type="button"
                                                     onClick={
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                                                             .confirmThisDialog
                                                     }
                                                 >
                                                     <ShouldRender
                                                         if={
                                                             !this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                                 .isRequesting
                                                         }
                                                     >
@@ -326,6 +353,7 @@ class ViewApplicationLogKey extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                                 .isRequesting
                                                         }
                                                     >
@@ -345,8 +373,10 @@ class ViewApplicationLogKey extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ViewApplicationLogKey.displayName = 'ViewApplicationLogKeyModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ViewApplicationLogKey.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
@@ -355,7 +385,7 @@ ViewApplicationLogKey.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         applicationLogState: state.applicationLog,
         currentProject: state.project.currentProject,

@@ -2,7 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
-const Table = ({ ssoDefaultRoles }) => (
+const Table = ({
+    ssoDefaultRoles
+}: $TSFixMe) => (
     <table className="Table">
         <TableHeader />
         <TableBody ssoDefaultRoles={ssoDefaultRoles} />

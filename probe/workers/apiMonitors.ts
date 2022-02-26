@@ -7,7 +7,9 @@ import logger from 'common-server/utils/logger'
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 export default {
-    ping: async ({ monitor }) => {
+    ping: async ({
+        monitor
+    }: $TSFixMe) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {

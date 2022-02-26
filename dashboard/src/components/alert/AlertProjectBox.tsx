@@ -15,8 +15,8 @@ const AlertProjectBox = ({
     isRequesting,
     error,
     pages,
-    showProjectName,
-}) => {
+    showProjectName
+}: $TSFixMe) => {
     const numberOfPages = Math.ceil(parseInt(subProjectAlert.count) / 10);
     return (
         <div className="Box-root">

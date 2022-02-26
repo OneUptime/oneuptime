@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,7 +30,11 @@ export default {
         return schedules;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -42,29 +52,37 @@ export default {
         return schedule;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const scheduleModel = new ScheduleModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         scheduleModel.name = data.name || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         scheduleModel.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         scheduleModel.createdById = data.createdById || null;
 
         // if userIds is array
         if (data.userIds) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userIds' does not exist on type 'Documen... Remove this comment to see the full error message
             scheduleModel.userIds = [];
             for (const userId of data.userIds) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userIds' does not exist on type 'Documen... Remove this comment to see the full error message
                 scheduleModel.userIds.push(userId);
             }
         }
 
         // if monitorIds is array
         if (data.monitorIds) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type 'Docu... Remove this comment to see the full error message
             scheduleModel.monitorIds = [];
             for (const monitorId of data.monitorIds) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userIds' does not exist on type 'Documen... Remove this comment to see the full error message
                 scheduleModel.userIds.push(monitorId);
             }
         }
 
         if (data && data.name) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
             scheduleModel.slug = getSlug(data.name);
         }
         const schedule = await scheduleModel.save();
@@ -97,7 +115,7 @@ export default {
         return newSchedule;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -107,7 +125,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const schedule = await ScheduleModel.findOneAndUpdate(
             query,
             {
@@ -127,7 +145,9 @@ export default {
                 query: { scheduleId: schedule._id },
                 select: '_id',
             });
-            await escalations.map(({ _id }) =>
+            await escalations.map(({
+                _id
+            }: $TSFixMe) =>
                 EscalationService.deleteBy({ _id: _id }, userId)
             );
         }
@@ -135,7 +155,7 @@ export default {
         return schedule;
     },
 
-    addMonitorToSchedules: async function(scheduleIds, monitorId) {
+    addMonitorToSchedules: async function(scheduleIds: $TSFixMe, monitorId: $TSFixMe) {
         await ScheduleModel.updateMany(
             {
                 _id: { $in: scheduleIds },
@@ -148,7 +168,7 @@ export default {
         );
     },
 
-    removeMonitor: async function(monitorId) {
+    removeMonitor: async function(monitorId: $TSFixMe) {
         const schedule = await ScheduleModel.findOneAndUpdate(
             { monitorIds: monitorId },
             {
@@ -158,7 +178,7 @@ export default {
         return schedule;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -247,7 +267,7 @@ export default {
         return schedule;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -281,19 +301,19 @@ export default {
         return updatedData;
     },
 
-    saveSchedule: async function(schedule) {
+    saveSchedule: async function(schedule: $TSFixMe) {
         schedule = await schedule.save();
         return schedule;
     },
 
-    deleteMonitor: async function(monitorId) {
+    deleteMonitor: async function(monitorId: $TSFixMe) {
         await ScheduleModel.updateMany(
             { deleted: false },
             { $pull: { monitorIds: monitorId } }
         );
     },
 
-    addEscalation: async function(scheduleId, escalations, userId) {
+    addEscalation: async function(scheduleId: $TSFixMe, escalations: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         const escalationIds = [];
         for (const data of escalations) {
@@ -306,6 +326,7 @@ export default {
                     data
                 );
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
             escalationIds.push(escalation._id);
         }
 
@@ -322,7 +343,7 @@ export default {
         return scheduleEscalation.escalations;
     },
 
-    getEscalations: async function(scheduleId) {
+    getEscalations: async function(scheduleId: $TSFixMe) {
         const _this = this;
         const schedule = await _this.findOneBy({
             query: { _id: scheduleId },
@@ -356,7 +377,7 @@ export default {
 
         const escalationIds = schedule.escalationIds;
         const escalations = await Promise.all(
-            escalationIds.map(async escalationId => {
+            escalationIds.map(async (escalationId: $TSFixMe) => {
                 return await EscalationService.findOneBy({
                     query: { _id: escalationId },
                     select: selectEscalation,
@@ -367,7 +388,7 @@ export default {
         return { escalations, count: escalationIds.length };
     },
 
-    getUserEscalations: async function(subProjectIds, userId) {
+    getUserEscalations: async function(subProjectIds: $TSFixMe, userId: $TSFixMe) {
         const selectEscalation =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
@@ -394,34 +415,34 @@ export default {
         return escalations;
     },
 
-    escalationCheck: async function(escalationIds, scheduleId, userId) {
+    escalationCheck: async function(escalationIds: $TSFixMe, scheduleId: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         let scheduleIds = await _this.findOneBy({
             query: { _id: scheduleId },
             select: '_id escalationIds',
         });
 
-        scheduleIds = scheduleIds.escalationIds.map(i => i.toString());
-        escalationIds = escalationIds.map(i => i.toString());
+        scheduleIds = scheduleIds.escalationIds.map((i: $TSFixMe) => i.toString());
+        escalationIds = escalationIds.map((i: $TSFixMe) => i.toString());
 
-        scheduleIds.map(async id => {
+        scheduleIds.map(async (id: $TSFixMe) => {
             if (escalationIds.indexOf(id) < 0) {
                 await EscalationService.deleteBy({ _id: id }, userId);
             }
         });
     },
 
-    deleteEscalation: async function(escalationId) {
+    deleteEscalation: async function(escalationId: $TSFixMe) {
         await ScheduleModel.update(
             { deleted: false },
             { $pull: { escalationIds: escalationId } }
         );
     },
 
-    getSubProjectSchedules: async function(subProjectIds) {
+    getSubProjectSchedules: async function(subProjectIds: $TSFixMe) {
         const _this = this;
         const subProjectSchedules = await Promise.all(
-            subProjectIds.map(async id => {
+            subProjectIds.map(async (id: $TSFixMe) => {
                 const populate = [
                     { path: 'userIds', select: 'name' },
                     { path: 'createdById', select: 'name' },
@@ -466,12 +487,12 @@ export default {
         return subProjectSchedules;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await ScheduleModel.deleteMany(query);
         return 'Schedule(s) removed successfully';
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         const populate = [
@@ -498,7 +519,7 @@ export default {
         const schedule = await _this.findBy({ query, populate, select });
         if (schedule && schedule.length > 1) {
             const schedules = await Promise.all(
-                schedule.map(async schedule => {
+                schedule.map(async (schedule: $TSFixMe) => {
                     const scheduleId = schedule._id;
                     schedule = await _this.updateOneBy(
                         { _id: scheduleId, deleted: true },

@@ -18,19 +18,20 @@ export const resetDashboardLoad = function() {
     };
 };
 
-export const dashboardLoadFailed = function(payload) {
+export const dashboardLoadFailed = function(payload: $TSFixMe) {
     return {
         type: types.DASHBOARD_LOAD_FAILED,
         payload,
     };
 };
 
-export const loadDashboard = () => async dispatch => {
+export const loadDashboard = () => async (dispatch: $TSFixMe) => {
     const skip = 0;
     const limit = 10;
     dispatch(dashboardLoadRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
         dispatch(dashboardLoadSuccess());
 

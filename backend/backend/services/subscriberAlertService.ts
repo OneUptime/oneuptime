@@ -1,23 +1,33 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const subscriberAlertModel = new SubscriberAlertModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         subscriberAlertModel.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriberId' does not exist on type 'Do... Remove this comment to see the full error message
         subscriberAlertModel.subscriberId = data.subscriberId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
         subscriberAlertModel.incidentId = data.incidentId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type 'Docume... Remove this comment to see the full error message
         subscriberAlertModel.alertVia = data.alertVia || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertStatus' does not exist on type 'Doc... Remove this comment to see the full error message
         subscriberAlertModel.alertStatus = data.alertStatus || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventType' does not exist on type 'Docum... Remove this comment to see the full error message
         subscriberAlertModel.eventType = data.eventType || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'totalSubscribers' does not exist on type... Remove this comment to see the full error message
         subscriberAlertModel.totalSubscribers = data.totalSubscribers || 0;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'identification' does not exist on type '... Remove this comment to see the full error message
         subscriberAlertModel.identification = data.id || 0;
         if (data.error) {
+            // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
             subscriberAlertModel.error = data.error;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorMessage' does not exist on type 'Do... Remove this comment to see the full error message
             subscriberAlertModel.errorMessage = data.errorMessage;
         }
         const subscriberAlert = await subscriberAlertModel.save();
         return subscriberAlert;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -36,7 +46,7 @@ export default {
         return subscriberAlert;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -60,7 +70,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
             query,
             {
@@ -77,7 +87,13 @@ export default {
         return subscriberAlert;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -109,7 +125,11 @@ export default {
         return subscriberAlerts;
     },
 
-    findByOne: async function({ query, select, populate }) {
+    findByOne: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -127,7 +147,7 @@ export default {
         return subscriberAlert;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -137,7 +157,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await SubscriberAlertModel.deleteMany(query);
         return 'Subscriber Alert(s) removed successfully';
     },

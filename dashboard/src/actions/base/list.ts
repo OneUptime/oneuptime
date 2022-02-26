@@ -5,8 +5,8 @@ class ListActionBase extends BaseAction {
         friendlyName,
         apiPath,
         isResourceInProject,
-        isRequestAllowed,
-    }) {
+        isRequestAllowed
+    }: $TSFixMe) {
         super({
             friendlyName,
             apiPath,

@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,11 +21,12 @@ class UserAddModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addUser' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { addUser, closeThisDialog, resetAddUser } = this.props;
 
         addUser(values).then(
-            function(val) {
+            function(val: $TSFixMe) {
                 if (val === 'ok') {
                     resetAddUser();
                     closeThisDialog();
@@ -35,10 +38,12 @@ class UserAddModal extends Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetAddUser' does not exist on type 'Re... Remove this comment to see the full error message
                 this.props.resetAddUser();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -47,10 +52,15 @@ class UserAddModal extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addUserState' does not exist on type 'Re... Remove this comment to see the full error message
             addUserState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
             users,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetAddUser' does not exist on type 'Re... Remove this comment to see the full error message
             resetAddUser,
         } = this.props;
         const disabled = addUserState.requesting || users.requesting;
@@ -58,6 +68,7 @@ class UserAddModal extends Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -320,52 +331,65 @@ class UserAddModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UserAddModal.displayName = 'UserAddModalForm';
 
-const validate = function(values) {
+const validate = function(values: $TSFixMe) {
     const error = {};
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
     if (!Validate.text(values.name)) error.name = 'Name is required.';
 
     if (Validate.text(values.name) && !Validate.isValidName(values.name))
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         error.name = 'Name is not valid.';
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
     if (!Validate.text(values.email)) error.email = 'Email is required.';
 
     if (Validate.text(values.email) && !Validate.email(values.email))
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
         error.email = 'Email is not valid.';
 
     if (
         !Validate.isValidBusinessEmail(values.email) &&
         Validate.email(values.email)
     )
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
         error.email = 'Please enter a business email address.';
 
     if (!Validate.text(values.companyName))
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyName' does not exist on type '{}'... Remove this comment to see the full error message
         error.companyName = 'Company name is required.';
 
     if (!Validate.text(values.companyPhoneNumber))
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyPhoneNumber' does not exist on ty... Remove this comment to see the full error message
         error.companyPhoneNumber = 'Phone number is required.';
 
     if (
         Validate.text(values.companyPhoneNumber) &&
         !Validate.isValidNumber(values.companyPhoneNumber)
     )
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyPhoneNumber' does not exist on ty... Remove this comment to see the full error message
         error.companyPhoneNumber = 'Phone number is invalid.';
 
     if (!Validate.text(values.password))
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{}'.
         error.password = 'Password is required.';
     if (
         Validate.text(values.password) &&
         !Validate.isStrongPassword(values.password)
     ) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{}'.
         error.password = 'Password should be atleast 8 characters long';
     }
 
     if (!Validate.text(values.confirmPassword))
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmPassword' does not exist on type ... Remove this comment to see the full error message
         error.confirmPassword = 'Confirm Password is required.';
 
     if (!Validate.compare(values.password, values.confirmPassword)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmPassword' does not exist on type ... Remove this comment to see the full error message
         error.confirmPassword = 'Password and confirm password should match.';
     }
 
@@ -377,17 +401,18 @@ const UserAddModalForm = reduxForm({
     validate,
 })(UserAddModal);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ addUser, resetAddUser }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         addUserState: state.user.addUser,
         users: state.user.users,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UserAddModal.propTypes = {
     addUser: PropTypes.func,
     addUserState: PropTypes.object,

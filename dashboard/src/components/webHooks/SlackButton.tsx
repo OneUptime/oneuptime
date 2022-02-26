@@ -8,6 +8,7 @@ import CreateSlackWebhook from '../modals/CreateSlackWebhook';
 
 class SlackButton extends React.Component {
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { monitorId } = this.props;
 
         return (
@@ -16,6 +17,7 @@ class SlackButton extends React.Component {
                 type="button"
                 id="addSlackButton"
                 onClick={() =>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.openModal({
                         id: 'data._id',
                         onClose: () => '',
@@ -38,21 +40,22 @@ class SlackButton extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SlackButton.displayName = 'SlackButton';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => ({
-    currentProject: state.project.currentProject,
+const mapStateToProps = (state: $TSFixMe) => ({
+    currentProject: state.project.currentProject
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SlackButton.propTypes = {
     openModal: PropTypes.func.isRequired,
     monitorId: PropTypes.string,

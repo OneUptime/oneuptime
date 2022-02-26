@@ -1,5 +1,7 @@
 export default {
-    findOneBy: async function({ query }) {
+    findOneBy: async function({
+        query
+    }: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -17,7 +19,11 @@ export default {
             throw error;
         }
     },
-    findBy: async function({ query, limit, skip }) {
+    findBy: async function({
+        query,
+        limit,
+        skip
+    }: $TSFixMe) {
         try {
             if (!skip) skip = 0;
 
@@ -49,5 +55,6 @@ export default {
     },
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const projectCollection = global.db.collection('projects');
 import ErrorService from './errorService'

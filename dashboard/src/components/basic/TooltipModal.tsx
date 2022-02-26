@@ -5,8 +5,10 @@ import Modal from './Modal';
 
 class TooltipModal extends Component {
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { title, body, closeThisDialog } = this.props;
         return (
+            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: any; closeButton... Remove this comment to see the full error message
             <Modal
                 title={title}
                 closeButtonLabel={'Close'}
@@ -21,8 +23,10 @@ class TooltipModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 TooltipModal.displayName = 'TooltipModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TooltipModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     title: PropTypes.string,

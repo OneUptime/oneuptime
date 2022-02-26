@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -13,7 +14,7 @@ import {
 } from '../actions/status';
 
 class PastEvent extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
 
         this.getAll = this.getAll.bind(this);
@@ -21,18 +22,26 @@ class PastEvent extends Component {
     }
 
     getAll = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showEventCard' does not exist on type 'R... Remove this comment to see the full error message
         this.props.showEventCard(true);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPastEvents' does not exist on type ... Remove this comment to see the full error message
         this.props.fetchPastEvents(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
             this.props.statusPageSlug,
             0
         );
     };
 
     more = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMorePastEvents' does not exist on t... Remove this comment to see the full error message
         this.props.fetchMorePastEvents(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
             this.props.statusPageSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             this.props.skip + 1
         );
     };
@@ -44,11 +53,14 @@ class PastEvent extends Component {
             secondaryTextColor,
             noteBackgroundColor;
         const subheading = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         if (this.props.statusPage) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             const colors = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
             subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
             primaryTextColor = {
                 color: `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`,
@@ -60,40 +72,57 @@ class PastEvent extends Component {
                 background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
             };
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
         if (this.props.pastEvents && this.props.pastEvents.events) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string'.
             event = (
                 <Events
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                     events={this.props.pastEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
                     statusPageId={this.props.statusPageId}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
                     statusPageSlug={this.props.statusPageSlug}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                     monitorState={this.props.monitorState}
                 />
             );
         }
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
             this.props.individualEvents.show &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
             this.props.individualEvents.events
         ) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string'.
             event = (
                 <Events
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                     events={this.props.individualEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
                     statusPageId={this.props.statusPageId}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
                     statusPageSlug={this.props.statusPageSlug}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                     monitorState={this.props.monitorState}
                 />
             );
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
         return (!this.props.individualEvents.show &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.pastEvents.events.length > 0) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
             this.props.individualEvents.show ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showEventCardState' does not exist on ty... Remove this comment to see the full error message
             this.props.showEventCardState ? (
             <div
                 id="scheduledEvents"
@@ -103,7 +132,9 @@ class PastEvent extends Component {
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender
                         if={
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                             this.props.pastEvents &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                             !this.props.pastEvents.error
                         }
                     >
@@ -117,6 +148,7 @@ class PastEvent extends Component {
                         >
                             <div className="feed-header">
                                 <ShouldRender
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     if={!this.props.individualEvents.show}
                                 >
                                     <span
@@ -129,6 +161,7 @@ class PastEvent extends Component {
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     if={this.props.individualEvents.show}
                                 >
                                     <span
@@ -137,15 +170,19 @@ class PastEvent extends Component {
                                     >
                                         <Translate>
                                             Scheduled Events for{' '}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                             {this.props.individualEvents
                                                 .monitorName
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                                 ? this.props.individualEvents
                                                       .monitorName
                                                 : ''}{' '}
                                             on{' '}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                             {this.props.individualEvents.date
                                                 ? moment(
                                                       this.props
+                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                                           .individualEvents.date
                                                   ).format('LL')
                                                 : ''}
@@ -155,10 +192,14 @@ class PastEvent extends Component {
                             </div>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     (!this.props.individualEvents.show &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                         this.props.pastEvents.events.length >
                                             0) ||
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     (this.props.individualEvents.show &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                         this.props.individualEvents.events
                                             .length > 0)
                                 }
@@ -167,7 +208,9 @@ class PastEvent extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     this.props.individualEvents.show &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -201,8 +244,11 @@ class PastEvent extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'showEventCardState' does not exist on ty... Remove this comment to see the full error message
                                     this.props.showEventCardState &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                     this.props.pastEvents.events.length === 0 &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -238,14 +284,23 @@ class PastEvent extends Component {
 
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                 this.props.pastEvents &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                 this.props.pastEvents.events &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                 this.props.pastEvents.events.length &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                 this.props.count >
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                     this.props.pastEvents.events.length &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                 !this.props.pastEvents.requesting &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingmoreevents' does not exist on ... Remove this comment to see the full error message
                                 !this.props.requestingmoreevents &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                 !this.props.pastEvents.error &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                 !this.props.individualEvents.show
                             }
                         >
@@ -266,9 +321,13 @@ class PastEvent extends Component {
                         >
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                     this.props.pastEvents &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                     !this.props.pastEvents.error &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                     !this.props.pastEvents.requesting &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualEvents' does not exist on type... Remove this comment to see the full error message
                                     this.props.individualEvents.show
                                 }
                             >
@@ -283,7 +342,9 @@ class PastEvent extends Component {
 
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
                                 this.props.pastEvents.requesting ||
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingmoreevents' does not exist on ... Remove this comment to see the full error message
                                 this.props.requestingmoreevents
                             }
                         >
@@ -306,9 +367,10 @@ class PastEvent extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 PastEvent.displayName = 'PastEvent';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     let skip =
         state.status.pastEvents && state.status.pastEvents.skip
             ? state.status.pastEvents.skip
@@ -336,16 +398,16 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchMorePastEvents,
-            fetchPastEvents,
-            showEventCard,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchMorePastEvents,
+        fetchPastEvents,
+        showEventCard,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 PastEvent.propTypes = {
     fetchMorePastEvents: PropTypes.func,
     requestingmoreevents: PropTypes.bool,

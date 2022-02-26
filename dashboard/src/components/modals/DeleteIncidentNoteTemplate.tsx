@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
@@ -21,7 +22,7 @@ class DeleteIncidentNoteTemplate extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
@@ -33,22 +34,32 @@ class DeleteIncidentNoteTemplate extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentNoteTemplateFailure' does ... Remove this comment to see the full error message
         this.props.deleteIncidentNoteTemplateFailure(null);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal();
     };
 
     handleDelete = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'templateId' does not exist on type 'Read... Remove this comment to see the full error message
             templateId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentNoteTemplate' does not exi... Remove this comment to see the full error message
             deleteIncidentNoteTemplate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNoteTemplates' does not exi... Remove this comment to see the full error message
             fetchIncidentNoteTemplates,
         } = this.props;
 
         deleteIncidentNoteTemplate({ projectId, templateId }).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deletingTemplate' does not exist on type... Remove this comment to see the full error message
             if (!this.props.deletingTemplate && !this.props.deleteError) {
                 fetchIncidentNoteTemplates({ projectId, skip, limit });
                 closeModal();
@@ -57,6 +68,7 @@ class DeleteIncidentNoteTemplate extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deletingTemplate' does not exist on type... Remove this comment to see the full error message
         const { deletingTemplate, deleteError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -154,8 +166,10 @@ class DeleteIncidentNoteTemplate extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteIncidentNoteTemplate.displayName = 'DeleteIncidentNoteTemplate';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteIncidentNoteTemplate.propTypes = {
     projectId: PropTypes.string,
     closeModal: PropTypes.func.isRequired,
@@ -169,7 +183,7 @@ DeleteIncidentNoteTemplate.propTypes = {
     fetchIncidentNoteTemplates: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         projectId: state.modal.modals[0].projectId,
         templateId: state.modal.modals[0].templateId,
@@ -181,16 +195,15 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-            deleteIncidentNoteTemplate,
-            deleteIncidentNoteTemplateFailure,
-            fetchIncidentNoteTemplates,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+        deleteIncidentNoteTemplate,
+        deleteIncidentNoteTemplateFailure,
+        fetchIncidentNoteTemplates,
+    },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

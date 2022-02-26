@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, FieldArray } from 'redux-form';
 import {
     updateStatusPageLinks,
@@ -13,6 +14,7 @@ import { RenderLinks } from '../basic/RenderLinks';
 import { Validate } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import CreateFooterLink from '../modals/FooterLink';
@@ -20,7 +22,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 //Client side validation
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
     const linksArrayErrors = [];
 
@@ -29,6 +31,7 @@ function validate(values) {
             const linkErrors = {};
             if (values.links[i].name) {
                 if (!Validate.text(values.links[i].name)) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
                     linkErrors.name = 'Name is not in text format.';
                     linksArrayErrors[i] = linkErrors;
                 }
@@ -36,6 +39,7 @@ function validate(values) {
 
             if (values.links[i].url) {
                 if (!Validate.url(values.links[i].url)) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
                     linkErrors.url = 'Url is invalid.';
                     linksArrayErrors[i] = linkErrors;
                 }
@@ -43,6 +47,7 @@ function validate(values) {
         }
 
         if (linksArrayErrors.length) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'links' does not exist on type '{}'.
             errors.links = linksArrayErrors;
         }
     }
@@ -51,29 +56,35 @@ function validate(values) {
 }
 
 export class Links extends Component {
+    handleKeyBoard: $TSFixMe;
     state = {
         createFooterLinkModalId: uuidv4(),
         MessageBoxId: uuidv4(),
         removeFooterLinkModalId: uuidv4(),
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { _id, projectId } = this.props.statusPage.status;
         if (_id) values._id = _id;
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageLinks' does not exist on... Remove this comment to see the full error message
             .updateStatusPageLinks(projectId._id || projectId, values)
             .then(() => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectStatusPage' does not exist o... Remove this comment to see the full error message
                 this.props.fetchProjectStatusPage(
                     projectId._id || projectId,
                     true
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.closeModal({
                     id: this.state.createFooterLinkModalId,
                 });
             });
     };
 
-    handleRemoveFooterLink = index => {
+    handleRemoveFooterLink = (index: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
         const { links } = this.props.initialValues;
         const newLinks = [...links];
         newLinks.splice(index, 1);
@@ -81,6 +92,7 @@ export class Links extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit, statusPage, openModal } = this.props;
         const {
             createFooterLinkModalId,
@@ -90,7 +102,9 @@ export class Links extends Component {
         let deleting = false;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.statusPage.links &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.statusPage.links.requesting
         ) {
             deleting = true;
@@ -127,7 +141,9 @@ export class Links extends Component {
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
                                             this.props.initialValues &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
                                             this.props.initialValues.links
                                                 .length >= 5
                                                 ? () =>
@@ -189,6 +205,7 @@ export class Links extends Component {
                                         </div>
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.initialValues.links
                                                     .length === 0
                                             }
@@ -218,6 +235,7 @@ export class Links extends Component {
                                             <span>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     {
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
                                                         this.props.initialValues
                                                             .links.length
                                                     }{' '}
@@ -236,8 +254,10 @@ export class Links extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Links.displayName = 'Links';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Links.propTypes = {
     updateStatusPageLinks: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -248,26 +268,25 @@ Links.propTypes = {
     initialValues: PropTypes.object,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            updateStatusPageLinks,
-            updateStatusPageLinksRequest,
-            updateStatusPageLinksSuccess,
-            updateStatusPageLinksError,
-            fetchProjectStatusPage,
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        updateStatusPageLinks,
+        updateStatusPageLinksRequest,
+        updateStatusPageLinksSuccess,
+        updateStatusPageLinksError,
+        fetchProjectStatusPage,
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const status = state.statusPage.status || [];
-    const links = [];
+    const links: $TSFixMe = [];
 
     status.links &&
-        status.links.forEach(link => {
+        status.links.forEach((link: $TSFixMe) => {
             links.push({
                 name: link.name,
                 url: link.url,

@@ -1,4 +1,6 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
 import nodemailer from 'nodemailer'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
 import hbs from 'nodemailer-express-handlebars'
 import Handlebars from 'handlebars'
 import Whitepapers from '../config/whitepaper'
@@ -11,6 +13,7 @@ import DateTime from '../utils/DateTime'
 import Path from 'path'
 import fsp from 'fs/promises'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import { isEmpty } from 'lodash'
 const helpers = {
     year: DateTime.getCurrentYear,
@@ -32,7 +35,7 @@ const options = {
 
 // handlebars helper function
 // checks for equality
-Handlebars.registerHelper('if_eq', function(a, b, opts) {
+Handlebars.registerHelper('if_eq', function(this: $TSFixMe, a, b, opts) {
     if (a == b) {
         return opts.fn(this);
     } else {
@@ -41,7 +44,7 @@ Handlebars.registerHelper('if_eq', function(a, b, opts) {
 });
 
 const _this = {
-    getProjectSmtpSettings: async projectId => {
+    getProjectSmtpSettings: async (projectId: $TSFixMe) => {
         let user,
             pass,
             host,
@@ -105,7 +108,7 @@ const _this = {
         };
     },
 
-    getEmailBody: async function(mailOptions) {
+    getEmailBody: async function(mailOptions: $TSFixMe) {
         const data = await fsp.readFile(
             Path.resolve(
                 process.cwd(),
@@ -116,6 +119,7 @@ const _this = {
             { encoding: 'utf8', flag: 'r' }
         );
         let emailBody = Handlebars.compile(data);
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
         emailBody = emailBody(mailOptions.context);
         return emailBody;
     },
@@ -126,24 +130,31 @@ const _this = {
         user,
         pass,
         secure,
-        internalSmtp,
-    }) {
+        internalSmtp
+    }: $TSFixMe) {
         let settings = {};
         if (!host || !user || !pass) {
             settings = await _this.getSmtpSettings();
             if (!isEmpty(settings)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'host' does not exist on type '{}'.
                 host = settings.host;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'port' does not exist on type '{}'.
                 port = settings.port;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type '{}'.
                 user = settings.user;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pass' does not exist on type '{}'.
                 pass = settings.pass;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'secure' does not exist on type '{}'.
                 secure = settings.secure;
 
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 if (!settings['email-enabled']) {
                     return null;
                 }
             }
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'internalSmtp' does not exist on type '{}... Remove this comment to see the full error message
         internalSmtp = internalSmtp || settings.internalSmtp;
         let privateMailer;
 
@@ -244,7 +255,7 @@ const _this = {
         return {};
     },
 
-    getTemplates: async (emailTemplate, emailType) => {
+    getTemplates: async (emailTemplate: $TSFixMe, emailType: $TSFixMe) => {
         const defaultTemplate = defaultEmailTemplates.filter(
             template => template.emailType === emailType
         );
@@ -273,7 +284,7 @@ const _this = {
     // Params:
     // Param 1: userEmail: Email of user
     // Returns: promise
-    sendSignupMail: async function(userEmail, name) {
+    sendSignupMail: async function(userEmail: $TSFixMe, name: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -291,8 +302,10 @@ const _this = {
                     subject: 'Welcome to OneUptime.',
                     template: 'sign_up_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         name: name.split(' ')[0].toString(),
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -305,9 +318,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -322,9 +339,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -337,6 +358,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = {
                                 ...accountMail.backupConfig,
@@ -347,8 +369,10 @@ const _this = {
                                 subject: 'Welcome to OneUptime.',
                                 template: 'sign_up_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     name: name.split(' ')[0].toString(),
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -361,9 +385,13 @@ const _this = {
 
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -376,9 +404,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -397,9 +429,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -410,11 +446,11 @@ const _this = {
         }
     },
     sendLoginEmail: async function(
-        userEmail,
-        location,
-        deviceObj,
-        twoFactorEnabled,
-        status
+        userEmail: $TSFixMe,
+        location: $TSFixMe,
+        deviceObj: $TSFixMe,
+        twoFactorEnabled: $TSFixMe,
+        status: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -462,8 +498,10 @@ const _this = {
                     subject: `New login to OneUptime from ${device}`,
                     template: 'user_login_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         userEmail,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                         ip: location.ip,
                         locations,
@@ -481,9 +519,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -498,9 +540,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -513,6 +559,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = {
                                 ...accountMail.backupConfig,
@@ -523,8 +570,10 @@ const _this = {
                                 subject: `New login to OneUptime from ${device}`,
                                 template: 'user_login_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     userEmail,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                     ip: location.ip,
                                     locations,
@@ -542,9 +591,13 @@ const _this = {
 
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -557,9 +610,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -578,9 +635,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -591,7 +652,11 @@ const _this = {
         }
     },
     // Automated email sent when a user deletes a project
-    sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
+    sendDeleteProjectEmail: async function({
+        userEmail,
+        name,
+        projectName
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -626,9 +691,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -643,9 +712,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -658,11 +731,14 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = {
                                 ...accountMail.backupConfig,
                             };
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"OneUptime Support"' is not assignable to ty... Remove this comment to see the full error message
                             accountMail.name = 'OneUptime Support';
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"support@oneuptime.com"' is not assignable t... Remove this comment to see the full error message
                             accountMail.from = 'support@oneuptime.com';
 
                             mailOptions = {
@@ -687,9 +763,13 @@ const _this = {
 
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -702,9 +782,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -723,9 +807,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendDeleteProjectEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: error.message,
                 content: EmailBody,
@@ -735,7 +823,7 @@ const _this = {
             throw error;
         }
     },
-    sendVerifyEmail: async function(tokenVerifyURL, name, email) {
+    sendVerifyEmail: async function(tokenVerifyURL: $TSFixMe, name: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -752,6 +840,7 @@ const _this = {
                     subject: '[OneUptime] Verify your Email',
                     template: 'send_verification_email',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         tokenVerifyURL,
                         name: name.split(' ')[0].toString(),
@@ -766,9 +855,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -783,9 +876,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -798,6 +895,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = {
                                 ...accountMail.backupConfig,
@@ -809,6 +907,7 @@ const _this = {
                                 subject: '[OneUptime] Verify your Email',
                                 template: 'send_verification_email',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     tokenVerifyURL,
                                     name: name.split(' ')[0].toString(),
@@ -823,9 +922,13 @@ const _this = {
 
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -838,9 +941,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -859,9 +966,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendVerifyEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -871,7 +982,7 @@ const _this = {
             throw error;
         }
     },
-    sendLeadEmailToOneUptimeTeam: async function(lead) {
+    sendLeadEmailToOneUptimeTeam: async function(lead: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -892,6 +1003,7 @@ const _this = {
                         page: lead.page,
                         projectId: lead.projectId,
                         createdById: lead.createdById,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         _id: lead._id,
                         message: lead.message,
@@ -923,9 +1035,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -940,9 +1056,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -955,6 +1075,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = {
                                 ...accountMail.backupConfig,
@@ -971,6 +1092,7 @@ const _this = {
                                     page: lead.page,
                                     projectId: lead.projectId,
                                     createdById: lead.createdById,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     _id: lead._id,
                                     message: lead.message,
@@ -1004,9 +1126,13 @@ const _this = {
 
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -1019,9 +1145,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -1040,9 +1170,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendLeadEmailToOneUptimeTeam', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -1053,7 +1187,7 @@ const _this = {
         }
     },
 
-    sendUserFeedbackResponse: async function(userEmail, name) {
+    sendUserFeedbackResponse: async function(userEmail: $TSFixMe, name: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -1069,6 +1203,7 @@ const _this = {
                     subject: 'Thank you for your feedback!',
                     template: 'feedback_response',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         name: name.split(' ')[0].toString(),
                     },
@@ -1082,9 +1217,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -1099,9 +1238,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -1114,6 +1257,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = {
                                 ...accountMail.backupConfig,
@@ -1125,6 +1269,7 @@ const _this = {
                                 subject: 'Thank you for your feedback!',
                                 template: 'feedback_response',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     name: name.split(' ')[0].toString(),
                                 },
@@ -1137,9 +1282,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -1152,9 +1301,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -1173,9 +1326,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendUserFeedbackResponse', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -1186,13 +1343,14 @@ const _this = {
         }
     },
 
-    sendRequestDemoEmail: async function(to) {
+    sendRequestDemoEmail: async function(to: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             if (!to) {
                 const error = new Error('Email not found');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             } else {
@@ -1218,9 +1376,13 @@ const _this = {
 
                     if (!mailer) {
                         await EmailStatusService.create({
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                             from: mailOptions.from,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                             to: mailOptions.to,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                             subject: mailOptions.subject,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                             template: mailOptions.template,
                             status: 'Email not enabled.',
                             content: EmailBody,
@@ -1235,9 +1397,13 @@ const _this = {
                         info = await mailer.sendMail(mailOptions);
 
                         await EmailStatusService.create({
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                             from: mailOptions.from,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                             to: mailOptions.to,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                             subject: mailOptions.subject,
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                             template: mailOptions.template,
                             status: 'Success',
                             content: EmailBody,
@@ -1250,6 +1416,7 @@ const _this = {
                                 accountMail.customSmtp &&
                                 !isEmpty(accountMail.backupConfig)
                             ) {
+                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                                 smtpServer = accountMail.backupConfig.host;
                                 accountMail = { ...accountMail.backupConfig };
 
@@ -1269,9 +1436,13 @@ const _this = {
 
                                 if (!mailer) {
                                     await EmailStatusService.create({
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                         from: mailOptions.from,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                         to: mailOptions.to,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                         subject: mailOptions.subject,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                         template: mailOptions.template,
                                         status: 'Email not enabled.',
                                         content: EmailBody,
@@ -1284,9 +1455,13 @@ const _this = {
                                 info = await mailer.sendMail(mailOptions);
 
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Success',
                                     content: EmailBody,
@@ -1306,9 +1481,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendRequestDemoEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -1319,13 +1498,14 @@ const _this = {
         }
     },
 
-    sendWhitepaperEmail: async function(to, whitepaperName) {
+    sendWhitepaperEmail: async function(to: $TSFixMe, whitepaperName: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             if (!to || whitepaperName) {
                 const error = new Error('Email or Whitepaper found');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 ErrorService.log('mailService.sendWhitepaperEmail', error);
                 throw error;
@@ -1340,6 +1520,7 @@ const _this = {
 
                 if (!link) {
                     const error = new Error('Whitepaper not found');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     ErrorService.log('mailService.sendWhitepaperEmail', error);
                     throw error;
@@ -1357,6 +1538,7 @@ const _this = {
                             subject: "Here's your Whitepaper",
                             template: 'whitepaper_body',
                             context: {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                 homeURL: global.homeHost,
                                 link: link,
                             },
@@ -1370,9 +1552,13 @@ const _this = {
 
                         if (!mailer) {
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Email not enabled.',
                                 content: EmailBody,
@@ -1387,9 +1573,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -1402,6 +1592,7 @@ const _this = {
                                     accountMail.customSmtp &&
                                     !isEmpty(accountMail.backupConfig)
                                 ) {
+                                    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                                     smtpServer = accountMail.backupConfig.host;
                                     accountMail = {
                                         ...accountMail.backupConfig,
@@ -1414,6 +1605,7 @@ const _this = {
                                         subject: "Here's your Whitepaper",
                                         template: 'whitepaper_body',
                                         context: {
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                             homeURL: global.homeHost,
                                             link: link,
                                         },
@@ -1430,9 +1622,13 @@ const _this = {
 
                                     if (!mailer) {
                                         await EmailStatusService.create({
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                             from: mailOptions.from,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                             to: mailOptions.to,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                             subject: mailOptions.subject,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                             template: mailOptions.template,
                                             status: 'Email not enabled.',
                                             content: EmailBody,
@@ -1445,9 +1641,13 @@ const _this = {
                                     info = await mailer.sendMail(mailOptions);
 
                                     await EmailStatusService.create({
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                         from: mailOptions.from,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                         to: mailOptions.to,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                         subject: mailOptions.subject,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                         template: mailOptions.template,
                                         status: 'Success',
                                         content: EmailBody,
@@ -1469,9 +1669,13 @@ const _this = {
             ErrorService.log('mailService.sendWhitepaperEmail', error);
             if (mailOptions) {
                 await EmailStatusService.create({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                     from: mailOptions.from,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                     to: mailOptions.to,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                     subject: mailOptions.subject,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                     template: mailOptions.template,
                     status: 'Error',
                     content: EmailBody,
@@ -1489,7 +1693,7 @@ const _this = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function(forgotPasswordURL, email) {
+    sendForgotPasswordMail: async function(forgotPasswordURL: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1506,6 +1710,7 @@ const _this = {
                     subject: 'Password Reset for OneUptime',
                     template: 'forgot_password_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         forgotPasswordURL,
                     },
@@ -1517,9 +1722,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -1534,9 +1743,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -1549,6 +1762,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -1558,6 +1772,7 @@ const _this = {
                                 subject: 'Password Reset for OneUptime',
                                 template: 'forgot_password_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     forgotPasswordURL,
                                 },
@@ -1569,9 +1784,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -1584,9 +1803,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -1605,9 +1828,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendForgotPasswordMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -1622,7 +1849,7 @@ const _this = {
     // Params:
     // Param 1: email: Email of user
     // Returns: promise
-    sendResetPasswordConfirmMail: async function(email) {
+    sendResetPasswordConfirmMail: async function(email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1639,7 +1866,9 @@ const _this = {
                     subject: 'Your password has been changed.',
                     template: 'reset_password_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         accountsURL: global.homeHost + '/accounts',
                     },
                 };
@@ -1650,9 +1879,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -1667,9 +1900,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -1682,6 +1919,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -1691,7 +1929,9 @@ const _this = {
                                 subject: 'Your password has been changed.',
                                 template: 'reset_password_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     accountsURL: global.homeHost + '/accounts',
                                 },
                             };
@@ -1702,9 +1942,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -1717,9 +1961,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -1738,9 +1986,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -1756,10 +2008,10 @@ const _this = {
     // Param 1: userEmail: Email of users
     // Returns: promise
     sendNewUserAddedToProjectMail: async function(
-        project,
-        addedByUser,
-        email,
-        registerUrl
+        project: $TSFixMe,
+        addedByUser: $TSFixMe,
+        email: $TSFixMe,
+        registerUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1777,6 +2029,7 @@ const _this = {
                     subject: "You've been added to a project on OneUptime",
                     template: 'new_user_added_to_project_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: project.name,
                         userName: addedByUser.name,
@@ -1790,9 +2043,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -1807,9 +2064,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -1822,6 +2083,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -1832,6 +2094,7 @@ const _this = {
                                     "You've been added to a project on OneUptime",
                                 template: 'new_user_added_to_project_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: project.name,
                                     userName: addedByUser.name,
@@ -1845,9 +2108,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -1860,9 +2127,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -1884,9 +2155,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -1898,9 +2173,9 @@ const _this = {
     },
 
     sendExistingUserAddedToProjectMail: async function(
-        project,
-        addedByUser,
-        email
+        project: $TSFixMe,
+        addedByUser: $TSFixMe,
+        email: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -1918,9 +2193,11 @@ const _this = {
                     subject: "You've been added to a project on OneUptime",
                     template: 'existing_user_added_to_project_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: project.name,
                         userName: addedByUser.name,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -1931,9 +2208,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -1948,9 +2229,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -1963,6 +2248,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -1973,9 +2259,11 @@ const _this = {
                                     "You've been added to a project on OneUptime",
                                 template: 'existing_user_added_to_project_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: project.name,
                                     userName: addedByUser.name,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -1986,9 +2274,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -2001,9 +2293,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -2025,9 +2321,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2037,7 +2337,7 @@ const _this = {
             throw error;
         }
     },
-    sendLighthouseEmail: async function(project, user) {
+    sendLighthouseEmail: async function(project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
@@ -2052,6 +2352,7 @@ const _this = {
                 subject: 'Lighthouse Runner',
                 template: 'lighthouse_runner',
                 context: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                     homeURL: global.homeHost,
                     projectName: project.name,
                     monitorName: project.monitor,
@@ -2066,6 +2367,7 @@ const _this = {
                     bestPracticesIssues: project.bestPracticesIssues,
                     seoIssues: project.seoIssues,
                     pwaIssues: project.pwaIssues,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                     dashboardURL: global.dashboardHost,
                 },
             };
@@ -2107,6 +2409,7 @@ const _this = {
                         accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                         smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
@@ -2116,6 +2419,7 @@ const _this = {
                             subject: 'Application Security',
                             template: 'application_security',
                             context: {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                 homeURL: global.homeHost,
                                 projectName: project.name,
                                 monitorName: project.monitor,
@@ -2132,6 +2436,7 @@ const _this = {
                                     project.bestPracticesIssues,
                                 seoIssues: project.seoIssues,
                                 pwaIssues: project.pwaIssues,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                 dashboardURL: global.dashboardHost,
                             },
                         };
@@ -2176,9 +2481,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendContainerEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2188,7 +2497,7 @@ const _this = {
             throw error;
         }
     },
-    sendApplicationEmail: async function(project, user) {
+    sendApplicationEmail: async function(project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
@@ -2203,6 +2512,7 @@ const _this = {
                 subject: 'Application Security',
                 template: 'application_security',
                 context: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: user.name,
@@ -2214,6 +2524,7 @@ const _this = {
                     highIssues: project.highIssues,
                     moderateIssues: project.moderateIssues,
                     lowIssues: project.lowIssues,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                     dashboardURL: global.dashboardHost,
                 },
             };
@@ -2255,6 +2566,7 @@ const _this = {
                         accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                         smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
@@ -2264,6 +2576,7 @@ const _this = {
                             subject: 'Application Security',
                             template: 'application_security',
                             context: {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                 homeURL: global.homeHost,
                                 projectName: project.name,
                                 userName: user.name,
@@ -2275,6 +2588,7 @@ const _this = {
                                 highIssues: project.highIssues,
                                 moderateIssues: project.moderateIssues,
                                 lowIssues: project.lowIssues,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                 dashboardURL: global.dashboardHost,
                             },
                         };
@@ -2319,9 +2633,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendContainerEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2332,7 +2650,7 @@ const _this = {
         }
     },
 
-    sendContainerEmail: async function(project, user) {
+    sendContainerEmail: async function(project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
@@ -2347,9 +2665,11 @@ const _this = {
                 subject: 'Container Security',
                 template: 'container_security',
                 context: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                     homeURL: global.homeHost,
                     projectName: project.name,
                     userName: user.name,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                     dashboardURL: global.dashboardHost,
                     critical: project.critical,
                     high: project.high,
@@ -2399,6 +2719,7 @@ const _this = {
                         accountMail.customSmtp &&
                         !isEmpty(accountMail.backupConfig)
                     ) {
+                        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                         smtpServer = accountMail.backupConfig.host;
                         accountMail = { ...accountMail.backupConfig };
 
@@ -2408,9 +2729,11 @@ const _this = {
                             subject: 'Container Security',
                             template: 'container_security',
                             context: {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                 homeURL: global.homeHost,
                                 projectName: project.name,
                                 userName: user.name,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                 dashboardURL: global.dashboardHost,
                             },
                         };
@@ -2455,9 +2778,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendContainerEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2469,9 +2796,9 @@ const _this = {
     },
 
     sendExistingStatusPageViewerMail: async function(
-        subProject,
-        addedByUser,
-        email
+        subProject: $TSFixMe,
+        addedByUser: $TSFixMe,
+        email: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -2489,6 +2816,7 @@ const _this = {
                     subject: "You've been added to a sub-project on OneUptime",
                     template: 'existing_viewer_added_to_project_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         subProjectName: subProject.name,
                         userName: addedByUser.name,
@@ -2501,9 +2829,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -2518,9 +2850,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -2533,6 +2869,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -2544,6 +2881,7 @@ const _this = {
                                 template:
                                     'existing_viewer_added_to_project_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     subProjectName: subProject.name,
                                     userName: addedByUser.name,
@@ -2556,9 +2894,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -2571,9 +2913,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -2595,9 +2941,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2609,9 +2959,9 @@ const _this = {
     },
 
     sendExistingUserAddedToSubProjectMail: async function(
-        project,
-        addedByUser,
-        email
+        project: $TSFixMe,
+        addedByUser: $TSFixMe,
+        email: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -2629,9 +2979,11 @@ const _this = {
                     subject: "You've been added to a subproject on OneUptime",
                     template: 'existing_user_added_to_subproject_body',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: project.name,
                         userName: addedByUser.name,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -2642,9 +2994,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -2659,9 +3015,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -2674,6 +3034,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -2685,9 +3046,11 @@ const _this = {
                                 template:
                                     'existing_user_added_to_subproject_body',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: project.name,
                                     userName: addedByUser.name,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -2698,9 +3061,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -2713,9 +3080,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -2737,9 +3108,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2750,7 +3125,7 @@ const _this = {
         }
     },
 
-    sendNewStatusPageViewerMail: async function(project, addedByUser, email) {
+    sendNewStatusPageViewerMail: async function(project: $TSFixMe, addedByUser: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -2767,9 +3142,11 @@ const _this = {
                     subject: "You've been added to a project on OneUptime",
                     template: 'new_viewer_added_to_project',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: project.name,
                         userName: addedByUser.name,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         accountsURL: global.homeHost + '/accounts',
                     },
                 };
@@ -2780,9 +3157,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -2797,9 +3178,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -2812,6 +3197,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -2822,9 +3208,11 @@ const _this = {
                                     "You've been added to a project on OneUptime",
                                 template: 'new_viewer_added_to_project',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: project.name,
                                     userName: addedByUser.name,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     accountsURL: global.homeHost + '/accounts',
                                 },
                             };
@@ -2835,9 +3223,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -2850,9 +3242,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -2871,9 +3267,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendNewStatusPageViewerMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -2885,10 +3285,10 @@ const _this = {
     },
 
     sendChangeRoleEmailToUser: async function(
-        project,
-        addedByUser,
-        email,
-        role
+        project: $TSFixMe,
+        addedByUser: $TSFixMe,
+        email: $TSFixMe,
+        role: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -2906,10 +3306,12 @@ const _this = {
                     subject: "You've been assigned a new role",
                     template: 'change_role',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: project.name,
                         userName: addedByUser.name,
                         role: role,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -2921,9 +3323,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -2938,9 +3344,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -2953,6 +3363,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -2962,10 +3373,12 @@ const _this = {
                                 subject: "You've been assigned a new role",
                                 template: 'change_role',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: project.name,
                                     userName: addedByUser.name,
                                     role: role,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -2977,9 +3390,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -2992,9 +3409,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -3013,9 +3434,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendChangeRoleEmailToUser', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -3027,9 +3452,9 @@ const _this = {
     },
 
     sendRemoveFromProjectEmailToUser: async function(
-        project,
-        removedByUser,
-        email
+        project: $TSFixMe,
+        removedByUser: $TSFixMe,
+        email: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3047,9 +3472,11 @@ const _this = {
                     subject: "You've been removed from a project on OneUptime",
                     template: 'removed_from_project',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: project.name,
                         userName: removedByUser.name,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -3061,9 +3488,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -3078,9 +3509,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -3093,6 +3528,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -3103,9 +3539,11 @@ const _this = {
                                     "You've been removed from a project on OneUptime",
                                 template: 'removed_from_project',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: project.name,
                                     userName: removedByUser.name,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -3117,9 +3555,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -3132,9 +3574,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -3156,9 +3602,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -3170,9 +3620,9 @@ const _this = {
     },
 
     sendRemoveFromSubProjectEmailToUser: async function(
-        subProject,
-        removedByUser,
-        email
+        subProject: $TSFixMe,
+        removedByUser: $TSFixMe,
+        email: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3191,9 +3641,11 @@ const _this = {
                         "You've been removed from a subproject on OneUptime",
                     template: 'removed_from_subproject',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         subProjectName: subProject.name,
                         userName: removedByUser.name,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -3205,9 +3657,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -3222,9 +3678,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -3237,6 +3697,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -3247,9 +3708,11 @@ const _this = {
                                     "You've been removed from a subproject on OneUptime",
                                 template: 'removed_from_subproject',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     subProjectName: subProject.name,
                                     userName: removedByUser.name,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -3261,9 +3724,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -3276,9 +3743,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -3300,9 +3771,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -3343,8 +3818,8 @@ const _this = {
         projectName,
         criterionName,
         probeName,
-        emailProgress,
-    }) {
+        emailProgress
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3380,6 +3855,7 @@ const _this = {
                     subject: subject,
                     template: 'new_incident_created',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         incidentTime: incidentTime,
                         monitorName: monitorName,
@@ -3400,6 +3876,7 @@ const _this = {
                         resolveUrl,
                         incidentType,
                         projectName,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                         criterionName,
                         probeName,
@@ -3409,9 +3886,13 @@ const _this = {
                 const mailer = await _this.createMailer(accountMail);
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -3426,9 +3907,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -3441,6 +3926,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -3450,6 +3936,7 @@ const _this = {
                                 subject: subject,
                                 template: 'new_incident_created',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     incidentTime: incidentTime,
                                     monitorName: monitorName,
@@ -3470,6 +3957,7 @@ const _this = {
                                     resolveUrl,
                                     incidentType,
                                     projectName,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                     criterionName,
                                     probeName,
@@ -3481,9 +3969,13 @@ const _this = {
                             );
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -3496,9 +3988,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -3517,9 +4013,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendIncidentCreatedMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -3540,20 +4040,20 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
     sendIncidentCreatedMailToSubscriber: async function(
-        incidentTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        incident,
-        projectName,
-        emailTemplate,
-        trackEmailAsViewedUrl,
-        componentName,
-        statusPageUrl,
-        replyAddress,
-        customFields,
-        unsubscribeUrl
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        trackEmailAsViewedUrl: $TSFixMe,
+        componentName: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        replyAddress: $TSFixMe,
+        customFields: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3580,7 +4080,9 @@ const _this = {
                 year: DateTime.getCurrentYear,
                 ...customFields,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
@@ -3614,12 +4116,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -3634,12 +4142,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -3652,6 +4166,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
                             const privateMailer = await _this.createMailer(
@@ -3682,12 +4197,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -3700,12 +4221,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -3727,11 +4254,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -3761,8 +4293,8 @@ const _this = {
         acknowledgeTime,
         length,
         criterionName,
-        acknowledgedBy,
-    }) {
+        acknowledgedBy
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3779,6 +4311,7 @@ const _this = {
                     subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
                     template: 'incident_acknowledged',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         incidentTime: incidentTime,
                         monitorName: monitorName,
@@ -3797,6 +4330,7 @@ const _this = {
                         resolve_url: resolveUrl,
                         incidentType,
                         projectName,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                         criterionName,
                         acknowledgedBy,
@@ -3806,9 +4340,13 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -3823,9 +4361,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -3838,6 +4380,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -3847,6 +4390,7 @@ const _this = {
                                 subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
                                 template: 'incident_acknowledged',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     incidentTime: incidentTime,
                                     monitorName: monitorName,
@@ -3865,6 +4409,7 @@ const _this = {
                                     resolve_url: resolveUrl,
                                     incidentType,
                                     projectName,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                     criterionName,
                                     acknowledgedBy,
@@ -3877,9 +4422,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -3892,9 +4441,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -3913,9 +4466,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendIncidentAcknowledgedMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -3945,8 +4502,8 @@ const _this = {
         resolveTime,
         length,
         criterionName,
-        resolvedBy,
-    }) {
+        resolvedBy
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3963,6 +4520,7 @@ const _this = {
                     subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
                     template: 'incident_resolved',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         incidentTime: incidentTime,
                         monitorName: monitorName,
@@ -3980,6 +4538,7 @@ const _this = {
                         projectId,
                         incidentType,
                         projectName,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                         criterionName,
                         resolvedBy,
@@ -3989,9 +4548,13 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -4006,9 +4569,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -4021,6 +4588,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -4030,6 +4598,7 @@ const _this = {
                                 subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
                                 template: 'incident_resolved',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     incidentTime: incidentTime,
                                     monitorName: monitorName,
@@ -4047,6 +4616,7 @@ const _this = {
                                     projectId,
                                     incidentType,
                                     projectName,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                     criterionName,
                                     resolvedBy,
@@ -4059,9 +4629,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -4074,9 +4648,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -4094,9 +4672,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendIncidentResolvedMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -4117,21 +4699,21 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
     sendIncidentAcknowledgedMailToSubscriber: async function(
-        incidentTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        incident,
-        projectName,
-        emailTemplate,
-        trackEmailAsViewedUrl,
-        componentName,
-        statusPageUrl,
-        replyAddress,
-        customFields,
-        length,
-        unsubscribeUrl
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        trackEmailAsViewedUrl: $TSFixMe,
+        componentName: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        replyAddress: $TSFixMe,
+        customFields: $TSFixMe,
+        length: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4158,7 +4740,9 @@ const _this = {
                 ...customFields,
                 length,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
@@ -4192,12 +4776,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4212,12 +4802,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4230,6 +4826,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -4261,12 +4858,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -4279,12 +4882,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -4305,11 +4914,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -4330,21 +4944,21 @@ const _this = {
      */
 
     sendInvestigationNoteToSubscribers: async function(
-        incidentTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        incident,
-        projectName,
-        emailTemplate,
-        componentName,
-        incidentNote,
-        noteType,
-        statusPageUrl,
-        statusNoteStatus,
-        customFields,
-        unsubscribeUrl
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        componentName: $TSFixMe,
+        incidentNote: $TSFixMe,
+        noteType: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        statusNoteStatus: $TSFixMe,
+        customFields: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4374,7 +4988,9 @@ const _this = {
                 unsubscribeUrl,
                 ...customFields,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
@@ -4395,12 +5011,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4415,12 +5037,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
                     EmailBody = await _this.getEmailBody(mailOptions);
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4433,6 +5061,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -4451,12 +5080,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -4468,12 +5103,18 @@ const _this = {
 
                             info = await privateMailer.sendMail(mailOptions);
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -4495,11 +5136,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -4520,17 +5166,17 @@ const _this = {
      *
      */
     sendScheduledEventMailToSubscriber: async function(
-        scheduledTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        schedule,
-        projectName,
-        emailTemplate,
-        componentName,
-        replyAddress,
-        unsubscribeUrl
+        scheduledTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        schedule: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        componentName: $TSFixMe,
+        replyAddress: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4542,8 +5188,8 @@ const _this = {
                 'Subscriber Scheduled Maintenance Created'
             );
 
-            const resourcesAffected = [];
-            schedule.monitors.map(monitor => {
+            const resourcesAffected: $TSFixMe = [];
+            schedule.monitors.map((monitor: $TSFixMe) => {
                 return resourcesAffected.push(monitor.monitorId.name);
             });
 
@@ -4564,7 +5210,9 @@ const _this = {
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(
@@ -4601,12 +5249,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4621,12 +5275,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4639,6 +5299,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -4670,12 +5331,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -4688,12 +5355,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -4714,11 +5387,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -4738,17 +5416,17 @@ const _this = {
      *
      */
     sendResolvedScheduledEventMailToSubscriber: async function(
-        scheduledTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        schedule,
-        projectName,
-        emailTemplate,
-        componentName,
-        replyAddress,
-        unsubscribeUrl
+        scheduledTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        schedule: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        componentName: $TSFixMe,
+        replyAddress: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4760,8 +5438,8 @@ const _this = {
                 'Subscriber Scheduled Maintenance Resolved'
             );
 
-            const resourcesAffected = [];
-            schedule.monitors.map(monitor => {
+            const resourcesAffected: $TSFixMe = [];
+            schedule.monitors.map((monitor: $TSFixMe) => {
                 return resourcesAffected.push(monitor.monitorId.name);
             });
             //project name
@@ -4779,7 +5457,9 @@ const _this = {
                 resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(
@@ -4816,12 +5496,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4836,12 +5522,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -4854,6 +5546,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -4885,12 +5578,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -4903,12 +5602,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -4929,11 +5634,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -4954,17 +5664,17 @@ const _this = {
      */
 
     sendCancelledScheduledEventMailToSubscriber: async function(
-        scheduledTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        schedule,
-        projectName,
-        emailTemplate,
-        componentName,
-        replyAddress,
-        unsubscribeUrl
+        scheduledTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        schedule: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        componentName: $TSFixMe,
+        replyAddress: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4976,8 +5686,8 @@ const _this = {
                 'Subscriber Scheduled Maintenance Cancelled'
             );
 
-            const resourcesAffected = [];
-            schedule.monitors.map(monitor => {
+            const resourcesAffected: $TSFixMe = [];
+            schedule.monitors.map((monitor: $TSFixMe) => {
                 return resourcesAffected.push(monitor.monitorId.name);
             });
             //project name
@@ -4995,7 +5705,9 @@ const _this = {
                 resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(
@@ -5032,12 +5744,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5052,12 +5770,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5070,6 +5794,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -5101,12 +5826,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -5119,12 +5850,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -5145,11 +5882,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -5169,26 +5911,26 @@ const _this = {
      *
      */
     sendScheduledEventNoteMailToSubscriber: async function(
-        eventName,
-        status,
-        content,
-        email,
-        userName,
-        createdBy,
-        emailTemplate,
-        replyAddress,
-        projectName,
-        monitorName,
-        projectId,
-        unsubscribeUrl,
-        monitorsAffected
+        eventName: $TSFixMe,
+        status: $TSFixMe,
+        content: $TSFixMe,
+        email: $TSFixMe,
+        userName: $TSFixMe,
+        createdBy: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        replyAddress: $TSFixMe,
+        projectName: $TSFixMe,
+        monitorName: $TSFixMe,
+        projectId: $TSFixMe,
+        unsubscribeUrl: $TSFixMe,
+        monitorsAffected: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
 
-        const resourcesAffected = [];
-        monitorsAffected.map(monitor => {
+        const resourcesAffected: $TSFixMe = [];
+        monitorsAffected.map((monitor: $TSFixMe) => {
             return resourcesAffected.push(monitor.name);
         });
 
@@ -5211,7 +5953,9 @@ const _this = {
                 resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
@@ -5246,12 +5990,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5266,12 +6016,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5284,6 +6040,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -5315,12 +6072,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -5333,12 +6096,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -5359,11 +6128,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -5380,15 +6154,15 @@ const _this = {
      *
      */
     sendAnnouncementToSubscriber: async function(
-        announcementTitle,
-        announcementDescription,
-        email,
-        emailTemplate,
-        replyAddress,
-        projectName,
-        projectId,
-        unsubscribeUrl,
-        monitorName
+        announcementTitle: $TSFixMe,
+        announcementDescription: $TSFixMe,
+        email: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        replyAddress: $TSFixMe,
+        projectName: $TSFixMe,
+        projectId: $TSFixMe,
+        unsubscribeUrl: $TSFixMe,
+        monitorName: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -5409,7 +6183,9 @@ const _this = {
                 year: DateTime.getCurrentYear,
                 monitorName,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
@@ -5444,12 +6220,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5464,12 +6246,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5482,6 +6270,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -5513,12 +6302,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -5531,12 +6326,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -5554,11 +6355,16 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendAnnouncementToSubscriber', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -5577,21 +6383,21 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
     sendIncidentResolvedMailToSubscriber: async function(
-        incidentTime,
-        monitorName,
-        email,
-        userId,
-        userName,
-        incident,
-        projectName,
-        emailTemplate,
-        trackEmailAsViewedUrl,
-        componentName,
-        statusPageUrl,
-        replyAddress,
-        customFields,
-        length,
-        unsubscribeUrl
+        incidentTime: $TSFixMe,
+        monitorName: $TSFixMe,
+        email: $TSFixMe,
+        userId: $TSFixMe,
+        userName: $TSFixMe,
+        incident: $TSFixMe,
+        projectName: $TSFixMe,
+        emailTemplate: $TSFixMe,
+        trackEmailAsViewedUrl: $TSFixMe,
+        componentName: $TSFixMe,
+        statusPageUrl: $TSFixMe,
+        replyAddress: $TSFixMe,
+        customFields: $TSFixMe,
+        length: $TSFixMe,
+        unsubscribeUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -5618,7 +6424,9 @@ const _this = {
                 ...customFields,
                 length,
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             template = template(data);
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Handlebar... Remove this comment to see the full error message
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
@@ -5635,6 +6443,7 @@ const _this = {
                         subject: subject,
                         template: 'template',
                         context: {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                             homeURL: global.homeHost,
                             body: template,
                         },
@@ -5646,6 +6455,7 @@ const _this = {
                         subject: subject,
                         template: 'template',
                         context: {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                             homeURL: global.homeHost,
                             body: template,
                         },
@@ -5654,12 +6464,18 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5674,12 +6490,18 @@ const _this = {
                     info = await privateMailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                         ...(mailOptions.replyTo && {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                             replyTo: mailOptions.replyTo,
                         }),
                         content: EmailBody,
@@ -5692,6 +6514,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -5706,6 +6529,7 @@ const _this = {
                                     subject: subject,
                                     template: 'template',
                                     context: {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                         homeURL: global.homeHost,
                                         body: template,
                                     },
@@ -5717,6 +6541,7 @@ const _this = {
                                     subject: subject,
                                     template: 'template',
                                     context: {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                         homeURL: global.homeHost,
                                         body: template,
                                     },
@@ -5725,12 +6550,18 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     ...(mailOptions.replyTo && {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                         replyTo: mailOptions.replyTo,
                                     }),
                                     content: EmailBody,
@@ -5743,12 +6574,18 @@ const _this = {
                             info = await privateMailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                 ...(mailOptions.replyTo && {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
@@ -5770,11 +6607,16 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'replyTo' does not exist on type '{}'.
                 ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
                 content: EmailBody,
                 error: error.message,
@@ -5784,7 +6626,7 @@ const _this = {
         }
     },
 
-    testSmtpConfig: async function(data) {
+    testSmtpConfig: async function(data: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -5799,6 +6641,7 @@ const _this = {
                 subject: 'Email Smtp Settings Test',
                 template: 'smtp_test',
                 context: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                     homeURL: global.homeHost,
                     smtpServer,
                     ...data,
@@ -5807,9 +6650,13 @@ const _this = {
             EmailBody = await _this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                     from: mailOptions.from,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                     to: mailOptions.to,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                     subject: mailOptions.subject,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                     template: mailOptions.template,
                     status: 'Email not enabled.',
                     content: EmailBody,
@@ -5820,9 +6667,13 @@ const _this = {
             }
             const info = await privateMailer.sendMail(mailOptions);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Success',
                 content: EmailBody,
@@ -5835,50 +6686,69 @@ const _this = {
             if (error.code === 'EAUTH') {
                 err = new Error('Username and Password not accepted.');
                 await EmailStatusService.create({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                     from: mailOptions.from,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                     to: mailOptions.to,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                     subject: mailOptions.subject,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                     template: mailOptions.template,
                     status: 'Error',
                     content: EmailBody,
                     err: err.message,
                     smtpServer,
                 });
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 err.code = 400;
             } else if (error.code === 'ECONNECTION') {
                 err = new Error(
                     'Please check your host and port settings again.'
                 );
                 await EmailStatusService.create({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                     from: mailOptions.from,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                     to: mailOptions.to,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                     subject: mailOptions.subject,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                     template: mailOptions.template,
                     status: 'Error',
                     content: EmailBody,
                     err: err.message,
                     smtpServer,
                 });
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 err.code = 400;
             } else {
                 err = new Error('Please check your settings again.');
                 await EmailStatusService.create({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                     from: mailOptions.from,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                     to: mailOptions.to,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                     subject: mailOptions.subject,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                     template: mailOptions.template,
                     status: 'Error',
                     content: EmailBody,
                     err: err.message,
                     smtpServer,
                 });
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 err.code = 400;
             }
             ErrorService.log('mailService.testSmtpConfig', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -5889,7 +6759,7 @@ const _this = {
         }
     },
 
-    sendChangePlanMail: async function(projectName, oldPlan, newPlan, email) {
+    sendChangePlanMail: async function(projectName: $TSFixMe, oldPlan: $TSFixMe, newPlan: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -5906,10 +6776,12 @@ const _this = {
                     subject: 'Change of Subscription Plan',
                     template: 'changed_subscription_plan',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: projectName,
                         oldPlan: oldPlan,
                         newPlan: newPlan,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -5921,9 +6793,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -5938,9 +6814,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -5953,6 +6833,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -5962,10 +6843,12 @@ const _this = {
                                 subject: 'Change of Subscription Plan',
                                 template: 'changed_subscription_plan',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: projectName,
                                     oldPlan: oldPlan,
                                     newPlan: newPlan,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -5977,9 +6860,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -5992,9 +6879,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6013,9 +6904,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendChangePlanMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6026,7 +6921,7 @@ const _this = {
         }
     },
 
-    sendCreateProjectMail: async function(projectName, email) {
+    sendCreateProjectMail: async function(projectName: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6044,8 +6939,10 @@ const _this = {
                     subject: 'New Project',
                     template: 'create_project',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: projectName,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -6057,9 +6954,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6074,9 +6975,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6089,6 +6994,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -6098,8 +7004,10 @@ const _this = {
                                 subject: 'New Project',
                                 template: 'create_project',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: projectName,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -6111,9 +7019,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -6126,9 +7038,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6147,9 +7063,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendCreateProjectMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6160,7 +7080,7 @@ const _this = {
         }
     },
 
-    sendCreateSubProjectMail: async function(subProjectName, email) {
+    sendCreateSubProjectMail: async function(subProjectName: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6177,8 +7097,10 @@ const _this = {
                     subject: 'New Sub-Project',
                     template: 'create_subproject',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         subProjectName: subProjectName,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                     },
                 };
@@ -6189,9 +7111,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6206,9 +7132,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6221,6 +7151,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -6230,8 +7161,10 @@ const _this = {
                                 subject: 'New Sub-Project',
                                 template: 'create_subproject',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     subProjectName: subProjectName,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -6242,9 +7175,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -6257,9 +7194,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6278,9 +7219,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendCreateSubProjectMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6292,10 +7237,10 @@ const _this = {
     },
 
     sendUpgradeToEnterpriseMail: async function(
-        projectName,
-        projectId,
-        oldPlan,
-        email
+        projectName: $TSFixMe,
+        projectId: $TSFixMe,
+        oldPlan: $TSFixMe,
+        email: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -6313,6 +7258,7 @@ const _this = {
                     subject: 'Upgrade to enterprise plan request from ' + email,
                     template: 'enterprise_upgrade',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName: projectName,
                         projectId: projectId,
@@ -6327,9 +7273,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6344,9 +7294,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6359,6 +7313,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -6370,6 +7325,7 @@ const _this = {
                                     email,
                                 template: 'enterprise_upgrade',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName: projectName,
                                     projectId: projectId,
@@ -6384,9 +7340,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -6399,9 +7359,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6420,9 +7384,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendUpgradeToEnterpriseMail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6434,11 +7402,11 @@ const _this = {
     },
 
     sendPaymentFailedEmail: async function(
-        projectName,
-        email,
-        name,
-        chargeAttemptStage,
-        invoiceUrl
+        projectName: $TSFixMe,
+        email: $TSFixMe,
+        name: $TSFixMe,
+        chargeAttemptStage: $TSFixMe,
+        invoiceUrl: $TSFixMe
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -6456,10 +7424,12 @@ const _this = {
                     subject: 'Subscription Payment Failed',
                     template: 'subscription_payment_failed',
                     context: {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                         homeURL: global.homeHost,
                         projectName,
                         name,
                         chargeAttemptStage,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                         dashboardURL: global.dashboardHost,
                         invoiceUrl,
                     },
@@ -6471,9 +7441,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6488,9 +7462,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6503,6 +7481,7 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
 
@@ -6512,10 +7491,12 @@ const _this = {
                                 subject: 'Subscription Payment Failed',
                                 template: 'subscription_payment_failed',
                                 context: {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
                                     homeURL: global.homeHost,
                                     projectName,
                                     name,
                                     chargeAttemptStage,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
                                     dashboardURL: global.dashboardHost,
                                 },
                             };
@@ -6526,9 +7507,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -6541,9 +7526,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6562,9 +7551,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendPaymentFailedEmail', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6574,7 +7567,7 @@ const _this = {
             throw error;
         }
     },
-    hasCustomSmtpSettings: async projectId => {
+    hasCustomSmtpSettings: async (projectId: $TSFixMe) => {
         const select =
             'projectId user pass host port from name iv secure enabled createdAt';
         const smtpConfigurations = await EmailSmtpService.findOneBy({
@@ -6599,8 +7592,8 @@ const _this = {
         incidentId,
         reason,
         incidentSlaTimeline,
-        incidentSlaRemaining,
-    }) {
+        incidentSlaRemaining
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6636,9 +7629,13 @@ const _this = {
 
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6653,9 +7650,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6668,6 +7669,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -6700,9 +7702,13 @@ const _this = {
 
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -6714,9 +7720,13 @@ const _this = {
 
                             info = await mailer.sendMail(mailOptions);
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6735,9 +7745,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendSlaNotification', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6758,8 +7772,8 @@ const _this = {
         componentName,
         incidentId,
         reason,
-        incidentSlaTimeline,
-    }) {
+        incidentSlaTimeline
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6793,9 +7807,13 @@ const _this = {
                 EmailBody = await _this.getEmailBody(mailOptions);
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6810,9 +7828,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6825,6 +7847,7 @@ const _this = {
                             smtpSettings.customSmtp &&
                             !isEmpty(smtpSettings.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
@@ -6855,9 +7878,13 @@ const _this = {
                             EmailBody = await _this.getEmailBody(mailOptions);
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -6870,9 +7897,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -6891,9 +7922,13 @@ const _this = {
         } catch (error) {
             ErrorService.log('mailService.sendSlaBreachNotification', error);
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -6908,8 +7943,8 @@ const _this = {
         projectPlan,
         name,
         userEmail,
-        projectUrl,
-    }) {
+        projectUrl
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6945,9 +7980,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -6962,9 +8001,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -6977,9 +8020,12 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"OneUptime Support"' is not assignable to ty... Remove this comment to see the full error message
                             accountMail.name = 'OneUptime Support';
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"support@oneuptime.com"' is not assignable t... Remove this comment to see the full error message
                             accountMail.from = 'support@oneuptime.com';
 
                             mailOptions = {
@@ -7005,9 +8051,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -7020,9 +8070,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -7044,9 +8098,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,
@@ -7060,8 +8118,8 @@ const _this = {
         projectName,
         projectPlan,
         name,
-        userEmail,
-    }) {
+        userEmail
+    }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -7097,9 +8155,13 @@ const _this = {
                 EmailBody = emailBody;
                 if (!mailer) {
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Email not enabled.',
                         content: EmailBody,
@@ -7114,9 +8176,13 @@ const _this = {
                     info = await mailer.sendMail(mailOptions);
 
                     await EmailStatusService.create({
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                         from: mailOptions.from,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                         to: mailOptions.to,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                         subject: mailOptions.subject,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                         template: mailOptions.template,
                         status: 'Success',
                         content: EmailBody,
@@ -7129,9 +8195,12 @@ const _this = {
                             accountMail.customSmtp &&
                             !isEmpty(accountMail.backupConfig)
                         ) {
+                            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                             smtpServer = accountMail.backupConfig.host;
                             accountMail = { ...accountMail.backupConfig };
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"OneUptime Support"' is not assignable to ty... Remove this comment to see the full error message
                             accountMail.name = 'OneUptime Support';
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"support@oneuptime.com"' is not assignable t... Remove this comment to see the full error message
                             accountMail.from = 'support@oneuptime.com';
 
                             mailOptions = {
@@ -7157,9 +8226,13 @@ const _this = {
                             EmailBody = emailBody;
                             if (!mailer) {
                                 await EmailStatusService.create({
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                     from: mailOptions.from,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                     to: mailOptions.to,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                     subject: mailOptions.subject,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,
@@ -7172,9 +8245,13 @@ const _this = {
                             info = await mailer.sendMail(mailOptions);
 
                             await EmailStatusService.create({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                                 from: mailOptions.from,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                                 to: mailOptions.to,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                                 subject: mailOptions.subject,
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                                 template: mailOptions.template,
                                 status: 'Success',
                                 content: EmailBody,
@@ -7196,9 +8273,13 @@ const _this = {
                 error
             );
             await EmailStatusService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type '{}'.
                 from: mailOptions.from,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type '{}'.
                 to: mailOptions.to,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type '{}'.
                 subject: mailOptions.subject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type '{}'.
                 template: mailOptions.template,
                 status: 'Error',
                 content: EmailBody,

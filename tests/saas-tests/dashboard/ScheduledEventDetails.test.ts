@@ -1,8 +1,9 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const anotherEmail = utils.generateRandomBusinessEmail();
@@ -18,10 +19,13 @@ const user = {
 };
 require('should');
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Scheduled Event Note', () => {
     const operationTimeOut = init.timeout;
 
-    beforeAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    beforeAll(async (done: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,6 +42,7 @@ describe('Scheduled Event Note', () => {
             null,
             monitorName,
             page,
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 4.
             componentName
         );
         // Create a scheduled maintenance
@@ -51,14 +56,16 @@ describe('Scheduled Event Note', () => {
         done();
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should create an internal note',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -66,19 +73,23 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(page, '#add-internal-message', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#add-internal-message');
             await init.pageWaitForSelector(page, '#event_state', {
                 visible: true,
@@ -89,12 +100,15 @@ describe('Scheduled Event Note', () => {
                 'investigating',
                 page
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#new-internal');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(
                 page,
                 '#new-internal',
                 'Some random description'
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#internal-addButton');
             await init.pageWaitForSelector(
                 page,
@@ -112,9 +126,10 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should edit an internal note',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -122,14 +137,17 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.timeline-tab');
 
             await init.pageWaitForSelector(
@@ -140,17 +158,21 @@ describe('Scheduled Event Note', () => {
                     timeout: init.timeout,
                 }
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#edit_Internal_incident_message_0');
             await init.pageWaitForSelector(page, '#update-internal', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#update-internal');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(
                 page,
                 '#update-internal',
                 'An updated description'
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#internal-updateButton');
             await init.pageWaitForSelector(
                 page,
@@ -168,9 +190,10 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should delete an internal note',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -178,14 +201,17 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(
                 page,
@@ -195,11 +221,13 @@ describe('Scheduled Event Note', () => {
                     timeout: init.timeout,
                 }
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#delete_Internal_incident_message_0');
             await init.pageWaitForSelector(page, '#deleteNote', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#deleteNote');
             await init.pageWaitForSelector(page, '#deleteNote', {
                 hidden: true,
@@ -218,10 +246,13 @@ describe('Scheduled Event Note', () => {
     // Deleted three tests that repeated
 });
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     const operationTimeOut = init.timeout;
 
-    beforeAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    beforeAll(async (done: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(1000000); // This requires custom timeout
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -259,14 +290,16 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         done();
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should load first 10 scheduled maintenance note => internal note',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -274,14 +307,17 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.timeline-tab');
             const tenthItem = await init.pageWaitForSelector(
                 page,
@@ -294,9 +330,10 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should load the remaining 5 scheduled maintenance note => internal note',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -304,19 +341,23 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(page, '#nextBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#nextBtn');
 
             const fifthItem = await init.pageWaitForSelector(
@@ -336,9 +377,10 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         },
         operationTimeOut
     );
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should visit the advance section and delete the schedule maintenance',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -346,14 +388,17 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the advance tab section
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.advanced-options-tab');
 
             // look for the delete button and click on it
@@ -361,6 +406,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#deleteScheduleEvent');
 
             // find the confirm delete button in the pop up and click on it
@@ -368,6 +414,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#deleteScheduleModalBtn');
             // confirm that the element is deleted and redirected to the list of all schedule event page
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {

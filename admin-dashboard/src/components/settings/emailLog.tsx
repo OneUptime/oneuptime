@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { FormLoader } from '../basic/Loader';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -10,10 +11,14 @@ import {
 } from '../../actions/emailLogs';
 
 class EmailLog extends Component {
+    handleKeyBoard: $TSFixMe;
     async componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEmailLogStatus' does not exist on t... Remove this comment to see the full error message
         await this.props.fetchEmailLogStatus();
     }
-    toggleComponent = ({ input: { value, onChange } }) => (
+    toggleComponent = ({
+        input: { value, onChange }
+    }: $TSFixMe) => (
         <label className="Toggler-wrap">
             <input
                 className="btn-toggler"
@@ -26,10 +31,12 @@ class EmailLog extends Component {
             <span className="TogglerBtn-slider round"></span>
         </label>
     );
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogStatusChange' does not exist on ... Remove this comment to see the full error message
         this.props.emailLogStatusChange({ status: values.emailStatusToggler });
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeEmailLogStatus' does not exist on ... Remove this comment to see the full error message
         const { changeEmailLogStatus, handleSubmit } = this.props;
         return (
             <div
@@ -145,16 +152,17 @@ class EmailLog extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EmailLog.displayName = 'EmailLog';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { fetchEmailLogStatus, emailLogStatusChange },
         dispatch
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     const emailLogStatus = state.emailLogs.emailLogStatus;
     const changeEmailLogStatus = state.emailLogs.changeEmailLogStatus;
     return {
@@ -173,6 +181,7 @@ const ReduxFormComponent = reduxForm({
     enableReinitialize: true,
 })(EmailLog);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EmailLog.propTypes = {
     changeEmailLogStatus: PropTypes.object,
     handleSubmit: PropTypes.func,

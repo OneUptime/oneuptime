@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import {
@@ -18,12 +19,15 @@ import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
 import { socket } from '../components/basic/Socket';
 
 class ScheduledEventDetail extends Component {
-    constructor(props) {
+    limit: $TSFixMe;
+    type: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.limit = 10;
         this.type = 'internal';
@@ -32,6 +36,7 @@ class ScheduledEventDetail extends Component {
         resetIdCounter();
 
         // remove listeners
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
         const scheduledEventId = this.props.scheduledEventId;
         socket.removeListener(
             `addScheduledEventInternalNote-${scheduledEventId}`
@@ -52,8 +57,9 @@ class ScheduledEventDetail extends Component {
             `deleteScheduledEventInvestigationNote-${scheduledEventId}`
         );
     }
-    tabSelected = index => {
+    tabSelected = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
+        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
 
@@ -61,17 +67,24 @@ class ScheduledEventDetail extends Component {
         this.ready();
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.scheduledEventId) !==
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
             String(this.props.scheduledEventId)
         ) {
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchScheduledEventNotesInternal' does n... Remove this comment to see the full error message
                 fetchScheduledEventNotesInternal,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateScheduledEventNoteInvestigationSuc... Remove this comment to see the full error message
                 updateScheduledEventNoteInvestigationSuccess,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateScheduledEventNoteInternalSuccess'... Remove this comment to see the full error message
                 updateScheduledEventNoteInternalSuccess,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteScheduledEventNoteSuccess' does no... Remove this comment to see the full error message
                 deleteScheduledEventNoteSuccess,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createScheduledEventNoteSuccess' does no... Remove this comment to see the full error message
                 createScheduledEventNoteSuccess,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
                 scheduledEventId,
             } = this.props;
             // fetch scheduled event notes
@@ -80,6 +93,7 @@ class ScheduledEventDetail extends Component {
                 socket.emit('schedule_switch', scheduledEventId);
 
                 fetchScheduledEventNotesInternal(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.projectId,
                     scheduledEventId,
                     this.limit,
@@ -89,52 +103,62 @@ class ScheduledEventDetail extends Component {
 
                 socket.on(
                     `addScheduledEventInternalNote-${scheduledEventId}`,
-                    event => createScheduledEventNoteSuccess(event)
+                    (event: $TSFixMe) => createScheduledEventNoteSuccess(event)
                 );
                 socket.on(
                     `addScheduledEventInvestigationNote-${scheduledEventId}`,
-                    event => createScheduledEventNoteSuccess(event)
+                    (event: $TSFixMe) => createScheduledEventNoteSuccess(event)
                 );
                 socket.on(
                     `updateScheduledEventInternalNote-${scheduledEventId}`,
-                    event => updateScheduledEventNoteInternalSuccess(event)
+                    (event: $TSFixMe) => updateScheduledEventNoteInternalSuccess(event)
                 );
                 socket.on(
                     `updateScheduledEventInvestigationNote-${scheduledEventId}`,
-                    event => updateScheduledEventNoteInvestigationSuccess(event)
+                    (event: $TSFixMe) => updateScheduledEventNoteInvestigationSuccess(event)
                 );
                 socket.on(
                     `deleteScheduledEventInternalNote-${scheduledEventId}`,
-                    event => deleteScheduledEventNoteSuccess(event)
+                    (event: $TSFixMe) => deleteScheduledEventNoteSuccess(event)
                 );
                 socket.on(
                     `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
-                    event => deleteScheduledEventNoteSuccess(event)
+                    (event: $TSFixMe) => deleteScheduledEventNoteSuccess(event)
                 );
             }
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
         if (prevProps.activeProjectId !== this.props.activeProjectId) {
             // navigate back to main section
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.history.push(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 `/dashboard/project/${this.props.currentProject.slug}/scheduledEvents`
             );
         }
     }
     ready = () => {
         resetIdCounter();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventSlug' does not exist on ty... Remove this comment to see the full error message
         if (this.props.scheduledEventSlug) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchScheduledEvent' does not exist on t... Remove this comment to see the full error message
             const { fetchScheduledEvent } = this.props;
 
             //fetch scheduledEvent with slug
             fetchScheduledEvent(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
                 this.props.projectId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventSlug' does not exist on ty... Remove this comment to see the full error message
                 this.props.scheduledEventSlug
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
         if (this.props.scheduledEventId) {
             fetchScheduledEventNotesInternal(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
                 this.props.projectId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
                 this.props.scheduledEventId,
                 this.limit,
                 0,
@@ -145,13 +169,21 @@ class ScheduledEventDetail extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEvent' does not exist on type '... Remove this comment to see the full error message
             scheduledEvent,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
             scheduledEventId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'internalNotesList' does not exist on typ... Remove this comment to see the full error message
             internalNotesList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorList' does not exist on type 'Rea... Remove this comment to see the full error message
             monitorList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
@@ -164,6 +196,7 @@ class ScheduledEventDetail extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -182,7 +215,7 @@ class ScheduledEventDetail extends Component {
                 <ShouldRender if={!requesting}>
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
-                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        onSelect={(tabIndex: $TSFixMe) => this.tabSelected(tabIndex)}
                     >
                         <div className="Flex-flex Flex-direction--columnReverse">
                             <TabList
@@ -226,6 +259,7 @@ class ScheduledEventDetail extends Component {
                                                     <span>
                                                         <div>
                                                             <ScheduledEventDescription
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ scheduledEvent: any; monitorList: any; }' ... Remove this comment to see the full error message
                                                                 scheduledEvent={
                                                                     scheduledEvent
                                                                 }
@@ -257,6 +291,7 @@ class ScheduledEventDetail extends Component {
                                                     <div className="Box-root Margin-bottom--12">
                                                         <div className="bs-ContentSection Card-root Card-shadow--medium">
                                                             <ScheduledEventNote
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: string; notes: any; count: any; proj... Remove this comment to see the full error message
                                                                 type="Internal"
                                                                 notes={
                                                                     internalNotesList.scheduledEventNotes
@@ -266,6 +301,7 @@ class ScheduledEventDetail extends Component {
                                                                 }
                                                                 projectId={
                                                                     this.props
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                         .projectId
                                                                 }
                                                                 scheduledEventId={
@@ -294,6 +330,7 @@ class ScheduledEventDetail extends Component {
                             <Fade>
                                 <ShouldRender if={scheduledEvent}>
                                     <ScheduleEventDeleteBox
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; scheduledEventId: any; sch... Remove this comment to see the full error message
                                         projectId={this.props.projectId}
                                         scheduledEventId={scheduledEventId}
                                         scheduledEvent={scheduledEvent}
@@ -308,8 +345,10 @@ class ScheduledEventDetail extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ScheduledEventDetail.displayName = 'ScheduledEventDetail';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ScheduledEventDetail.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
@@ -333,11 +372,11 @@ ScheduledEventDetail.propTypes = {
     history: PropTypes.object,
 };
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { scheduledEventSlug } = props.match.params;
-    const monitorList = [];
-    state.monitor.monitorsList.monitors.map(data => {
-        data.monitors.map(monitor => {
+    const monitorList: $TSFixMe = [];
+    state.monitor.monitorsList.monitors.map((data: $TSFixMe) => {
+        data.monitors.map((monitor: $TSFixMe) => {
             monitorList.push(monitor);
             return monitor;
         });
@@ -365,19 +404,18 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchscheduledEvent,
-            fetchScheduledEventNotesInternal,
-            updateScheduledEventNoteInvestigationSuccess,
-            updateScheduledEventNoteInternalSuccess,
-            deleteScheduledEventNoteSuccess,
-            createScheduledEventNoteSuccess,
-            fetchScheduledEvent,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchscheduledEvent,
+        fetchScheduledEventNotesInternal,
+        updateScheduledEventNoteInvestigationSuccess,
+        updateScheduledEventNoteInternalSuccess,
+        deleteScheduledEventNoteSuccess,
+        createScheduledEventNoteSuccess,
+        fetchScheduledEvent,
+    },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { deleteCard } from '../../actions/card';
 import { closeModal } from '../../actions/modal';
@@ -18,7 +19,7 @@ class DeleteCard extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
@@ -30,17 +31,24 @@ class DeleteCard extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteCardModalId' does not exist on typ... Remove this comment to see the full error message
             id: this.props.deleteCardModalId,
         });
     };
 
     handleDelete = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteCard' does not exist on type 'Read... Remove this comment to see the full error message
             deleteCard,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
             userId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteCardId' does not exist on type 'Re... Remove this comment to see the full error message
             deleteCardId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteCardModalId' does not exist on typ... Remove this comment to see the full error message
             deleteCardModalId,
         } = this.props;
         deleteCard(userId, deleteCardId).then(() =>
@@ -51,6 +59,7 @@ class DeleteCard extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
         const { requesting, deleteCardModalId, error } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -114,6 +123,7 @@ class DeleteCard extends Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                         type="button"
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.closeModal({
                                                 id: deleteCardModalId,
                                             })
@@ -152,8 +162,10 @@ class DeleteCard extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteCard.displayName = 'DeleteCardFormModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteCard.propTypes = {
     deleteCard: PropTypes.object,
     userId: PropTypes.string,
@@ -164,7 +176,7 @@ DeleteCard.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         userId: User.getUserId(),
         requesting: state.card.deleteCard.requesting,
@@ -174,6 +186,5 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, deleteCard }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteCard }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteCard);

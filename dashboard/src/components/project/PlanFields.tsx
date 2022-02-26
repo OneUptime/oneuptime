@@ -2,7 +2,9 @@ import React from 'react';
 import RadioInput from './RadioInput';
 import { PricingPlan } from '../../config';
 
-export default function PlanFields({ activePlan }) {
+export default function PlanFields({
+    activePlan
+}: $TSFixMe) {
     let list = [];
     const plans = PricingPlan.getPlans();
     list = plans.reverse().map(plan => (

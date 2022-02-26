@@ -3,7 +3,9 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { FieldArray } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import { ValidateField } from '../../config';
 import RenderOptions from '../basic/RenderOptions';
@@ -11,15 +13,16 @@ import { RenderSelect } from '../basic/RenderSelect';
 
 export class ResponseParent extends Component {
     // eslint-disable-next-line
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
     }
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fields' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { fields, bodyfield, level, type, criterionType } = this.props;
         return (
             <ul id={fields.name} data-testId={`${criterionType}_criteria_list`}>
                 {bodyfield && bodyfield.length
-                    ? fields.map((newval, j) => {
+                    ? fields.map((newval: $TSFixMe, j: $TSFixMe) => {
                           return (
                               <React.Fragment key={j}>
                                   {Object.keys(bodyfield[j]).includes(
@@ -92,8 +95,8 @@ export class ResponseParent extends Component {
                                               })
                                           }
                                           removeField={(
-                                              removeArrayField,
-                                              updateCriteriaField
+                                              removeArrayField: $TSFixMe,
+                                              updateCriteriaField: $TSFixMe
                                           ) => {
                                               const lastCriteriaIndex = fields.name.lastIndexOf(
                                                   'criteria'
@@ -107,7 +110,7 @@ export class ResponseParent extends Component {
                                               ) {
                                                   if (bodyfield[j + 1]) {
                                                       const updateVal = bodyfield.map(
-                                                          (field, i) => {
+                                                          (field: $TSFixMe, i: $TSFixMe) => {
                                                               if (i === j + 1) {
                                                                   if (
                                                                       bodyfield[
@@ -193,7 +196,7 @@ export class ResponseParent extends Component {
                                               ) {
                                                   if (bodyfield[j + 1]) {
                                                       const updateVal = bodyfield.map(
-                                                          (field, i) => {
+                                                          (field: $TSFixMe, i: $TSFixMe) => {
                                                               if (i === j + 1) {
                                                                   field = {
                                                                       ...field,
@@ -253,7 +256,7 @@ export class ResponseParent extends Component {
                                                       }
                                                   } else if (bodyfield[j - 1]) {
                                                       const updateVal = bodyfield.map(
-                                                          (field, i) => {
+                                                          (field: $TSFixMe, i: $TSFixMe) => {
                                                               if (i === j - 1) {
                                                                   field = {
                                                                       ...field,
@@ -328,6 +331,7 @@ export class ResponseParent extends Component {
                                       <FieldArray
                                           name={`${newval}.criteria`}
                                           component={ResponseParent}
+                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                           type={this.props.type}
                                           bodyfield={bodyfield[j].criteria}
                                           level={level + 1}
@@ -344,8 +348,10 @@ export class ResponseParent extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResponseParent.displayName = 'ResponseParent';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResponseParent.propTypes = {
     fields: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
     bodyfield: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
@@ -354,6 +360,7 @@ ResponseParent.propTypes = {
     criterionType: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
+// @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
 export default connect({}, mapDispatchToProps)(ResponseParent);

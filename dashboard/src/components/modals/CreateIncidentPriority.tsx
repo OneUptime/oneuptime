@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { ValidateField } from '../../config';
 import Color from '../basic/Color';
@@ -13,20 +15,28 @@ import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
 class ColorPicker extends Component {
-    handleChange(e) {
+    handleChange(e: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'input' does not exist on type 'Readonly<... Remove this comment to see the full error message
         this.props.input.onChange(e.rgb);
     }
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayColorPicker' does not exist on ty... Remove this comment to see the full error message
             displayColorPicker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentColorPicker' does not exist on ty... Remove this comment to see the full error message
             currentColorPicker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'input' does not exist on type 'Readonly<... Remove this comment to see the full error message
             input,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'Readonly<{}>... Remove this comment to see the full error message
             id,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleClose' does not exist on type 'Rea... Remove this comment to see the full error message
             handleClose,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleClick' does not exist on type 'Rea... Remove this comment to see the full error message
             handleClick,
         } = this.props;
 
         return (
+            // @ts-expect-error ts-migrate(2741) FIXME: Property 'title' is missing in type '{ handleClick... Remove this comment to see the full error message
             <Color
                 handleClick={handleClick}
                 handleChange={e => this.handleChange(e)}
@@ -39,7 +49,9 @@ class ColorPicker extends Component {
         );
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ColorPicker.displayName = 'ColorPicker';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ColorPicker.propTypes = {
     input: PropTypes.object,
     displayColorPicker: PropTypes.bool.isRequired,
@@ -50,6 +62,7 @@ ColorPicker.propTypes = {
 };
 class CreateIncidentPriority extends Component {
     constructor() {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
         super();
         this.state = {
             displayColorPicker: false,
@@ -64,21 +77,25 @@ class CreateIncidentPriority extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm(values) {
+    submitForm(values: $TSFixMe) {
         const { name, color } = values;
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentPriority' does not exist o... Remove this comment to see the full error message
             .createIncidentPriority(this.props.currentProject._id, {
                 name,
                 color,
             })
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             .then(() => this.props.closeThisDialog());
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document
                     .getElementById('CreateIncidentPriority')
                     .click();
@@ -88,11 +105,14 @@ class CreateIncidentPriority extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit, closeThisDialog } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayColorPicker' does not exist on ty... Remove this comment to see the full error message
         const { displayColorPicker } = this.state;
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -121,6 +141,7 @@ class CreateIncidentPriority extends Component {
                                                     placeholder="Priority name"
                                                     disabled={
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncidentPriority' does not exist on t... Remove this comment to see the full error message
                                                             .newIncidentPriority
                                                             .requesting
                                                     }
@@ -144,6 +165,7 @@ class CreateIncidentPriority extends Component {
                                                     currentColorPicker="color"
                                                     displayColorPicker={
                                                         !this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncidentPriority' does not exist on t... Remove this comment to see the full error message
                                                             .newIncidentPriority
                                                             .requesting &&
                                                         displayColorPicker
@@ -152,6 +174,7 @@ class CreateIncidentPriority extends Component {
                                                         this.setState({
                                                             displayColorPicker: !this
                                                                 .state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayColorPicker' does not exist on ty... Remove this comment to see the full error message
                                                                 .displayColorPicker,
                                                         })
                                                     }
@@ -159,6 +182,7 @@ class CreateIncidentPriority extends Component {
                                                         this.setState({
                                                             displayColorPicker: !this
                                                                 .state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayColorPicker' does not exist on ty... Remove this comment to see the full error message
                                                                 .displayColorPicker,
                                                         })
                                                     }
@@ -171,6 +195,7 @@ class CreateIncidentPriority extends Component {
                                     <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncidentPriority' does not exist on t... Remove this comment to see the full error message
                                                 this.props.newIncidentPriority
                                                     .error
                                             }
@@ -193,6 +218,7 @@ class CreateIncidentPriority extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncidentPriority' does not exist on t... Remove this comment to see the full error message
                                                                     .newIncidentPriority
                                                                     .error
                                                             }
@@ -214,6 +240,7 @@ class CreateIncidentPriority extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncidentPriority' does not exist on t... Remove this comment to see the full error message
                                                 this.props.newIncidentPriority
                                                     .requesting
                                             }
@@ -222,6 +249,7 @@ class CreateIncidentPriority extends Component {
                                             <ShouldRender
                                                 if={
                                                     this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncidentPriority' does not exist on t... Remove this comment to see the full error message
                                                         .newIncidentPriority
                                                         .requesting
                                                 }
@@ -246,7 +274,9 @@ class CreateIncidentPriority extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CreateIncidentPriority.displayName = 'CreateIncidentPriority';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CreateIncidentPriority.propTypes = {
     newIncidentPriority: PropTypes.object.isRequired,
     currentProject: PropTypes.object.isRequired,
@@ -259,21 +289,20 @@ const CreateIncidentPriorityForm = reduxForm({
     initialValues: { color: { r: 255, g: 0, b: 0, a: 1 } },
 })(CreateIncidentPriority);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         newIncidentPriority: state.incidentPriorities.newIncidentPriority,
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            createIncidentPriority,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        createIncidentPriority,
+        closeModal,
+    },
+    dispatch
+);
 export default connect(
     mapStateToProps,
     mapDispatchToProps

@@ -4,7 +4,7 @@ import handlePopulate from '../utils/populate'
 import handleSelect from '../utils/select'
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const incidentCommunicationSla = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -14,6 +14,7 @@ export default {
             const error = new Error(
                 'Incident communication SLA with the same name already exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -45,7 +46,11 @@ export default {
 
         return createdIncidentCommunicationSla;
     },
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -67,7 +72,13 @@ export default {
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     },
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -101,7 +112,7 @@ export default {
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -122,6 +133,7 @@ export default {
                 const error = new Error(
                     'Incident communication SLA with the same name already exist'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -130,14 +142,14 @@ export default {
                 query: { incidentCommunicationSla: query._id },
                 select: '_id',
             });
-            const initialMonitorIds = monitors.map(monitor => monitor._id);
+            const initialMonitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-            const removedMonitors = [];
+            const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {
                 let monitorIds = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
                 monitorIds = monitorIds.map(id => String(id));
-                initialMonitorIds.forEach(monitorId => {
+                initialMonitorIds.forEach((monitorId: $TSFixMe) => {
                     if (!monitorIds.includes(String(monitorId))) {
                         removedMonitors.push(monitorId);
                     }
@@ -192,6 +204,7 @@ export default {
             const error = new Error(
                 'Incident Communication SLA not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -211,7 +224,7 @@ export default {
 
         return updatedIncidentCommunicationSla;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         const deletedSla = await IncidentCommunicationSlaModel.findOneAndUpdate(
             query,
             {
@@ -225,11 +238,11 @@ export default {
 
         return deletedSla;
     },
-    hardDelete: async function(query) {
+    hardDelete: async function(query: $TSFixMe) {
         await IncidentCommunicationSlaModel.deleteMany(query);
         return 'Incident Communication SLA(s) deleted successfully';
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

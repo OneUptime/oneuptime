@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { history } from '../store';
 class OnCallScheduleModal extends Component {
@@ -12,10 +13,11 @@ class OnCallScheduleModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -23,6 +25,7 @@ class OnCallScheduleModal extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog } = this.props;
 
         return (
@@ -47,16 +50,19 @@ class OnCallScheduleModal extends Component {
                                 <div className="bs-Modal-content">
                                     <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <ul>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                             {this.props.data.schedules.map(
-                                                (schedule, i) => {
+                                                (schedule: $TSFixMe, i: $TSFixMe) => {
                                                     return (
                                                         <li key={i}>
                                                             <b
                                                                 onClick={() => {
                                                                     history.push(
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                         `/dashboard/project/${this.props.data.currentProjectSlug}/schedule/${schedule.scheduleId.slug}`
                                                                     );
 
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                                                     this.props.closeThisDialog();
                                                                 }}
                                                                 style={{
@@ -88,6 +94,7 @@ class OnCallScheduleModal extends Component {
                                                             {!schedule.isOnDutyAllTheTime ? (
                                                                 <span>
                                                                     {this.props
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                         .data
                                                                         .status ===
                                                                     'active' ? (
@@ -169,6 +176,7 @@ class OnCallScheduleModal extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                             autoFocus={true}
                                         >
@@ -188,8 +196,10 @@ class OnCallScheduleModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 OnCallScheduleModal.displayName = 'OnCallScheduleModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 OnCallScheduleModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     currentProjectSlug: PropTypes.string,

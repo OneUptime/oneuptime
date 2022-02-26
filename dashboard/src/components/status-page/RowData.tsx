@@ -8,16 +8,17 @@ import ShouldRender from '../basic/ShouldRender';
 
 export class RowData extends Component {
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { statusPage, project } = this.props;
         const userId = User.getUserId();
         const monitorIds = statusPage.monitorNames;
-        const gt = i => monitorIds && monitorIds.length > i;
+        const gt = (i: $TSFixMe) => monitorIds && monitorIds.length > i;
         let monitors = gt(0) ? monitorIds[0] : 'Not Yet Added';
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
         const path = `/dashboard/project/${project.slug}/status-page/${statusPage.slug}`;
-        let publicStatusPageUrl, statusPageSlug;
+        let publicStatusPageUrl: $TSFixMe, statusPageSlug;
         if (statusPage) {
             statusPageSlug = statusPage.slug;
         }
@@ -35,6 +36,7 @@ export class RowData extends Component {
                 onClick={() => {
                     isSubProjectViewer(userId, project)
                         ? window.open(publicStatusPageUrl, '_blank')
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchStatusPages' does not exist on typ... Remove this comment to see the full error message
                         : this.props.switchStatusPages(statusPage, path);
                 }}
             >
@@ -81,6 +83,7 @@ export class RowData extends Component {
                         </span>
                     </div>
                 </td>
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
                 <ShouldRender if={!this.props.switchToProjectViewerNav}>
                     <td
                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -123,8 +126,10 @@ export class RowData extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RowData.displayName = 'StatusPage RowData';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RowData.propTypes = {
     statusPage: PropTypes.object.isRequired,
     switchStatusPages: PropTypes.func.isRequired,
@@ -132,6 +137,6 @@ RowData.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
 export default connect(null, mapDispatchToProps)(RowData);

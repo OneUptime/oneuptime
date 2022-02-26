@@ -11,7 +11,7 @@ const initKeys = ['f'];
  * @param {function} resetKeys function to reset the keys array
  */
 
-const keyBind = (event, route, keys, resetKeys) => {
+const keyBind = (event: $TSFixMe, route: $TSFixMe, keys: $TSFixMe, resetKeys: $TSFixMe) => {
     let shortcut = [];
     // ensure the target is always body and not inside any other element (input, textarea, etc)
     if (route.shortcut && event.target.localName === 'body' && event.key) {
@@ -32,8 +32,8 @@ const keyBind = (event, route, keys, resetKeys) => {
     }
 };
 
-export const navKeyBind = route => {
-    let keys = [];
+export const navKeyBind = (route: $TSFixMe) => {
+    let keys: $TSFixMe = [];
     const resetKeys = () => (keys = []);
     // reasons to use keydown
     // 1 --> gives the user impression that they can press and hold two keys simultaneously
@@ -41,8 +41,8 @@ export const navKeyBind = route => {
     window.addEventListener('keydown', e => keyBind(e, route, keys, resetKeys));
 };
 
-export const cleanBind = route => {
-    let keys = [];
+export const cleanBind = (route: $TSFixMe) => {
+    let keys: $TSFixMe = [];
     const resetKeys = () => (keys = []);
     window.removeEventListener('keydown', e =>
         keyBind(e, route, keys, resetKeys)

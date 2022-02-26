@@ -1,9 +1,10 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
 require('should');
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -12,10 +13,13 @@ const user = {
     email,
     password,
 };
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Keyboard Shortcut: Dashboard', () => {
     const operationTimeOut = init.timeout;
 
-    beforeAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    beforeAll(async (done: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -27,14 +31,16 @@ describe('Keyboard Shortcut: Dashboard', () => {
         done();
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to component pages with keyboard shortcut (f + c)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -56,9 +62,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to incident logs page with keyboard shortcut (f + i)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -83,9 +90,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to status pages with keyboard shortcut (f + p)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -107,9 +115,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to on-call schedule page with keyboard shortcut (f + o)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -134,9 +143,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to alert log page with keyboard shortcut (o + a)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -161,9 +171,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate scheduled events page with keyboard shortcut (f + e)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -184,9 +195,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         },
         operationTimeOut
     );
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to automation script page with keyboard shortcut (f + z)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -208,9 +220,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to reports page with keyboard shortcut (f + v)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -231,9 +244,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to team members page with keyboard shortcut (f + u)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -258,9 +272,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to project settings page with keyboard shortcut (f + s)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -281,9 +296,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         },
         operationTimeOut
     );
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to consulting and services page with keyboard shortcut (f + q)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -305,9 +321,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to billing settings page with keyboard shortcut (s + b)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -328,9 +345,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test.skip(
         'should navigate to resource category page with keyboard shortcut (s + r)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -352,9 +370,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to monitor page (project settings) with keyboard shortcut (s + m)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -376,9 +395,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to incidents page (project settings) with keyboard shortcut (s + t)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -400,9 +420,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to integrations page with keyboard shortcut (s + i)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -427,9 +448,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to email settings page with keyboard shortcut (s + e)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -454,9 +476,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to sms settings page with keyboard shortcut (s + c)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -481,9 +504,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to webhooks page (project settings) with keyboard shortcut (s + w)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -505,9 +529,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to probe in settings page with keyboard shortcut (s + p)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -528,9 +553,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to git credential page with keyboard shortcut (s + g)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -552,9 +578,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to docker credential page with keyboard shortcut (s + k)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -576,9 +603,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to git credentials page (project settings) with keyboard shortcut (s + g)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -600,9 +628,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to docker credentials page (project settings) with keyboard shortcut (s + d)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -624,9 +653,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to api page with keyboard shortcut (s + a)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -651,9 +681,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to advanced page (project settings) with keyboard shortcut (s + v)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -675,9 +706,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to profile settings with keyboard shortcut (f + n)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -685,8 +717,11 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#profile-menu');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#profileBilling');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#profileBilling');
             await init.pageWaitForSelector(page, '#profileSettings', {
                 visible: true,
@@ -707,9 +742,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to change password page with keyboard shortcut (f + w)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -717,8 +753,11 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#profile-menu');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#userProfile');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#changePassword', {
                 visible: true,
@@ -739,9 +778,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to profile billing page with keyboard shortcut (f + b)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -749,8 +789,11 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#profile-menu');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#userProfile');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
@@ -771,9 +814,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate to advanced page with keyboard shortcut (f + a)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -781,8 +825,11 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#profile-menu');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#userProfile');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#advanced', {
                 visible: true,
@@ -803,9 +850,10 @@ describe('Keyboard Shortcut: Dashboard', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should navigate back to dashboard from profile using keyboard shortcut (f + k)',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -813,8 +861,11 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#profile-menu');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#userProfile');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#backToDashboard', {
                 visible: true,

@@ -11,9 +11,10 @@ const _this = {
         };
     },
 
-    deleteApi: (url, data) => {
+    deleteApi: (url: $TSFixMe, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
+            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
             axios({
                 method: 'DELETE',
                 url: `${config.serverUrl}/${url}`,

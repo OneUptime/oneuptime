@@ -3,18 +3,17 @@ import PropTypes from 'prop-types';
 import QuickTipBox from '../basic/QuickTipBox';
 import FeatureList from '../basic/FeatureList';
 import { tutorials } from '../../config';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import RenderIfOwnerOrAdmin from '../basic/RenderIfOwnerOrAdmin';
 import ShouldRender from '../basic/ShouldRender';
 
-const getDescription = type => {
+const getDescription = (type: $TSFixMe) => {
     return tutorials.getTutorials().filter(note => note.id === type);
 };
-const renderFeatures = features => {
+const renderFeatures = (features: $TSFixMe) => {
     if (features) {
-        return features.map(feature => (
-            <FeatureList key={uuidv4()} content={feature} />
-        ));
+        return features.map((feature: $TSFixMe) => <FeatureList key={uuidv4()} content={feature} />);
     }
     return null;
 };
@@ -25,8 +24,9 @@ const CustomTutorial = ({
     currentProjectId,
     slug,
     projectTeamMembers,
-    hideActionButton,
-}) => (
+    hideActionButton
+}: $TSFixMe) => (
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         {/* Here, component and monitor notifier */}
 

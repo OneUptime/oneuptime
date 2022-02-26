@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import { PricingPlan } from '../../config';
 
 export class UpgradePlanModal extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.upgradePlan = this.upgradePlan.bind(this);
     }
@@ -26,30 +26,41 @@ export class UpgradePlanModal extends Component {
     }
 
     hideForm = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideUpgradeForm' does not exist on type ... Remove this comment to see the full error message
         this.props.hideUpgradeForm();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetCreateMonitor' does not exist on ty... Remove this comment to see the full error message
         this.props.resetCreateMonitor();
     };
 
-    upgradePlan(values) {
+    upgradePlan(values: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { _id: id, name } = this.props.currentProject;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
             category: oldCategory,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
             type: oldType,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
             details: oldDetails,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
         } = PricingPlan.getPlanById(this.props.initialValues.planId);
         const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
             category: newCategory,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
             type: newType,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
             details: newDetails,
         } = PricingPlan.getPlanById(values.planId);
         const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePlan' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
 
         this.hideForm();
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.hideForm();
@@ -59,6 +70,7 @@ export class UpgradePlanModal extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -82,7 +94,7 @@ export class UpgradePlanModal extends Component {
 }
 // }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
@@ -95,21 +107,22 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            changePlan,
-            dispatch,
-            hideUpgradeForm,
-            createMonitor,
-            resetCreateMonitor,
-            upgradePlanEmpty,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        changePlan,
+        dispatch,
+        hideUpgradeForm,
+        createMonitor,
+        resetCreateMonitor,
+        upgradePlanEmpty,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UpgradePlanModal.displayName = 'UpgradePlanModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UpgradePlanModal.propTypes = {
     dispatch: PropTypes.func.isRequired,
     hideUpgradeForm: PropTypes.func.isRequired,

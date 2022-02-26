@@ -6,7 +6,14 @@ import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    findBy: async function({ query, limit, skip, sort, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        sort,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -31,7 +38,11 @@ export default {
         return escalations;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -51,7 +62,7 @@ export default {
         return escalation;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const escalationModel = new EscalationModel({
             call: data.call,
             email: data.email,
@@ -76,7 +87,7 @@ export default {
         return escalation;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -86,7 +97,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -103,7 +114,7 @@ export default {
         return escalation;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -121,7 +132,7 @@ export default {
         return escalation;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -154,7 +165,7 @@ export default {
         return updatedData;
     },
 
-    deleteEscalationMember: async function(projectId, memberId, deletedById) {
+    deleteEscalationMember: async function(projectId: $TSFixMe, memberId: $TSFixMe, deletedById: $TSFixMe) {
         const _this = this;
         const escalations = await _this.findBy({
             query: { projectId },
@@ -168,8 +179,8 @@ export default {
                 for (const team of teams) {
                     const teamMembers = team.teamMembers;
                     const filtered = teamMembers
-                        .filter(meamber => meamber['groupId'] !== memberId)
-                        .filter(member => member['userId'] !== memberId);
+                        .filter((meamber: $TSFixMe) => meamber['groupId'] !== memberId)
+                        .filter((member: $TSFixMe) => member['userId'] !== memberId);
                     newTeams.push({
                         _id: team._id,
                         teamMembers: filtered,
@@ -201,9 +212,8 @@ export default {
                             populate: populateSchedule,
                         });
                         const rmEscalation = schedule.escalationIds.filter(
-                            escalationId =>
-                                String(escalationId._id) !==
-                                String(escalation._id)
+                            (escalationId: $TSFixMe) => String(escalationId._id) !==
+                            String(escalation._id)
                         );
                         schedule.escalationIds = rmEscalation;
                         await Promise.all([
@@ -228,18 +238,18 @@ export default {
         }
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await EscalationModel.deleteMany(query);
         return 'Escalation(s) removed successfully';
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         let escalation = await _this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {
             const escalations = await Promise.all(
-                escalation.map(async escalation => {
+                escalation.map(async (escalation: $TSFixMe) => {
                     const escalationId = escalation._id;
                     escalation = await _this.updateOneBy(
                         { _id: escalationId, deleted: true },
@@ -272,15 +282,15 @@ export default {
 };
 
 function computeActiveTeamIndex(
-    numberOfTeams,
-    intervalDifference,
-    rotationInterval
+    numberOfTeams: $TSFixMe,
+    intervalDifference: $TSFixMe,
+    rotationInterval: $TSFixMe
 ) {
     const difference = Math.floor(intervalDifference / rotationInterval);
     return difference % numberOfTeams;
 }
 
-function computeActiveTeams(escalation) {
+function computeActiveTeams(escalation: $TSFixMe) {
     const {
         teams,
         rotationInterval,

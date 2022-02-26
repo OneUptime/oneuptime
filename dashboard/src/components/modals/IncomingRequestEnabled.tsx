@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { bindActionCreators } from 'redux';
 import { closeModal } from '../../actions/modal';
@@ -16,7 +17,7 @@ class IncomingRequestEnabledToggle extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
@@ -28,7 +29,9 @@ class IncomingRequestEnabledToggle extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             id: this.props.projectId,
         });
     };
@@ -36,10 +39,15 @@ class IncomingRequestEnabledToggle extends Component {
     handleClick = () => {
         let enabled = true; // This must not be changed as it corresponds to backend Incoming Request Schema
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestId' does not exist on type 'Reado... Remove this comment to see the full error message
             requestId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingRequestToggle' does not exist on... Remove this comment to see the full error message
             incomingRequestToggle,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
         } = this.props;
         if (propArr.isEnabled === true) {
@@ -51,6 +59,7 @@ class IncomingRequestEnabledToggle extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { propArr, isRequesting, closeModal, projectId } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -129,8 +138,10 @@ class IncomingRequestEnabledToggle extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncomingRequestEnabledToggle.displayName = 'IncomingRequestEnabledToggle';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncomingRequestEnabledToggle.propTypes = {
     isRequesting: PropTypes.bool,
     closeModal: PropTypes.func,
@@ -140,7 +151,7 @@ IncomingRequestEnabledToggle.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         isRequesting: state.incomingRequest.updateIncomingRequest.requesting,
         projectId: state.modal.modals[0].projectId,
@@ -148,8 +159,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
 
 export default connect(
     mapStateToProps,

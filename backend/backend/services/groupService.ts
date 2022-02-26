@@ -1,7 +1,7 @@
 import GroupModel from '../models/groups'
 
 export default {
-    findBy: async function(query, limit, skip) {
+    findBy: async function(query: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -27,14 +27,18 @@ export default {
                 }),
             GroupModel.countDocuments(query),
         ]);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'groups' does not exist on type '{}'.
         response.groups = groups;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
         response.count = count;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type '{}'.
         response.skip = skip;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type '{}'.
         response.limit = limit;
         return response;
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -51,7 +55,7 @@ export default {
         return group;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const groupExist = await this.findOneBy({
             name: data.name,
             projectId: data.projectId,
@@ -59,6 +63,7 @@ export default {
 
         if (groupExist) {
             const error = new Error('Group already exist in this project');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -73,7 +78,7 @@ export default {
         return group;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -83,7 +88,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const group = await GroupModel.findOneAndUpdate(
             query,
             {
@@ -100,7 +105,7 @@ export default {
         return group;
     },
 
-    updateOneBy: async function(query, data, projectId) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, projectId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -114,6 +119,7 @@ export default {
 
         if (groupExist && String(groupExist._id) !== String(query._id)) {
             const error = new Error('Group already exist in this project');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -129,11 +135,12 @@ export default {
         group = await this.findOneBy(query);
         return group;
     },
-    removeGroupMember: async function(groupId, memberId) {
+    removeGroupMember: async function(groupId: $TSFixMe, memberId: $TSFixMe) {
         const _this = this;
         const group = await _this.findOneBy({ _id: groupId });
         const teamMembers = group.teams;
-        const data = teamMembers.filter(id => id !== memberId);
+        const data = teamMembers.filter((id: $TSFixMe) => id !== memberId);
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const newGroup = await _this.updateOneBy(
             { _id: groupId },
             { teams: data }

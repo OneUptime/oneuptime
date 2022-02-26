@@ -6,12 +6,18 @@ import LanguageBox from './LanguageBox';
 import ShouldRender from './ShouldRender';
 import { openLanguageMenu } from '../actions/subscribe';
 
-const SelectLanguage = ({ isShown, setIsShown, theme }) => {
+const SelectLanguage = ({
+    isShown,
+    setIsShown,
+    theme
+}: $TSFixMe) => {
     const popupReff = useRef();
     const documentClickHandler = useRef();
 
     useEffect(() => {
-        documentClickHandler.current = e => {
+        // @ts-expect-error ts-migrate(2322) FIXME: Type '(e: $TSFixMe) => void' is not assignable to ... Remove this comment to see the full error message
+        documentClickHandler.current = (e: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
             if (popupReff.current && popupReff.current.contains(e.target))
                 return;
             setIsShown(false);
@@ -20,6 +26,7 @@ const SelectLanguage = ({ isShown, setIsShown, theme }) => {
     }, []);
 
     const removeDocumentClickHandler = () => {
+        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
         document.removeEventListener('click', documentClickHandler.current);
     };
 
@@ -36,6 +43,7 @@ const SelectLanguage = ({ isShown, setIsShown, theme }) => {
         >
             <ShouldRender if={isShown}>
                 <LanguageBox
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ theme: any; handleCloseButtonClick: () => ... Remove this comment to see the full error message
                     theme={theme}
                     handleCloseButtonClick={handleCloseButtonClick}
                 />
@@ -51,6 +59,5 @@ SelectLanguage.propTypes = {
     theme: PropTypes.bool,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openLanguageMenu }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openLanguageMenu }, dispatch);
 export default connect(null, mapDispatchToProps)(SelectLanguage);

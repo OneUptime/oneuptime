@@ -4,7 +4,7 @@ import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const monitorSlaCount = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -13,6 +13,7 @@ export default {
             const error = new Error(
                 'Monitor SLA with the same name already exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -43,7 +44,11 @@ export default {
 
         return createdMonitorSla;
     },
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -56,7 +61,13 @@ export default {
         const monitorSla = await monitorSlaQuery;
         return monitorSla;
     },
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -82,7 +93,7 @@ export default {
 
         return monitorSla;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -99,6 +110,7 @@ export default {
                 const error = new Error(
                     'Monitor SLA with the same name already exist'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -107,14 +119,14 @@ export default {
                 query: { monitorSla: query._id },
                 select: '_id',
             });
-            const initialMonitorIds = monitors.map(monitor => monitor._id);
+            const initialMonitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-            const removedMonitors = [];
+            const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {
                 let monitorIds = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
                 monitorIds = monitorIds.map(id => String(id));
-                initialMonitorIds.forEach(monitorId => {
+                initialMonitorIds.forEach((monitorId: $TSFixMe) => {
                     if (!monitorIds.includes(String(monitorId))) {
                         removedMonitors.push(monitorId);
                     }
@@ -167,6 +179,7 @@ export default {
 
         if (!updatedMonitorSla) {
             const error = new Error('Monitor SLA not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -183,7 +196,7 @@ export default {
 
         return updatedMonitorSla;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         const deletedSla = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
@@ -197,11 +210,11 @@ export default {
 
         return deletedSla;
     },
-    hardDelete: async function(query) {
+    hardDelete: async function(query: $TSFixMe) {
         await MonitorSlaModel.deleteMany(query);
         return 'Monitor SLA(s) deleted successfully';
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

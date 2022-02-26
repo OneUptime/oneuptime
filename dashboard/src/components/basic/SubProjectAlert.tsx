@@ -5,13 +5,14 @@ import ShouldRender from '../basic/ShouldRender';
 
 class SubProjectAlert extends Component {
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, subProjects, activeSubProjectId } = this.props;
 
         const isSubProject = currentProject?._id !== activeSubProjectId;
         let subProjectName;
         if (isSubProject) {
             subProjectName = subProjects.find(
-                obj => obj._id === activeSubProjectId
+                (obj: $TSFixMe) => obj._id === activeSubProjectId
             )?.name;
         }
 
@@ -50,25 +51,26 @@ class SubProjectAlert extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubProjectAlert.displayName = 'SubProjectAlert';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubProjectAlert.propTypes = {
     currentProject: PropTypes.object,
     activeSubProjectId: PropTypes.string,
     subProjects: PropTypes.array,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
-        subProjects && subProjects.map(subProject => subProject.name);
+        subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =
         subProjectNames &&
-        subProjectNames.map(name =>
-            subProjects.find(subProject => subProject.name === name)
+        subProjectNames.map((name: $TSFixMe) => subProjects.find((subProject: $TSFixMe) => subProject.name === name)
         );
 
     return {

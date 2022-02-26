@@ -8,6 +8,7 @@ import CreateIncomingRequest from '../modals/CreateIncomingRequest';
 
 class IncomingRequestButton extends React.Component {
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject } = this.props;
 
         return (
@@ -16,6 +17,7 @@ class IncomingRequestButton extends React.Component {
                 type="button"
                 id="addIncomingRequestBtn"
                 onClick={() =>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.openModal({
                         id: currentProject._id,
                         onClose: () => '',
@@ -38,22 +40,23 @@ class IncomingRequestButton extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncomingRequestButton.displayName = 'IncomingRequestButton';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject,
-    modalId: state.modal.modals[0],
+    modalId: state.modal.modals[0]
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncomingRequestButton.propTypes = {
     openModal: PropTypes.func.isRequired,
     currentProject: PropTypes.object,

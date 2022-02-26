@@ -4,7 +4,7 @@ import JsonToCsv from './jsonToCsv'
 import ErrorService from 'common-server/utils/error'
 import logger from 'common-server/utils/logger'
 
-function logResponse(req, res, responsebody) {
+function logResponse(req: $TSFixMe, res: $TSFixMe, responsebody: $TSFixMe) {
     const requestEndedAt = Date.now();
     const method = req.method;
     const url = req.url;
@@ -28,15 +28,16 @@ function logResponse(req, res, responsebody) {
 }
 
 export default {
-    sendEmptyResponse(req, res) {
+    sendEmptyResponse(req: $TSFixMe, res: $TSFixMe) {
         res.set('Request-Id', req.id);
         res.set('Pod-Id', process.env.POD_NAME);
 
         res.status(200).send();
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         return logResponse(req, res);
     },
 
-    sendFileResponse(req, res, file) {
+    sendFileResponse(req: $TSFixMe, res: $TSFixMe, file: $TSFixMe) {
         /** create read stream */
 
         const gfs = new Mongoose.mongo.GridFSBucket(mongoose.connection.db, {
@@ -57,7 +58,7 @@ export default {
         return logResponse(req, res, 'FILE');
     },
 
-    sendErrorResponse: function(req, res, error) {
+    sendErrorResponse: function(req: $TSFixMe, res: $TSFixMe, error: $TSFixMe) {
         let status, message;
         if (error.statusCode && error.message) {
             res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
@@ -104,7 +105,7 @@ export default {
         return logResponse(req, res, { message });
     },
 
-    sendListResponse: async function(req, res, list, count) {
+    sendListResponse: async function(req: $TSFixMe, res: $TSFixMe, list: $TSFixMe, count: $TSFixMe) {
         const response = {};
 
         if (!list) {
@@ -112,64 +113,91 @@ export default {
         }
 
         if (list) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
             response.data = list;
         }
 
         if (count) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
             response.count = count;
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
             if (list) response.count = list.length;
         }
 
         if (req.query.skip) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type '{}'.
             response.skip = parseInt(req.query.skip);
         }
 
         if (req.query.limit) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type '{}'.
             response.limit = parseInt(req.query.limit);
         }
 
         if (req.query['output-type'] === 'csv') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
             if (!Array.isArray(response.data)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                 const properties = Object.keys(response.data);
                 const newObj = {};
                 properties.forEach(prop => {
                     if (
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                         typeof response.data[[prop]] === 'object' &&
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                         response.data[[prop]] !== null
                     ) {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                         if (response.data[[prop]].name)
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                             response.data[[prop]] = response.data[[prop]].name;
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                         else if (response.data[[prop]].title)
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                             response.data[[prop]] = response.data[[prop]].title;
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                         else if (response.data[[prop]]._id)
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                             response.data[[prop]] = response.data[[prop]]._id;
                     }
+                    // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                     newObj[[prop]] = response.data[[prop]];
                 });
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                 response.data = JSON.parse(JSON.stringify(newObj));
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
                 response.data = [response.data];
             } else {
-                response.data = response.data.map(i => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                response.data = response.data.map((i: $TSFixMe) => {
                     i = i._doc ? i._doc : i;
                     const properties = Object.keys(i);
                     const newObj = {};
                     properties.forEach(prop => {
                         if (
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             typeof i[[prop]] === 'object' &&
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             i[[prop]] !== null
                         ) {
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             if (i[[prop]].name) i[[prop]] = i[[prop]].name;
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             else if (i[[prop]].title)
+                                // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                                 i[[prop]] = i[[prop]].title;
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
                         }
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         newObj[[prop]] = i[[prop]];
                     });
                     return JSON.parse(JSON.stringify(newObj));
                 });
             }
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
             response.data = await JsonToCsv.ToCsv(response.data);
         }
 
@@ -181,22 +209,30 @@ export default {
         return logResponse(req, res, response);
     },
 
-    async sendItemResponse(req, res, item) {
+    async sendItemResponse(req: $TSFixMe, res: $TSFixMe, item: $TSFixMe) {
         if (req.query['output-type'] === 'csv') {
             if (!Array.isArray(item)) {
                 const properties = Object.keys(item);
                 const newObj = {};
                 properties.forEach(prop => {
                     if (
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         typeof item[[prop]] === 'object' &&
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         item[[prop]] !== null
                     ) {
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         if (item[[prop]].name) item[[prop]] = item[[prop]].name;
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         else if (item[[prop]].title)
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             item[[prop]] = item[[prop]].title;
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         else if (item[[prop]]._id)
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             item[[prop]] = item[[prop]]._id;
                     }
+                    // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                     newObj[[prop]] = item[[prop]];
                 });
                 item = JSON.parse(JSON.stringify(newObj));
@@ -208,14 +244,21 @@ export default {
                     const newObj = {};
                     properties.forEach(prop => {
                         if (
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             typeof i[[prop]] === 'object' &&
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             i[[prop]] !== null
                         ) {
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             if (i[[prop]].name) i[[prop]] = i[[prop]].name;
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             else if (i[[prop]].title)
+                                // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                                 i[[prop]] = i[[prop]].title;
+                            // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                             else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
                         }
+                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'string[]' cannot be used as an index type.
                         newObj[[prop]] = i[[prop]];
                     });
                     return JSON.parse(JSON.stringify(newObj));

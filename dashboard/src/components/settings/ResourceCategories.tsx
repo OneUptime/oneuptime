@@ -10,6 +10,7 @@ import RemoveResourceCategory from '../modals/RemoveResourceCategory';
 import EditResourceCategory from '../modals/EditResourceCategory';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
@@ -31,7 +32,8 @@ export class ResourceCategories extends Component {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
-    handleKeyboard = e => {
+    handleKeyboard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { modalId, modalList } = this.props;
         const { CreateResourceCategoryModalId } = this.state;
         const userId = User.getUserId();
@@ -54,8 +56,11 @@ export class ResourceCategories extends Component {
         }
     };
     prevClicked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchResourceCategories' does not exist ... Remove this comment to see the full error message
         this.props.fetchResourceCategories(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             this.props.skip ? parseInt(this.props.skip, 10) - 10 : 10,
             10
         );
@@ -65,15 +70,19 @@ export class ResourceCategories extends Component {
     };
 
     nextClicked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchResourceCategories' does not exist ... Remove this comment to see the full error message
         this.props.fetchResourceCategories(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             this.props.skip ? parseInt(this.props.skip, 10) + 10 : 10,
             10
         );
         this.setState({ page: this.state.page + 1 });
     };
 
-    handleCreateResourceCategory = userId => {
+    handleCreateResourceCategory = (userId: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
@@ -86,7 +95,8 @@ export class ResourceCategories extends Component {
               });
     };
 
-    handleEdit = (userId, _id) => {
+    handleEdit = (userId: $TSFixMe, _id: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
@@ -101,7 +111,8 @@ export class ResourceCategories extends Component {
               });
     };
 
-    handleDelete = (userId, _id) => {
+    handleDelete = (userId: $TSFixMe, _id: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
@@ -119,11 +130,15 @@ export class ResourceCategories extends Component {
     render() {
         const footerBorderTopStyle = { margin: 0, padding: 0 };
         let canNext =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             this.props.count >
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             parseInt(this.props.skip) + parseInt(this.props.limit)
                 ? true
                 : false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         let canPrev = parseInt(this.props.skip) <= 0 ? false : true;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
         const { isRequesting, error, resourceCategories } = this.props;
 
         if (isRequesting || !resourceCategories) {
@@ -132,6 +147,7 @@ export class ResourceCategories extends Component {
         }
 
         const userId = User.getUserId();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
 
         return (
@@ -212,13 +228,18 @@ export class ResourceCategories extends Component {
                                             </div>
                                         </header>
                                         {resourceCategories.map(
-                                            ({ createdAt, name, _id }) => (
+                                            ({
+                                                createdAt,
+                                                name,
+                                                _id
+                                            }: $TSFixMe) => (
                                                 <div
                                                     key={_id}
                                                     className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                                 >
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                                         <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                             {this.props.name}
                                                         </div>
                                                         <div
@@ -350,15 +371,19 @@ export class ResourceCategories extends Component {
                                                 ? `Page ${
                                                       this.state.page
                                                   } of ${numberOfPages} (${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count
                                                   } Resource Categor${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count < 2 // This will cater for '0 Category'
                                                           ? 'y'
                                                           : 'ies'
                                                   })`
                                                 : `${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count
                                                   } Resource Categor${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                       this.props.count < 2 // This will cater for '0 Category'
                                                           ? 'y'
                                                           : 'ies'
@@ -415,8 +440,10 @@ export class ResourceCategories extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResourceCategories.displayName = 'ResourceCategories';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResourceCategories.propTypes = {
     projectId: PropTypes.string,
     resourceCategories: PropTypes.array,
@@ -433,27 +460,28 @@ ResourceCategories.propTypes = {
     modalList: PropTypes.array,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchResourceCategories,
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchResourceCategories,
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,
+
     resourceCategories:
         state.resourceCategories.resourceCategoryList.resourceCategories,
+
     skip: state.resourceCategories.resourceCategoryList.skip,
     limit: state.resourceCategories.resourceCategoryList.limit,
     count: state.resourceCategories.resourceCategoryList.count,
     isRequesting: state.resourceCategories.resourceCategoryList.requesting,
     currentProject: state.project.currentProject,
     modalId: state.modal.modals[0] ? state.modal.modals[0].id : '',
-    modalList: state.modal.modals,
+    modalList: state.modal.modals
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResourceCategories);

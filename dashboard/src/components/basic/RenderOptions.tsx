@@ -2,6 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, change, formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
 import {
@@ -168,15 +169,25 @@ const placeholders = {
 export class RenderOption extends Component {
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addArrayField' does not exist on type 'R... Remove this comment to see the full error message
             addArrayField,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeArrayField' does not exist on type... Remove this comment to see the full error message
             removeArrayField,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fieldnameprop' does not exist on type 'R... Remove this comment to see the full error message
             fieldnameprop,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyfield' does not exist on type 'Reado... Remove this comment to see the full error message
             bodyfield,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addField' does not exist on type 'Readon... Remove this comment to see the full error message
             addField,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeField' does not exist on type 'Rea... Remove this comment to see the full error message
             removeField,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'level' does not exist on type 'Readonly<... Remove this comment to see the full error message
             level,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             type,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
             change,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterionType' does not exist on type 'R... Remove this comment to see the full error message
             criterionType,
         } = this.props;
 
@@ -395,6 +406,7 @@ export class RenderOption extends Component {
                                 }
                             />
                         </div>
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
                         <Tooltip title="Incoming http Request Filter">
                             <p>
                                 JavaScript expressions that evaluates to a
@@ -712,7 +724,9 @@ export class RenderOption extends Component {
                                 className="bs-Fieldset-label"
                                 style={{ padding: '6px' }}
                             >
+                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                 {filterval && mapValue[filterval]
+                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                     ? mapValue[filterval]
                                     : ''}
                             </label>
@@ -828,9 +842,11 @@ export class RenderOption extends Component {
                                             placeholderfilter.indexOf(
                                                 filterval
                                             ) <= -1 &&
+                                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                             placeholders[filterval][
                                                 bodyfield.responseType
                                             ]
+                                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                                 ? placeholders[filterval][
                                                       bodyfield.responseType
                                                   ]
@@ -846,6 +862,7 @@ export class RenderOption extends Component {
                                         bodyfield.filter === 'jsExpression'
                                     }
                                 >
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
                                     <Tooltip title="Incoming HTTP Request JS Expression">
                                         <p>
                                             JavaScript expressions that
@@ -879,6 +896,7 @@ export class RenderOption extends Component {
                                             'responseBody'
                                     }
                                 >
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
                                     <Tooltip title="Evaluate Response">
                                         <p>
                                             API Monitor exposes the{' '}
@@ -1104,7 +1122,9 @@ export class RenderOption extends Component {
                                 filterval &&
                                 bodyfield.responseType &&
                                 placeholderfilter.indexOf(filterval) <= -1 &&
+                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                 placeholders[filterval][bodyfield.responseType]
+                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                     ? placeholders['lessThan'][
                                           bodyfield.responseType
                                       ]
@@ -1254,6 +1274,7 @@ export class RenderOption extends Component {
                                     onClick={() =>
                                         removeField(
                                             removeArrayField,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCriteriaField' does not exist on t... Remove this comment to see the full error message
                                             this.props.updateCriteriaField
                                         )
                                     }
@@ -1289,6 +1310,7 @@ export class RenderOption extends Component {
                                     type="button"
                                     onClick={() => {
                                         addArrayField(fieldnameprop, [
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formCriteria' does not exist on type 'Re... Remove this comment to see the full error message
                                             ...(this.props.formCriteria || []),
                                             {
                                                 match: '',
@@ -1331,8 +1353,10 @@ export class RenderOption extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RenderOption.displayName = 'RenderOption';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RenderOption.propTypes = {
     bodyfield: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     addArrayField: PropTypes.func,
@@ -1348,13 +1372,12 @@ RenderOption.propTypes = {
     formCriteria: PropTypes.array,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { addArrayField, removeArrayField, change, updateCriteriaField },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { addArrayField, removeArrayField, change, updateCriteriaField },
+    dispatch
+);
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     const selector = formValueSelector('NewMonitor');
     const formCriteria = selector(state, `${ownProps.fieldnameprop}.criteria`);
     return {

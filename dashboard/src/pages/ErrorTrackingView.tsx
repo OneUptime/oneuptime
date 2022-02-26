@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import PropsType from 'prop-types';
@@ -18,48 +19,70 @@ class ErrorTrackingView extends Component {
     componentDidMount() {
         this.ready();
     }
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.componentSlug) !==
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                 String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject
         ) {
             if (
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 this.props.currentProject &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 this.props.currentProject._id &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                 this.props.componentSlug
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
                 this.props.fetchComponent(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                     this.props.currentProject._id,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                     this.props.componentSlug
                 );
             }
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorTrackers' does not exist on ty... Remove this comment to see the full error message
             this.props.fetchErrorTrackers(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 this.props.currentProject._id,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                 this.props.componentId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerSkip' does not exist on type 'Rea... Remove this comment to see the full error message
                 this.props.trackerSkip,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerLimit' does not exist on type 'Re... Remove this comment to see the full error message
                 this.props.trackerLimit
             );
         }
     }
     ready = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
             fetchComponent,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerLimit' does not exist on type 'Re... Remove this comment to see the full error message
             trackerLimit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerSkip' does not exist on type 'Rea... Remove this comment to see the full error message
             trackerSkip,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const projectId = this.props.currentProject
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             ? this.props.currentProject._id
             : null;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
         }
         if (projectId && componentId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorTrackers' does not exist on ty... Remove this comment to see the full error message
             this.props.fetchErrorTrackers(
                 projectId,
                 componentId,
@@ -70,8 +93,11 @@ class ErrorTrackingView extends Component {
     };
     handleCloseQuickStart = () => {
         const postObj = { showQuickStart: false };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
         const { errorTracker, editErrorTracker } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const projectId = this.props.currentProject
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             ? this.props.currentProject._id
             : null;
         editErrorTracker(
@@ -83,10 +109,15 @@ class ErrorTrackingView extends Component {
     };
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
             errorTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
 
@@ -102,6 +133,7 @@ class ErrorTrackingView extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -126,6 +158,7 @@ class ErrorTrackingView extends Component {
                     errorTracker[0] &&
                     errorTracker[0].showQuickStart ? (
                         <LibraryList
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ title: string; type: string; errorTracker:... Remove this comment to see the full error message
                             title="Error Tracking"
                             type="errorTracking"
                             errorTracker={errorTracker[0]}
@@ -153,8 +186,9 @@ class ErrorTrackingView extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorTrackingView.displayName = 'ErrorTrackingView';
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchErrorTrackers,
@@ -164,11 +198,11 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { errorTrackerSlug, componentSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
-        errorTracker => errorTracker.slug === errorTrackerSlug
+        (errorTracker: $TSFixMe) => errorTracker.slug === errorTrackerSlug
     );
     return {
         currentProject,
@@ -184,6 +218,7 @@ const mapStateToProps = (state, ownProps) => {
         trackerLimit: state.errorTracker.errorTrackersList.limit || 5,
     };
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorTrackingView.propTypes = {
     component: PropsType.object,
     currentProject: PropsType.object,

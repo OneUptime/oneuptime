@@ -1,4 +1,6 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -7,7 +9,9 @@ chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
@@ -15,19 +19,20 @@ import MonitorService from '../backend/services/monitorService'
 import ResourceCategoryService from '../backend/services/resourceCategoryService'
 import NotificationService from '../backend/services/notificationService'
 import AirtableService from '../backend/services/airtableService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import uuid from 'uuid'
 
 import VerificationTokenModel from '../backend/models/verificationToken'
 import ComponentModel from '../backend/models/component'
 
-let token, userId, projectId, monitorId, resourceCategoryId, monitor2Id;
+let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, monitorId: $TSFixMe, resourceCategoryId: $TSFixMe, monitor2Id: $TSFixMe;
 const httpMonitorId = uuid.v4();
 const httpMonitor2Id = uuid.v4();
 const resourceCategory = {
     resourceCategoryName: 'New Monitor Category',
 };
 
-let componentId;
+let componentId: $TSFixMe;
 
 const httpMonitorCriteria = {
     up: {
@@ -68,13 +73,15 @@ const httpMonitorCriteria = {
     },
 };
 
-describe('Monitor API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Monitor API', function(this: $TSFixMe) {
     this.timeout(30000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -85,8 +92,8 @@ describe('Monitor API', function() {
                 ) {
                     componentId = component;
                     VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
+                        err: $TSFixMe,
+                        verificationToken: $TSFixMe
                     ) {
                         request
                             .get(
@@ -100,7 +107,7 @@ describe('Monitor API', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
                                     });
@@ -111,6 +118,7 @@ describe('Monitor API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ projectId });
@@ -128,19 +136,21 @@ describe('Monitor API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should reject the request of an unauthenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/monitor/${projectId}`)
             .send({
                 name: 'New Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not create a monitor when the `name` field is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a monitor when the `name` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -151,13 +161,14 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a monitor when the `type` field is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a monitor when the `type` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -168,13 +179,14 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a monitor when the `data` field is not valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a monitor when the `data` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -185,13 +197,14 @@ describe('Monitor API', function() {
                 data: null,
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -204,13 +217,14 @@ describe('Monitor API', function() {
                 },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new monitor when the correct data is given by an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a new monitor when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -221,7 +235,7 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 3');
@@ -229,7 +243,8 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should add a new site url to a monitor', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should add a new site url to a monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}/siteUrl/${monitorId}`)
@@ -237,7 +252,7 @@ describe('Monitor API', function() {
             .send({
                 siteUrl: 'https://twitter.com',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 expect(res.body.siteUrls).to.contain('https://twitter.com');
@@ -245,7 +260,8 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should remove a site url from a monitor', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should remove a site url from a monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/siteUrl/${monitorId}`)
@@ -253,7 +269,7 @@ describe('Monitor API', function() {
             .send({
                 siteUrl: 'https://twitter.com',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 expect(res.body.siteUrls).to.not.contain('https://twitter.com');
@@ -261,7 +277,8 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should not create a new monitor with invalid call schedule', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a new monitor with invalid call schedule', function(done: $TSFixMe) {
         const scheduleId = 20;
         const authorization = `Basic ${token}`;
         request
@@ -274,13 +291,14 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new monitor with valid call schedule', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a new monitor with valid call schedule', function(done: $TSFixMe) {
         let scheduleId;
         const authorization = `Basic ${token}`;
         request
@@ -289,7 +307,7 @@ describe('Monitor API', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 scheduleId = res.body._id;
                 request
                     .post(`/monitor/${projectId}`)
@@ -301,14 +319,14 @@ describe('Monitor API', function() {
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
-                    .end(function(err, res) {
+                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                         monitorId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.be.equal('New Monitor 5');
                         request
                             .get(`/schedule/${projectId}`)
                             .set('Authorization', authorization)
-                            .end(function(err, res) {
+                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                 expect(res).to.have.status(200);
                                 expect(res.body).to.be.an('object');
                                 expect(res.body).to.have.property('data');
@@ -321,8 +339,9 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should create two new monitors and add them to one call schedule', function(done) {
-        let scheduleId;
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create two new monitors and add them to one call schedule', function(done: $TSFixMe) {
+        let scheduleId: $TSFixMe;
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -330,7 +349,7 @@ describe('Monitor API', function() {
             .send({
                 name: 'Valid Schedule for two monitors',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 scheduleId = res.body._id;
                 request
                     .post(`/monitor/${projectId}`)
@@ -342,7 +361,7 @@ describe('Monitor API', function() {
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
-                    .end(function(err, res) {
+                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                         monitorId = res.body._id;
                         request
                             .post(`/monitor/${projectId}`)
@@ -354,12 +373,12 @@ describe('Monitor API', function() {
                                 data: { url: 'http://www.tests.org' },
                                 componentId,
                             })
-                            .end(function(err, res) {
+                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                 monitorId = res.body._id;
                                 request
                                     .get(`/schedule/${projectId}`)
                                     .set('Authorization', authorization)
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         expect(res).to.have.status(200);
                                         expect(res.body).to.be.an('object');
                                         expect(res.body).to.have.property(
@@ -380,7 +399,8 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should update a monitor when the correct data is given by an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should update a monitor when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put(`/monitor/${projectId}/${monitorId}`)
@@ -392,19 +412,20 @@ describe('Monitor API', function() {
                     url: 'https://twitter.com',
                 },
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 done();
             });
     });
 
-    it('should get monitors for an authenticated user by ProjectId', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get monitors for an authenticated user by ProjectId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}/monitor`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -413,12 +434,13 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should get a monitor for an authenticated user with valid monitorId', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get a monitor for an authenticated user with valid monitorId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}/monitor/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body._id).to.be.equal(monitorId);
@@ -426,12 +448,13 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should delete a monitor when monitorId is valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete a monitor when monitorId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -440,15 +463,18 @@ describe('Monitor API', function() {
 
 const BACKEND_URL = `http://localhost:${process.env.PORT}/api`;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 
-describe('API Monitor API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('API Monitor API', function(this: $TSFixMe) {
     this.timeout(30000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -459,8 +485,8 @@ describe('API Monitor API', function() {
                 ) {
                     componentId = component;
                     VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
+                        err: $TSFixMe,
+                        verificationToken: $TSFixMe
                     ) {
                         request
                             .get(
@@ -474,7 +500,7 @@ describe('API Monitor API', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         token = res.body.tokens.jwtAccessToken;
                                         testServer
                                             .post('/api/settings')
@@ -497,6 +523,7 @@ describe('API Monitor API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -507,7 +534,8 @@ describe('API Monitor API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should not add API monitor with invalid website url', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not add API monitor with invalid website url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -519,7 +547,7 @@ describe('API Monitor API', function() {
                 data: { url: 'https://google.com' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'API Monitor URL should not be a HTML page.'
@@ -528,7 +556,8 @@ describe('API Monitor API', function() {
             });
     });
 
-    it('should not add API monitor with invalid url', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not add API monitor with invalid url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -540,13 +569,14 @@ describe('API Monitor API', function() {
                 data: { url: `https://oneuptime.com/api/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not add API monitor with empty or invalid header', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not add API monitor with empty or invalid header', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -558,14 +588,15 @@ describe('API Monitor API', function() {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Unauthorized');
                 done();
             });
     });
 
-    it('should not add API monitor with empty body', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not add API monitor with empty body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -578,14 +609,15 @@ describe('API Monitor API', function() {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Bad Request');
                 done();
             });
     });
 
-    it('should not add API monitor with invalid body', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not add API monitor with invalid body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -600,14 +632,15 @@ describe('API Monitor API', function() {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Bad Request');
                 done();
             });
     });
 
-    it('should add API monitor with valid url', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should add API monitor with valid url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -619,7 +652,7 @@ describe('API Monitor API', function() {
                 data: { url: HTTP_TEST_SERVER_URL },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 30');
@@ -627,7 +660,8 @@ describe('API Monitor API', function() {
             });
     });
 
-    it('should not edit API monitor with invalid url', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not edit API monitor with invalid url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put(`/monitor/${projectId}/${monitorId}`)
@@ -639,7 +673,7 @@ describe('API Monitor API', function() {
                 data: { url: 'https://google.com' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'API Monitor URL should not be a HTML page.'
@@ -649,13 +683,15 @@ describe('API Monitor API', function() {
     });
 });
 
-describe('IncomingHttpRequest Monitor', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('IncomingHttpRequest Monitor', function(this: $TSFixMe) {
     this.timeout(30000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -666,8 +702,8 @@ describe('IncomingHttpRequest Monitor', function() {
                 ) {
                     componentId = component;
                     VerificationTokenModel.findOne({ userId }, function(
-                        err,
-                        verificationToken
+                        err: $TSFixMe,
+                        verificationToken: $TSFixMe
                     ) {
                         request
                             .get(
@@ -681,7 +717,7 @@ describe('IncomingHttpRequest Monitor', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
                                     });
@@ -692,6 +728,7 @@ describe('IncomingHttpRequest Monitor', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -703,7 +740,8 @@ describe('IncomingHttpRequest Monitor', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a new IncomingHttpRequest monitor', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a new IncomingHttpRequest monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -714,11 +752,12 @@ describe('IncomingHttpRequest Monitor', function() {
                 criteria: httpMonitorCriteria,
                 type: 'incomingHttpRequest',
                 data: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
                     link: `${global.apiHost}/incomingHttpRequest/${httpMonitorId}`,
                 },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 120');
@@ -726,60 +765,67 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    it('should report monitor degraded when api has no body in post request', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should report monitor degraded when api has no body in post request', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({})
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('degraded');
                 done();
             });
     });
 
-    it('should report monitor degraded when api has no body in get request', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should report monitor degraded when api has no body in get request', function(done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('degraded');
                 done();
             });
     });
 
-    it('should report monitor up when api has a valid body in post request', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should report monitor up when api has a valid body in post request', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({ id: '123456' })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('online');
                 done();
             });
     });
 
-    it('should report monitor up when api has a valid body in get request', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should report monitor up when api has a valid body in get request', function(done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
             .send({ id: '123456' })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('online');
                 done();
             });
     });
 
-    it('should create a new IncomingHttpRequest monitor with query params and request headers', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a new IncomingHttpRequest monitor with query params and request headers', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const criteria = { ...httpMonitorCriteria };
         criteria.up.and.push({
             responseType: 'queryString',
             filter: 'contains',
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ responseType: string; filter: ... Remove this comment to see the full error message
             field1: 'abc=xyz',
         });
         criteria.up.and.push({
             responseType: 'headers',
             filter: 'contains',
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ responseType: string; filter: ... Remove this comment to see the full error message
             field1: 'Cache-Control=no-cache',
         });
 
@@ -792,11 +838,12 @@ describe('IncomingHttpRequest Monitor', function() {
                 criteria: criteria,
                 type: 'incomingHttpRequest',
                 data: {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
                     link: `${global.apiHost}/incomingHttpRequest/${httpMonitor2Id}`,
                 },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 monitor2Id = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 121');
@@ -804,23 +851,25 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    it('should report monitor offline when api has no query param and request headers in post request', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should report monitor offline when api has no query param and request headers in post request', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}`)
             .send({ id: '123456' })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('offline');
                 done();
             });
     });
 
-    it('should report monitor up when api has the query param and request headers', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should report monitor up when api has the query param and request headers', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}?abc=xyz`)
             .set('Cache-Control', 'no-cache')
             .send({ id: '123456' })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('online');
                 done();
@@ -828,19 +877,21 @@ describe('IncomingHttpRequest Monitor', function() {
     });
 });
 
-describe('Monitor API with resource Category', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Monitor API with resource Category', function(this: $TSFixMe) {
     this.timeout(30000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
@@ -852,14 +903,14 @@ describe('Monitor API with resource Category', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
                                         .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(resourceCategory)
-                                        .end(function(err, res) {
+                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
                                             resourceCategoryId = res.body._id;
                                             done();
                                         });
@@ -870,6 +921,7 @@ describe('Monitor API with resource Category', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
@@ -877,7 +929,8 @@ describe('Monitor API with resource Category', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a new monitor when the resource Category is provided by an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a new monitor when the resource Category is provided by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -889,7 +942,7 @@ describe('Monitor API with resource Category', function() {
                 resourceCategory: resourceCategoryId,
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 8');
@@ -902,11 +955,13 @@ describe('Monitor API with resource Category', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId, newUserToken, subProjectMonitorId;
+let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectMonitorId: $TSFixMe;
 
-describe('Monitor API with Sub-Projects', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Monitor API with Sub-Projects', function(this: $TSFixMe) {
     this.timeout(30000);
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             const authorization = `Basic ${token}`;
             // create a subproject for parent project
@@ -914,14 +969,14 @@ describe('Monitor API with Sub-Projects', function() {
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function(err, res) {
+                .end(function(err: $TSFixMe, res: $TSFixMe) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err, res) {
+                    createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
                         userId = res.body.id;
                         VerificationTokenModel.findOne({ userId }, function(
-                            err,
-                            verificationToken
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
                         ) {
                             request
                                 .get(
@@ -935,7 +990,7 @@ describe('Monitor API with Sub-Projects', function() {
                                             email: userData.newUser.email,
                                             password: userData.newUser.password,
                                         })
-                                        .end(function(err, res) {
+                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
                                             const authorization = `Basic ${token}`;
@@ -962,18 +1017,20 @@ describe('Monitor API with Sub-Projects', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: subProjectMonitorId });
     });
 
-    it('should not create a monitor for user not present in project', function(done) {
-        createUser(request, userData.anotherUser, function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a monitor for user not present in project', function(done: $TSFixMe) {
+        createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
             userId = res.body.id;
             VerificationTokenModel.findOne({ userId }, function(
-                err,
-                verificationToken
+                err: $TSFixMe,
+                verificationToken: $TSFixMe
             ) {
                 request
                     .get(`/user/confirmation/${verificationToken.token}`)
@@ -985,7 +1042,7 @@ describe('Monitor API with Sub-Projects', function() {
                                 email: userData.anotherUser.email,
                                 password: userData.anotherUser.password,
                             })
-                            .end(function(err, res) {
+                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                 const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/monitor/${projectId}`)
@@ -996,7 +1053,7 @@ describe('Monitor API with Sub-Projects', function() {
                                         data: { url: 'http://www.tests.org' },
                                         componentId,
                                     })
-                                    .end(function(err, res) {
+                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
                                             'You are not present in this project.'
@@ -1009,7 +1066,8 @@ describe('Monitor API with Sub-Projects', function() {
         });
     });
 
-    it('should not create a monitor for user that is not `admin` in project.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a monitor for user that is not `admin` in project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .post(`/monitor/${subProjectId}`)
@@ -1020,7 +1078,7 @@ describe('Monitor API with Sub-Projects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1029,7 +1087,8 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should create a monitor in parent project by valid admin.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a monitor in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -1040,7 +1099,7 @@ describe('Monitor API with Sub-Projects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 11');
@@ -1048,7 +1107,8 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should create a monitor in sub-project.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create a monitor in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${subProjectId}`)
@@ -1059,7 +1119,7 @@ describe('Monitor API with Sub-Projects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 subProjectMonitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 12');
@@ -1067,12 +1127,13 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it("should get only sub-project's monitors for valid sub-project user", function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it("should get only sub-project's monitors for valid sub-project user", function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/monitor/${subProjectId}/monitor`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -1083,12 +1144,13 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should get both project and sub-project monitors for valid parent project user.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get both project and sub-project monitors for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('monitors');
@@ -1099,12 +1161,13 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should not delete a monitor for user that is not `admin` in sub-project.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete a monitor for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1113,30 +1176,33 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should delete sub-project monitor', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete sub-project monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete project monitor', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete project monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 });
 
-describe('Monitor API - Tests Project Seats With SubProjects', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Monitor API - Tests Project Seats With SubProjects', function(this: $TSFixMe) {
     this.timeout(30000);
 
     const monitorDataArray = [
@@ -1192,7 +1258,8 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         },
     ];
 
-    before(async function() {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(async function(this: $TSFixMe) {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const authorization = `Basic ${token}`;
@@ -1209,6 +1276,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         );
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -1226,7 +1294,8 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         await MonitorService.hardDeleteBy({ projectId });
     });
 
-    it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -1238,7 +1307,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You can't add any more monitors. Please upgrade your account."
@@ -1247,7 +1316,8 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
             });
     });
 
-    it('should be able to create more monitor on upgrade of project to Growth plan.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should be able to create more monitor on upgrade of project to Growth plan.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const growthPlan = 'plan_GoWKgxRnPPBJWy';
 
@@ -1267,7 +1337,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                     data: { url: 'http://www.tests.org' },
                     componentId,
                 })
-                .end(function(err, res) {
+                .end(function(err: $TSFixMe, res: $TSFixMe) {
                     monitorId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.name).to.be.equal('New Monitor 15');
@@ -1296,6 +1366,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
             });
     });*/
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should delete a monitor', async () => {
         const authorization = `Basic ${token}`;
         const res = await request

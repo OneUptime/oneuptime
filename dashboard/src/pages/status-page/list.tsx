@@ -11,7 +11,7 @@ import StatusPageActions from '../../actions/status-page';
 const listActions = new StatusPageActions().getListActions();
 
 class StatusPages extends Page {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super({
             pageName: 'StatusPages',
             friendlyPageName: 'Status Pages',
@@ -27,6 +27,7 @@ class StatusPages extends Page {
         return this.renderCommon(
             <>
                 <Table
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ id: string; title: string; description: st... Remove this comment to see the full error message
                     id="status-page-table"
                     title="Status Page"
                     description="Status Pages helps your team and your customers to view real-time status and health of your monitors. Status Page helps improve transparency and trust in your organization and with your customers."
@@ -59,7 +60,7 @@ class StatusPages extends Page {
                         {
                             id: 'edit-status-page-btn',
                             title: 'Edit',
-                            onClick: id => {
+                            onClick: (id: $TSFixMe) => {
                                 this.goToPageInProject(`/status-page/${id}`);
                             },
                             visibleForOwner: true,
@@ -71,7 +72,7 @@ class StatusPages extends Page {
                         {
                             id: 'view-status-page-btn',
                             title: 'View Status Page',
-                            onClick: id => {
+                            onClick: (id: $TSFixMe) => {
                                 this.goToPageInProject(`/status-page/${id}`);
                             },
                             visibleForOwner: true,
@@ -81,8 +82,7 @@ class StatusPages extends Page {
                             visibleForAll: true,
                         },
                     ]}
-                    onClickTableRow={id =>
-                        this.goToPageInProject(`/status-page/${id}`)
+                    onClickTableRow={(id: $TSFixMe) => this.goToPageInProject(`/status-page/${id}`)
                     }
                 />
             </>
@@ -90,7 +90,7 @@ class StatusPages extends Page {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             ...defaultMapDispatchToProps(),
@@ -100,16 +100,19 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         ...defaultMapStateToProps(state),
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 StatusPages.propTypes = {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultPropTypes' does not exist on type... Remove this comment to see the full error message
     ...Page.defaultPropTypes,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 StatusPages.displayName = 'StatusPages';
 
 export default connect(mapStateToProps, mapDispatchToProps)(StatusPages);

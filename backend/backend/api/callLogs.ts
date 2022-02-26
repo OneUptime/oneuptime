@@ -7,6 +7,7 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/response"' has no exported... Remove this comment to see the full error message
 import { sendItemResponse } from '../middlewares/response'
 
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
@@ -69,6 +70,7 @@ router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
                 message: 'Call Log Content is required',
             });
         }
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 1.
         const callLog = await CallLogsService.create(data);
         return sendItemResponse(req, res, callLog);
     } catch (error) {

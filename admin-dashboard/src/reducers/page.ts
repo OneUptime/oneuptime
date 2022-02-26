@@ -10,7 +10,7 @@ const initialState = {
     sidenavopen: false,
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case PAGE_LOAD_REQUEST:
             return Object.assign({}, state, {

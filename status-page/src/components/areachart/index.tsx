@@ -8,7 +8,9 @@ import {
     CartesianGrid,
     Tooltip,
     YAxis,
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'rech... Remove this comment to see the full error message
 } from 'recharts';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import * as _ from 'lodash';
 import { connect } from 'react-redux';
 import { formatDecimal, formatBytes } from '../../config';
@@ -18,7 +20,10 @@ const noDataStyle = {
     flexBasis: 1,
 };
 
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({
+    active,
+    payload
+}: $TSFixMe) => {
     if (active) {
         return (
             <div className="custom-tooltip">
@@ -39,7 +44,7 @@ CustomTooltip.propTypes = {
 };
 
 class AreaChart extends Component {
-    parseValue(data, name, display, symbol) {
+    parseValue(data: $TSFixMe, name: $TSFixMe, display: $TSFixMe, symbol: $TSFixMe) {
         switch (name) {
             case 'load':
                 return display
@@ -50,12 +55,14 @@ class AreaChart extends Component {
                     : data.maxCpuLoad || data.cpuLoad || 0;
             case 'memory':
                 return display
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                     ? `${formatBytes(
                           data.maxMemoryUsed || data.memoryUsed || 0
                       )} ${symbol || ''}`
                     : data.maxMemoryUsed || data.memoryUsed || 0;
             case 'disk':
                 return display
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                     ? `${formatBytes(
                           data.maxStorageUsed || data.storageUsed || 0
                       )} ${symbol || ''}`
@@ -77,11 +84,12 @@ class AreaChart extends Component {
         }
     }
 
-    parseDate(a) {
+    parseDate(a: $TSFixMe) {
         return new Date(a).toLocaleString();
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { type, data, name, symbol, colors } = this.props;
         const { strokeChart, fillChart } = colors;
         const stroke = `rgb(
@@ -96,9 +104,10 @@ class AreaChart extends Component {
         )`;
         if (data && data.length > 0) {
             const processedData = (type === 'manual'
-                ? data.map(a => {
+                ? data.map((a: $TSFixMe) => {
                       return {
                           name: this.parseDate(a.date),
+                          // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 1.
                           v: this.parseValue(a.downTime),
                           display: this.parseValue(
                               a.downTime,
@@ -108,9 +117,10 @@ class AreaChart extends Component {
                           ),
                       };
                   })
-                : data.map(a => {
+                : data.map((a: $TSFixMe) => {
                       return {
                           name: a.intervalDate || this.parseDate(a.createdAt),
+                          // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
                           v: this.parseValue(a, name),
                           display: this.parseValue(a, name, true, symbol),
                       };
@@ -145,6 +155,7 @@ class AreaChart extends Component {
             );
         } else {
             return (
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ textAlign: string; flexBasis: number; }' i... Remove this comment to see the full error message
                 <div style={noDataStyle}>
                     {
                         <h3>
@@ -159,8 +170,10 @@ class AreaChart extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AreaChart.displayName = 'AreaChart';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AreaChart.propTypes = {
     data: PropTypes.array,
     type: PropTypes.string.isRequired,
@@ -171,6 +184,7 @@ AreaChart.propTypes = {
 
 export default connect(state => {
     const {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'DefaultR... Remove this comment to see the full error message
         status: {
             statusPage: { colors },
         },

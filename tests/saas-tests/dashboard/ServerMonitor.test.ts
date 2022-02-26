@@ -1,14 +1,17 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
 import axios from 'axios'
 axios.defaults.adapter = require('axios/lib/adapters/http');
-let serverMonitor;
+let serverMonitor: $TSFixMe;
 try {
     // try to use local package (with recent changes)
     serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
 } catch (error) {
+    // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
     import oneuptime from 'oneuptime'
     serverMonitor = oneuptime.ServerMonitor;
 }
@@ -19,10 +22,13 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Server Monitor API', () => {
     const operationTimeOut = init.timeout;
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
     beforeAll(async () => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -37,7 +43,8 @@ describe('Server Monitor API', () => {
         await init.loginUser(user, page);
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
@@ -45,6 +52,7 @@ describe('Server Monitor API', () => {
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',
         async () => {
@@ -52,12 +60,17 @@ describe('Server Monitor API', () => {
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[id=name]');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.selectDropdownValue('#type', 'server-monitor', page);
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'button[type=submit]');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
@@ -70,6 +83,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -81,6 +95,7 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should auto acknowledge and resolve offline incident',
         async () => {
@@ -88,9 +103,13 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#api');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -107,6 +126,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -143,6 +163,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -156,6 +177,7 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should create degraded incident',
         async () => {
@@ -163,9 +185,13 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#api');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -182,6 +208,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -215,6 +242,7 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const element = await init.pageWaitForSelector(
                 page,
                 `#${monitorName}-degraded`
@@ -226,6 +254,7 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should create offline incident',
         async () => {
@@ -233,9 +262,13 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#api');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -252,6 +285,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -285,6 +319,7 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const element = await init.pageWaitForSelector(
                 page,
                 `#${monitorName}-offline`
@@ -296,6 +331,7 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should create offline incident 3 minutes after daemon is turned off',
         async () => {
@@ -303,9 +339,13 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#api');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -322,6 +362,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -360,6 +401,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -371,12 +413,14 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should create offline incident 3 minutes after manually resolving incident and daemon is turned off',
         async () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
                 page,
                 `#${monitorName}_EditIncidentDetails_0`
@@ -384,19 +428,20 @@ describe('Server Monitor API', () => {
             await init.page$Eval(
                 page,
                 `#${monitorName}_EditIncidentDetails_0`,
-                e => e.click()
+                (e: $TSFixMe) => e.click()
             );
 
             await init.page$Eval(
                 page,
                 `#${monitorName}_EditIncidentDetails_0`,
-                e => e.click()
+                (e: $TSFixMe) => e.click()
             );
 
             await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -409,6 +454,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'

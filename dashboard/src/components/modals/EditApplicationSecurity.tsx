@@ -3,7 +3,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -23,7 +25,8 @@ class EditApplicationSecurity extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { propArr, isRequesting, closeModal, editError } = this.props;
         const { applicationSecurityId } = propArr[0];
 
@@ -34,11 +37,12 @@ class EditApplicationSecurity extends Component {
         }
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('editApplicationBtn').click();
             default:
                 return false;
@@ -46,14 +50,17 @@ class EditApplicationSecurity extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { propArr } = this.props;
         const { applicationSecurityId } = propArr[0];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
             id: applicationSecurityId,
         });
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editApplicationSecurity' does not exist ... Remove this comment to see the full error message
         const { editApplicationSecurity, propArr } = this.props;
         const { projectId, componentId, applicationSecurityId } = propArr[0];
 
@@ -64,8 +71,9 @@ class EditApplicationSecurity extends Component {
             componentId,
             applicationSecurityId,
             data: values,
-        }).then(data => {
+        }).then((data: $TSFixMe) => {
             history.replace(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectSlug' does not exist on type 'Rea... Remove this comment to see the full error message
                 `/dashboard/project/${this.props.projectSlug}/component/${this.props.componentSlug}/security/application/${data.data.slug}`
             );
         });
@@ -73,13 +81,21 @@ class EditApplicationSecurity extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editError' does not exist on type 'Reado... Remove this comment to see the full error message
             editError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'gitCredentials' does not exist on type '... Remove this comment to see the full error message
             gitCredentials,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategoryList' does not exist on ... Remove this comment to see the full error message
             resourceCategoryList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             formValues,
         } = this.props;
         const { applicationSecurityId } = propArr[0];
@@ -182,11 +198,12 @@ class EditApplicationSecurity extends Component {
                                                                                 resourceCategoryList.length >
                                                                                     0
                                                                                     ? resourceCategoryList.map(
-                                                                                          category => ({
+                                                                                          (category: $TSFixMe) => ({
                                                                                               value:
                                                                                                   category._id,
+
                                                                                               label:
-                                                                                                  category.name,
+                                                                                                  category.name
                                                                                           })
                                                                                       )
                                                                                     : []),
@@ -325,15 +342,15 @@ class EditApplicationSecurity extends Component {
                                                                                             0
                                                                                             ? gitCredentials
                                                                                                   .filter(
-                                                                                                      obj =>
-                                                                                                          obj.gitUsername
+                                                                                                      (obj: $TSFixMe) => obj.gitUsername
                                                                                                   )
                                                                                                   .map(
-                                                                                                      gitCredential => ({
+                                                                                                      (gitCredential: $TSFixMe) => ({
                                                                                                           value:
                                                                                                               gitCredential._id,
+
                                                                                                           label:
-                                                                                                              gitCredential.gitUsername,
+                                                                                                              gitCredential.gitUsername
                                                                                                       })
                                                                                                   )
                                                                                             : []),
@@ -378,15 +395,15 @@ class EditApplicationSecurity extends Component {
                                                                                             0
                                                                                             ? gitCredentials
                                                                                                   .filter(
-                                                                                                      obj =>
-                                                                                                          obj.sshTitle
+                                                                                                      (obj: $TSFixMe) => obj.sshTitle
                                                                                                   )
                                                                                                   .map(
-                                                                                                      gitCredential => ({
+                                                                                                      (gitCredential: $TSFixMe) => ({
                                                                                                           value:
                                                                                                               gitCredential._id,
+
                                                                                                           label:
-                                                                                                              gitCredential.sshTitle,
+                                                                                                              gitCredential.sshTitle
                                                                                                       })
                                                                                                   )
                                                                                             : []),
@@ -486,8 +503,10 @@ class EditApplicationSecurity extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EditApplicationSecurity.displayName = 'EditApplicationSecurity';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EditApplicationSecurity.propTypes = {
     isRequesting: PropTypes.bool,
     editError: PropTypes.string,
@@ -499,10 +518,11 @@ EditApplicationSecurity.propTypes = {
     projectSlug: PropTypes.string,
     gitCredentials: PropTypes.array,
     resourceCategoryList: PropTypes.array,
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'obj' does not exist on type 'typeof impo... Remove this comment to see the full error message
     formValues: PropTypes.obj,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         isRequesting: state.security.editApplicationSecurity.requesting,
         editError: state.security.editApplicationSecurity.error,
@@ -531,8 +551,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
 
 const EditApplicationSecurityForm = reduxForm({
     form: 'EditApplicationSecurityForm',

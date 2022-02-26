@@ -7,16 +7,18 @@ import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
 class ErrorTrackerIssueTimeline extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
     }
-    generateText = status => {
+    generateText = (status: $TSFixMe) => {
         const capitalizedText =
             status.charAt(0).toUpperCase() + status.slice(1);
         return `${capitalizedText}d by`;
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
         const { errorEvent, errorTrackerIssue } = this.props;
         return (
             <ShouldRender
@@ -40,7 +42,7 @@ class ErrorTrackerIssueTimeline extends Component {
                         errorTrackerIssue.timeline.length > 0 ? (
                             errorTrackerIssue.timeline
                                 .reverse()
-                                .map((timeline, i) => {
+                                .map((timeline: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <>
                                             <ShouldRender if={i !== 0}>
@@ -240,10 +242,12 @@ class ErrorTrackerIssueTimeline extends Component {
         );
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorTrackerIssueTimeline.propTypes = {
     errorEvent: PropTypes.object,
     errorTrackerIssue: PropTypes.object,
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorTrackerIssueTimeline.displayName = 'ErrorTrackerIssueTimeline';
 
 export default ErrorTrackerIssueTimeline;

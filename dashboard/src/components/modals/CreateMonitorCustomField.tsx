@@ -2,7 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,10 +16,11 @@ import {
     fetchCustomFields,
 } from '../../actions/monitorCustomField';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!values.fieldName) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fieldName' does not exist on type '{}'.
         errors.fieldName = 'Field name is required';
     }
     return errors;
@@ -32,12 +35,17 @@ class CreateMonitorCustomField extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createCustomFieldModalId' does not exist... Remove this comment to see the full error message
             createCustomFieldModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createCustomField' does not exist on typ... Remove this comment to see the full error message
             createCustomField,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
             fetchCustomFields,
         } = this.props;
         const projectId = data.projectId;
@@ -48,6 +56,7 @@ class CreateMonitorCustomField extends React.Component {
         };
 
         createCustomField(projectId, postObj).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createFieldError' does not exist on type... Remove this comment to see the full error message
             if (!this.props.createFieldError) {
                 fetchCustomFields(projectId, 0, 10);
                 closeModal({
@@ -57,11 +66,12 @@ class CreateMonitorCustomField extends React.Component {
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document
                     .getElementById('createCustomFieldButton')
                     .click();
@@ -71,22 +81,29 @@ class CreateMonitorCustomField extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createCustomFieldModalId' does not exist... Remove this comment to see the full error message
             id: this.props.createCustomFieldModalId,
         });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createFieldError' does not exist on type... Remove this comment to see the full error message
             createFieldError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
         } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -285,6 +302,7 @@ class CreateMonitorCustomField extends React.Component {
                                             onClick={() =>
                                                 closeModal({
                                                     id: this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createCustomFieldModalId' does not exist... Remove this comment to see the full error message
                                                         .createCustomFieldModalId,
                                                 })
                                             }
@@ -321,8 +339,10 @@ class CreateMonitorCustomField extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CreateMonitorCustomField.displayName = 'CreateMonitorCustomField';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CreateMonitorCustomField.propTypes = {
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -341,17 +361,16 @@ const CreateMonitorCustomFieldForm = reduxForm({
     destroyOnUnmount: true,
 })(CreateMonitorCustomField);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            createCustomField,
-            fetchCustomFields,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        createCustomField,
+        fetchCustomFields,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         requesting: state.monitorCustomField.monitorCustomField.requesting,
         createFieldError: state.monitorCustomField.monitorCustomField.error,

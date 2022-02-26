@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
@@ -15,6 +16,7 @@ import {
 
 class HideAnnouncement extends Component {
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetDeleteAnnouncement' does not exist ... Remove this comment to see the full error message
         this.props.resetDeleteAnnouncement();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -23,9 +25,10 @@ class HideAnnouncement extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -36,13 +39,20 @@ class HideAnnouncement extends Component {
 
     handleDelete = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { projectId, announcement },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateAnnouncement' does not exist on ty... Remove this comment to see the full error message
             updateAnnouncement,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
             modalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             statusPage,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
             fetchAnnouncements,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
             fetchAnnouncementLogs,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetDeleteAnnouncement' does not exist ... Remove this comment to see the full error message
         this.props.resetDeleteAnnouncement();
         closeModal({ id: modalId });
         const data = {
@@ -55,16 +65,18 @@ class HideAnnouncement extends Component {
             announcement._id,
             { data }
         )
-            .then(res => {
+            .then((res: $TSFixMe) => {
                 if (res) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                     this.props.closeThisDialog();
                     closeModal({ id: modalId });
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);
                     fetchAnnouncementLogs(projectId, statusPage._id, 0, 10);
                 }
             })
-            .catch(err => {
+            .catch((err: $TSFixMe) => {
                 if (!err) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                     this.props.closeThisDialog();
                     closeModal({ id: modalId });
                 }
@@ -73,9 +85,13 @@ class HideAnnouncement extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateError' does not exist on type 'Rea... Remove this comment to see the full error message
             updateError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { announcement },
         } = this.props;
         return (
@@ -190,8 +206,10 @@ class HideAnnouncement extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 HideAnnouncement.displayName = 'HideAnnouncement';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 HideAnnouncement.propTypes = {
     closeThisDialog: PropTypes.func,
     data: PropTypes.object,
@@ -205,7 +223,7 @@ HideAnnouncement.propTypes = {
     fetchAnnouncementLogs: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         modalId: state.modal.modals[0].id,
         requesting: state.statusPage.createAnnouncement.requesting,
@@ -214,16 +232,15 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-            updateAnnouncement,
-            resetDeleteAnnouncement,
-            fetchAnnouncements,
-            fetchAnnouncementLogs,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+        updateAnnouncement,
+        resetDeleteAnnouncement,
+        fetchAnnouncements,
+        fetchAnnouncementLogs,
+    },
+    dispatch
+);
 
 export default connect(mapStateToProps, mapDispatchToProps)(HideAnnouncement);

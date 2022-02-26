@@ -3,7 +3,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from 'common-server/utils/error'
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 export default {
-    isAuthorizedApplicationScanner: async function(req, res, next) {
+    isAuthorizedApplicationScanner: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             let applicationScannerKey,
                 applicationScannerName,
@@ -76,11 +76,13 @@ export default {
                 // if cluster key matches then just query by applicationScanner name,
                 // because if the applicationScanner key does not match, we can update applicationScanner key later
                 // without updating mongodb database manually.
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { applicationScannerNam... Remove this comment to see the full error message
                 applicationScanner = await ApplicationScannerService.findOneBy({
                     query: { applicationScannerName },
                     select: '_id applicationScannerKey',
                 });
             } else {
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { applicationScannerKey... Remove this comment to see the full error message
                 applicationScanner = await ApplicationScannerService.findOneBy({
                     query: { applicationScannerKey, applicationScannerName },
                     select: '_id applicationScannerKey',
@@ -123,6 +125,7 @@ export default {
             req.applicationScanner.id = applicationScanner._id;
 
             const [applicationScannerValue] = await Promise.all([
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { applicationScannerKey... Remove this comment to see the full error message
                 ApplicationScannerService.findOneBy({
                     query: { applicationScannerKey, applicationScannerName },
                     select: 'version',

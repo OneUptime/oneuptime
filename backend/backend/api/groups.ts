@@ -1,5 +1,6 @@
 import express from 'express'
 const getUser = require('../middlewares/user').getUser;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -14,6 +15,7 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         const { name, teams } = req.body;
         const { projectId } = req.params;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user.id;
 
         if (!name) {
@@ -41,14 +43,17 @@ router.get(
     isAuthorized,
     getSubProjects,
     async (req, res) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? req.user.subProjects.map((project: $TSFixMe) => {
                   return { id: project._id, name: project.name };
               })
             : null;
         try {
             const groups = await Promise.all(
-                subProjectIds.map(async project => {
+                subProjectIds.map(async (project: $TSFixMe) => {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
                     const groups = await GroupService.findBy({
                         projectId: project.id,
                     });
@@ -89,9 +94,11 @@ router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
 
         const data = {};
         if (name) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
             data.name = name;
         }
         if (teams) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type '{}'.
             data.teams = teams;
         }
 
@@ -113,6 +120,7 @@ router.delete(
     async (req, res) => {
         try {
             const { groupId, projectId } = req.params;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user.id;
 
             const [deleteGroup] = await Promise.all([

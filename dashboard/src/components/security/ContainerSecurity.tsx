@@ -10,11 +10,11 @@ const ContainerSecurity = ({
     projectId,
     componentId,
     componentSlug,
-    containerSecurityLogs,
-}) => {
+    containerSecurityLogs
+}: $TSFixMe) => {
     let securityLog = {};
     containerSecurityLogs.length > 0 &&
-        containerSecurityLogs.map(containerSecurityLog => {
+        containerSecurityLogs.map((containerSecurityLog: $TSFixMe) => {
             if (
                 containerSecurityLog.securityId.slug === containerSecuritySlug
             ) {
@@ -29,6 +29,7 @@ const ContainerSecurity = ({
                 <SecurityInfo
                     name={name}
                     projectId={projectId}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; projectId: any; componentId: an... Remove this comment to see the full error message
                     componentId={componentId}
                     containerSecurityId={containerSecurityId}
                     containerSecuritySlug={containerSecuritySlug}
@@ -53,7 +54,7 @@ ContainerSecurity.propTypes = {
     containerSecurityLogs: PropTypes.array,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         containerSecurityLogs: state.security.containerSecurityLogs,
     };

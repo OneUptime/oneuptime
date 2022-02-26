@@ -2,11 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter, Link } from 'react-router-dom';
 import MonitorInputs from './MonitorInputs';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addMonitors } from '../../actions/schedule';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
@@ -14,7 +16,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
 import Tooltip from '../basic/Tooltip';
 
-function submitMonitorForm(values, dispatch, props) {
+function submitMonitorForm(values: $TSFixMe, dispatch: $TSFixMe, props: $TSFixMe) {
     const subProjectId = props && props.subProjectId;
     const scheduleId = props && props.scheduleId;
     const monitors = [];
@@ -33,16 +35,15 @@ function submitMonitorForm(values, dispatch, props) {
     });
 }
 
-export function MonitorBox(props) {
+export function MonitorBox(props: $TSFixMe) {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     const slug = currentProject ? currentProject.slug : null;
     let subProject = currentProjectId === subProjectId ? currentProject : false;
     if (!subProject && subProjectId) {
         subProject = subProjects.find(
-            subProject =>
-                subProject._id === subProjectId ||
-                subProject._id === subProjectId._id
+            (subProject: $TSFixMe) => subProject._id === subProjectId ||
+            subProject._id === subProjectId._id
         );
     }
     return (
@@ -110,6 +111,7 @@ export function MonitorBox(props) {
                                                             Schedule Monitors
                                                         </span>
                                                     </label>
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
                                                     <Tooltip title="Moniors and Criteria Using Schedule">
                                                         <div>
                                                             <p>
@@ -162,8 +164,8 @@ export function MonitorBox(props) {
                                                             )}
                                                             {props.subProjects.map(
                                                                 (
-                                                                    subProject,
-                                                                    i
+                                                                    subProject: $TSFixMe,
+                                                                    i: $TSFixMe
                                                                 ) => {
                                                                     if (
                                                                         subProject._id ===
@@ -326,36 +328,42 @@ const AddMonitorsForm = new reduxForm({
     enableReinitialize: true,
 })(MonitorBox);
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
-        subProjectSchedule => {
+        (subProjectSchedule: $TSFixMe) => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule.slug === scheduleSlug
+                (schedule: $TSFixMe) => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule.slug === scheduleSlug
+        (schedule: $TSFixMe) => schedule && schedule.slug === scheduleSlug
     );
     const subProjectId = schedule && schedule.projectId._id;
     const monitors = state.monitor.monitorsList.monitors
-        .map(monitor => monitor.monitors)
+        .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
     const isRequesting = state.schedule.addMonitor.requesting;
     const currentProject = state.project.currentProject;
 
     if (monitors.length > 0 && schedule) {
-        const scheduleMonitorIds = schedule.monitorIds.map(({ _id }) => _id);
-        const monitorIds = monitors.map(({ _id }) => _id);
+        const scheduleMonitorIds = schedule.monitorIds.map(({
+            _id
+        }: $TSFixMe) => _id);
+        const monitorIds = monitors.map(({
+            _id
+        }: $TSFixMe) => _id);
 
-        monitorIds.forEach(_id => {
+        monitorIds.forEach((_id: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             initialValues[_id] = scheduleMonitorIds.includes(_id);
         });
     }
     if (schedule) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type '{}'.
         initialValues.isDefault = schedule.isDefault;
     }
 
@@ -374,8 +382,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ addMonitors }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ addMonitors }, dispatch);
 
 MonitorBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,

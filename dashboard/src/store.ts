@@ -1,7 +1,10 @@
 import { createStore, applyMiddleware, compose } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { createLogger } from 'redux-logger';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'hist... Remove this comment to see the full error message
 import { createBrowserHistory, createMemoryHistory } from 'history';
 // import createHistory from 'history/createBrowserHistory';
 import rootReducer from './reducers';
@@ -25,6 +28,7 @@ const middleware = [thunk, routerMiddleware(history)];
 if (process.env.NODE_ENV === 'development') {
     let devToolsExtension;
     if (!isServer) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'devToolsExtension' does not exist on typ... Remove this comment to see the full error message
         devToolsExtension = window.devToolsExtension;
     }
     middleware.push(logger);

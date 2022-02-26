@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -24,7 +30,11 @@ export default {
         return SmsCount;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -42,19 +52,25 @@ export default {
         return SmsCount;
     },
 
-    create: async function(userId, sentTo, projectId, content, status, error) {
+    create: async function(userId: $TSFixMe, sentTo: $TSFixMe, projectId: $TSFixMe, content: $TSFixMe, status: $TSFixMe, error: $TSFixMe) {
         const smsCountModel = new SmsCountModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
         smsCountModel.userId = userId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sentTo' does not exist on type 'Document... Remove this comment to see the full error message
         smsCountModel.sentTo = sentTo || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         smsCountModel.projectId = projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
         smsCountModel.content = content || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
         smsCountModel.status = status || null;
+        // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
         smsCountModel.error = error || null;
         const smsCount = await smsCountModel.save();
         return smsCount;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -64,7 +80,11 @@ export default {
         return count;
     },
 
-    search: async function({ filter, skip, limit }) {
+    search: async function({
+        filter,
+        skip,
+        limit
+    }: $TSFixMe) {
         const _this = this;
         const query = {
             sendTo: { $regex: new RegExp(filter), $options: 'i' },
@@ -84,7 +104,7 @@ export default {
         return { searchedSmsLogs, totalSearchCount };
     },
 
-    validateResend: async function(userId) {
+    validateResend: async function(userId: $TSFixMe) {
         const _this = this;
         let problem = '';
         const select = 'createdAt';
@@ -101,9 +121,12 @@ export default {
         });
         if (smsCount.length > 3) {
             let time = moment(smsCount[3].createdAt).add(1, 'days');
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'Moment'.
             time = time.diff(moment(Date.now()), 'minutes');
             problem = `You have exhausted the maximum limit of sms resends in a day please wait ${Math.floor(
+                // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
                 time / 60
+            // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
             )} Hours ${Math.floor(time % 60)} minutes before retrying.`;
         }
         return {
@@ -112,7 +135,7 @@ export default {
         };
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const smsCount = await SmsCountModel.findOneAndUpdate(
             query,
             {
@@ -129,7 +152,7 @@ export default {
         return smsCount;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await SmsCountModel.deleteMany(query);
         return 'SmsCount(s) removed successfully';
     },

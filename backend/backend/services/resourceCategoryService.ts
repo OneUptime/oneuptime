@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const existingResourceCategory = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -8,18 +8,22 @@ export default {
             const error = new Error(
                 'A resource category with that name already exists.'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         let resourceCategory = new ResourceCategoryModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         resourceCategory.projectId = data.projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         resourceCategory.createdById = data.createdById;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         resourceCategory.name = data.name;
         resourceCategory = await resourceCategory.save();
         return resourceCategory;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {
@@ -78,7 +82,13 @@ export default {
         return resourceCategory;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -110,15 +120,15 @@ export default {
 
         let resourceCategories = await resourceCategoriesQuery;
 
-        resourceCategories = resourceCategories.map(resourceCategory => ({
+        resourceCategories = resourceCategories.map((resourceCategory: $TSFixMe) => ({
             name: resourceCategory.name,
             _id: resourceCategory._id,
-            createdAt: resourceCategory.createdAt,
+            createdAt: resourceCategory.createdAt
         }));
         return resourceCategories;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const existingResourceCategory = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -128,6 +138,7 @@ export default {
             const error = new Error(
                 'A resource category with that name already exists.'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -147,7 +158,7 @@ export default {
         return resourceCategory;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -161,7 +172,7 @@ export default {
         return updatedData;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -170,7 +181,7 @@ export default {
         const count = await ResourceCategoryModel.countDocuments(query);
         return count;
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await ResourceCategoryModel.deleteMany(query);
         return 'Resource Categories(s) removed successfully!';
     },

@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
@@ -11,14 +12,16 @@ import { deleteIncident } from '../../actions/incident';
 import DataPathHoC from '../DataPathHoC';
 
 export class IncidentDeleteBox extends Component {
-    constructor(props) {
+    deleteIncident: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -26,7 +29,9 @@ export class IncidentDeleteBox extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
         const { deleting } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
 
         return (
@@ -56,6 +61,7 @@ export class IncidentDeleteBox extends Component {
                                         className="bs-Button bs-Button--red Box-background--red"
                                         disabled={deleting}
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.openModal({
                                                 id: deleteModalId,
                                                 onClose: () => '',
@@ -65,20 +71,26 @@ export class IncidentDeleteBox extends Component {
                                                     DeleteIncident,
                                                     {
                                                         projectId:
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
                                                             this.props.incident
                                                                 .projectId
                                                                 ._id ||
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
                                                             this.props.incident
                                                                 .projectId,
                                                         incidentId: this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
                                                             .incident._id,
                                                         componentSlug: this
                                                             .props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                                             .componentSlug,
                                                         monitors: this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
                                                             .incident.monitors,
                                                         currentProjectSlug: this
                                                             .props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                             .currentProject
                                                             .slug,
                                                     }
@@ -103,13 +115,14 @@ export class IncidentDeleteBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncidentDeleteBox.displayName = 'IncidentDeleteBox';
 
 const mapStateToProps = () => ({});
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncidentDeleteBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,

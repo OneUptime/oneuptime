@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        populate,
+        select
+    }: $TSFixMe) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         if (!query) query = {};
@@ -22,7 +28,11 @@ export default {
 
         return incidentPriorities;
     },
-    findOne: async function({ query, select, populate }) {
+    findOne: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -42,7 +52,7 @@ export default {
 
         return incidentPriorities;
     },
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -52,16 +62,19 @@ export default {
 
         return count;
     },
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const incidentPriority = new incidentPriorityModel();
         const { projectId, name, color } = data;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         incidentPriority.projectId = projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         incidentPriority.name = name;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type 'Document<... Remove this comment to see the full error message
         incidentPriority.color = color;
         await incidentPriority.save();
         return incidentPriority;
     },
-    updateOne: async function(query, data) {
+    updateOne: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -75,7 +88,7 @@ export default {
         );
         return updatedIncidentPriority;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -111,7 +124,7 @@ export default {
         ]);
         return incidentPriority;
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await incidentPriorityModel.deleteMany(query);
         return 'Incident priorities removed successfully!';
     },

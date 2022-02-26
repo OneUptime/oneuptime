@@ -8,14 +8,14 @@ export const fetchUsersRequest = () => {
     };
 };
 
-export const fetchUsersSuccess = users => {
+export const fetchUsersSuccess = (users: $TSFixMe) => {
     return {
         type: types.FETCH_USERS_SUCCESS,
         payload: users,
     };
 };
 
-export const fetchUsersError = error => {
+export const fetchUsersError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_USERS_FAILURE,
         payload: error,
@@ -23,13 +23,15 @@ export const fetchUsersError = error => {
 };
 
 // Calls the API to fetch all users.
-export const fetchUsers = (skip, limit) => async dispatch => {
+export const fetchUsers = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchUsersRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(fetchUsersSuccess(data));
@@ -56,14 +58,14 @@ export const fetchUserRequest = () => {
     };
 };
 
-export const fetchUserSuccess = user => {
+export const fetchUserSuccess = (user: $TSFixMe) => {
     return {
         type: types.FETCH_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const fetchUserError = error => {
+export const fetchUserError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_USER_FAILURE,
         payload: error,
@@ -71,11 +73,13 @@ export const fetchUserError = error => {
 };
 
 // Calls the API to fetch a user.
-export const fetchUser = userId => async dispatch => {
+export const fetchUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchUserRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`user/users/${userId}`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(fetchUserSuccess(data));
@@ -104,14 +108,14 @@ export const addUserRequest = () => {
     };
 };
 
-export const addUserSuccess = user => {
+export const addUserSuccess = (user: $TSFixMe) => {
     return {
         type: types.ADD_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const addUserError = error => {
+export const addUserError = (error: $TSFixMe) => {
     return {
         type: types.ADD_USER_FAILURE,
         payload: error,
@@ -125,12 +129,15 @@ export const resetAddUser = () => {
 };
 
 // Calls the API to add user.
-export const addUser = user => async dispatch => {
+export const addUser = (user: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(addUserRequest());
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(`user/signup`, user);
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const userResponse = await getApi(`user/users/${response.data.id}`);
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(addUserSuccess(userResponse.data));
         return 'ok';
     } catch (error) {
@@ -157,14 +164,14 @@ export const updateUserSettingRequest = () => {
     };
 };
 
-export const updateUserSettingSuccess = userSetting => {
+export const updateUserSettingSuccess = (userSetting: $TSFixMe) => {
     return {
         type: types.UPDATE_USER_SETTING_SUCCESS,
         payload: userSetting,
     };
 };
 
-export const updateUserSettingError = error => {
+export const updateUserSettingError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_USER_SETTING_FAILURE,
         payload: error,
@@ -172,7 +179,7 @@ export const updateUserSettingError = error => {
 };
 
 // Calls the API to update user setting.
-export const updateUserSetting = values => async dispatch => {
+export const updateUserSetting = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
     const data = new FormData();
     if (values.profilePic && values.profilePic[0]) {
         data.append(
@@ -190,6 +197,7 @@ export const updateUserSetting = values => async dispatch => {
 
     try {
         const response = await putApi(`user/profile/${values._id}`, data);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const user = response.data;
 
         dispatch(updateUserSettingSuccess(user));
@@ -210,14 +218,14 @@ export const updateUserSetting = values => async dispatch => {
     }
 };
 
-export const logFile = file => {
-    return function(dispatch) {
+export const logFile = (file: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 };
 
 export const resetFile = () => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch({ type: 'RESET_FILE' });
     };
 };
@@ -235,14 +243,14 @@ export const deleteUserReset = () => {
     };
 };
 
-export const deleteUserSuccess = user => {
+export const deleteUserSuccess = (user: $TSFixMe) => {
     return {
         type: types.DELETE_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const deleteUserError = error => {
+export const deleteUserError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_USER_FAILED,
         payload: error,
@@ -250,11 +258,13 @@ export const deleteUserError = error => {
 };
 
 // Calls the API to delete a user.
-export const deleteUser = userId => async dispatch => {
+export const deleteUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteUserRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(`user/${userId}`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(deleteUserSuccess(data));
@@ -288,14 +298,14 @@ export const restoreUserReset = () => {
     };
 };
 
-export const restoreUserSuccess = user => {
+export const restoreUserSuccess = (user: $TSFixMe) => {
     return {
         type: types.RESTORE_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const restoreUserError = error => {
+export const restoreUserError = (error: $TSFixMe) => {
     return {
         type: types.RESTORE_USER_FAILED,
         payload: error,
@@ -303,11 +313,13 @@ export const restoreUserError = error => {
 };
 
 // Calls the API to restore a user
-export const restoreUser = userId => async dispatch => {
+export const restoreUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(restoreUserRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await putApi(`user/${userId}/restoreUser`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(restoreUserSuccess(data));
@@ -341,14 +353,14 @@ export const blockUserReset = () => {
     };
 };
 
-export const blockUserSuccess = user => {
+export const blockUserSuccess = (user: $TSFixMe) => {
     return {
         type: types.BLOCK_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const blockUserError = error => {
+export const blockUserError = (error: $TSFixMe) => {
     return {
         type: types.BLOCK_USER_FAILED,
         payload: error,
@@ -356,11 +368,13 @@ export const blockUserError = error => {
 };
 
 // Calls the API to restore a user
-export const blockUser = userId => async dispatch => {
+export const blockUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(blockUserRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await putApi(`user/${userId}/blockUser`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(blockUserSuccess(data));
@@ -388,14 +402,14 @@ export const enableAdminModeRequest = () => {
     };
 };
 
-export const enableAdminModeSuccess = user => {
+export const enableAdminModeSuccess = (user: $TSFixMe) => {
     return {
         type: types.ENABLE_ADMIN_MODE_SUCCESS,
         payload: user,
     };
 };
 
-export const enableAdminModeError = error => {
+export const enableAdminModeError = (error: $TSFixMe) => {
     return {
         type: types.ENABLE_ADMIN_MODE_FAILED,
         payload: error,
@@ -409,14 +423,16 @@ export const enableAdminModeReset = () => {
 };
 
 // Enable admin mode
-export const enableAdminMode = (userId, values) => async dispatch => {
+export const enableAdminMode = (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(enableAdminModeRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(
             `user/${userId}/switchToAdminMode`,
             values
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(enableAdminModeSuccess(data));
@@ -444,14 +460,14 @@ export const disableAdminModeRequest = () => {
     };
 };
 
-export const disableAdminModeSuccess = user => {
+export const disableAdminModeSuccess = (user: $TSFixMe) => {
     return {
         type: types.DISABLE_ADMIN_MODE_SUCCESS,
         payload: user,
     };
 };
 
-export const disableAdminModeError = error => {
+export const disableAdminModeError = (error: $TSFixMe) => {
     return {
         type: types.DISABLE_ADMIN_MODE_FAILED,
         payload: error,
@@ -465,11 +481,13 @@ export const disableAdminModeReset = () => {
 };
 
 // Disable admin mode
-export const disableAdminMode = userId => async dispatch => {
+export const disableAdminMode = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(disableAdminModeRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
         const response = await postApi(`user/${userId}/exitAdminMode`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(disableAdminModeSuccess(data));
@@ -503,14 +521,14 @@ export const unblockUserReset = () => {
     };
 };
 
-export const unblockUserSuccess = user => {
+export const unblockUserSuccess = (user: $TSFixMe) => {
     return {
         type: types.UNBLOCK_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const unblockUserError = error => {
+export const unblockUserError = (error: $TSFixMe) => {
     return {
         type: types.UNBLOCK_USER_FAILED,
         payload: error,
@@ -518,11 +536,13 @@ export const unblockUserError = error => {
 };
 
 // Calls the API to unblock a user
-export const unblockUser = userId => async dispatch => {
+export const unblockUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(unblockUserRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await putApi(`user/${userId}/unblockUser`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(unblockUserSuccess(data));
@@ -556,14 +576,14 @@ export const addUserNoteReset = () => {
     };
 };
 
-export const addUserNoteSuccess = userNote => {
+export const addUserNoteSuccess = (userNote: $TSFixMe) => {
     return {
         type: types.ADD_USER_NOTE_SUCCESS,
         payload: userNote,
     };
 };
 
-export const addUserNoteError = error => {
+export const addUserNoteError = (error: $TSFixMe) => {
     return {
         type: types.ADD_USER_NOTE_FAILURE,
         payload: error,
@@ -571,11 +591,13 @@ export const addUserNoteError = error => {
 };
 
 // Calls the API to add Admin Note
-export const addUserNote = (userId, values) => async dispatch => {
+export const addUserNote = (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addUserNoteRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(`user/${userId}/addNote`, values);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(addUserNoteSuccess(data));
@@ -609,14 +631,14 @@ export const searchUsersReset = () => {
     };
 };
 
-export const searchUsersSuccess = users => {
+export const searchUsersSuccess = (users: $TSFixMe) => {
     return {
         type: types.SEARCH_USERS_SUCCESS,
         payload: users,
     };
 };
 
-export const searchUsersError = error => {
+export const searchUsersError = (error: $TSFixMe) => {
     return {
         type: types.SEARCH_USERS_FAILURE,
         payload: error,
@@ -624,7 +646,7 @@ export const searchUsersError = error => {
 };
 
 // Calls the search users api
-export const searchUsers = (filter, skip, limit) => async dispatch => {
+export const searchUsers = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -634,10 +656,12 @@ export const searchUsers = (filter, skip, limit) => async dispatch => {
     dispatch(searchUsersRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(
             `user/users/search?skip=${skip}&limit=${limit}`,
             values
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data;
 
         dispatch(searchUsersSuccess(data));
@@ -665,26 +689,27 @@ export function twoFactorAuthTokenRequest() {
     };
 }
 
-export function twoFactorAuthTokenSuccess(payload) {
+export function twoFactorAuthTokenSuccess(payload: $TSFixMe) {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
         payload: payload,
     };
 }
 
-export function twoFactorAuthTokenError(error) {
+export function twoFactorAuthTokenError(error: $TSFixMe) {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
     };
 }
 
-export function updateTwoFactorAuthToken(userId, data) {
-    return function(dispatch) {
+export function updateTwoFactorAuthToken(userId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
@@ -708,7 +733,7 @@ export function updateTwoFactorAuthToken(userId, data) {
     };
 }
 
-export function setTwoFactorAuth(enabled) {
+export function setTwoFactorAuth(enabled: $TSFixMe) {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
@@ -723,26 +748,28 @@ export function fetchUserHistoryRequest() {
     };
 }
 
-export function fetchUserHistorySuccess(payload) {
+export function fetchUserHistorySuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_SUCCESS,
         payload: payload,
     };
 }
 
-export function fetchUserHistoryError(error) {
+export function fetchUserHistoryError(error: $TSFixMe) {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_FAILURE,
         payload: error,
     };
 }
 
-export function fetchUserloginHistory(userId, skip, limit = 10) {
-    return function(dispatch) {
+export function fetchUserloginHistory(userId: $TSFixMe, skip: $TSFixMe, limit = 10) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = getApi(`history/${userId}?skip=${skip}&limit=${limit}`);
         dispatch(fetchUserHistoryRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const payload = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;

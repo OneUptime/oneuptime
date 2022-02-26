@@ -9,7 +9,8 @@ const runConfig = {
 };
 
 class ScriptError extends Error {
-    constructor(errors, message = 'Script resource error') {
+    errors: $TSFixMe;
+    constructor(errors: $TSFixMe, message = 'Script resource error') {
         super();
         this.message = message;
         this.errors = Array.isArray(errors)
@@ -28,8 +29,8 @@ const {
 } = runConfig;
 
 const run = async (
-    functionCode,
-    isCalled, // skip IIFE calls
+    functionCode: $TSFixMe,
+    isCalled: $TSFixMe, // skip IIFE calls
     options = { maxScriptRunTime, maxSyncStatementDuration }
 ) => {
     const {
@@ -53,10 +54,13 @@ const run = async (
                 ], // handle promise rejection warnings
             });
 
-            const consoleLogs = [];
-            let lastMessage = null;
+            const consoleLogs: $TSFixMe = [];
+            let lastMessage: $TSFixMe = null;
 
-            worker.on('message', ({ type, payload }) => {
+            worker.on('message', ({
+                type,
+                payload
+            }: $TSFixMe) => {
                 switch (type) {
                     case 'ping': {
                         lastMessage = Date.now();
@@ -83,7 +87,7 @@ const run = async (
             worker.on('online', () => {
                 lastMessage = Date.now();
             });
-            worker.on('exit', exitCode => {
+            worker.on('exit', (exitCode: $TSFixMe) => {
                 // console.log('exitCode:::', exitCode);
                 switch (exitCode) {
                     case 0:
@@ -122,7 +126,7 @@ const run = async (
 
                 clearInterval(checker);
             });
-            worker.on('error', err => {
+            worker.on('error', (err: $TSFixMe) => {
                 // append errors to console log
                 consoleLogs.push(`[error]: ${err.message}`);
 
@@ -180,6 +184,7 @@ const run = async (
         });
     } else {
         // worker_threads code
+        // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
         import { NodeVM } from 'vm2'
         const vm = new NodeVM({
             eval: false,
@@ -192,7 +197,7 @@ const run = async (
             console: 'redirect',
         });
 
-        vm.on('console.log', log => {
+        vm.on('console.log', (log: $TSFixMe) => {
             parentPort.postMessage({
                 type: 'log',
                 payload: `[log]: ${
@@ -201,7 +206,7 @@ const run = async (
             });
         });
 
-        vm.on('console.error', error => {
+        vm.on('console.error', (error: $TSFixMe) => {
             parentPort.postMessage({
                 type: 'log',
                 payload: `[error]: ${
@@ -212,7 +217,7 @@ const run = async (
             });
         });
 
-        vm.on('console.warn', error => {
+        vm.on('console.warn', (error: $TSFixMe) => {
             parentPort.postMessage({
                 type: 'log',
                 payload: `[warn]: $${
@@ -223,7 +228,7 @@ const run = async (
             });
         });
 
-        const scriptCompletedCallback = err => {
+        const scriptCompletedCallback = (err: $TSFixMe) => {
             if (err) {
                 throw new ScriptError(err);
             }
@@ -241,5 +246,6 @@ const run = async (
     }
 };
 
+// @ts-expect-error ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 0.
 export default run(); // DO NOT call default export directly (used by worker thread)
 module.exports.run = run; // call named export only

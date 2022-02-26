@@ -18,7 +18,9 @@ import { ListLoader } from '../basic/Loader';
 
 class WebHookList extends React.Component {
     ready() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getWebHookMonitor' does not exist on typ... Remove this comment to see the full error message
         const { getWebHookMonitor, getWebHook } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, monitorId } = this.props;
 
         if (monitorId) {
@@ -33,10 +35,11 @@ class WebHookList extends React.Component {
     }
 
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.paginate('reset');
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'ArrowRight':
                 return this.nextClicked();
@@ -49,11 +52,17 @@ class WebHookList extends React.Component {
 
     prevClicked = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'webHook' does not exist on type 'Readonl... Remove this comment to see the full error message
             webHook: { skip, limit },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getWebHookMonitor' does not exist on typ... Remove this comment to see the full error message
             getWebHookMonitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getWebHook' does not exist on type 'Read... Remove this comment to see the full error message
             getWebHook,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
             paginate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
             monitorId,
         } = this.props;
 
@@ -77,11 +86,17 @@ class WebHookList extends React.Component {
 
     nextClicked = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'webHook' does not exist on type 'Readonl... Remove this comment to see the full error message
             webHook: { skip, limit },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getWebHookMonitor' does not exist on typ... Remove this comment to see the full error message
             getWebHookMonitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
             paginate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
             monitorId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getWebHook' does not exist on type 'Read... Remove this comment to see the full error message
             getWebHook,
         } = this.props;
 
@@ -94,6 +109,7 @@ class WebHookList extends React.Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'webHook' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { webHook, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = webHook;
         let { webHooks } = webHook;
@@ -101,8 +117,7 @@ class WebHookList extends React.Component {
             webHook && count && count > skip + limit ? true : false;
         let canPaginateBackward = webHook && skip && skip > 0 ? true : false;
         if (monitorId && webHooks) {
-            webHooks = webHooks.filter(hook =>
-                hook.monitors.some(mon => mon.monitorId._id === monitorId)
+            webHooks = webHooks.filter((hook: $TSFixMe) => hook.monitors.some((mon: $TSFixMe) => mon.monitorId._id === monitorId)
             );
         }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
@@ -135,14 +150,13 @@ class WebHookList extends React.Component {
                         </thead>
                         <tbody className="Table-body">
                             <ShouldRender if={numberOfWebHooks > 0}>
-                                {(webHooks ? webHooks : []).map(hook => (
-                                    <WebHookItem
-                                        key={`${hook._id}`}
-                                        data={hook}
-                                        monitorId={monitorId}
-                                        monitors={hook.monitors}
-                                    />
-                                ))}
+                                {(webHooks ? webHooks : []).map((hook: $TSFixMe) => <WebHookItem
+                                    key={`${hook._id}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: string; data: any; monitorId: any; mo... Remove this comment to see the full error message
+                                    data={hook}
+                                    monitorId={monitorId}
+                                    monitors={hook.monitors}
+                                />)}
                             </ShouldRender>
                         </tbody>
                     </table>
@@ -185,7 +199,9 @@ class WebHookList extends React.Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                         ? `Page ${this.props.page &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                               this.props.page
                                                   .counter} of ${numberOfPages} (${count} Webhook${
                                               count === 1 ? '' : 's'
@@ -250,32 +266,35 @@ class WebHookList extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 WebHookList.displayName = 'WebHookList';
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     webHook: state.webHooks.webHook,
     page: state.webHooks.pages,
     isRequesting: state.webHooks.webHook.requesting,
     currentProject: state.project.currentProject,
+
     projectId:
         (state.project.currentProject && state.project.currentProject._id) ||
         User.getCurrentProjectId(),
-    monitor: state.monitor,
+
+    monitor: state.monitor
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            getWebHookMonitor,
-            getWebHook,
-            getWebHookError,
-            getWebHookRequest,
-            getWebHookSuccess,
-            paginate,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        getWebHookMonitor,
+        getWebHook,
+        getWebHookError,
+        getWebHookRequest,
+        getWebHookSuccess,
+        paginate,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 WebHookList.propTypes = {
     getWebHookMonitor: PropTypes.func,
     projectId: PropTypes.string,

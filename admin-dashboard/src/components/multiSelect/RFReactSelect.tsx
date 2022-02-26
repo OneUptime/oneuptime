@@ -4,13 +4,14 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'react-select-oneuptime' or its... Remove this comment to see the full error message
 import Select from 'react-select-oneuptime';
 
 /**
  * onChange from Redux Form Field has to be called explicity.
  */
-function singleChangeHandler(func) {
-    return function handleSingleChange(value) {
+function singleChangeHandler(func: $TSFixMe) {
+    return function handleSingleChange(value: $TSFixMe) {
         func(value ? value.value : '');
     };
 }
@@ -18,9 +19,9 @@ function singleChangeHandler(func) {
 /**
  * onBlur from Redux Form Field has to be called explicity.
  */
-function multiChangeHandler(func) {
-    return function handleMultiHandler(values) {
-        func(values.map(value => value.value));
+function multiChangeHandler(func: $TSFixMe) {
+    return function handleMultiHandler(values: $TSFixMe) {
+        func(values.map((value: $TSFixMe) => value.value));
     };
 }
 
@@ -31,10 +32,10 @@ function multiChangeHandler(func) {
  * * For multi select, Redux Form keeps the value as array of strings, while React Select
  * wants the array of values in the form [{ value: "grape", label: "Grape" }]
  */
-function transformValue(value, options, isMulti) {
+function transformValue(value: $TSFixMe, options: $TSFixMe, isMulti: $TSFixMe) {
     if (isMulti && typeof value === 'string') return [];
 
-    const filteredOptions = options.filter(option => {
+    const filteredOptions = options.filter((option: $TSFixMe) => {
         return isMulti
             ? value && value.indexOf(option.value) !== -1
             : option.value === value;
@@ -51,8 +52,8 @@ const RFReactSelect = ({
     isMulti,
     className,
     placeholder,
-    disabled,
-}) => {
+    disabled
+}: $TSFixMe) => {
     const { name, value, onBlur, onChange, onFocus } = input;
     const transformedValue = transformValue(value, options, isMulti);
     return (

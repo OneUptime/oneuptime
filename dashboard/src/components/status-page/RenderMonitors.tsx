@@ -1,11 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { RenderMonitor } from './RenderMonitor';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Draggable } from 'react-beautiful-dnd';
 
 const grid = 8;
 
-const getItemStyle = (isDragging, draggableStyle) => {
+const getItemStyle = (isDragging: $TSFixMe, draggableStyle: $TSFixMe) => {
     return {
         userSelect: 'none',
         padding: grid * 2,
@@ -20,12 +21,17 @@ const getItemStyle = (isDragging, draggableStyle) => {
     };
 };
 
-const RenderMonitors = ({ fields, subProject, form, statusPageCategory }) => (
+const RenderMonitors = ({
+    fields,
+    subProject,
+    form,
+    statusPageCategory
+}: $TSFixMe) => (
     <ul>
-        {fields.map((monitor, index) => {
+        {fields.map((monitor: $TSFixMe, index: $TSFixMe) => {
             return (
                 <Draggable key={monitor} draggableId={monitor} index={index}>
-                    {(provided, snapshot) => (
+                    {(provided: $TSFixMe, snapshot: $TSFixMe) => (
                         <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}

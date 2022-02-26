@@ -1,15 +1,20 @@
 export default {
     // process external subscriber webhook
     sendSubscriberNotification: async function(
-        subscriber,
-        projectId,
-        incident,
-        monitor,
-        component,
-        duration,
-        { note, incidentState, statusNoteStatus } = {}
+        subscriber: $TSFixMe,
+        projectId: $TSFixMe,
+        incident: $TSFixMe,
+        monitor: $TSFixMe,
+        component: $TSFixMe,
+        duration: $TSFixMe,
+        {
+            note,
+            incidentState,
+            statusNoteStatus
+        }: $TSFixMe = {}
     ) {
         const [project, monitorStatus] = await Promise.all([
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId slug name _id',
@@ -37,16 +42,21 @@ export default {
     },
     // process messages to be sent to slack workspace channels
     sendIntegrationNotification: async function(
-        projectId,
-        incident,
-        monitor,
-        incidentStatus,
-        component,
-        duration,
-        { note, incidentState, statusNoteStatus } = {}
+        projectId: $TSFixMe,
+        incident: $TSFixMe,
+        monitor: $TSFixMe,
+        incidentStatus: $TSFixMe,
+        component: $TSFixMe,
+        duration: $TSFixMe,
+        {
+            note,
+            incidentState,
+            statusNoteStatus
+        }: $TSFixMe = {}
     ) {
         const self = this;
         let response;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId slug name _id',
@@ -62,16 +72,19 @@ export default {
         if (incidentStatus === INCIDENT_RESOLVED) {
             query = {
                 ...query,
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'notificationOptions.incidentResolved': bo... Remove this comment to see the full error message
                 'notificationOptions.incidentResolved': true,
             };
         } else if (incidentStatus === INCIDENT_CREATED) {
             query = {
                 ...query,
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'notificationOptions.incidentCreated': boo... Remove this comment to see the full error message
                 'notificationOptions.incidentCreated': true,
             };
         } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
             query = {
                 ...query,
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'notificationOptions.incidentAcknowledged'... Remove this comment to see the full error message
                 'notificationOptions.incidentAcknowledged': true,
             };
         } else {
@@ -118,16 +131,21 @@ export default {
 
     // send notification to slack workspace channels
     async notify(
-        project,
-        monitor,
-        incident,
-        webhookAgent,
-        monitorStatus,
-        component,
-        duration,
+        project: $TSFixMe,
+        monitor: $TSFixMe,
+        incident: $TSFixMe,
+        webhookAgent: $TSFixMe,
+        monitorStatus: $TSFixMe,
+        component: $TSFixMe,
+        duration: $TSFixMe,
         webHookType = PROJECT_WEBHOOK,
-        { note, incidentState, statusNoteStatus } = {}
+        {
+            note,
+            incidentState,
+            statusNoteStatus
+        }: $TSFixMe = {}
     ) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -305,11 +323,15 @@ export default {
             criterion: criterionCauseName,
         };
         if (incident.acknowledged) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedBy' does not exist on type '... Remove this comment to see the full error message
             data.acknowledgedBy = incident.acknowledgedBy.name;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedAt' does not exist on type '... Remove this comment to see the full error message
             data.acknowledgedAt = incident.acknowledgedAt;
         }
         if (incident.resolved) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedBy' does not exist on type '{ ti... Remove this comment to see the full error message
             data.resolvedBy = incident.resolvedBy.name;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedAt' does not exist on type '{ ti... Remove this comment to see the full error message
             data.resolvedAt = incident.resolvedAt;
         }
 
@@ -318,6 +340,7 @@ export default {
             httpMethod = webhookAgent.data.endpointType;
             if (httpMethod === undefined) {
                 const error = new Error('Webhook endpoint type missing');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }

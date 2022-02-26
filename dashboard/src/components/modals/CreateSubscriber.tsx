@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm, formValueSelector } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import {
     createSubscriberRequest,
@@ -19,44 +21,54 @@ import { fetchMonitorsSubscribers } from '../../actions/monitor';
 import countryCodes from '../../utils/countryCodes';
 import { fetchStatusPageSubscribers } from '../../actions/statusPage';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.monitorId)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
         errors.monitorId = 'Please select a monitor.';
     }
     if (!Validate.text(values.alertVia)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
         errors.alertVia = 'Please select a subscribe method.';
     } else {
         if (values.alertVia === 'sms') {
             if (!Validate.text(values.countryCode)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type '{}'... Remove this comment to see the full error message
                 errors.countryCode = 'Please select a country code.';
             }
             if (!Validate.text(values.contactPhone)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactPhone' does not exist on type '{}... Remove this comment to see the full error message
                 errors.contactPhone = 'Please enter a contact number.';
             }
         }
         if (values.alertVia === 'email') {
             if (!Validate.text(values.email)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
                 errors.email = 'Please enter an email address.';
             } else {
                 if (!Validate.email(values.email)) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
                     errors.email = 'Please enter a valid email address.';
                 }
             }
         }
         if (values.alertVia === 'webhook') {
             if (!Validate.text(values.endpoint)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpoint' does not exist on type '{}'.
                 errors.endpoint = 'Please enter an endpoint url.';
             } else {
                 if (!Validate.url(values.endpoint)) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpoint' does not exist on type '{}'.
                     errors.endpoint = 'Please enter a valid url.';
                 }
             }
             if (!Validate.text(values.email)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
                 errors.email = 'Please enter an email address.';
             } else {
                 if (!Validate.email(values.email)) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
                     errors.email = 'Please enter a valid email address.';
                 }
             }
@@ -64,6 +76,7 @@ function validate(values) {
                 !Validate.text(values.webhookMethod) ||
                 !['get', 'post'].includes(values.webhookMethod)
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'webhookMethod' does not exist on type '{... Remove this comment to see the full error message
                 errors.webhookMethod = 'Please choose an http method';
             }
         }
@@ -77,6 +90,7 @@ const selector = formValueSelector('CreateSubscriber');
 class CreateSubscriber extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriberError' does not exist on... Remove this comment to see the full error message
         this.props.createSubscriberError('');
     }
 
@@ -84,14 +98,19 @@ class CreateSubscriber extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         values.contactEmail = values.email;
         values.contactWebhook = values.endpoint;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriber' does not exist on type... Remove this comment to see the full error message
             createSubscriber,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
             fetchMonitorsSubscribers,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageSubscribers' does not exi... Remove this comment to see the full error message
             fetchStatusPageSubscribers,
         } = this.props;
         const { monitorId, subProjectId, statusPage, limit } = data;
@@ -117,11 +136,13 @@ class CreateSubscriber extends Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('createSubscriber').click();
             default:
                 return false;
@@ -130,15 +151,20 @@ class CreateSubscriber extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'mergeMonitors' does not exist on type 'R... Remove this comment to see the full error message
             mergeMonitors,
         } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -205,6 +231,7 @@ class CreateSubscriber extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                 {this.props.type ===
                                                     'webhook' && (
                                                     <div className="bs-Fieldset-row">
@@ -227,6 +254,7 @@ class CreateSubscriber extends Component {
                                                 )}
                                                 <ShouldRender
                                                     if={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         this.props.type ===
                                                         'webhook'
                                                     }
@@ -269,7 +297,9 @@ class CreateSubscriber extends Component {
                                                         </div>
                                                     </div>
                                                 </ShouldRender>
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                 {(this.props.type === 'email' ||
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     this.props.type ===
                                                         'webhook') && (
                                                     <>
@@ -295,6 +325,7 @@ class CreateSubscriber extends Component {
                                                         <ShouldRender
                                                             if={
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                     .type ===
                                                                 'webhook'
                                                             }
@@ -313,6 +344,7 @@ class CreateSubscriber extends Component {
                                                         </ShouldRender>
                                                     </>
                                                 )}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                 {this.props.type === 'sms' && (
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
@@ -334,6 +366,7 @@ class CreateSubscriber extends Component {
                                                         </div>
                                                     </div>
                                                 )}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                 {this.props.type === 'sms' && (
                                                     <div className="bs-Fieldset-row">
                                                         <label className="bs-Fieldset-label">
@@ -351,14 +384,13 @@ class CreateSubscriber extends Component {
                                                                 name="contactPhone"
                                                                 id="contactPhoneId"
                                                                 placeholder="6505551234"
-                                                                normalize={val =>
-                                                                    (
-                                                                        val ||
-                                                                        ''
-                                                                    ).replace(
-                                                                        /[^\d]/g,
-                                                                        ''
-                                                                    )
+                                                                normalize={(val: $TSFixMe) => (
+                                                                    val ||
+                                                                    ''
+                                                                ).replace(
+                                                                    /[^\d]/g,
+                                                                    ''
+                                                                )
                                                                 }
                                                             />
                                                         </div>
@@ -398,10 +430,11 @@ class CreateSubscriber extends Component {
                                                                     mergeMonitors.length >
                                                                         0
                                                                         ? mergeMonitors.map(
-                                                                              monitor => ({
+                                                                              (monitor: $TSFixMe) => ({
                                                                                   value:
                                                                                       monitor._id,
-                                                                                  label: `${monitor.componentId.name} / ${monitor.name}`,
+
+                                                                                  label: `${monitor.componentId.name} / ${monitor.name}`
                                                                               })
                                                                           )
                                                                         : []),
@@ -418,7 +451,9 @@ class CreateSubscriber extends Component {
                                     <div className="bs-Modal-footer-actions Flex-flex--1">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.newSubscriber &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.newSubscriber.error
                                             }
                                         >
@@ -440,6 +475,7 @@ class CreateSubscriber extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                                     .newSubscriber
                                                                     .error
                                                             }
@@ -461,14 +497,18 @@ class CreateSubscriber extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.newSubscriber &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.newSubscriber
                                                     .requesting
                                             }
                                             type="submit"
                                             id="createSubscriber"
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                             {this.props.newSubscriber &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                 !this.props.newSubscriber
                                                     .requesting && (
                                                     <>
@@ -478,7 +518,9 @@ class CreateSubscriber extends Component {
                                                         </span>
                                                     </>
                                                 )}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                             {this.props.newSubscriber &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSubscriber' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.newSubscriber
                                                     .requesting && (
                                                     <FormLoader />
@@ -495,6 +537,7 @@ class CreateSubscriber extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CreateSubscriber.displayName = 'CreateSubscriberFormModal';
 
 const CreateSubscriberForm = reduxForm({
@@ -502,7 +545,7 @@ const CreateSubscriberForm = reduxForm({
     validate,
 })(CreateSubscriber);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             createSubscriberRequest,
@@ -516,16 +559,16 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     const projectId = ownProps.data.subProjectId;
     const allMonitors = state.monitor.monitorsList.monitors
-        .filter(monitor => String(monitor._id) === String(projectId))
-        .map(monitor => monitor.monitors)
+        .filter((monitor: $TSFixMe) => String(monitor._id) === String(projectId))
+        .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
     const statusPageMonitors = ownProps.data.monitorList || [];
-    const mergeMonitors = [];
-    allMonitors.forEach(allMon => {
-        statusPageMonitors.forEach(mon => {
+    const mergeMonitors: $TSFixMe = [];
+    allMonitors.forEach((allMon: $TSFixMe) => {
+        statusPageMonitors.forEach((mon: $TSFixMe) => {
             if (allMon._id === mon.monitor) {
                 mergeMonitors.push(allMon);
             }
@@ -540,6 +583,7 @@ function mapStateToProps(state, ownProps) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CreateSubscriber.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     createSubscriber: PropTypes.func.isRequired,

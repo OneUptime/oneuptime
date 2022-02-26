@@ -5,6 +5,11 @@ import ListActionBase from './list';
 import GetActionBase from './get';
 
 export default class Actions {
+    createAction: $TSFixMe;
+    deleteAction: $TSFixMe;
+    getAction: $TSFixMe;
+    listAction: $TSFixMe;
+    updateAction: $TSFixMe;
     constructor({
         createActionProps,
         updateActionProps,
@@ -13,8 +18,8 @@ export default class Actions {
         listActionProps,
         friendlyName,
         apiPath,
-        isResourceInProject,
-    }) {
+        isResourceInProject
+    }: $TSFixMe) {
         this.createAction = null;
         this.updateAction = null;
         this.deleteAction = null;

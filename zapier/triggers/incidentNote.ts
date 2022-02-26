@@ -1,16 +1,16 @@
-const triggerIncidentNote = (z, bundle) => {
+const triggerIncidentNote = (z: $TSFixMe, bundle: $TSFixMe) => {
     return bundle.cleanedRequest;
 };
 
-const fallbackHook = (z, bundle) => {
+const fallbackHook = (z: $TSFixMe, bundle: $TSFixMe) => {
     // For the test poll, you should get some real data, to aid the setup process.
     const options = {
         url: `${bundle.authData.serverUrl}/zapier/incident-note`,
     };
 
-    return z.request(options).then(response => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
 };
-const subscribeHook = (z, bundle) => {
+const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
     // bundle.targetUrl has the Hook URL this app should call when an incident is acknowledged.
     const data = {
         url: bundle.targetUrl,
@@ -25,10 +25,10 @@ const subscribeHook = (z, bundle) => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z.request(options).then(response => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
-const unSubscribeHook = (z, bundle) => {
+const unSubscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
     // bundle.subscribeData contains the parsed response JSON from the subscribe
     // request made initially.
     const hookId = bundle.subscribeData.id;
@@ -41,7 +41,7 @@ const unSubscribeHook = (z, bundle) => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z.request(options).then(response => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
@@ -27,8 +28,9 @@ class Container extends Component {
         page: 1,
     };
 
-    prevClicked = (projectId, componentId, skip, limit) => {
+    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getContainerSecurities' does not exist o... Remove this comment to see the full error message
             .getContainerSecurities({
                 projectId,
                 componentId,
@@ -40,16 +42,20 @@ class Container extends Component {
                 this.setState(prevState => {
                     return {
                         page:
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                             prevState.page === 1
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 ? prevState.page
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 : prevState.page - 1,
                     };
                 });
             });
     };
 
-    nextClicked = (projectId, componentId, skip, limit) => {
+    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getContainerSecurities' does not exist o... Remove this comment to see the full error message
             .getContainerSecurities({
                 projectId,
                 componentId,
@@ -60,6 +66,7 @@ class Container extends Component {
             .then(() => {
                 this.setState(prevState => {
                     return {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                         page: prevState.page + 1,
                     };
                 });
@@ -68,11 +75,17 @@ class Container extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getContainerSecurities' does not exist o... Remove this comment to see the full error message
             getContainerSecurities,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getContainerSecurityLogs' does not exist... Remove this comment to see the full error message
             getContainerSecurityLogs,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
             fetchComponent,
         } = this.props;
         if (projectId && componentSlug) {
@@ -92,15 +105,21 @@ class Container extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             prevProps.projectId !== this.props.projectId ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             prevProps.componentId !== this.props.componentId
         ) {
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
                 projectId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                 componentId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getContainerSecurities' does not exist o... Remove this comment to see the full error message
                 getContainerSecurities,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getContainerSecurityLogs' does not exist... Remove this comment to see the full error message
                 getContainerSecurityLogs,
             } = this.props;
             if (projectId && componentId) {
@@ -117,9 +136,12 @@ class Container extends Component {
             }
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             prevProps.projectId !== this.props.projectId ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             prevProps.componentSlug !== this.props.componentSlug
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             const { projectId, fetchComponent, componentSlug } = this.props;
             if (projectId) {
                 fetchComponent(projectId, componentSlug);
@@ -129,34 +151,52 @@ class Container extends Component {
 
     componentWillUnmount() {
         socket.removeListener(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             `createContainerSecurity-${this.props.componentId}`
         );
     }
 
     toggleForm = () =>
         this.setState(prevState => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showContainerSecurityForm' does not exis... Remove this comment to see the full error message
             showContainerSecurityForm: !prevState.showContainerSecurityForm,
         }));
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'containerSecurities' does not exist on t... Remove this comment to see the full error message
             containerSecurities: securities,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'gettingContainerSecurities' does not exi... Remove this comment to see the full error message
             gettingContainerSecurities,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'gettingSecurityLogs' does not exist on t... Remove this comment to see the full error message
             gettingSecurityLogs,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
             // scanContainerSecuritySuccess,
             // getContainerSecuritySuccess,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingPage' does not exist on type 'Re... Remove this comment to see the full error message
             fetchingPage,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberOfPage' does not exist on type 'Re... Remove this comment to see the full error message
             numberOfPage,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
         } = this.props;
 
@@ -170,8 +210,9 @@ class Container extends Component {
 
         socket.emit('component_switch', componentId);
 
-        socket.on(`createContainerSecurity-${componentId}`, data => {
+        socket.on(`createContainerSecurity-${componentId}`, (data: $TSFixMe) => {
             history.push(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/container/${data.slug}`
             );
         });
@@ -204,6 +245,7 @@ class Container extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -218,6 +260,7 @@ class Container extends Component {
                             : 'Container Security'
                     }
                     pageTitle="Container"
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: any; name: string; pageTitle: strin... Remove this comment to see the full error message
                     addBtn={!isEmpty}
                     btnText="Create Container Security"
                     toggleForm={this.toggleForm}
@@ -248,7 +291,7 @@ class Container extends Component {
                                     {!this.state.showContainerSecurityForm &&
                                         !isEmpty &&
                                         containerSecurities.map(
-                                            containerSecurity => {
+                                            (containerSecurity: $TSFixMe) => {
                                                 return (
                                                     <span
                                                         key={
@@ -261,6 +304,7 @@ class Container extends Component {
                                                                     name={
                                                                         containerSecurity.name
                                                                     }
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; dockerRegistryUrl: any; imagePa... Remove this comment to see the full error message
                                                                     dockerRegistryUrl={
                                                                         containerSecurity.dockerRegistryUrl
                                                                     }
@@ -301,6 +345,7 @@ class Container extends Component {
                                                 }
                                             >
                                                 <ContainerSecurityForm
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; projectId: any; toggleFo... Remove this comment to see the full error message
                                                     componentId={componentId}
                                                     projectId={projectId}
                                                     toggleForm={this.toggleForm}
@@ -320,6 +365,7 @@ class Container extends Component {
                                 >
                                     <div
                                         className="Box-root Card-shadow--medium"
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                         tabIndex="0"
                                     >
                                         <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -464,8 +510,10 @@ class Container extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Container.displayName = 'Container Security Page';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
@@ -493,7 +541,7 @@ Container.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     // ids from url
     const { componentSlug } = ownProps.match.params;
 
@@ -520,16 +568,15 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            getContainerSecurities,
-            getContainerSecurityLogs,
-            scanContainerSecuritySuccess,
-            getContainerSecuritySuccess,
-            fetchComponent,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        getContainerSecurities,
+        getContainerSecurityLogs,
+        scanContainerSecuritySuccess,
+        getContainerSecuritySuccess,
+        fetchComponent,
+    },
+    dispatch
+);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Container);

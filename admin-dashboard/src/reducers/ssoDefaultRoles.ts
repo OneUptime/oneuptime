@@ -52,7 +52,7 @@ const INITIAL_STATE = {
     page: 1,
 };
 
-export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
+export default function ssoDefaultRoles(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case FETCH_SSO_DEFAULT_ROLES_REQUEST:
             return Object.assign({}, state, {
@@ -103,6 +103,7 @@ export default function ssoDefaultRoles(state = INITIAL_STATE, action) {
                 ssoDefaultRoles: {
                     ...state.ssoDefaultRoles,
                     ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.filter(
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         element => element._id !== action.payload._id
                     ),
                 },

@@ -7,7 +7,10 @@ const errorStyle = {
     topMargin: '5px',
 };
 
-const CountrySelector = ({ input, meta: { touched, error } }) => (
+const CountrySelector = ({
+    input,
+    meta: { touched, error }
+}: $TSFixMe) => (
     <span>
         <select {...input} className="selector" id="country">
             <option value="">Select Country...</option>

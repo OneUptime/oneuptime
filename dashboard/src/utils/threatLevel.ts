@@ -4,7 +4,7 @@
  * @returns {string} critical, high, moderate or low
  */
 
-const threatLevel = vulnerability => {
+const threatLevel = (vulnerability: $TSFixMe) => {
     if (vulnerability.critical > 0) {
         return 'critical';
     }

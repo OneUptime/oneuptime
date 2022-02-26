@@ -1,5 +1,7 @@
 const PKG_VERSION = require('../package.json').version;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, save, deleteDatabase } from '../util/db'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
 import bcrypt from 'bcrypt'
 
 async function run() {
@@ -11,6 +13,7 @@ async function run() {
 
         if (
             process.env['IS_SAAS_SERVICE'] === 'true' ||
+            // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
             process.env['IS_SAAS_SERVICE'] === true
         ) {
             // if SaaS Service create master admin user automatically.

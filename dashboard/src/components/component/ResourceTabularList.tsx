@@ -14,11 +14,13 @@ import IssueIndicator from '../security/IssueIndicator';
 import sortByName from '../../utils/sortByName';
 import { animateSidebar } from '../../actions/animateSidebar';
 class ResourceTabularList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
     }
-    generateUrlLink(componentResource) {
+    generateUrlLink(componentResource: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, componentSlug } = this.props;
         const baseUrl = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
         let route = '';
@@ -54,12 +56,13 @@ class ResourceTabularList extends Component {
         }
         return `${baseUrl}${route}/${componentResource.slug}`;
     }
-    generateResourceStatus(componentResource) {
+    generateResourceStatus(componentResource: $TSFixMe) {
         let statusColor = 'slate';
         let statusDescription = 'TBD';
         let indicator, monitor, status;
         let appSecurityStatus = 'currently scanning',
             containerSecurityStatus = 'currently scanning';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
         const { monitors } = this.props;
 
         let data = null;
@@ -75,7 +78,7 @@ class ResourceTabularList extends Component {
             case 'incomingHttpRequest monitor': {
                 // get monitor status
                 monitor = monitors.filter(
-                    monitor => monitor._id === componentResource._id
+                    (monitor: $TSFixMe) => monitor._id === componentResource._id
                 )[0];
                 if (monitor) {
                     const incidents = monitor.incidents;
@@ -97,6 +100,7 @@ class ResourceTabularList extends Component {
                     indicator = (
                         <StatusIndicator
                             status={status}
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: any; resourceName: any; monitorNam... Remove this comment to see the full error message
                             resourceName={componentResource.name}
                             monitorName={monitor && monitor.name}
                         />
@@ -122,6 +126,7 @@ class ResourceTabularList extends Component {
                 indicator = (
                     <IssueIndicator
                         status={appSecurityStatus}
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: string; resourceName: any; count: ... Remove this comment to see the full error message
                         resourceName={componentResource.name}
                         count={
                             data && data.vulnerabilities
@@ -150,6 +155,7 @@ class ResourceTabularList extends Component {
                 indicator = (
                     <IssueIndicator
                         status={containerSecurityStatus}
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: string; resourceName: any; count: ... Remove this comment to see the full error message
                         resourceName={componentResource.name}
                         count={
                             data && data.vulnerabilityInfo
@@ -231,6 +237,7 @@ class ResourceTabularList extends Component {
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentResource' does not exist on typ... Remove this comment to see the full error message
         const { componentResource, componentName } = this.props;
         const componentResources =
             componentResource && componentResource.componentResources
@@ -289,7 +296,7 @@ class ResourceTabularList extends Component {
                             {componentResources &&
                             componentResources.length > 0 ? (
                                 componentResources.map(
-                                    (componentResource, i) => {
+                                    (componentResource: $TSFixMe, i: $TSFixMe) => {
                                         return (
                                             <tr
                                                 id={`componentResource_${i}`}
@@ -305,13 +312,16 @@ class ResourceTabularList extends Component {
                                                                 componentResource
                                                             )
                                                         );
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                                         this.props.animateSidebar(
                                                             false
                                                         );
                                                     }, 500);
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                                     this.props.animateSidebar(
                                                         true
                                                     );
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCurrentComponent' does not exist on t... Remove this comment to see the full error message
                                                     this.props.addCurrentComponent(
                                                         componentResource.component
                                                     );
@@ -492,8 +502,9 @@ class ResourceTabularList extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResourceTabularList.displayName = 'ResourceTabularList';
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchComponentResources,
@@ -503,15 +514,15 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-function mapStateToProps(state, props) {
+function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     let componentResource,
-        monitors = [];
+        monitors: $TSFixMe = [];
     if (state.component.componentResourceList) {
         componentResource =
             state.component.componentResourceList[props.componentId];
     }
 
-    state.monitor.monitorsList.monitors.map(monitor => {
+    state.monitor.monitorsList.monitors.map((monitor: $TSFixMe) => {
         monitors = monitors.concat(...monitor.monitors);
         return monitor;
     });
@@ -525,6 +536,7 @@ function mapStateToProps(state, props) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
@@ -535,6 +547,7 @@ ResourceTabularList.propTypes = {
     componentName: PropTypes.string,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultProps' does not exist on type 'ty... Remove this comment to see the full error message
 ResourceTabularList.defaultProps = {
     componentName: 'default',
 };

@@ -6,6 +6,7 @@ const mongoUri = process.env['MONGO_URL'];
 // Description: Generating random name of files.
 // Returns: fileinfo, error.
 export default new GridFsStorage({
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     url: mongoUri,
     options: {
         useNewUrlParser: true,

@@ -24,13 +24,21 @@ router.put('/default', async (req, res) => {
         }
 
         const data = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'store' does not exist on type '{}'.
         if (store) data.store = store;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'challenges' does not exist on type '{}'.
         if (challenges) data.challenges = challenges;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'renewOffset' does not exist on type '{}'... Remove this comment to see the full error message
         if (renewOffset) data.renewOffset = renewOffset;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'renewStagger' does not exist on type '{}... Remove this comment to see the full error message
         if (renewStagger) data.renewStagger = renewStagger;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountKeyType' does not exist on type '... Remove this comment to see the full error message
         if (accountKeyType) data.accountKeyType = accountKeyType;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'serverKeyType' does not exist on type '{... Remove this comment to see the full error message
         if (serverKeyType) data.serverKeyType = serverKeyType;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriberEmail' does not exist on type ... Remove this comment to see the full error message
         if (subscriberEmail) data.subscriberEmail = subscriberEmail;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'agreeToTerms' does not exist on type '{}... Remove this comment to see the full error message
         if (agreeToTerms) data.agreeToTerms = agreeToTerms;
 
         // if there's no default value

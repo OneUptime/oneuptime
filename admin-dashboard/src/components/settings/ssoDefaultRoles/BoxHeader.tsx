@@ -1,7 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const BoxHeader = ({ title, description, buttons = [] }) => (
+const BoxHeader = ({
+    title,
+    description,
+    buttons = []
+}: $TSFixMe) => (
     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -21,6 +25,7 @@ const BoxHeader = ({ title, description, buttons = [] }) => (
             <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                 <div className="Box-root">
                     <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'button' implicitly has an 'any' type.
                         <div>{buttons.map(button => button)}</div>
                     </div>
                 </div>

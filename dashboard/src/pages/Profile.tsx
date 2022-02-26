@@ -1,11 +1,13 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import ProfileSetting from '../components/profileSettings/Profile';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 
-const Profile = props => {
+const Profile = (props: $TSFixMe) => {
     const {
         location: { pathname },
     } = props;

@@ -1,5 +1,7 @@
 import express from 'express'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
 import { getUser } from '../middlewares/user'
 const {
     sendErrorResponse,
@@ -17,12 +19,14 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!fieldName || !fieldName.trim()) {
             const error = new Error('Field name is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         if (!fieldType || !fieldType.trim()) {
             const error = new Error('Field type is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -40,6 +44,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Custom field with this name already exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -95,12 +100,14 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
 
         if (!fieldName || !fieldName.trim()) {
             const error = new Error('Field name is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         if (!fieldType || !fieldType.trim()) {
             const error = new Error('Field type is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -113,6 +120,7 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Custom field with this name already exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }

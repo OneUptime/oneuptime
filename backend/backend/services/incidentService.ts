@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -27,13 +33,14 @@ export default {
         return incidents;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const _this = this;
 
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor to create an incident'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -41,6 +48,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of the same monitor'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -49,37 +57,42 @@ export default {
             query: { _id: { $in: data.monitors } },
             select: 'disabled name _id shouldNotMonitor',
         });
-        monitors = monitors.filter(monitor => !monitor.disabled);
+        monitors = monitors.filter((monitor: $TSFixMe) => !monitor.disabled);
         if (monitors.length === 0) {
             const error = new Error(
                 'You need at least one enabled monitor to create an incident'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
-        const monitorNames = monitors.map(monitor => monitor.name);
+        const monitorNames = monitors.map((monitor: $TSFixMe) => monitor.name);
         monitors = monitors
-            .filter(monitor => !monitor.shouldNotMonitor)
-            .map(monitor => ({
-                monitorId: monitor._id,
-            }));
+            .filter((monitor: $TSFixMe) => !monitor.shouldNotMonitor)
+            .map((monitor: $TSFixMe) => ({
+            monitorId: monitor._id
+        }));
         if (monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor not undergoing scheduled maintenance'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         if (monitors && monitors.length > 0) {
             const { matchedCriterion } = data;
 
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
             const project = await ProjectService.findOneBy({
                 query: { _id: data.projectId },
                 select: 'users parentProjectId name',
             });
             const users =
                 project && project.users && project.users.length
-                    ? project.users.map(({ userId }) => userId)
+                    ? project.users.map(({
+                    userId
+                }: $TSFixMe) => userId)
                     : [];
 
             let errorMsg;
@@ -112,6 +125,7 @@ export default {
 
             if (errorMsg) {
                 const error = new Error(errorMsg);
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -149,17 +163,27 @@ export default {
                 }),
             ]);
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
             incident.projectId = data.projectId || null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
             incident.monitors = monitors;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
             incident.createdById = data.createdById;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdByApi' does not exist on type 'Do... Remove this comment to see the full error message
             incident.createdByApi = data.createdByApi;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notClosedBy' does not exist on type 'Doc... Remove this comment to see the full error message
             incident.notClosedBy = users;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentType' does not exist on type 'Do... Remove this comment to see the full error message
             incident.incidentType = data.incidentType;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'manuallyCreated' does not exist on type ... Remove this comment to see the full error message
             incident.manuallyCreated = data.manuallyCreated || false;
             if (data.reason && data.reason.length > 0) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type 'Document... Remove this comment to see the full error message
                 incident.reason = data.reason.join('\n');
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'response' does not exist on type 'Docume... Remove this comment to see the full error message
             incident.response = data.response || null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'idNumber' does not exist on type 'Docume... Remove this comment to see the full error message
             incident.idNumber =
                 incidentsCountInProject +
                 deletedIncidentsCountInProject +
@@ -167,9 +191,12 @@ export default {
                 deletedParentCount +
                 1;
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
             incident.slug = getSlug(incident.idNumber); // create incident slug from the idNumber
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Do... Remove this comment to see the full error message
             incident.customFields = data.customFields;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdByIncomingHttpRequest' does not e... Remove this comment to see the full error message
             incident.createdByIncomingHttpRequest =
                 data.createdByIncomingHttpRequest;
 
@@ -181,6 +208,7 @@ export default {
                 monitorName: joinNames(monitorNames),
             };
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'manuallyCreated' does not exist on type ... Remove this comment to see the full error message
             if (!incident.manuallyCreated) {
                 const select =
                     'projectId title description incidentPriority isDefault name';
@@ -200,21 +228,26 @@ export default {
                     incidentSettings.description
                 );
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Document<... Remove this comment to see the full error message
                 incident.title =
                     matchedCriterion && matchedCriterion.title
                         ? matchedCriterion.title
                         : titleTemplate(templatesInput);
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
                 incident.description =
                     matchedCriterion && matchedCriterion.description
                         ? matchedCriterion.description
                         : descriptionTemplate(templatesInput);
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterionCause' does not exist on type '... Remove this comment to see the full error message
                 incident.criterionCause = {
                     ...matchedCriterion,
                 };
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
                 incident.incidentPriority = incidentSettings.incidentPriority;
 
                 if (data.probeId) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Document... Remove this comment to see the full error message
                     incident.probes = [
                         {
                             probeId: data.probeId,
@@ -230,8 +263,11 @@ export default {
                     data.description
                 );
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Document<... Remove this comment to see the full error message
                 incident.title = titleTemplate(templatesInput);
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
                 incident.description = descriptionTemplate(templatesInput);
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
                 incident.incidentPriority = data.incidentPriority;
             }
 
@@ -278,7 +314,9 @@ export default {
                 populatedIncident
             );
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'D... Remove this comment to see the full error message
             incident.notifications = notifications.map(notification => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                 notificationId: notification._id,
             }));
             incident = await incident.save();
@@ -325,8 +363,10 @@ export default {
 
             // run in the background
             IncidentMessageService.create({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
                 content: incident.description,
                 incidentId: incident._id,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
                 createdById: incident.createdById?._id || incident.createdById,
                 type: 'investigation',
                 incident_state: 'Identified',
@@ -353,7 +393,7 @@ export default {
         }
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -363,7 +403,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -390,7 +430,7 @@ export default {
             }
 
             const monitors = incident.monitors.map(
-                monitor => monitor.monitorId._id || monitor.monitorId
+                (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
             );
 
             // update all monitor status in the background to match incident type
@@ -432,7 +472,11 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function({ query, populate, select }) {
+    findOneBy: async function({
+        query,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -448,7 +492,7 @@ export default {
         return incident;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -521,7 +565,7 @@ export default {
         return updatedIncident;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -560,7 +604,8 @@ export default {
         return updatedData;
     },
 
-    async _sendIncidentCreatedAlert(incident) {
+    async _sendIncidentCreatedAlert(incident: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         ZapierService.pushToZapier('incident_created', incident).catch(
             error => {
                 ErrorService.log('ZapierService.pushToZapier', error);
@@ -570,7 +615,7 @@ export default {
 
         const notifications = [];
 
-        const monitors = incident.monitors.map(monitor => monitor.monitorId);
+        const monitors = incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
 
         // handle this asynchronous operation in the background
         AlertService.sendCreatedIncidentToSubscribers(incident, monitors).catch(
@@ -589,6 +634,7 @@ export default {
 
             let notification = {};
             // send slack notification
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
             SlackService.sendNotification(
                 incident.projectId._id || incident.projectId,
                 incident,
@@ -599,6 +645,7 @@ export default {
                 ErrorService.log('SlackService.sendNotification', error);
             });
             // send webhook notification
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 6-7 arguments, but got 5.
             WebHookService.sendIntegrationNotification(
                 incident.projectId._id || incident.projectId,
                 incident,
@@ -612,6 +659,7 @@ export default {
                 );
             });
             // send Ms Teams notification
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 6 arguments, but got 5.
             MsTeamsService.sendNotification(
                 incident.projectId._id || incident.projectId,
                 incident,
@@ -677,11 +725,11 @@ export default {
      * @returns {object} Promise with incident or error.
      */
     acknowledge: async function(
-        incidentId,
-        userId,
-        name,
-        probeId,
-        zapier,
+        incidentId: $TSFixMe,
+        userId: $TSFixMe,
+        name: $TSFixMe,
+        probeId: $TSFixMe,
+        zapier: $TSFixMe,
         httpRequest = {},
         acknowledgedByApi = false
     ) {
@@ -700,6 +748,7 @@ export default {
                     acknowledgedBy: userId,
                     acknowledgedAt: Date.now(),
                     acknowledgedByZapier: zapier,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                     acknowledgedByIncomingHttpRequest: httpRequest?._id,
                     acknowledgedByApi,
                 }
@@ -711,6 +760,7 @@ export default {
 
             try {
                 if (isEmpty(httpRequest)) {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
                     NotificationService.create(
                         incident.projectId._id || incident.projectId,
                         `An Incident was acknowledged by ${name}`,
@@ -718,8 +768,10 @@ export default {
                         'acknowledge'
                     );
                 } else {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
                     NotificationService.create(
                         incident.projectId._id || incident.projectId,
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
                         `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
                         userId,
                         'acknowledge'
@@ -731,7 +783,7 @@ export default {
 
             // Ping webhook
             const monitors = incident.monitors.map(
-                monitor => monitor.monitorId
+                (monitor: $TSFixMe) => monitor.monitorId
             );
 
             // assuming all the monitors in the incident is from the same component
@@ -840,6 +892,7 @@ export default {
                 });
             }
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             ZapierService.pushToZapier('incident_acknowledge', incident).catch(
                 error => {
                     ErrorService.log('ZapierService.pushToZapier', error);
@@ -890,11 +943,11 @@ export default {
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
     resolve: async function(
-        incidentId,
-        userId,
-        name,
-        probeId,
-        zapier,
+        incidentId: $TSFixMe,
+        userId: $TSFixMe,
+        name: $TSFixMe,
+        probeId: $TSFixMe,
+        zapier: $TSFixMe,
         httpRequest = {},
         resolvedByApi = false
     ) {
@@ -910,11 +963,17 @@ export default {
         }
 
         if (!incident.acknowledged) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledged' does not exist on type '{}... Remove this comment to see the full error message
             data.acknowledged = true;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedBy' does not exist on type '... Remove this comment to see the full error message
             data.acknowledgedBy = userId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedAt' does not exist on type '... Remove this comment to see the full error message
             data.acknowledgedAt = Date.now();
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedByZapier' does not exist on ... Remove this comment to see the full error message
             data.acknowledgedByZapier = zapier;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedByIncomingHttpRequest' does ... Remove this comment to see the full error message
             data.acknowledgedByIncomingHttpRequest = httpRequest?._id;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'acknowledgedByApi' does not exist on typ... Remove this comment to see the full error message
             data.acknowledgedByApi = resolvedByApi;
 
             await IncidentTimelineService.create({
@@ -926,17 +985,23 @@ export default {
                 createdByApi: resolvedByApi,
             });
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolved' does not exist on type '{}'.
         data.resolved = true;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedBy' does not exist on type '{}'.
         data.resolvedBy = userId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedAt' does not exist on type '{}'.
         data.resolvedAt = Date.now();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedByZapier' does not exist on type... Remove this comment to see the full error message
         data.resolvedByZapier = zapier;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedByIncomingHttpRequest' does not ... Remove this comment to see the full error message
         data.resolvedByIncomingHttpRequest = httpRequest?._id;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvedByApi' does not exist on type '{... Remove this comment to see the full error message
         data.resolvedByApi = resolvedByApi;
 
         incident = await _this.updateOneBy({ _id: incidentId }, data);
 
         const monitors = incident.monitors.map(
-            monitor => monitor.monitorId._id || monitor.monitorId
+            (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
         );
 
         // update all monitor status in the background to match incident type
@@ -1006,6 +1071,7 @@ export default {
         await MonitorStatusService.createMany(statusData);
 
         RealTimeService.incidentResolved(incident);
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         ZapierService.pushToZapier('incident_resolve', incident).catch(
             error => {
                 ErrorService.log('ZapierService.pushToZapier', error);
@@ -1016,7 +1082,7 @@ export default {
     },
 
     //
-    close: async function(incidentId, userId) {
+    close: async function(incidentId: $TSFixMe, userId: $TSFixMe) {
         const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
@@ -1025,8 +1091,8 @@ export default {
     },
 
     getUnresolvedIncidents: async function(
-        subProjectIds,
-        userId,
+        subProjectIds: $TSFixMe,
+        userId: $TSFixMe,
         isHome = false
     ) {
         const _this = this;
@@ -1034,7 +1100,7 @@ export default {
             query: { projectId: { $in: subProjectIds }, resolved: false },
             select: '_id notClosedBy',
         });
-        incidentsUnresolved = incidentsUnresolved.map(incident => {
+        incidentsUnresolved = incidentsUnresolved.map((incident: $TSFixMe) => {
             if (incident.notClosedBy.indexOf(userId) < 0) {
                 return _this.updateOneBy(
                     { _id: incident._id },
@@ -1090,7 +1156,7 @@ export default {
             : incidentsUnresolved.concat(incidentsResolved);
     },
 
-    getSubProjectIncidents: async function(projectId) {
+    getSubProjectIncidents: async function(projectId: $TSFixMe) {
         const _this = this;
         const populate = [
             {
@@ -1121,7 +1187,7 @@ export default {
             query: { projectId },
             select: '_id',
         });
-        const monitorIds = monitors.map(monitor => monitor._id);
+        const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
         const query = {
             'monitors.monitorId': { $in: monitorIds },
@@ -1141,13 +1207,13 @@ export default {
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     },
 
-    getComponentIncidents: async function(projectId, componentId) {
+    getComponentIncidents: async function(projectId: $TSFixMe, componentId: $TSFixMe) {
         const _this = this;
         const monitors = await MonitorService.findBy({
             query: { projectId, componentId },
             select: '_id',
         });
-        const monitorIds = monitors.map(monitor => monitor._id);
+        const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
         const query = {
             'monitors.monitorId': { $in: monitorIds },
@@ -1189,17 +1255,17 @@ export default {
     },
 
     getProjectComponentIncidents: async function(
-        projectId,
-        componentId,
-        limit,
-        skip
+        projectId: $TSFixMe,
+        componentId: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
     ) {
         const _this = this;
         const monitors = await MonitorService.findBy({
             query: { componentId: componentId },
             select: '_id',
         });
-        const monitorIds = monitors.map(monitor => monitor._id);
+        const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
         const query = {
             projectId,
@@ -1237,7 +1303,7 @@ export default {
         ]);
         return { incidents, count, _id: projectId };
     },
-    sendIncidentResolvedNotification: async function(incident, name, monitor) {
+    sendIncidentResolvedNotification: async function(incident: $TSFixMe, name: $TSFixMe, monitor: $TSFixMe) {
         const _this = this;
         const populateComponent = [
             { path: 'projectId', select: 'name' },
@@ -1313,6 +1379,7 @@ export default {
             'oneuptime'}`;
 
         try {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
             NotificationService.create(
                 incident.projectId._id || incident.projectId,
                 msg,
@@ -1329,8 +1396,8 @@ export default {
         }
     },
 
-    sendIncidentNoteAdded: async function(projectId, incident, data) {
-        const monitors = incident.monitors.map(monitor => monitor.monitorId);
+    sendIncidentNoteAdded: async function(projectId: $TSFixMe, incident: $TSFixMe, data: $TSFixMe) {
+        const monitors = incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
         for (const monitor of monitors) {
             SlackService.sendIncidentNoteNotification(
                 projectId,
@@ -1364,18 +1431,18 @@ export default {
         );
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await IncidentModel.deleteMany(query);
         return 'Incident(s) removed successfully!';
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy({ query, select: '_id' });
         if (incident && incident.length > 0) {
             const incidents = await Promise.all(
-                incident.map(async incident => {
+                incident.map(async (incident: $TSFixMe) => {
                     const incidentId = incident._id;
                     incident = await _this.updateOneBy(
                         {
@@ -1416,7 +1483,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function(monitorId, userId) {
+    removeMonitor: async function(monitorId: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         const incidents = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
@@ -1424,15 +1491,14 @@ export default {
         });
 
         await Promise.all(
-            incidents.map(async incident => {
+            incidents.map(async (incident: $TSFixMe) => {
                 // only delete the incident, since the monitor can be restored
                 const monitors = incident.monitors
-                    .map(monitor => ({
-                        monitorId: monitor.monitorId._id || monitor.monitorId,
-                    }))
+                    .map((monitor: $TSFixMe) => ({
+                    monitorId: monitor.monitorId._id || monitor.monitorId
+                }))
                     .filter(
-                        monitor =>
-                            String(monitor.monitorId) !== String(monitorId)
+                        (monitor: $TSFixMe) => String(monitor.monitorId) !== String(monitorId)
                     );
 
                 let updatedIncident = null;
@@ -1519,10 +1585,10 @@ export default {
         );
     },
 
-    startInterval: async function(projectId, monitors, incident) {
+    startInterval: async function(projectId: $TSFixMe, monitors: $TSFixMe, incident: $TSFixMe) {
         const _this = this;
 
-        monitors = monitors.map(monitor => monitor.monitorId);
+        monitors = monitors.map((monitor: $TSFixMe) => monitor.monitorId);
         const [monitorList, currentIncident] = await Promise.all([
             MonitorService.findBy({
                 query: { _id: { $in: monitors } },
@@ -1555,7 +1621,9 @@ export default {
                     });
                     fetchedDefault = true;
                 }
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 if (sla && !slaList[sla._id] && !sla.deleted) {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     slaList[sla._id] = sla;
                 }
             }
@@ -1563,10 +1631,14 @@ export default {
             // grab the lowest sla and apply to the incident
             let lowestSla = {};
             for (const [, value] of Object.entries(slaList)) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'duration' does not exist on type '{}'.
                 if (!lowestSla.duration) {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type '{}'.
                     lowestSla = value;
                 } else {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type '{}'.
                     lowestSla =
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         Number(value.duration) < Number(lowestSla.duration)
                             ? value
                             : lowestSla;
@@ -1578,9 +1650,12 @@ export default {
 
                 if (
                     incidentCommunicationSla &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
                     !incidentCommunicationSla.deleted
                 ) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'duration' does not exist on type '{}'.
                     let countDown = incidentCommunicationSla.duration * 60;
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertTime' does not exist on type '{}'.
                     const alertTime = incidentCommunicationSla.alertTime * 60;
 
                     const data = {
@@ -1655,7 +1730,8 @@ export default {
         }
     },
 
-    clearInterval: function(incidentId) {
+    clearInterval: function(incidentId: $TSFixMe) {
+        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'interval' implicitly has an 'any' type.
         intervals = intervals.filter(interval => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);
@@ -1665,7 +1741,7 @@ export default {
         });
     },
 
-    refreshInterval: async function(incidentId) {
+    refreshInterval: async function(incidentId: $TSFixMe) {
         const _this = this;
         for (const interval of intervals) {
             if (String(interval.incidentId) === String(incidentId)) {
@@ -1691,11 +1767,11 @@ export default {
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-function isArrayUnique(myArray) {
+function isArrayUnique(myArray: $TSFixMe) {
     return myArray.length === new Set(myArray).size;
 }
 
-let intervals = [];
+let intervals: $TSFixMe = [];
 
 import IncidentModel from '../models/incident'
 import IncidentTimelineService from './incidentTimelineService'
@@ -1722,6 +1798,7 @@ const {
 } = require('../constants/incidentEvents');
 import IncidentUtilitiy from '../utils/incident'
 import IncidentCommunicationSlaService from './incidentCommunicationSlaService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import { isEmpty } from 'lodash'
 import joinNames from '../utils/joinNames'
 import handleSelect from '../utils/select'

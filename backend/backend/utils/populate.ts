@@ -1,5 +1,5 @@
 import ErrorService from 'common-server/utils/error'
-export default (populateArray, query) => {
+export default (populateArray: $TSFixMe, query: $TSFixMe) => {
     /**
      * populate should be an array of object, no matter the depth it exist in
      *
@@ -14,6 +14,7 @@ export default (populateArray, query) => {
     try {
         if (populateArray && !Array.isArray(populateArray)) {
             const error = new Error('Populate should be an array of fields');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -22,6 +23,7 @@ export default (populateArray, query) => {
             const error = new Error(
                 'Populate is not following the right convention, make sure to specify path and select property'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -39,7 +41,7 @@ export default (populateArray, query) => {
  * @param {Boolean} isValid Boolean value to show validity
  * @returns true|false
  */
-function isPopulateValid(arr, isValid) {
+function isPopulateValid(arr: $TSFixMe, isValid: $TSFixMe) {
     for (const item of arr) {
         if (!item.path || !item.path.trim()) {
             isValid = false;

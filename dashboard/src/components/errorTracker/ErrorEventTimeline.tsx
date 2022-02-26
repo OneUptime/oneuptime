@@ -6,20 +6,24 @@ import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
 
 class ErrorEventTimeline extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
     }
-    renderTimelineContent = timeline => {
+    renderTimelineContent = (timeline: $TSFixMe) => {
         let rendered = '';
         if (timeline.category === 'ui.click') {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string'.
             rendered = <span> {timeline.data.content.path}</span>;
         } else if (timeline.category === 'console') {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string'.
             rendered = <span> {timeline.data.content} </span>;
         } else if (
             timeline.category === 'fetch' ||
             timeline.category === 'xhr'
         ) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string'.
             rendered = (
                 <span>
                     <span>{timeline.data.content.method}</span>{' '}
@@ -43,7 +47,7 @@ class ErrorEventTimeline extends Component {
 
         return rendered;
     };
-    getTimelineIcon = timeline => {
+    getTimelineIcon = (timeline: $TSFixMe) => {
         let image = 'event';
         if (timeline.category === 'ui.click') {
             image = 'user';
@@ -58,12 +62,13 @@ class ErrorEventTimeline extends Component {
 
         return `/dashboard/assets/img/${image}.svg`;
     };
-    generateText = status => {
+    generateText = (status: $TSFixMe) => {
         const capitalizedText =
             status.charAt(0).toUpperCase() + status.slice(1);
         return `${capitalizedText}d by`;
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
@@ -161,6 +166,7 @@ class ErrorEventTimeline extends Component {
 
                                         <td
                                             id="overflow"
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                             type="action"
                                             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
@@ -176,7 +182,7 @@ class ErrorEventTimeline extends Component {
                                     errorEventDetails.timeline &&
                                     errorEventDetails.timeline.length > 0
                                         ? errorEventDetails.timeline.map(
-                                              (timeline, i) => {
+                                              (timeline: $TSFixMe, i: $TSFixMe) => {
                                                   return (
                                                       <tr
                                                           key={i}
@@ -430,9 +436,11 @@ class ErrorEventTimeline extends Component {
         );
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorEventTimeline.propTypes = {
     errorEvent: PropTypes.object,
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorEventTimeline.displayName = 'ErrorEventTimeline';
 
 export default ErrorEventTimeline;

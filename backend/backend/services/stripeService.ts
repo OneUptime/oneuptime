@@ -1,11 +1,12 @@
 const Services = {
-    successEvent: async function(customerId, subscriptionId) {
+    successEvent: async function(customerId: $TSFixMe, subscriptionId: $TSFixMe) {
         // eslint-disable-next-line no-unused-vars
         const [user, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
             }),
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: 'name _id',
@@ -24,16 +25,17 @@ const Services = {
     },
 
     failedEvent: async function(
-        customerId,
-        subscriptionId,
-        chargeAttemptCount,
-        invoiceUrl
+        customerId: $TSFixMe,
+        subscriptionId: $TSFixMe,
+        chargeAttemptCount: $TSFixMe,
+        invoiceUrl: $TSFixMe
     ) {
         const [user, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
             }),
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: 'name _id',
@@ -80,12 +82,13 @@ const Services = {
         return { paymentStatus: 'failed' };
     },
 
-    cancelEvent: async function(customerId, subscriptionId) {
+    cancelEvent: async function(customerId: $TSFixMe, subscriptionId: $TSFixMe) {
         const [user, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'name _id',
             }),
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: '_id users',
@@ -123,7 +126,7 @@ const Services = {
         return { projectDeleted: true };
     },
 
-    charges: async function(userId) {
+    charges: async function(userId: $TSFixMe) {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -136,9 +139,10 @@ const Services = {
     },
 
     creditCard: {
-        create: async function(tok, userId) {
+        create: async function(tok: $TSFixMe, userId: $TSFixMe) {
             const [tokenCard, cards] = await Promise.all([
                 stripe.tokens.retrieve(tok),
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                 this.get(userId),
             ]);
             let duplicateCard = false;
@@ -152,7 +156,7 @@ const Services = {
             ) {
                 duplicateCard =
                     cards.data.filter(
-                        card => card.fingerprint === tokenCard.card.fingerprint
+                        (card: $TSFixMe) => card.fingerprint === tokenCard.card.fingerprint
                     ).length > 0;
             }
 
@@ -182,12 +186,13 @@ const Services = {
                 return paymentIntent;
             } else {
                 const error = new Error('Cannot add duplicate card');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
         },
 
-        update: async function(userId, cardId) {
+        update: async function(userId: $TSFixMe, cardId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -199,15 +204,17 @@ const Services = {
             return card;
         },
 
-        delete: async function(cardId, userId) {
+        delete: async function(cardId: $TSFixMe, userId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
             });
             const stripeCustomerId = user.stripeCustomerId;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
             const cards = await this.get(userId);
             if (cards.data.length === 1) {
                 const error = new Error('Cannot delete the only card');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 403;
                 throw error;
             }
@@ -218,7 +225,7 @@ const Services = {
             return card;
         },
 
-        get: async function(userId, cardId) {
+        get: async function(userId: $TSFixMe, cardId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -238,7 +245,7 @@ const Services = {
                         object: 'card',
                     }
                 );
-                cards.data = await cards.data.map(card => {
+                cards.data = await cards.data.map((card: $TSFixMe) => {
                     if (card.id === customer.default_source) {
                         card.default_source = true;
                         return card;
@@ -250,10 +257,10 @@ const Services = {
         },
     },
     chargeCustomerForBalance: async function(
-        userId,
-        chargeAmount,
-        projectId,
-        alertOptions
+        userId: $TSFixMe,
+        chargeAmount: $TSFixMe,
+        projectId: $TSFixMe,
+        alertOptions: $TSFixMe
     ) {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
@@ -273,6 +280,7 @@ const Services = {
                 projectId,
             };
         }
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
         const paymentIntent = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
@@ -282,7 +290,7 @@ const Services = {
         return paymentIntent;
     },
 
-    updateBalance: async function(paymentIntent) {
+    updateBalance: async function(paymentIntent: $TSFixMe) {
         if (paymentIntent.status === 'succeeded') {
             const amountRechargedStripe = Number(paymentIntent.amount_received);
             if (amountRechargedStripe) {
@@ -346,7 +354,7 @@ const Services = {
         }
         return false;
     },
-    addBalance: async function(userId, chargeAmount, projectId) {
+    addBalance: async function(userId: $TSFixMe, chargeAmount: $TSFixMe, projectId: $TSFixMe) {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
         const user = await UserService.findOneBy({
@@ -357,6 +365,7 @@ const Services = {
         const metadata = {
             projectId,
         };
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
         let paymentIntent = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
@@ -368,11 +377,11 @@ const Services = {
         return paymentIntent;
     },
     createInvoice: async function(
-        amount,
-        stripeCustomerId,
-        description,
-        metadata,
-        source
+        amount: $TSFixMe,
+        stripeCustomerId: $TSFixMe,
+        description: $TSFixMe,
+        metadata: $TSFixMe,
+        source: $TSFixMe
     ) {
         let updatedPaymentIntent;
         await stripe.invoiceItems.create({
@@ -412,7 +421,7 @@ const Services = {
         }
         return updatedPaymentIntent;
     },
-    makeTestCharge: async function(tokenId, email, companyName) {
+    makeTestCharge: async function(tokenId: $TSFixMe, email: $TSFixMe, companyName: $TSFixMe) {
         const description = 'Verify if card is billable';
         const testChargeValue = 100;
         const stripeCustomerId = await PaymentService.createCustomer(
@@ -435,7 +444,7 @@ const Services = {
         );
         return paymentIntent;
     },
-    confirmPayment: async function(paymentIntent) {
+    confirmPayment: async function(paymentIntent: $TSFixMe) {
         const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
             paymentIntent.id
         );
@@ -453,12 +462,12 @@ const Services = {
         }
         return confirmedPaymentIntent;
     },
-    retrievePaymentIntent: async function(intentId) {
+    retrievePaymentIntent: async function(intentId: $TSFixMe) {
         const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
         return paymentIntent;
     },
 
-    fetchTrialInformation: async function(subscriptionId) {
+    fetchTrialInformation: async function(subscriptionId: $TSFixMe) {
         const subscription = await stripe.subscriptions.retrieve(
             subscriptionId
         );
@@ -477,6 +486,7 @@ import ProjectService from '../services/projectService'
 import ProjectModel from '../models/project'
 import MailService from '../services/mailService'
 import ErrorService from 'common-server/utils/error'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/stripeHandlers"' has no exported... Remove this comment to see the full error message
 import { sendSlackAlert } from '../utils/stripeHandlers'
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up

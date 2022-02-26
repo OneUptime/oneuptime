@@ -7,8 +7,9 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export function postApi(url, data) {
+export function postApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn()) {
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
@@ -29,8 +30,9 @@ export function postApi(url, data) {
     return promise;
 }
 
-export function getApi(url) {
+export function getApi(url: $TSFixMe) {
     if (User.isLoggedIn()) {
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
@@ -50,8 +52,9 @@ export function getApi(url) {
     return promise;
 }
 
-export function putApi(url, data) {
+export function putApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn()) {
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 

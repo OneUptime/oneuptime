@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { Spinner } from '../basic/Loader';
 
-const BreachedMonitorSla = ({ monitor, sla, userId, closeSla, closingSla }) => {
+const BreachedMonitorSla = ({
+    monitor,
+    sla,
+    userId,
+    closeSla,
+    closingSla
+}: $TSFixMe) => {
     const [isClosing, setIsClosing] = useState(false);
     const projectId = monitor.projectId._id || monitor.projectId;
 

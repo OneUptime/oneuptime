@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -7,7 +8,9 @@ import app from '../server'
 import moment from 'moment'
 import GlobalConfig from './utils/globalConfig'
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 
 import UserService from '../backend/services/userService'
@@ -20,7 +23,7 @@ import AirtableService from '../backend/services/airtableService'
 import VerificationTokenModel from '../backend/models/verificationToken'
 import ComponentModel from '../backend/models/component'
 
-let token, userId, projectId, monitorId;
+let token: $TSFixMe, userId, projectId: $TSFixMe, monitorId: $TSFixMe;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -32,20 +35,22 @@ const startDate = moment()
     .format('YYYY-MM-DD');
 const filter = 'month';
 
-describe('Reports API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Reports API', function(this: $TSFixMe) {
     this.timeout(20000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
@@ -57,7 +62,7 @@ describe('Reports API', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -70,7 +75,7 @@ describe('Reports API', function() {
                                                 ...monitor,
                                                 componentId: component._id,
                                             })
-                                            .end(function(err, res) {
+                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                                 monitorId = res.body._id;
                                                 done();
                                             });
@@ -82,6 +87,7 @@ describe('Reports API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -100,7 +106,8 @@ describe('Reports API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should return list of most active members', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return list of most active members', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
 
         request
@@ -108,7 +115,7 @@ describe('Reports API', function() {
                 `/reports/${projectId}/active-members?startDate=${startDate}&&endDate=${endDate}&&skip=0&&limit=10`
             )
             .set('Authorization', authorization)
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -117,14 +124,15 @@ describe('Reports API', function() {
             });
     });
 
-    it('should return list of most active monitors', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return list of most active monitors', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
             .get(
                 `/reports/${projectId}/active-monitors?startDate=${startDate}&&endDate=${endDate}&&skip=0&&limit=10`
             )
             .set('Authorization', authorization)
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -133,28 +141,30 @@ describe('Reports API', function() {
             });
     });
 
-    it('should return average resolved incidents time', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return average resolved incidents time', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
             .get(
                 `/reports/${projectId}/average-resolved?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`
             )
             .set('Authorization', authorization)
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
             });
     });
 
-    it('should return number of incidents', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return number of incidents', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
             .get(
                 `/reports/${projectId}/incidents?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`
             )
             .set('Authorization', authorization)
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

@@ -5,11 +5,13 @@ import { bindActionCreators } from 'redux';
 import { openModal, closeModal } from '../../actions/modal';
 import RoutingNumberModal from './RoutingNumberModal';
 import DataPathHoC from '../DataPathHoC';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 
 class RoutingNumberButton extends React.Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             addNumberModalId: uuidv4(),
@@ -17,6 +19,7 @@ class RoutingNumberButton extends React.Component {
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addNumberModalId' does not exist on type... Remove this comment to see the full error message
         const { addNumberModalId } = this.state;
         return (
             <button
@@ -24,6 +27,7 @@ class RoutingNumberButton extends React.Component {
                 type="button"
                 id="addRoutingNumberButton"
                 onClick={() =>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.openModal({
                         id: addNumberModalId,
                         onClose: () => '',
@@ -44,22 +48,23 @@ class RoutingNumberButton extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RoutingNumberButton.displayName = 'RoutingNumberButton';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject,
-    modalId: state.modal.modals[0],
+    modalId: state.modal.modals[0]
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RoutingNumberButton.propTypes = {
     openModal: PropTypes.func.isRequired,
 };

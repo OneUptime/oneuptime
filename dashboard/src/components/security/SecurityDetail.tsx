@@ -7,8 +7,8 @@ const SecurityDetail = ({
     applicationSecurityLog,
     containerSecurityLog,
     type,
-    more,
-}) => {
+    more
+}: $TSFixMe) => {
     let vulnerabilities = null;
     if (applicationSecurityLog && applicationSecurityLog.data) {
         const securityLog =

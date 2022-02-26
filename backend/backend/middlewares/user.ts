@@ -1,4 +1,5 @@
 const jwtSecretKey = process.env['JWT_SECRET'];
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
 import jwt from 'jsonwebtoken'
 import url from 'url'
 import UserService from '../services/userService'
@@ -6,6 +7,7 @@ import ErrorService from 'common-server/utils/error'
 import ProjectService from '../services/projectService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import apiMiddleware from '../middlewares/api'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/plans"' has no exported member ... Remove this comment to see the full error message
 import { getPlanById } from '../config/plans'
 
 const _this = {
@@ -14,7 +16,7 @@ const _this = {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
 
-    getUser: async function(req, res, next) {
+    getUser: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -116,7 +118,7 @@ const _this = {
         }
     },
 
-    checkUser: function(req, res, next) {
+    checkUser: function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const accessToken =
                 req.headers['authorization'] ||
@@ -136,7 +138,7 @@ const _this = {
                 const token = accessToken.split(' ')[1] || accessToken;
 
                 //Decode the token
-                jwt.verify(token, jwtSecretKey, (err, decoded) => {
+                jwt.verify(token, jwtSecretKey, (err: $TSFixMe, decoded: $TSFixMe) => {
                     if (err) {
                         return sendErrorResponse(req, res, {
                             code: 401,
@@ -158,7 +160,7 @@ const _this = {
             throw error;
         }
     },
-    checkUserBelongToProject: function(req, res, next) {
+    checkUserBelongToProject: function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const accessToken =
                 req.headers['authorization'] ||
@@ -174,7 +176,7 @@ const _this = {
                     });
                 }
                 const token = accessToken.split(' ')[1] || accessToken;
-                jwt.verify(token, jwtSecretKey, async (err, decoded) => {
+                jwt.verify(token, jwtSecretKey, async (err: $TSFixMe, decoded: $TSFixMe) => {
                     if (err) {
                         return sendErrorResponse(req, res, {
                             code: 401,
@@ -199,6 +201,7 @@ const _this = {
                         }
                         const [project] = await Promise.all([
                             ProjectService.findOneBy({
+                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ _id: any; }' is not assignable... Remove this comment to see the full error message
                                 _id: projectId,
                             }),
                             UserService.updateOneBy(
@@ -237,8 +240,9 @@ const _this = {
         }
     },
 
-    isUserMasterAdmin: async function(req, res, next) {
+    isUserMasterAdmin: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         if (!req.user) {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
             req = await _this.getUser(req);
         }
 
@@ -260,10 +264,11 @@ const _this = {
         }
     },
 
-    isScaleOrMasterAdmin: async function(req, res, next) {
+    isScaleOrMasterAdmin: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             if (_this.isUserMasterAdmin(req, res)) {
                 if (next) {
                     return next();
@@ -298,6 +303,7 @@ const _this = {
                 }
             }
 
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'stripePlanId',

@@ -1,5 +1,5 @@
 export default {
-    get: async function(query) {
+    get: async function(query: $TSFixMe) {
         const alerts = await incidentSMSActionModel
             .find(query)
             .lean()
@@ -7,7 +7,7 @@ export default {
         return alerts;
     },
 
-    updateOneBy: async (query, data) => {
+    updateOneBy: async (query: $TSFixMe, data: $TSFixMe) => {
         if (!query) {
             query = {};
         }

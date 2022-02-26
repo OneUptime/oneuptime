@@ -2,8 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { Validate } from '../../config';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { createSlack } from '../../actions/slackWebhook';
 import ShouldRender from '../basic/ShouldRender';
@@ -11,10 +13,11 @@ import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.url(values.endpoint)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpoint' does not exist on type '{}'.
         errors.endpoint = 'Webhook url is required!';
     }
 
@@ -39,22 +42,26 @@ class CreateSlack extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSlack' does not exist on type 'Rea... Remove this comment to see the full error message
             createSlack,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             monitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { monitorId },
         } = this.props;
         const postObj = {};
         const { selectAllMonitors } = values;
         let monitors = [];
         const allMonitors = monitor.monitorsList.monitors
-            .map(monitor => monitor.monitors)
+            .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
 
         if (selectAllMonitors) {
-            monitors = allMonitors.map(monitor => monitor._id);
+            monitors = allMonitors.map((monitor: $TSFixMe) => monitor._id);
         }
         if (
             this.state.selectedMonitors &&
@@ -71,25 +78,36 @@ class CreateSlack extends React.Component {
             });
             return;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'webHookName' does not exist on type '{}'... Remove this comment to see the full error message
         postObj.webHookName = values.webHookName;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpoint' does not exist on type '{}'.
         postObj.endpoint = values.endpoint;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
         postObj.monitors = monitors;
-        postObj.monitors = postObj.monitors.filter(monitor => monitor !== null);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+        postObj.monitors = postObj.monitors.filter((monitor: $TSFixMe) => monitor !== null);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
         postObj.type = 'slack';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentCreated' does not exist on type ... Remove this comment to see the full error message
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
             : false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentResolved' does not exist on type... Remove this comment to see the full error message
         postObj.incidentResolved = values.incidentResolved
             ? values.incidentResolved
             : false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentAcknowledged' does not exist on ... Remove this comment to see the full error message
         postObj.incidentAcknowledged = values.incidentAcknowledged
             ? values.incidentAcknowledged
             : false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentNoteAdded' does not exist on typ... Remove this comment to see the full error message
         postObj.incidentNoteAdded = values.incidentNoteAdded
             ? values.incidentNoteAdded
             : false;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
         const isDuplicate = postObj.monitors
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
                 : true
@@ -99,21 +117,26 @@ class CreateSlack extends React.Component {
             this.setState({
                 monitorError: 'Duplicate monitor selection found',
             });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
             postObj.monitorId = [];
             return;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         createSlack(this.props.currentProject._id, postObj).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
             if (this.props.newSlack && !this.props.newSlack.error) {
                 closeThisDialog();
             }
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('createSlack').click();
             default:
                 return false;
@@ -121,13 +144,16 @@ class CreateSlack extends React.Component {
     };
 
     formatData = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
         const monitors = this.props.monitorsList;
         const hash = {};
 
-        monitors.forEach(monitor => {
+        monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
             const componentId = monitor.componentId._id || monitor.componentId;
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (!hash[projectId]) {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 hash[projectId] = {
                     projectName: monitor.projectId?.name,
                     projectId,
@@ -146,9 +172,12 @@ class CreateSlack extends React.Component {
                 };
             } else {
                 let monitorAdded = false;
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 hash[projectId] = {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     ...hash[projectId],
-                    components: hash[projectId].components.map(componentObj => {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
                             const newMonitor = {
                                 monitorName: monitor.name,
@@ -178,9 +207,12 @@ class CreateSlack extends React.Component {
                             },
                         ],
                     };
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     hash[projectId] = {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...hash[projectId],
                         components: [
+                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             ...hash[projectId].components,
                             componentData,
                         ],
@@ -201,12 +233,13 @@ class CreateSlack extends React.Component {
         });
     };
 
-    updateState = (value, key) => {
+    updateState = (value: $TSFixMe, key: $TSFixMe) => {
         this.setState(prevState => {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             let currentValue = prevState[key];
 
             if (currentValue.includes(value)) {
-                currentValue = currentValue.filter(val => val !== value);
+                currentValue = currentValue.filter((val: $TSFixMe) => val !== value);
                 this.updateMultipleState(value, key, currentValue);
 
                 return {
@@ -223,11 +256,12 @@ class CreateSlack extends React.Component {
         });
     };
 
-    updateMultipleState = (id, key, databank) => {
+    updateMultipleState = (id: $TSFixMe, key: $TSFixMe, databank: $TSFixMe) => {
         if (key === 'selectedProjects' && databank.includes(id)) {
-            const monitorIds = [];
-            const componentIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            const componentIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
                     componentIds.push(
@@ -238,18 +272,21 @@ class CreateSlack extends React.Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
                 selectedComponents: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
                     new Set([...prevState.selectedComponents, ...componentIds])
                 ),
             }));
         }
 
         if (key === 'selectedProjects' && !databank.includes(id)) {
-            const monitorIds = [];
-            const componentIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            const componentIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
                     componentIds.push(
@@ -259,18 +296,21 @@ class CreateSlack extends React.Component {
             });
 
             return this.setState(prevState => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                 selectedMonitors: prevState.selectedMonitors.filter(
-                    monitorId => !monitorIds.includes(monitorId)
+                    (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
                 selectedComponents: prevState.selectedComponents.filter(
-                    componentId => !componentIds.includes(componentId)
+                    (componentId: $TSFixMe) => !componentIds.includes(componentId)
                 ),
             }));
         }
 
         if (key === 'selectedComponents' && databank.includes(id)) {
-            const monitorIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
                 }
@@ -278,22 +318,25 @@ class CreateSlack extends React.Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
             }));
         }
 
         if (key === 'selectedComponents' && !databank.includes(id)) {
-            const monitorIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
                 }
             });
 
             return this.setState(prevState => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                 selectedMonitors: prevState.selectedMonitors.filter(
-                    monitorId => !monitorIds.includes(monitorId)
+                    (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
             }));
         }
@@ -301,11 +344,15 @@ class CreateSlack extends React.Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { monitorId },
         } = this.props;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues } = this.props;
         const {
             selectedProjects,
@@ -315,21 +362,22 @@ class CreateSlack extends React.Component {
         } = this.state;
 
         const monitorList = [];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
         const allMonitors = this.props.monitor.monitorsList.monitors
-            .map(monitor => monitor.monitors)
+            .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
         if (allMonitors && allMonitors.length > 0) {
-            allMonitors.map(monitor =>
-                monitorList.push({
-                    value: monitor._id,
-                    label: monitor.name,
-                })
+            allMonitors.map((monitor: $TSFixMe) => monitorList.push({
+                value: monitor._id,
+                label: monitor.name,
+            })
             );
         }
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -822,7 +870,9 @@ class CreateSlack extends React.Component {
                                     <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 this.props.newSlack &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 this.props.newSlack.error
                                             }
                                         >
@@ -844,6 +894,7 @@ class CreateSlack extends React.Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                                     .newSlack
                                                                     .error
                                                             }
@@ -865,13 +916,17 @@ class CreateSlack extends React.Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 this.props.newSlack &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 this.props.newSlack.requesting
                                             }
                                             type="submit"
                                             id="createSlack"
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                             {this.props.newSlack &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 !this.props.newSlack
                                                     .requesting && (
                                                     <>
@@ -881,7 +936,9 @@ class CreateSlack extends React.Component {
                                                         </span>
                                                     </>
                                                 )}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                             {this.props.newSlack &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newSlack' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 this.props.newSlack
                                                     .requesting && (
                                                     <FormLoader />
@@ -898,8 +955,10 @@ class CreateSlack extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CreateSlack.displayName = 'CreateSlack';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CreateSlack.propTypes = {
     currentProject: PropTypes.object,
     createSlack: PropTypes.func.isRequired,
@@ -919,18 +978,17 @@ const NewCreateSlack = reduxForm({
     destroyOnUnmount: true,
 })(CreateSlack);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            createSlack,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        createSlack,
+    },
+    dispatch
+);
 //
-const mapStateToProps = state => {
-    const monitorsList = [];
-    state.monitor.monitorsList.monitors.forEach(item => {
-        item.monitors.forEach(m => {
+const mapStateToProps = (state: $TSFixMe) => {
+    const monitorsList: $TSFixMe = [];
+    state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
+        item.monitors.forEach((m: $TSFixMe) => {
             monitorsList.push(m);
         });
     });

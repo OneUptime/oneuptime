@@ -3,11 +3,13 @@ import SmsTemplateService from '../services/smsTemplateService'
 
 const router = express.Router();
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'domp... Remove this comment to see the full error message
 import createDOMPurify from 'dompurify'
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
 
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserOwner = require('../middlewares/project').isUserOwner;
@@ -149,6 +151,7 @@ router.delete(
     async function(req, res) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user.id;
             const smsTemplate = await SmsTemplateService.deleteBy(
                 { _id: smsTemplateId },

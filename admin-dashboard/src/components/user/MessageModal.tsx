@@ -1,8 +1,10 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 
-const MessageModal = props => {
+const MessageModal = (props: $TSFixMe) => {
     const { closeThisDialog } = props;
 
     return (

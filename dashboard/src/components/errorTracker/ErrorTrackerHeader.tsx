@@ -11,8 +11,9 @@ import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import Badge from '../common/Badge';
 
 class ErrorTrackerHeader extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             showFilters: false,
@@ -20,27 +21,46 @@ class ErrorTrackerHeader extends Component {
     }
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
             errorTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDetails' does not exist on type 'Reado... Remove this comment to see the full error message
             isDetails,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerIssue' does not exist on typ... Remove this comment to see the full error message
             errorTrackerIssue,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewMore' does not exist on type 'Readon... Remove this comment to see the full error message
             viewMore,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteErrorTracker' does not exist on ty... Remove this comment to see the full error message
             deleteErrorTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
             deleteModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editErrorTracker' does not exist on type... Remove this comment to see the full error message
             editErrorTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerKeyModalId' does not exist on typ... Remove this comment to see the full error message
             trackerKeyModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetErrorTrackerKey' does not exist on ... Remove this comment to see the full error message
             resetErrorTrackerKey,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentDateRange' does not exist on type... Remove this comment to see the full error message
             currentDateRange,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formId' does not exist on type 'Readonly... Remove this comment to see the full error message
             formId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleStartDateTimeChange' does not exis... Remove this comment to see the full error message
             handleStartDateTimeChange,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleEndDateTimeChange' does not exist ... Remove this comment to see the full error message
             handleEndDateTimeChange,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleFilterUpdate' does not exist on ty... Remove this comment to see the full error message
             handleFilterUpdate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showComponentWithIssue' does not exist o... Remove this comment to see the full error message
             showComponentWithIssue,
         } = this.props;
         let deleting = false;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
             this.props.errorTrackerState &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
             this.props.errorTrackerState.deleteErrorTracker &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
             this.props.errorTrackerState.deleteErrorTracker === errorTracker._id
         ) {
             deleting = true;
@@ -96,11 +116,13 @@ class ErrorTrackerHeader extends Component {
                                         type="button"
                                         onClick={() =>
                                             this.setState(state => ({
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showFilters' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 showFilters: !state.showFilters,
                                             }))
                                         }
                                     >
                                         <span>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showFilters' does not exist on type 'Rea... Remove this comment to see the full error message
                                             {this.state.showFilters
                                                 ? 'Hide Filters'
                                                 : 'Filter'}
@@ -185,6 +207,7 @@ class ErrorTrackerHeader extends Component {
                         <div
                             className="db-Trends-controls Margin-top--12 Flex-flex Flex-justifyContent--spaceBetween"
                             style={{
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showFilters' does not exist on type 'Rea... Remove this comment to see the full error message
                                 display: this.state.showFilters
                                     ? 'flex'
                                     : 'none',
@@ -208,6 +231,7 @@ class ErrorTrackerHeader extends Component {
                                     }}
                                 >
                                     <Select
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; placeholder: string; classNa... Remove this comment to see the full error message
                                         name="log_type_selector"
                                         placeholder="Filter Errors"
                                         className="db-select-pr-flexible"
@@ -260,7 +284,7 @@ class ErrorTrackerHeader extends Component {
     }
 }
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const currentDateRange = state.errorTracker.errorTrackerIssues[
         ownProps.errorTracker._id
     ]
@@ -273,7 +297,9 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorTrackerHeader.displayName = 'ErrorTrackerHeader';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorTrackerHeader.propTypes = {
     errorTracker: PropTypes.object,
     isDetails: PropTypes.bool,

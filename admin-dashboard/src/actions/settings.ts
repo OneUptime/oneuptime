@@ -8,7 +8,7 @@ export const requestingSettings = () => {
     };
 };
 
-export const requestingSettingsSucceeded = (payload, payloadType) => {
+export const requestingSettingsSucceeded = (payload: $TSFixMe, payloadType: $TSFixMe) => {
     return {
         type: types.REQUESTING_SETTINGS_SUCCEEDED,
         payload,
@@ -16,7 +16,7 @@ export const requestingSettingsSucceeded = (payload, payloadType) => {
     };
 };
 
-export const requestingSettingsFailed = payload => {
+export const requestingSettingsFailed = (payload: $TSFixMe) => {
     return {
         type: types.REQUESTING_SETTINGS_FAILED,
         payload,
@@ -27,34 +27,35 @@ export const testSmtpRequest = () => ({
     type: types.TEST_SMTP_REQUEST,
 });
 
-export const testSmtpSuccess = payload => ({
+export const testSmtpSuccess = (payload: $TSFixMe) => ({
     type: types.TEST_SMTP_SUCCESS,
-    payload,
+    payload
 });
 
-export const testSmtpFailure = error => ({
+export const testSmtpFailure = (error: $TSFixMe) => ({
     type: types.TEST_SMTP_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const testTwilioRequest = () => ({
     type: types.TEST_TWILIO_REQUEST,
 });
 
-export const testTwilioSuccess = payload => ({
+export const testTwilioSuccess = (payload: $TSFixMe) => ({
     type: types.TEST_TWILIO_SUCCESS,
-    payload,
+    payload
 });
 
-export const testTwilioFailure = error => ({
+export const testTwilioFailure = (error: $TSFixMe) => ({
     type: types.TEST_TWILIO_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const testSmtp = payload => async dispatch => {
+export const testSmtp = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(testSmtpRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi('emailSmtp/test', payload);
         dispatch(testSmtpSuccess(response));
         return response;
@@ -73,10 +74,11 @@ export const testSmtp = payload => async dispatch => {
     }
 };
 
-export const testTwilio = payload => async dispatch => {
+export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(testTwilioRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi('twilio/sms/test', payload);
         dispatch(testTwilioSuccess(response));
         return response;
@@ -95,10 +97,12 @@ export const testTwilio = payload => async dispatch => {
     }
 };
 
-export const fetchSettings = type => async dispatch => {
+export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(requestingSettings());
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`globalConfig/${type}`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data || { value: {} };
         if (type === 'smtp') {
             data.value = { 'smtp-secure': false, ...data.value };
@@ -129,13 +133,15 @@ export const fetchSettings = type => async dispatch => {
     }
 };
 
-export const saveSettings = (type, settings) => async dispatch => {
+export const saveSettings = (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(requestingSettings());
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const response = await postApi(`globalConfig`, {
             name: type,
             value: settings,
         });
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const data = response.data || { value: {} };
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;

@@ -1,1 +1,2 @@
-Highlighter={},Highlighter.highlight=function(e){$(e).find("span.highlight_js").each(function(e,t){hljs.highlightBlock(t)})},$(document).ready(function(){Highlighter.highlight(document)});
+// @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'Highlighter'.
+Highlighter={},Highlighter.highlight=function(e: $TSFixMe){$(e).find("span.highlight_js").each(function(e: $TSFixMe,t: $TSFixMe){hljs.highlightBlock(t)})},$(document).ready(function(){Highlighter.highlight(document)});

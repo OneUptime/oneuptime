@@ -1,7 +1,8 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 
 require('should');
 
@@ -9,10 +10,13 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Project', () => {
     const operationTimeOut = init.timeout;
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
     beforeAll(async () => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -26,11 +30,13 @@ describe('Project', () => {
         await init.registerEnterpriseUser(user, page);
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
@@ -43,9 +49,10 @@ describe('Project', () => {
 
             await init.createUserFromAdminDashboard({ email, password }, page);
 
-            await init.page$Eval(page, '#projects > a', elem => elem.click());
+            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) => elem.click());
             await page.reload({ waitUntil: 'networkidle0' });
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const elem = await init.page$$(page, 'table > tbody > tr');
             elem[0].click();
 
@@ -56,14 +63,16 @@ describe('Project', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should delete a project',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#projects', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projects');
 
             const firstProject = await init.pageWaitForSelector(
@@ -80,11 +89,13 @@ describe('Project', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#delete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
@@ -105,14 +116,16 @@ describe('Project', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should restore a deleted project',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#projects', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projects');
 
             const firstProject = await init.pageWaitForSelector(
@@ -128,6 +141,7 @@ describe('Project', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#restore');
 
             const deleteBtn = await init.pageWaitForSelector(page, '#delete', {

@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -10,16 +11,20 @@ import ProjectDeleteModal from './ProjectDeleteModal';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class ProjectDeleteBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = { deleteModalId: uuidv4() };
     }
 
     handleClick = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteProject' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteProject, project } = this.props;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
@@ -29,9 +34,10 @@ export class ProjectDeleteBox extends Component {
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -39,6 +45,7 @@ export class ProjectDeleteBox extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
         const { isRequesting } = this.props;
 
         return (
@@ -85,12 +92,12 @@ export class ProjectDeleteBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ProjectDeleteBox.displayName = 'ProjectDeleteBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const project = state.project.project.project;
     return {
         project,
@@ -101,6 +108,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ProjectDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     project: PropTypes.object.isRequired,
@@ -109,6 +117,7 @@ ProjectDeleteBox.propTypes = {
     openModal: PropTypes.func.isRequired,
 };
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 ProjectDeleteBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDeleteBox);

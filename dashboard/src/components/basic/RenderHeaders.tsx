@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import { RenderField } from './RenderField';
 import { ValidateField } from '../../config';
@@ -9,7 +10,9 @@ const flexStyle = {
     padding: '10px 20px',
 };
 
-const RenderHeaders = ({ fields }) => {
+const RenderHeaders = ({
+    fields
+}: $TSFixMe) => {
     if (!fields || !fields.length)
         return (
             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -52,7 +55,7 @@ const RenderHeaders = ({ fields }) => {
 
     return (
         <ul>
-            {fields.map((val, i) => {
+            {fields.map((val: $TSFixMe, i: $TSFixMe) => {
                 return (
                     <li key={i}>
                         <div className="bs-Fieldset-row" style={flexStyle}>

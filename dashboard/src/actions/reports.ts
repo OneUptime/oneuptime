@@ -3,21 +3,21 @@ import * as types from '../constants/report';
 
 // Incident Reports Section
 
-export const getActiveMembersRequest = promise => {
+export const getActiveMembersRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_ACTIVE_MEMBERS_REQUEST,
         payload: promise,
     };
 };
 
-export const getActiveMembersSuccess = members => {
+export const getActiveMembersSuccess = (members: $TSFixMe) => {
     return {
         type: types.GET_ACTIVE_MEMBERS_SUCCESS,
         payload: members,
     };
 };
 
-export const getActiveMembersError = error => {
+export const getActiveMembersError = (error: $TSFixMe) => {
     return {
         type: types.GET_ACTIVE_MEMBERS_FAILED,
         payload: error,
@@ -25,18 +25,19 @@ export const getActiveMembersError = error => {
 };
 
 export const getActiveMembers = (
-    projectId,
-    startDate,
-    endDate,
-    skip,
-    limit
-) => async dispatch => {
+    projectId: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         const promise = getApi(
             `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
         );
         dispatch(getActiveMembersRequest(promise));
         const members = await promise;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getActiveMembersSuccess(members.data));
     } catch (error) {
         let newerror = error;
@@ -54,21 +55,21 @@ export const getActiveMembers = (
     }
 };
 
-export const getActiveMonitorsRequest = promise => {
+export const getActiveMonitorsRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_ACTIVE_MONITORS_REQUEST,
         payload: promise,
     };
 };
 
-export const getActiveMonitorsSuccess = monitors => {
+export const getActiveMonitorsSuccess = (monitors: $TSFixMe) => {
     return {
         type: types.GET_ACTIVE_MONITORS_SUCCESS,
         payload: monitors,
     };
 };
 
-export const getActiveMonitorsError = error => {
+export const getActiveMonitorsError = (error: $TSFixMe) => {
     return {
         type: types.GET_ACTIVE_MONITORS_FAILED,
         payload: error,
@@ -76,12 +77,12 @@ export const getActiveMonitorsError = error => {
 };
 
 export const getActiveMonitors = (
-    projectId,
-    startDate,
-    endDate,
-    skip,
-    limit
-) => async dispatch => {
+    projectId: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         const promise = getApi(
             `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${skip ||
@@ -89,6 +90,7 @@ export const getActiveMonitors = (
         );
         dispatch(getActiveMonitorsRequest(promise));
         const monitors = await promise;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getActiveMonitorsSuccess(monitors.data));
     } catch (error) {
         let newerror = error;
@@ -106,21 +108,21 @@ export const getActiveMonitors = (
     }
 };
 
-export const getIncidentsRequest = promise => {
+export const getIncidentsRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_INCIDENTS_REQUEST,
         payload: promise,
     };
 };
 
-export const getIncidentsSuccess = reports => {
+export const getIncidentsSuccess = (reports: $TSFixMe) => {
     return {
         type: types.GET_INCIDENTS_SUCCESS,
         payload: reports,
     };
 };
 
-export const getIncidentsError = error => {
+export const getIncidentsError = (error: $TSFixMe) => {
     return {
         type: types.GET_INCIDENTS_FAILED,
         payload: error,
@@ -128,17 +130,18 @@ export const getIncidentsError = error => {
 };
 
 export const getIncidents = (
-    projectId,
-    filter,
-    startDate,
-    endDate
-) => async dispatch => {
+    projectId: $TSFixMe,
+    filter: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         const promise = getApi(
             `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
         );
         dispatch(getIncidentsRequest(promise));
         const reports = await promise;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getIncidentsSuccess(reports.data));
     } catch (error) {
         let newerror = error;
@@ -156,21 +159,21 @@ export const getIncidents = (
     }
 };
 
-export const getResolveTimeRequest = promise => {
+export const getResolveTimeRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_RESOLVE_TIME_REQUEST,
         payload: promise,
     };
 };
 
-export const getResolveTimeSuccess = reports => {
+export const getResolveTimeSuccess = (reports: $TSFixMe) => {
     return {
         type: types.GET_RESOLVE_TIME_SUCCESS,
         payload: reports,
     };
 };
 
-export const getResolveTimeError = error => {
+export const getResolveTimeError = (error: $TSFixMe) => {
     return {
         type: types.GET_RESOLVE_TIME_FAILED,
         payload: error,
@@ -178,17 +181,18 @@ export const getResolveTimeError = error => {
 };
 
 export const getResolveTime = (
-    projectId,
-    filter,
-    startDate,
-    endDate
-) => async dispatch => {
+    projectId: $TSFixMe,
+    filter: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         const promise = getApi(
             `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
         );
         dispatch(getResolveTimeRequest(promise));
         const reports = await promise;
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getResolveTimeSuccess(reports.data));
     } catch (error) {
         let newerror = error;

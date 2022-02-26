@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
@@ -12,18 +13,19 @@ import { toggleProjectSettingsMore } from '../../actions/page';
 import { User, PricingPlan } from '../../config';
 
 export class SidebarNavItem extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.RenderListItems = this.RenderListItems.bind(this);
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { route } = this.props;
         const path = this.mainRoute();
 
         navKeyBind(route, path);
 
-        route.subRoutes.map(subRoute => {
+        route.subRoutes.map((subRoute: $TSFixMe) => {
             const link = this.subRoute(subRoute);
 
             navKeyBind(subRoute, link);
@@ -32,12 +34,13 @@ export class SidebarNavItem extends Component {
     }
 
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { route } = this.props;
         const path = this.mainRoute();
 
         cleanBind(route, path);
 
-        route.subRoutes.map(subRoute => {
+        route.subRoutes.map((subRoute: $TSFixMe) => {
             const link = this.subRoute(subRoute);
 
             cleanBind(subRoute, link);
@@ -46,6 +49,7 @@ export class SidebarNavItem extends Component {
     }
 
     mainRoute = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { match, currentProject, route } = this.props;
         return route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
@@ -60,9 +64,11 @@ export class SidebarNavItem extends Component {
             .replace(':automatedScriptslug', match.params.automatedScriptslug);
     };
     handleShowMore = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
         this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
     };
-    subRoute = subRoute => {
+    subRoute = (subRoute: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { match, currentProject } = this.props;
         const subRoutePath = subRoute.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
@@ -87,29 +93,38 @@ export class SidebarNavItem extends Component {
             subRoute.title === 'Team Groups';
         if (projectSettingsSubRoutes) {
             if (match.url === subRoutePath) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
                 this.props.toggleProjectSettingsMore(true);
             }
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
             this.props.toggleProjectSettingsMore(false);
         }
         return subRoutePath;
     };
 
-    camalize = function camalize(str) {
+    camalize = function camalize(str: $TSFixMe) {
         return str
             .toLowerCase()
-            .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+            .replace(/[^a-zA-Z0-9]+(.)/g, (m: $TSFixMe, chr: $TSFixMe) => chr.toUpperCase());
     };
 
     render() {
         const { RenderListItems } = this;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
             route,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Readon... Remove this comment to see the full error message
             schedule,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
             match,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadPage' does not exist on type 'Readon... Remove this comment to see the full error message
             loadPage,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleMoreBtn' does not exist on type 'R... Remove this comment to see the full error message
             toggleMoreBtn,
         } = this.props;
         const path = route.path
@@ -182,7 +197,7 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Automation Scripts');
 
-        const isChildLinkActive = route.subRoutes.some(link => {
+        const isChildLinkActive = route.subRoutes.some((link: $TSFixMe) => {
             let newPath = link.path.replace(/:slug/, match.params.slug);
             newPath = newPath.replace(/:issueId/, match.params.issueId);
             newPath = newPath.replace(
@@ -255,21 +270,19 @@ export class SidebarNavItem extends Component {
             return response;
         });
 
-        const isSubLinkActive = route.subRoutes.some(link =>
-            link.title === 'Status Page' &&
-            location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
-            )
-                ? true
-                : false
+        const isSubLinkActive = route.subRoutes.some((link: $TSFixMe) => link.title === 'Status Page' &&
+        location.pathname.match(
+            /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
+        )
+            ? true
+            : false
         );
-        const isScheduleLinkActive = route.subRoutes.some(link =>
-            link.title === 'Schedule' &&
-            location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
-            )
-                ? true
-                : false
+        const isScheduleLinkActive = route.subRoutes.some((link: $TSFixMe) => link.title === 'Schedule' &&
+        location.pathname.match(
+            /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
+        )
+            ? true
+            : false
         );
 
         const routeStyle = {
@@ -286,10 +299,12 @@ export class SidebarNavItem extends Component {
         const routes = route.shortcut && route.shortcut.split('+');
 
         const hideProjectNav =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             this.props.currentProject?._id !== this.props.activeSubProjectId &&
             (route.title === 'Reports' || route.title === 'Project Settings');
 
         return (
+            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ position: string; marginBottom: string; ma... Remove this comment to see the full error message
             <div style={routeStyle}>
                 <ShouldRender if={!hideProjectNav}>
                     <ShouldRender if={!route.invisible}>
@@ -297,11 +312,14 @@ export class SidebarNavItem extends Component {
                             id={this.camalize(route.title)}
                             style={{ cursor: 'pointer' }}
                             onClick={() => {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
                                 this.props.toggleProjectSettingsMore(false);
                                 if (route.title === 'Back to Dashboard') {
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                     this.props.animateSidebar(true);
                                     setTimeout(() => {
                                         loadPage(route.title);
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                         this.props.animateSidebar(false);
                                         history.push(path);
                                     }, 200);
@@ -375,13 +393,15 @@ export class SidebarNavItem extends Component {
                                 }
                             >
                                 <RenderListItems
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                     slug={this.props.currentProject?.slug}
                                     schedule={schedule}
                                     active={match.url}
-                                    onLoad={title => loadPage(title)}
+                                    onLoad={(title: $TSFixMe) => loadPage(title)}
                                     componentSlug={match.params.componentSlug}
                                     showMore={toggleMoreBtn}
                                     handleShowMore={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
                                         this.props.toggleProjectSettingsMore
                                     }
                                 />
@@ -400,14 +420,17 @@ export class SidebarNavItem extends Component {
         onLoad,
         componentSlug,
         showMore,
-        handleShowMore,
-    }) {
+        handleShowMore
+    }: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | null' is not assignable... Remove this comment to see the full error message
         const currentProject = JSON.parse(User.getProject());
         const isScalePlan = currentProject?.stripePlanId
+            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
             ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===
               'Scale'
             : false;
-        return this.props.route.subRoutes.map((child, index) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+        return this.props.route.subRoutes.map((child: $TSFixMe, index: $TSFixMe) => {
             if (child.title === 'Sso' && !isScalePlan) {
                 return null;
             }
@@ -599,26 +622,29 @@ export class SidebarNavItem extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SidebarNavItem.displayName = 'SidebarNavItem';
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     component: state.component,
     currentProject: state.project.currentProject,
+
     schedule:
         state.schedule &&
         state.schedule.schedules &&
         state.schedule.schedules.data &&
         state.schedule.schedules.data[0],
+
     toggleMoreBtn: state.page.toggleProjectSettingsMore,
-    activeSubProjectId: state.subProject.activeSubProject,
+    activeSubProjectId: state.subProject.activeSubProject
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { loadPage, animateSidebar, toggleProjectSettingsMore },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { loadPage, animateSidebar, toggleProjectSettingsMore },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,

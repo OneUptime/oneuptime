@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -25,10 +26,11 @@ class NewErrorTracker extends Component {
     componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Enter':
                 if (document.getElementById('editErrorTrackerButton'))
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     return document
                         .getElementById('editErrorTrackerButton')
                         .click();
@@ -37,25 +39,32 @@ class NewErrorTracker extends Component {
                 return false;
         }
     };
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const thisObj = this;
         const postObj = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         postObj.name = values[`name`];
         if (values[`resourceCategory`]) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
             postObj.resourceCategory = values[`resourceCategory`];
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         if (!this.props.edit) {
             this.props
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createErrorTracker' does not exist on ty... Remove this comment to see the full error message
                 .createErrorTracker(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                     this.props.currentProject._id,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                     this.props.componentId,
                     postObj
                 )
                 .then(
                     () => {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
                         thisObj.props.reset();
                     },
-                    error => {
+                    (error: $TSFixMe) => {
                         if (error && error.message) {
                             return error;
                         }
@@ -63,9 +72,13 @@ class NewErrorTracker extends Component {
                 );
         } else {
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editErrorTracker' does not exist on type... Remove this comment to see the full error message
                 editErrorTracker,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 currentProject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                 componentId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
                 errorTracker,
             } = this.props;
             editErrorTracker(
@@ -74,13 +87,15 @@ class NewErrorTracker extends Component {
                 errorTracker._id,
                 postObj
             ).then(
-                data => {
+                (data: $TSFixMe) => {
                     history.replace(
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/error-trackers/${data.data.slug}`
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
                     thisObj.props.reset();
                 },
-                error => {
+                (error: $TSFixMe) => {
                     if (error && error.message) {
                         return error;
                     }
@@ -89,15 +104,21 @@ class NewErrorTracker extends Component {
         }
     };
     cancelEdit = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editErrorTrackerSwitch' does not exist o... Remove this comment to see the full error message
         const { editErrorTrackerSwitch, errorTracker } = this.props;
         editErrorTrackerSwitch(errorTracker._id);
     };
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             edit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
             errorTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategoryList' does not exist on ... Remove this comment to see the full error message
             resourceCategoryList,
         } = this.props;
         return (
@@ -199,11 +220,12 @@ class NewErrorTracker extends Component {
                                                                     resourceCategoryList.length >
                                                                         0
                                                                         ? resourceCategoryList.map(
-                                                                              category => ({
+                                                                              (category: $TSFixMe) => ({
                                                                                   value:
                                                                                       category._id,
+
                                                                                   label:
-                                                                                      category.name,
+                                                                                      category.name
                                                                               })
                                                                           )
                                                                         : []),
@@ -222,6 +244,7 @@ class NewErrorTracker extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
                                                 this.props.errorTrackerState
                                                     .newErrorTracker.error
                                             }
@@ -233,6 +256,7 @@ class NewErrorTracker extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
                                                             .errorTrackerState
                                                             .newErrorTracker
                                                             .error
@@ -242,6 +266,7 @@ class NewErrorTracker extends Component {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
                                                 this.props.errorTrackerState
                                                     .editErrorTracker.error
                                             }
@@ -253,6 +278,7 @@ class NewErrorTracker extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
                                                             .errorTrackerState
                                                             .editErrorTracker
                                                             .error
@@ -266,13 +292,16 @@ class NewErrorTracker extends Component {
                                     <div>
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCancelBtn' does not exist on type 'R... Remove this comment to see the full error message
                                                 this.props.showCancelBtn &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.toggleForm
                                             }
                                         >
                                             <button
                                                 className="bs-Button"
                                                 disabled={requesting}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
                                                 onClick={this.props.toggleForm}
                                                 type="button"
                                             >
@@ -328,6 +357,7 @@ class NewErrorTracker extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 NewErrorTracker.displayName = 'NewErrorTracker';
 
 const NewErrorTrackerForm = new reduxForm({
@@ -336,17 +366,16 @@ const NewErrorTrackerForm = new reduxForm({
     enableReinitialize: true,
 })(NewErrorTracker);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            createErrorTracker,
-            editErrorTrackerSwitch,
-            editErrorTracker,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        createErrorTracker,
+        editErrorTrackerSwitch,
+        editErrorTracker,
+    },
+    dispatch
+);
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const requesting = ownProps.edit
@@ -374,6 +403,7 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 NewErrorTracker.propTypes = {
     createErrorTracker: PropTypes.func.isRequired,
     errorTrackerState: PropTypes.object.isRequired,

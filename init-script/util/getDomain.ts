@@ -13,7 +13,7 @@ const secondTLDs = 'com|edu|gov|net|mil|org|nom|sch|caa|res|off|gob|int|tur|ip6|
     '|'
 );
 
-export default function getDomain(s) {
+export default function getDomain(s: $TSFixMe) {
     s = s.replace(/^www\./, '');
 
     const parts = s.split('.');

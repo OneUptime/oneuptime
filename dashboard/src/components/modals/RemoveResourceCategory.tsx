@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
@@ -16,9 +17,10 @@ class RemoveResourceCategory extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal();
             case 'Enter':
                 return this.handleDeleteResourceCategory();
@@ -28,15 +30,19 @@ class RemoveResourceCategory extends Component {
     };
 
     handleDeleteResourceCategory = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { resourceCategoryId } = this.props.data;
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteResourceCategory' does not exist o... Remove this comment to see the full error message
             .deleteResourceCategory(resourceCategoryId, this.props.projectId)
             .finally(() => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.closeModal();
             });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteResourceCategoryObj' does not exis... Remove this comment to see the full error message
         const { deleteResourceCategoryObj, closeModal } = this.props;
 
         return (
@@ -67,6 +73,7 @@ class RemoveResourceCategory extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                                             onClick={this.props.closeModal}
                                             disabled={
                                                 deleteResourceCategoryObj.requesting
@@ -113,8 +120,10 @@ class RemoveResourceCategory extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RemoveResourceCategory.displayName = 'RemoveResourceCategoryFormModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RemoveResourceCategory.propTypes = {
     deleteResourceCategoryObj: PropTypes.object.isRequired,
     projectId: PropTypes.string,
@@ -123,7 +132,7 @@ RemoveResourceCategory.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleteResourceCategoryObj:
             state.resourceCategories.deletedResourceCategory,
@@ -132,8 +141,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
 
 export default connect(
     mapStateToProps,

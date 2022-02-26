@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, FieldArray, reset } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
@@ -25,7 +26,7 @@ const defaultScript =
     '   done();\n' +
     '}\n';
 class NewScript extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             name: '',
@@ -36,6 +37,7 @@ class NewScript extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetScripts' does not exist on type 'Re... Remove this comment to see the full error message
         this.props.resetScripts();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -44,24 +46,25 @@ class NewScript extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleNewScript' does not exist on type ... Remove this comment to see the full error message
         if (e.key === 'Escape') this.props.toggleNewScript();
     };
 
-    setAutomatedScript = value => {
+    setAutomatedScript = (value: $TSFixMe) => {
         this.setState({ ...this.state, script: value });
     };
 
-    submit = (values, dispatch) => {
+    submit = (values: $TSFixMe, dispatch: $TSFixMe) => {
         this.setState({
             successEventError: null,
             failureEventError: null,
         });
-        const successEvent = values.successEvent.filter(data => data);
-        const failureEvent = values.failureEvent.filter(data => data);
+        const successEvent = values.successEvent.filter((data: $TSFixMe) => data);
+        const failureEvent = values.failureEvent.filter((data: $TSFixMe) => data);
         values.successEvent = successEvent;
         values.failureEvent = failureEvent;
-        const successEventIds = successEvent.map(data => data.resource);
+        const successEventIds = successEvent.map((data: $TSFixMe) => data.resource);
         const isSuccessDuplicate = values.successEvent
             ? values.successEvent.length === new Set(successEventIds).size
                 ? false
@@ -75,7 +78,7 @@ class NewScript extends Component {
             return;
         }
 
-        const failureEventIds = failureEvent.map(data => data.resource);
+        const failureEventIds = failureEvent.map((data: $TSFixMe) => data.resource);
         const isFailureDuplicate = values.failureEvent
             ? values.failureEvent.length === new Set(failureEventIds).size
                 ? false
@@ -89,313 +92,323 @@ class NewScript extends Component {
             return;
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { type, script } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProject' does not exist on type 'R... Remove this comment to see the full error message
         const { activeProject } = this.props;
         const payload = { ...values, scriptType: type, script };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAutomatedScript' does not exist on... Remove this comment to see the full error message
         this.props.createAutomatedScript(activeProject, payload).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAutomatedScript' does not exist on ... Remove this comment to see the full error message
             this.props.fetchAutomatedScript(activeProject, 0, 10);
             dispatch(reset('newScript'));
             this.setState({
                 type: 'JavaScript',
                 script: defaultScript,
             });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleNewScript' does not exist on type ... Remove this comment to see the full error message
             this.props.toggleNewScript();
         });
     };
 
-    renderSuccessEvent = ({ fields }) => {
+    renderSuccessEvent = ({
+        fields
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { script, schedules, successEventValues } = this.props;
         const scheduleOption =
             schedules && schedules.length > 0
-                ? schedules.map(schedule => ({
-                      value: schedule._id,
-                      label: schedule.name,
-                  }))
+                ? schedules.map((schedule: $TSFixMe) => ({
+                value: schedule._id,
+                label: schedule.name
+            }))
                 : [];
         const scriptOption =
             script && script.length > 0
-                ? script.map(s => ({
-                      value: s._id,
-                      label: s.name,
-                  }))
+                ? script.map((s: $TSFixMe) => ({
+                value: s._id,
+                label: s.name
+            }))
                 : [];
         if (fields.length === 0) {
             fields.push();
         }
-        return (
-            <>
-                {fields.map((field, index) => {
-                    const optionObj =
-                        successEventValues[index] &&
-                        successEventValues[index].type === 'callSchedule'
-                            ? scheduleOption
-                            : successEventValues[index] &&
-                              successEventValues[index].type ===
-                                  'automatedScript'
-                            ? scriptOption
-                            : [];
+        return <>
+            {fields.map((field: $TSFixMe, index: $TSFixMe) => {
+                const optionObj =
+                    successEventValues[index] &&
+                    successEventValues[index].type === 'callSchedule'
+                        ? scheduleOption
+                        : successEventValues[index] &&
+                          successEventValues[index].type ===
+                              'automatedScript'
+                        ? scriptOption
+                        : [];
 
-                    return (
-                        <div className="bs-a-script" key={index}>
-                            <div className="bs-as-pad-10">
-                                {index === 0 && (
-                                    <div className="bs-as-tag">Type</div>
-                                )}
-                                <Field
-                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
-                                    component={RenderSelect}
-                                    name={`${field}.type`}
-                                    id={`script_${index}`}
-                                    placeholder="Automation script"
-                                    style={{
-                                        height: '28px',
-                                        width: '100%',
-                                    }}
-                                    validate={
-                                        successEventValues[0] &&
-                                        (successEventValues[0].type ||
-                                            successEventValues[0].resource) &&
-                                        ValidateField.select
-                                    }
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'None',
-                                        },
-                                        {
-                                            value: 'automatedScript',
-                                            label: 'Automated Script',
-                                        },
-                                    ]}
-                                />
-                            </div>
-                            <div className="bs-as-pad-10">
-                                {index === 0 && (
-                                    <div className="bs-as-tag">Resource</div>
-                                )}
-                                <Field
-                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
-                                    component={RenderSelect}
-                                    name={`${field}.resource`}
-                                    id={`script_${index}`}
-                                    placeholder="Automation script"
-                                    style={{
-                                        height: '28px',
-                                        width: '100%',
-                                    }}
-                                    validate={
-                                        successEventValues[0] &&
-                                        (successEventValues[0].type ||
-                                            successEventValues[0].resource) &&
-                                        ValidateField.select
-                                    }
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'None',
-                                        },
-                                        ...optionObj,
-                                    ]}
-                                />
-                            </div>
-                            <div
-                                className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
-                                style={{ marginBottom: index === 0 && '-27px' }}
-                            >
-                                <button
-                                    className="bs-Button bs-DeprecatedButton"
-                                    style={{
-                                        borderRadius: '50%',
-                                        padding: '0 6px',
-                                    }}
-                                    onClick={() => {
-                                        fields.push();
-                                    }}
-                                    type="button"
-                                >
-                                    <img
-                                        src="/dashboard/assets/img/plus.svg"
-                                        style={{
-                                            height: '10px',
-                                            width: '10px',
-                                        }}
-                                        alt=""
-                                    />
-                                </button>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton"
-                                    style={{
-                                        borderRadius: '50%',
-                                        padding: '0 6px',
-                                    }}
-                                    onClick={() => {
-                                        fields.remove(index);
-                                    }}
-                                >
-                                    <img
-                                        src="/dashboard/assets/img/minus.svg"
-                                        style={{
-                                            height: '10px',
-                                            width: '10px',
-                                        }}
-                                        alt=""
-                                    />
-                                </button>
-                            </div>
+                return (
+                    <div className="bs-a-script" key={index}>
+                        <div className="bs-as-pad-10">
+                            {index === 0 && (
+                                <div className="bs-as-tag">Type</div>
+                            )}
+                            <Field
+                                className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                component={RenderSelect}
+                                name={`${field}.type`}
+                                id={`script_${index}`}
+                                placeholder="Automation script"
+                                style={{
+                                    height: '28px',
+                                    width: '100%',
+                                }}
+                                validate={
+                                    successEventValues[0] &&
+                                    (successEventValues[0].type ||
+                                        successEventValues[0].resource) &&
+                                    ValidateField.select
+                                }
+                                options={[
+                                    {
+                                        value: '',
+                                        label: 'None',
+                                    },
+                                    {
+                                        value: 'automatedScript',
+                                        label: 'Automated Script',
+                                    },
+                                ]}
+                            />
                         </div>
-                    );
-                })}
-            </>
-        );
+                        <div className="bs-as-pad-10">
+                            {index === 0 && (
+                                <div className="bs-as-tag">Resource</div>
+                            )}
+                            <Field
+                                className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                component={RenderSelect}
+                                name={`${field}.resource`}
+                                id={`script_${index}`}
+                                placeholder="Automation script"
+                                style={{
+                                    height: '28px',
+                                    width: '100%',
+                                }}
+                                validate={
+                                    successEventValues[0] &&
+                                    (successEventValues[0].type ||
+                                        successEventValues[0].resource) &&
+                                    ValidateField.select
+                                }
+                                options={[
+                                    {
+                                        value: '',
+                                        label: 'None',
+                                    },
+                                    ...optionObj,
+                                ]}
+                            />
+                        </div>
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "-27px"' is not assignable to type '... Remove this comment to see the full error message
+                            style={{ marginBottom: index === 0 && '-27px' }}
+                        >
+                            <button
+                                className="bs-Button bs-DeprecatedButton"
+                                style={{
+                                    borderRadius: '50%',
+                                    padding: '0 6px',
+                                }}
+                                onClick={() => {
+                                    fields.push();
+                                }}
+                                type="button"
+                            >
+                                <img
+                                    src="/dashboard/assets/img/plus.svg"
+                                    style={{
+                                        height: '10px',
+                                        width: '10px',
+                                    }}
+                                    alt=""
+                                />
+                            </button>
+                            <button
+                                className="bs-Button bs-DeprecatedButton"
+                                style={{
+                                    borderRadius: '50%',
+                                    padding: '0 6px',
+                                }}
+                                onClick={() => {
+                                    fields.remove(index);
+                                }}
+                            >
+                                <img
+                                    src="/dashboard/assets/img/minus.svg"
+                                    style={{
+                                        height: '10px',
+                                        width: '10px',
+                                    }}
+                                    alt=""
+                                />
+                            </button>
+                        </div>
+                    </div>
+                );
+            })}
+        </>;
     };
 
-    renderFailureEvent = ({ fields }) => {
+    renderFailureEvent = ({
+        fields
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { script, schedules, failureEventValues } = this.props;
         const scheduleOption =
             schedules && schedules.length > 0
-                ? schedules.map(schedule => ({
-                      value: schedule._id,
-                      label: schedule.name,
-                  }))
+                ? schedules.map((schedule: $TSFixMe) => ({
+                value: schedule._id,
+                label: schedule.name
+            }))
                 : [];
         const scriptOption =
             script && script.length > 0
-                ? script.map(s => ({
-                      value: s._id,
-                      label: s.name,
-                  }))
+                ? script.map((s: $TSFixMe) => ({
+                value: s._id,
+                label: s.name
+            }))
                 : [];
         if (fields.length === 0) {
             fields.push();
         }
-        return (
-            <>
-                {fields.map((field, index) => {
-                    const optionObj =
-                        failureEventValues[index] &&
-                        failureEventValues[index].type === 'callSchedule'
-                            ? scheduleOption
-                            : failureEventValues[index] &&
-                              failureEventValues[index].type ===
-                                  'automatedScript'
-                            ? scriptOption
-                            : [];
+        return <>
+            {fields.map((field: $TSFixMe, index: $TSFixMe) => {
+                const optionObj =
+                    failureEventValues[index] &&
+                    failureEventValues[index].type === 'callSchedule'
+                        ? scheduleOption
+                        : failureEventValues[index] &&
+                          failureEventValues[index].type ===
+                              'automatedScript'
+                        ? scriptOption
+                        : [];
 
-                    return (
-                        <div className="bs-a-script" key={index}>
-                            <div className="bs-as-pad-10">
-                                {index === 0 && (
-                                    <div className="bs-as-tag">Type</div>
-                                )}
-                                <Field
-                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
-                                    component={RenderSelect}
-                                    name={`${field}.type`}
-                                    id={`script_${index}`}
-                                    placeholder="Automation script"
-                                    style={{
-                                        height: '28px',
-                                        width: '100%',
-                                    }}
-                                    validate={
-                                        failureEventValues[0] &&
-                                        (failureEventValues[0].type ||
-                                            failureEventValues[0].resource) &&
-                                        ValidateField.select
-                                    }
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'None',
-                                        },
-                                        {
-                                            value: 'automatedScript',
-                                            label: 'Automated Script',
-                                        },
-                                    ]}
-                                />
-                            </div>
-                            <div className="bs-as-pad-10">
-                                {index === 0 && (
-                                    <div className="bs-as-tag">Resource</div>
-                                )}
-                                <Field
-                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
-                                    component={RenderSelect}
-                                    name={`${field}.resource`}
-                                    id={`script_${index}`}
-                                    placeholder="Automation script"
-                                    style={{
-                                        height: '28px',
-                                        width: '100%',
-                                    }}
-                                    validate={
-                                        failureEventValues[0] &&
-                                        (failureEventValues[0].type ||
-                                            failureEventValues[0].resource) &&
-                                        ValidateField.select
-                                    }
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'None',
-                                        },
-                                        ...optionObj,
-                                    ]}
-                                />
-                            </div>
-                            <div
-                                className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
-                                style={{ marginBottom: index === 0 && '-27px' }}
-                            >
-                                <button
-                                    className="bs-Button bs-DeprecatedButton"
-                                    style={{
-                                        borderRadius: '50%',
-                                        padding: '0 6px',
-                                    }}
-                                    onClick={() => {
-                                        fields.push();
-                                    }}
-                                    type="button"
-                                >
-                                    <img
-                                        src="/dashboard/assets/img/plus.svg"
-                                        style={{
-                                            height: '10px',
-                                            width: '10px',
-                                        }}
-                                        alt=""
-                                    />
-                                </button>
-                                <button
-                                    className="bs-Button bs-DeprecatedButton"
-                                    style={{
-                                        borderRadius: '50%',
-                                        padding: '0 6px',
-                                    }}
-                                    onClick={() => {
-                                        fields.remove(index);
-                                    }}
-                                >
-                                    <img
-                                        src="/dashboard/assets/img/minus.svg"
-                                        style={{
-                                            height: '10px',
-                                            width: '10px',
-                                        }}
-                                        alt=""
-                                    />
-                                </button>
-                            </div>
+                return (
+                    <div className="bs-a-script" key={index}>
+                        <div className="bs-as-pad-10">
+                            {index === 0 && (
+                                <div className="bs-as-tag">Type</div>
+                            )}
+                            <Field
+                                className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                component={RenderSelect}
+                                name={`${field}.type`}
+                                id={`script_${index}`}
+                                placeholder="Automation script"
+                                style={{
+                                    height: '28px',
+                                    width: '100%',
+                                }}
+                                validate={
+                                    failureEventValues[0] &&
+                                    (failureEventValues[0].type ||
+                                        failureEventValues[0].resource) &&
+                                    ValidateField.select
+                                }
+                                options={[
+                                    {
+                                        value: '',
+                                        label: 'None',
+                                    },
+                                    {
+                                        value: 'automatedScript',
+                                        label: 'Automated Script',
+                                    },
+                                ]}
+                            />
                         </div>
-                    );
-                })}
-            </>
-        );
+                        <div className="bs-as-pad-10">
+                            {index === 0 && (
+                                <div className="bs-as-tag">Resource</div>
+                            )}
+                            <Field
+                                className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                component={RenderSelect}
+                                name={`${field}.resource`}
+                                id={`script_${index}`}
+                                placeholder="Automation script"
+                                style={{
+                                    height: '28px',
+                                    width: '100%',
+                                }}
+                                validate={
+                                    failureEventValues[0] &&
+                                    (failureEventValues[0].type ||
+                                        failureEventValues[0].resource) &&
+                                    ValidateField.select
+                                }
+                                options={[
+                                    {
+                                        value: '',
+                                        label: 'None',
+                                    },
+                                    ...optionObj,
+                                ]}
+                            />
+                        </div>
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "-27px"' is not assignable to type '... Remove this comment to see the full error message
+                            style={{ marginBottom: index === 0 && '-27px' }}
+                        >
+                            <button
+                                className="bs-Button bs-DeprecatedButton"
+                                style={{
+                                    borderRadius: '50%',
+                                    padding: '0 6px',
+                                }}
+                                onClick={() => {
+                                    fields.push();
+                                }}
+                                type="button"
+                            >
+                                <img
+                                    src="/dashboard/assets/img/plus.svg"
+                                    style={{
+                                        height: '10px',
+                                        width: '10px',
+                                    }}
+                                    alt=""
+                                />
+                            </button>
+                            <button
+                                className="bs-Button bs-DeprecatedButton"
+                                style={{
+                                    borderRadius: '50%',
+                                    padding: '0 6px',
+                                }}
+                                onClick={() => {
+                                    fields.remove(index);
+                                }}
+                            >
+                                <img
+                                    src="/dashboard/assets/img/minus.svg"
+                                    style={{
+                                        height: '10px',
+                                        width: '10px',
+                                    }}
+                                    alt=""
+                                />
+                            </button>
+                        </div>
+                    </div>
+                );
+            })}
+        </>;
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addScriptsError' does not exist on type ... Remove this comment to see the full error message
         const { addScriptsError, requesting } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -419,6 +432,7 @@ class NewScript extends Component {
 
                         <form
                             id="form-new-component"
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
                             onSubmit={this.props.handleSubmit(this.submit)}
                         >
                             <div
@@ -471,12 +485,12 @@ class NewScript extends Component {
                                                                 },
                                                             ]}
                                                             value={
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                 this.state.type
                                                             }
-                                                            updateState={val =>
-                                                                this.setState({
-                                                                    type: val,
-                                                                })
+                                                            updateState={(val: $TSFixMe) => this.setState({
+                                                                type: val,
+                                                            })
                                                             }
                                                         />
                                                     </div>
@@ -488,6 +502,7 @@ class NewScript extends Component {
                                                         Script
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         {this.state.type ===
                                                             'JavaScript' && (
                                                             <AceEditor
@@ -496,6 +511,7 @@ class NewScript extends Component {
                                                                 theme="github"
                                                                 value={
                                                                     this.state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
                                                                         .script
                                                                 }
                                                                 defaultValue={
@@ -510,6 +526,7 @@ class NewScript extends Component {
                                                                         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
                                                                 }}
                                                                 name={`automated-script`}
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
                                                                 id="automatedScript"
                                                                 editorProps={{
                                                                     $blockScrolling: true,
@@ -534,6 +551,7 @@ class NewScript extends Component {
                                                                 }
                                                             />
                                                         )}
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         {this.state.type ===
                                                             'Bash' && (
                                                             <AceEditor
@@ -542,6 +560,7 @@ class NewScript extends Component {
                                                                 theme="github"
                                                                 value={
                                                                     this.state
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
                                                                         .script
                                                                 }
                                                                 defaultValue={
@@ -556,6 +575,7 @@ class NewScript extends Component {
                                                                         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
                                                                 }}
                                                                 name={`automated-script`}
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
                                                                 id="automatedScript"
                                                                 editorProps={{
                                                                     $blockScrolling: true,
@@ -616,6 +636,7 @@ class NewScript extends Component {
                                             component={this.renderSuccessEvent}
                                         />
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'successEventError' does not exist on typ... Remove this comment to see the full error message
                                             if={this.state.successEventError}
                                         >
                                             <div
@@ -638,6 +659,7 @@ class NewScript extends Component {
                                                     >
                                                         {
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'successEventError' does not exist on typ... Remove this comment to see the full error message
                                                                 .successEventError
                                                         }
                                                     </span>
@@ -675,6 +697,7 @@ class NewScript extends Component {
                                             component={this.renderFailureEvent}
                                         />
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'failureEventError' does not exist on typ... Remove this comment to see the full error message
                                             if={this.state.failureEventError}
                                         >
                                             <div
@@ -697,6 +720,7 @@ class NewScript extends Component {
                                                     >
                                                         {
                                                             this.state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'failureEventError' does not exist on typ... Remove this comment to see the full error message
                                                                 .failureEventError
                                                         }
                                                     </span>
@@ -739,6 +763,7 @@ class NewScript extends Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         title="Cancel"
                                         disabled={false}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleNewScript' does not exist on type ... Remove this comment to see the full error message
                                         onClick={this.props.toggleNewScript}
                                     >
                                         <span>Cancel</span>
@@ -770,6 +795,7 @@ class NewScript extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 NewScript.displayName = 'NewScript';
 
 const NewScriptForm = new reduxForm({
@@ -778,20 +804,19 @@ const NewScriptForm = new reduxForm({
     enableReinitialize: true,
 })(NewScript);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            createAutomatedScript,
-            resetScripts,
-            fetchAutomatedScript,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        createAutomatedScript,
+        resetScripts,
+        fetchAutomatedScript,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
-    const schedules = [];
-    state.schedule.subProjectSchedules.forEach(elem => {
-        elem.schedules.forEach(schedule => {
+const mapStateToProps = (state: $TSFixMe) => {
+    const schedules: $TSFixMe = [];
+    state.schedule.subProjectSchedules.forEach((elem: $TSFixMe) => {
+        elem.schedules.forEach((schedule: $TSFixMe) => {
             schedules.push(schedule);
         });
     });
@@ -814,6 +839,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 NewScript.propTypes = {
     createAutomatedScript: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

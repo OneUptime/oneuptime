@@ -5,7 +5,7 @@ const initialState = {
     feedbackModalVisble: false,
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case OPEN_MODAL:
             return Object.assign({}, state, {
@@ -15,6 +15,7 @@ export default (state = initialState, action) => {
         case CLOSE_MODAL:
             return Object.assign({}, state, {
                 modals: state.modals.filter(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'never'.
                     item => item.id !== action.payload.id
                 ),
             });

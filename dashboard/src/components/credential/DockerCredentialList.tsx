@@ -20,11 +20,11 @@ const DockerCredentialList = ({
     deleteError,
     openModal,
     getDockerSecurities,
-    modalId,
-}) => {
+    modalId
+}: $TSFixMe) => {
     const [page, setPage] = useState(1);
 
-    const handleDelete = credentialId => {
+    const handleDelete = (credentialId: $TSFixMe) => {
         getDockerSecurities({ projectId, credentialId });
 
         openModal({
@@ -52,7 +52,7 @@ const DockerCredentialList = ({
         });
     };
 
-    const handleCredentialUpdate = credentialId => {
+    const handleCredentialUpdate = (credentialId: $TSFixMe) => {
         openModal({
             id: projectId,
             content: DockerCredentialModal,
@@ -60,7 +60,7 @@ const DockerCredentialList = ({
         });
     };
 
-    const handleKeyboard = e => {
+    const handleKeyboard = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
@@ -179,7 +179,7 @@ const DockerCredentialList = ({
 
                         <tbody className="Table-body">
                             {dockerCredentials.map(
-                                (dockerCredential, index) => (
+                                (dockerCredential: $TSFixMe, index: $TSFixMe) => (
                                     <tr
                                         key={dockerCredential._id}
                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
@@ -360,6 +360,7 @@ const DockerCredentialList = ({
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${!pre_page &&
                                         'Is--disabled'}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
                                     disabled=""
                                     type="button"
                                     onClick={prev}
@@ -376,6 +377,7 @@ const DockerCredentialList = ({
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${!next_page &&
                                         'Is--disabled'}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
                                     disabled=""
                                     type="button"
                                     onClick={next}
@@ -409,13 +411,12 @@ DockerCredentialList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { deleteDockerCredential, openModal, getDockerSecurities },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { deleteDockerCredential, openModal, getDockerSecurities },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleteError: state.credential.deleteCredential.error,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { openModal, closeModal } from '../../actions/modal';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
@@ -13,21 +14,23 @@ import ShouldRender from '../basic/ShouldRender';
 import { socket } from '../basic/Socket';
 
 class LogList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { viewJsonModalId: uuidv4() };
     }
-    prevClicked = (skip, limit) => {
+    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleNavigationButtonClick' does not ex... Remove this comment to see the full error message
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
-    nextClicked = (skip, limit) => {
+    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleNavigationButtonClick' does not ex... Remove this comment to see the full error message
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
 
-    displayTags = tags => {
+    displayTags = (tags: $TSFixMe) => {
         if (!Array.isArray(tags)) {
             return '';
         }
@@ -41,14 +44,19 @@ class LogList extends Component {
         });
     };
 
-    openModalFunc = content => {
+    openModalFunc = (content: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
             id: this.state.viewJsonModalId,
             content: DataPathHoC(ViewJsonLogs, {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
                 viewJsonModalId: this.state.viewJsonModalId,
                 jsonLog: content,
                 title: `Logs for ${
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                     this.props.applicationLog
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                         ? this.props.applicationLog.name
                         : 'Unknown'
                 }`,
@@ -58,18 +66,24 @@ class LogList extends Component {
     };
 
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
         socket.removeListener(`createLog-${this.props.applicationLogId}`);
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
         if (this.props.applicationLogId) {
             // join application log room
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
             socket.emit('application_log_switch', this.props.applicationLogId);
 
-            socket.on(`createLog-${this.props.applicationLogId}`, data => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
+            socket.on(`createLog-${this.props.applicationLogId}`, (data: $TSFixMe) => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getLogSuccess' does not exist on type 'R... Remove this comment to see the full error message
                 this.props.getLogSuccess(data);
             });
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { logs } = this.props;
         let skip = logs && logs.skip ? logs.skip : null;
         let limit = logs && logs.limit ? logs.limit : null;
@@ -166,15 +180,17 @@ class LogList extends Component {
                         </thead>
                         <tbody>
                             {logs && logs.logs && logs.logs.length > 0 ? (
-                                logs.logs.map((log, i) => {
+                                logs.logs.map((log: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <tr
                                             id={`applicationLog_${
                                                 log.applicationLogId &&
                                                 log.applicationLogId.name
                                                     ? log.applicationLogId.name
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                                                     : this.props.applicationLog
                                                           .name
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                                                     ? this.props.applicationLog
                                                           .name
                                                     : 'Unknown Log Container'
@@ -514,14 +530,16 @@ class LogList extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 LogList.displayName = 'LogList';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { openModal, closeModal, getLogSuccess },
         dispatch
     );
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 LogList.propTypes = {
     applicationLogId: PropTypes.string,
     applicationLog: PropTypes.object,
@@ -530,7 +548,7 @@ LogList.propTypes = {
     handleNavigationButtonClick: PropTypes.func,
     getLogSuccess: PropTypes.func,
 };
-function mapStateToProps(state, props) {
+function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {

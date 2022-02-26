@@ -1,21 +1,21 @@
 import { getApi, putApi } from '../api';
 import * as types from '../constants/tutorial';
 
-export function fetchTutorialRequest(promise) {
+export function fetchTutorialRequest(promise: $TSFixMe) {
     return {
         type: types.FETCH_TUTORIAL_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchTutorialSuccess(tutorial) {
+export function fetchTutorialSuccess(tutorial: $TSFixMe) {
     return {
         type: types.FETCH_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
 }
 
-export function fetchTutorialError(error) {
+export function fetchTutorialError(error: $TSFixMe) {
     return {
         type: types.FETCH_TUTORIAL_FAILURE,
         payload: error,
@@ -28,21 +28,21 @@ export function resetFetchTutorial() {
     };
 }
 
-export function closeTutorialRequest(promise) {
+export function closeTutorialRequest(promise: $TSFixMe) {
     return {
         type: types.CLOSE_TUTORIAL_REQUEST,
         payload: promise,
     };
 }
 
-export function closeTutorialSuccess(tutorial) {
+export function closeTutorialSuccess(tutorial: $TSFixMe) {
     return {
         type: types.CLOSE_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
 }
 
-export function closeTutorialError(error) {
+export function closeTutorialError(error: $TSFixMe) {
     return {
         type: types.CLOSE_TUTORIAL_FAILURE,
         payload: error,
@@ -56,7 +56,7 @@ export function resetCloseTutorial() {
 }
 
 export function fetchTutorial() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi('tutorial');
 
@@ -64,6 +64,7 @@ export function fetchTutorial() {
 
         promise.then(
             function(tutorial) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
             function(error) {
@@ -85,8 +86,8 @@ export function fetchTutorial() {
     };
 }
 
-export function closeTutorial(type, projectId) {
-    return function(dispatch) {
+export function closeTutorial(type: $TSFixMe, projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = putApi('tutorial', { type, projectId });
 
@@ -94,6 +95,7 @@ export function closeTutorial(type, projectId) {
 
         promise.then(
             function(tutorial) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
             function(error) {

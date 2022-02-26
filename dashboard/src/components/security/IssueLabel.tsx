@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const IssueLabel = ({ level }) => {
+const IssueLabel = ({
+    level
+}: $TSFixMe) => {
     let color;
     switch (level) {
         case 'critical':

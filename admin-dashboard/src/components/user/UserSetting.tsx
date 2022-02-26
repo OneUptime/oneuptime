@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
@@ -9,8 +10,9 @@ import { openModal } from '../../actions/modal';
 import MessageModal from './MessageModal';
 
 export class UserSetting extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             messageModalId: uuidv4(),
@@ -18,10 +20,13 @@ export class UserSetting extends Component {
     }
 
     handleChange = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { user, updateTwoFactorAuthToken, setTwoFactorAuth } = this.props;
         if (user) {
             return !user.twoFactorAuthEnabled && user.role === 'user'
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                 ? this.props.openModal({
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'messageModalId' does not exist on type '... Remove this comment to see the full error message
                       id: this.state.messageModalId,
                       content: MessageModal,
                   })
@@ -42,6 +47,7 @@ export class UserSetting extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         let { twoFactorAuthEnabled } = this.props.user;
         if (twoFactorAuthEnabled === undefined) {
             twoFactorAuthEnabled = false;
@@ -54,6 +60,7 @@ export class UserSetting extends Component {
                         <div className="Box-root" style={{ width: '100%' }}>
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <div>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                     {this.props.user.deleted ? (
                                         <div
                                             className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -63,6 +70,7 @@ export class UserSetting extends Component {
                                                 <span>Deleted</span>
                                             </span>
                                         </div>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                     ) : this.props.user.isBlocked ? (
                                         <div
                                             className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -72,6 +80,7 @@ export class UserSetting extends Component {
                                                 <span>Blocked</span>
                                             </span>
                                         </div>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                     ) : this.props.user.isAdminMode ? (
                                         <div
                                             className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -130,9 +139,12 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     {this.props.user !==
                                                         undefined &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     this.props.user.name
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         ? this.props.user.name
                                                         : 'LOADING...'}
                                                 </span>
@@ -162,11 +174,15 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     {this.props.user !== null &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     this.props.user.email
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         ? this.props.user.email
                                                         : 'LOADING...'}
                                                 </span>
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                 {!this.props.user.isVerified ? (
                                                     <div
                                                         className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -215,8 +231,11 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     {this.props.user !== null &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     this.props.user.companyName
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         ? this.props.user
                                                               .companyName
                                                         : 'LOADING...'}
@@ -246,9 +265,12 @@ export class UserSetting extends Component {
                                                 }}
                                             >
                                                 <span className="value">
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     {this.props.user !== null &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                     this.props.user
                                                         .companyPhoneNumber
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         ? this.props.user
                                                               .companyPhoneNumber
                                                         : 'LOADING...'}
@@ -256,6 +278,7 @@ export class UserSetting extends Component {
                                             </div>
                                         </div>
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                             if={this.props.user.role === 'user'}
                                         >
                                             <div
@@ -321,6 +344,7 @@ export class UserSetting extends Component {
                                 className="Flex-flex Flex-direction--row"
                                 style={{ marginTop: '10px' }}
                             >
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 <ShouldRender if={!this.props.user}>
                                     <div className="Box-root Margin-right--8">
                                         <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root" />
@@ -340,16 +364,17 @@ export class UserSetting extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UserSetting.displayName = 'UserSetting';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { updateTwoFactorAuthToken, openModal, setTwoFactorAuth },
         dispatch
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     const user = state.user.user.user || {};
     return {
         userSettings: state.user.userSetting,
@@ -357,6 +382,7 @@ function mapStateToProps(state) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UserSetting.propTypes = {
     user: PropTypes.object.isRequired,
     updateTwoFactorAuthToken: PropTypes.func,
@@ -365,6 +391,7 @@ UserSetting.propTypes = {
     isVerified: PropTypes.bool,
 };
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 UserSetting.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserSetting);

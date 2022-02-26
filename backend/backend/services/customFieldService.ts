@@ -4,7 +4,11 @@ import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -19,7 +23,7 @@ export default {
         return customField;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         let customField = await CustomFieldModel.create({
             ...data,
         });
@@ -35,7 +39,7 @@ export default {
         return customField;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
 
         if (!query) {
@@ -87,6 +91,7 @@ export default {
                     field.fieldType = customField.fieldType;
                     field.uniqueField = customField.uniqueField;
                 }
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
                 data.customFields.push(field);
             }
 
@@ -100,6 +105,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -107,7 +113,13 @@ export default {
         return customField;
     },
 
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -139,7 +151,7 @@ export default {
         return customFields;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -148,7 +160,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         // when a custom field is deleted
         // it should be removed from the corresponding incoming request
         const select =
@@ -185,7 +197,7 @@ export default {
                 customFields: [],
             };
             data.customFields = request.customFields.filter(
-                field => field.fieldName !== customField.fieldName
+                (field: $TSFixMe) => field.fieldName !== customField.fieldName
             );
 
             // make the update synchronous
@@ -198,6 +210,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -205,7 +218,7 @@ export default {
         return customField;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -225,7 +238,7 @@ export default {
         return updatedCustomField;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await CustomFieldModel.deleteMany(query);
         return 'Custom field(s) removed successfully!';
     },

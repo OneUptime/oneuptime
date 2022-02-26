@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 
 const loaderStyle = {
@@ -80,29 +81,27 @@ export const Spinner = () => (
 
 Spinner.displayName = 'Spinner';
 
-export const ButtonSpinner = props => (
-    <div
-        className={`Spinner bs-SpinnerLegacy Spinner--color--${
-            props && props.color ? props.color : 'white'
-        } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
-        style={{ marginTop: 4 }}
+export const ButtonSpinner = (props: $TSFixMe) => <div
+    className={`Spinner bs-SpinnerLegacy Spinner--color--${
+        props && props.color ? props.color : 'white'
+    } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
+    style={{ marginTop: 4 }}
+>
+    <svg
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        className="Spinner-svg"
+        style={{ width: 25, height: 25 }}
     >
-        <svg
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            className="Spinner-svg"
-            style={{ width: 25, height: 25 }}
-        >
-            <ellipse
-                cx={12}
-                cy={12}
-                rx={10}
-                ry={10}
-                className="Spinner-ellipse"
-            />
-        </svg>
-    </div>
-);
+        <ellipse
+            cx={12}
+            cy={12}
+            rx={10}
+            ry={10}
+            className="Spinner-ellipse"
+        />
+    </svg>
+</div>;
 
 ButtonSpinner.displayName = 'ButtonSpinner';
 ButtonSpinner.propTypes = {

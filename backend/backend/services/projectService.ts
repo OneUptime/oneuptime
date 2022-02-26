@@ -1,4 +1,5 @@
 export default {
+    // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'query' implicitly has an 'any' ty... Remove this comment to see the full error message
     findBy: async function({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
@@ -25,6 +26,7 @@ export default {
         return projects;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
     create: async function(data) {
         const _this = this;
         const projectModel = new ProjectModel();
@@ -33,10 +35,12 @@ export default {
             select: '_id',
         });
         if (data.parentProjectId) {
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
             const parentProject = await _this.findOneBy({
                 query: { _id: data.parentProjectId },
                 select: 'users',
             });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Document<... Remove this comment to see the full error message
             projectModel.users = parentProject.users.map(user => ({
                 ...user,
                 show: false,
@@ -46,6 +50,7 @@ export default {
                 adminUser?._id &&
                 data.userId.toString() !== adminUser._id.toString()
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Document<... Remove this comment to see the full error message
                 projectModel.users = [
                     {
                         userId: data.userId,
@@ -58,6 +63,7 @@ export default {
                     },
                 ];
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Document<... Remove this comment to see the full error message
                 projectModel.users = [
                     {
                         userId: data.userId,
@@ -66,16 +72,25 @@ export default {
                 ];
             }
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         projectModel.name = data.name || null;
         if (data && data.name) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
             projectModel.slug = getSlug(data.name);
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiKey' does not exist on type 'Document... Remove this comment to see the full error message
         projectModel.apiKey = uuidv1();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripePlanId' does not exist on type 'Do... Remove this comment to see the full error message
         projectModel.stripePlanId = data.stripePlanId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeSubscriptionId' does not exist on ... Remove this comment to see the full error message
         projectModel.stripeSubscriptionId = data.stripeSubscriptionId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProjectId' does not exist on type ... Remove this comment to see the full error message
         projectModel.parentProjectId = data.parentProjectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'seats' does not exist on type 'Document<... Remove this comment to see the full error message
         projectModel.seats = '1';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isBlocked' does not exist on type 'Docum... Remove this comment to see the full error message
         projectModel.isBlocked = data.isBlocked || false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'adminNotes' does not exist on type 'Docu... Remove this comment to see the full error message
         projectModel.adminNotes = data.adminNotes || null;
         const project = await projectModel.save();
 
@@ -118,6 +133,7 @@ export default {
         return project;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     countBy: async function(query) {
         if (!query) {
             query = {};
@@ -128,6 +144,7 @@ export default {
         return count;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     deleteBy: async function(query, userId, cancelSub = true) {
         if (!query) {
             query = {};
@@ -235,13 +252,16 @@ export default {
             ]);
 
             await Promise.all(
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
                 monitors.map(async monitor => {
                     await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 })
             );
 
             await Promise.all(
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'schedule' implicitly has an 'any' type.
                 schedules.map(async schedule => {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                     await ScheduleService.deleteBy({ _id: schedule._id });
                 })
             );
@@ -253,7 +273,9 @@ export default {
             }
 
             await Promise.all(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'map' does not exist on type '{}'.
                 statusPages.map(async statusPage => {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                     await StatusPageService.deleteBy({
                         _id: statusPage._id,
                     });
@@ -261,6 +283,7 @@ export default {
             );
 
             await Promise.all(
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'component' implicitly has an 'any' type... Remove this comment to see the full error message
                 components.map(async component => {
                     await componentService.deleteBy(
                         { _id: component._id },
@@ -290,6 +313,7 @@ export default {
         }
         return project;
     },
+    // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'query' implicitly has an 'any' ty... Remove this comment to see the full error message
     findOneBy: async function({ query, select, populate }) {
         if (!query) {
             query = {};
@@ -307,11 +331,13 @@ export default {
         return project;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     updateOneBy: async function(query, data) {
         const _this = this;
         if (!query) {
             query = {};
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; }'... Remove this comment to see the full error message
         const oldProject = await _this.findOneBy({
             query: Object.assign({}, query, { deleted: { $ne: null } }),
             select: 'apiKey',
@@ -351,6 +377,7 @@ export default {
         return updatedProject;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     updateBy: async function(query, data) {
         if (!query) {
             query = {};
@@ -365,10 +392,12 @@ export default {
         const select =
             '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; po... Remove this comment to see the full error message
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
     updateAlertOptions: async function(data) {
         const projectId = data._id;
         const userId = data.userId;
@@ -424,22 +453,27 @@ export default {
                 { new: true }
             );
             if (chargeForBalance.client_secret) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'paymentIntent' does not exist on type '{... Remove this comment to see the full error message
                 updatedProject.paymentIntent = chargeForBalance.client_secret;
             }
             return updatedProject;
         } else {
             const error = new Error('Cannot save project settings');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 403;
             throw error;
         }
     },
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
     saveProject: async function(project) {
         project = await project.save();
         return project;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     getProjectIdsBy: async function(query) {
         const _this = this;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; }'... Remove this comment to see the full error message
         const projects = await _this.findBy({ query, select: '_id' });
         const projectsId = [];
 
@@ -448,10 +482,12 @@ export default {
         }
         return projectsId;
     },
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     getBalance: async function(query) {
         const project = await ProjectModel.findOne(query).select('balance');
         return project;
     },
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
     resetApiKey: async function(projectId) {
         const _this = this;
         const apiKey = uuidv1();
@@ -462,8 +498,10 @@ export default {
         return project;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
     upgradeToEnterprise: async function(projectId) {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
         const project = await this.findOneBy({
             query: { _id: projectId },
             select: 'stripeSubscriptionId',
@@ -477,6 +515,7 @@ export default {
         return updatedProject;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
     changePlan: async function(projectId, userId, planId) {
         const _this = this;
         let project = await _this.updateOneBy(
@@ -491,6 +530,7 @@ export default {
                 query: { _id: userId },
                 select: 'stripeCustomerId',
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const { stripeSubscriptionId } = await PaymentService.subscribePlan(
                 planId,
                 user.stripeCustomerId
@@ -516,38 +556,49 @@ export default {
         }
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
     findSubprojectId: async function(projectId) {
         const _this = this;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
         const subProject = await _this.findBy({
             query: { parentProjectId: projectId },
             select: '_id',
         });
+        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'sub' implicitly has an 'any' type.
         const subProjectId = subProject.map(sub => String(sub._id));
         const projectIdArr = [projectId, ...subProjectId];
         return projectIdArr;
     },
 
     getUniqueMembersIndividualProject: async function({
+        // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'isFlatenArr' implicitly has an 'a... Remove this comment to see the full error message
         isFlatenArr,
+        // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'members' implicitly has an 'any' ... Remove this comment to see the full error message
         members,
     }) {
+        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'result' implicitly has type 'any[]' in s... Remove this comment to see the full error message
         let result = [];
         if (!isFlatenArr) {
             for (const member of members) {
                 const track = {},
                     data = [];
                 for (const user of member) {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     if (!track[user.userId]) {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         track[user.userId] = user.userId;
                         data.push(user);
                     }
                 }
+                // @ts-expect-error ts-migrate(7005) FIXME: Variable 'result' implicitly has an 'any[]' type.
                 result = [...result, data];
             }
         } else {
             const track = {};
             for (const member of members) {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 if (!track[member.userId]) {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     track[member.userId] = member.userId;
                     result.push(member);
                 }
@@ -556,35 +607,42 @@ export default {
         return result;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
     exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         const _this = this,
             returnVal = 'User successfully exited the project';
         let teamMember = {};
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
         const userProject = await _this.findOneBy({
             query: { _id: projectId },
             select: 'users',
         });
         teamMember = userProject.users.find(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'user' implicitly has an 'any' type.
             user => String(user.userId) === String(userId)
         );
         let subProject = null;
         let subProjects = null;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; 'users.user... Remove this comment to see the full error message
         let project = await _this.findOneBy({
             query: { _id: projectId, 'users.userId': userId },
             select: 'parentProjectId users _id seats stripeSubscriptionId',
         });
         if (project?.parentProjectId) {
             subProject = project;
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
             project = await _this.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: '_id users seats stripeSubscriptionId',
             });
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
         subProjects = await _this.findBy({
             query: { parentProjectId: project?._id },
             select: 'users _id seats',
         });
         const allMembers = subProjects.concat(project);
+        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'user' implicitly has an 'any' type.
         let subMembers = subProjects.map(user => user.users);
         subMembers = await _this.getUniqueMembersIndividualProject({
             members: subMembers,
@@ -599,6 +657,7 @@ export default {
         const filteredTeam = teams.filter(
             user =>
                 String(user.userId) === String(userId) &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                 String(user._id) !== String(teamMember?._id)
         );
         const teamByUserId = teams.filter(
@@ -625,6 +684,7 @@ export default {
                     deletedById
                 ),
             ]);
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
             const countUserInSubProjects = await _this.findBy({
                 query: {
                     parentProjectId: project._id,
@@ -653,6 +713,7 @@ export default {
                     });
                     let subProjectIds = [];
                     if (subProjects && subProjects.length > 0) {
+                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
                         subProjectIds = subProjects.map(project => project._id);
                     }
                     subProjectIds.push(project._id);
@@ -675,6 +736,7 @@ export default {
                         _this.updateSeatDetails(project, projectSeats);
                         return returnVal;
                     }
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type '{}'.
                 } else if (teamMember.role !== 'Viewer' && isViewer) {
                     projectSeats = projectSeats - 1;
                     _this.updateSeatDetails(project, projectSeats);
@@ -685,6 +747,7 @@ export default {
         return returnVal;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
     updateSeatDetails: async function(project, projectSeats) {
         const _this = this;
         if (IS_SAAS_SERVICE) {
@@ -699,11 +762,13 @@ export default {
         );
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     hardDeleteBy: async function(query) {
         await ProjectModel.deleteMany(query);
         return 'Project(s) Removed Successfully!';
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'skip' implicitly has an 'any' type.
     getAllProjects: async function(skip, limit) {
         const _this = this;
         const populate = [{ path: 'parentProjectId', select: 'name' }];
@@ -719,6 +784,7 @@ export default {
         });
 
         projects = await Promise.all(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
             projects.map(async project => {
                 // get both sub-project users and project users
                 let users = await TeamService.getTeamMembersBy({
@@ -738,9 +804,11 @@ export default {
         return projects;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'userId' implicitly has an 'any' type.
     getUserProjects: async function(userId, skip, limit) {
         const _this = this;
         // find user subprojects and parent projects
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
         const userProjects = await _this.findBy({
             query: { 'users.userId': userId, deleted: { $ne: null } },
             select: 'parentProjectId',
@@ -749,15 +817,21 @@ export default {
         let projectIds = [];
         if (userProjects.length > 0) {
             const subProjects = userProjects
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
                 .map(project => (project.parentProjectId ? project : null))
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'subProject' implicitly has an 'any' typ... Remove this comment to see the full error message
                 .filter(subProject => subProject !== null);
             parentProjectIds = subProjects.map(
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'subProject' implicitly has an 'any' typ... Remove this comment to see the full error message
                 subProject =>
                     subProject.parentProjectId._id || subProject.parentProjectId
             );
             const projects = userProjects
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
                 .map(project => (project.parentProjectId ? null : project))
+                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
                 .filter(project => project !== null);
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
             projectIds = projects.map(project => project._id);
         }
 
@@ -786,6 +860,7 @@ export default {
 
         // add project monitors
         const projects = await Promise.all(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
             allProjects.map(async project => {
                 // get both sub-project users and project users
                 let users = [];
@@ -800,6 +875,7 @@ export default {
                     const select =
                         'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
                     users = await Promise.all(
+                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'user' implicitly has an 'any' type.
                         project.users.map(async user => {
                             const foundUser = await UserService.findOneBy({
                                 query: {
@@ -823,10 +899,12 @@ export default {
         return { projects, count };
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
 
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; }'... Remove this comment to see the full error message
         let project = await _this.findOneBy({
             query,
             select: '_id users stripeCustomerId',
@@ -834,22 +912,26 @@ export default {
 
         if (!project) {
             const error = new Error('Project not found or no longer exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         const projectId = project._id;
         const projectOwners = project.users.filter(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'user' implicitly has an 'any' type.
             user => user.role === 'Owner'
         );
         let subscription;
         await Promise.all(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectOwner' implicitly has an 'any' t... Remove this comment to see the full error message
             projectOwners.map(async projectOwner => {
                 const owner = await UserService.findOneBy({
                     query: { _id: projectOwner.userId },
                     select: 'stripeCustomerId',
                 });
                 if (IS_SAAS_SERVICE) {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                     subscription = await PaymentService.subscribePlan(
                         project.stripePlanId,
                         owner.stripeCustomerId
@@ -865,6 +947,7 @@ export default {
                 deletedBy: null,
                 deletedAt: null,
                 stripeSubscriptionId: subscription
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeSubscriptionId' does not exist on ... Remove this comment to see the full error message
                     ? subscription.stripeSubscriptionId
                     : null,
             }
@@ -902,6 +985,7 @@ export default {
         return project;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
     addNotes: async function(projectId, notes) {
         const _this = this;
         const project = await _this.updateOneBy(
@@ -913,12 +997,15 @@ export default {
         return project;
     },
 
+    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
     searchProjects: async function(query, skip, limit) {
         const _this = this;
         const select = '_id slug name';
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; limit: any; skip: ... Remove this comment to see the full error message
         let projects = await _this.findBy({ query, limit, skip, select });
 
         projects = await Promise.all(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
             projects.map(async project => {
                 // get both sub-project users and project users
                 let users = await TeamService.getTeamMembersBy({
@@ -940,6 +1027,7 @@ export default {
 };
 
 import ProjectModel from '../models/project'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v1: uuidv1 } from 'uuid'
 import MonitorService from '../services/monitorService'
 import PaymentService from './paymentService'
@@ -952,6 +1040,7 @@ import EscalationService from './escalationService'
 import StripeService from './stripeService'
 import TeamService from './teamService'
 import StatusPageService from './statusPageService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
 import { IS_SAAS_SERVICE } from '../config/server'
 import componentService from './componentService'
 import DomainVerificationService from './domainVerificationService'

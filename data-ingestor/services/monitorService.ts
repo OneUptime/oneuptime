@@ -1,8 +1,9 @@
 export default {
-    updateCriterion: async function(_id, lastMatchedCriterion) {
+    updateCriterion: async function(_id: $TSFixMe, lastMatchedCriterion: $TSFixMe) {
         try {
             await monitorCollection.updateOne(
                 {
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     _id: ObjectId(_id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
@@ -14,11 +15,12 @@ export default {
         }
     },
 
-    updateScanStatus: async function(monitorIds, status) {
+    updateScanStatus: async function(monitorIds: $TSFixMe, status: $TSFixMe) {
         try {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
                     {
+                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                         _id: ObjectId(id),
                         $or: [
                             { deleted: false },
@@ -36,11 +38,12 @@ export default {
         }
     },
 
-    addProbeScanning: async function(monitorIds, probeId) {
+    addProbeScanning: async function(monitorIds: $TSFixMe, probeId: $TSFixMe) {
         try {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
                     {
+                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                         _id: ObjectId(id),
                         $or: [
                             { deleted: false },
@@ -58,11 +61,12 @@ export default {
         }
     },
 
-    removeProbeScanning: async function(monitorIds, probeId) {
+    removeProbeScanning: async function(monitorIds: $TSFixMe, probeId: $TSFixMe) {
         try {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
                     {
+                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                         _id: ObjectId(id),
                         $or: [
                             { deleted: false },
@@ -81,22 +85,26 @@ export default {
     },
 
     updateLighthouseScanStatus: async function(
-        _id,
-        lighthouseScanStatus,
-        lighthouseScannedBy
+        _id: $TSFixMe,
+        lighthouseScanStatus: $TSFixMe,
+        lighthouseScannedBy: $TSFixMe
     ) {
         try {
             const updateData = {};
 
             if (lighthouseScanStatus !== 'scanning') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScannedAt' does not exist on t... Remove this comment to see the full error message
                 updateData.lighthouseScannedAt = new Date(moment().format());
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScannedBy' does not exist on t... Remove this comment to see the full error message
                 updateData.lighthouseScannedBy = lighthouseScannedBy;
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLightHouse' does not exist on type ... Remove this comment to see the full error message
                 updateData.fetchLightHouse = null;
             }
 
             await monitorCollection.updateOne(
                 {
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     _id: ObjectId(_id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
@@ -116,10 +124,11 @@ export default {
         }
     },
 
-    updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
+    updateScriptStatus: async function(_id: $TSFixMe, scriptRunStatus: $TSFixMe, scriptRunBy: $TSFixMe) {
         try {
             await monitorCollection.updateOne(
                 {
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     _id: ObjectId(_id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
@@ -136,7 +145,9 @@ export default {
         }
     },
 
-    async findOneBy({ query }) {
+    async findOneBy({
+        query
+    }: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -156,16 +167,18 @@ export default {
         }
     },
 
-    async updateMonitorPingTime(id) {
+    async updateMonitorPingTime(id: $TSFixMe) {
         try {
             await monitorCollection.updateOne(
                 {
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     _id: ObjectId(id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
                 { $set: { lastPingTime: new Date(moment().format()) } }
             );
             const monitor = await monitorCollection.findOne({
+                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                 _id: ObjectId(id),
                 $or: [{ deleted: false }, { deleted: { $exists: false } }],
             });
@@ -180,5 +193,6 @@ export default {
 
 import ErrorService from './errorService'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorCollection = global.db.collection('monitors');
 import { ObjectId } from 'mongodb'

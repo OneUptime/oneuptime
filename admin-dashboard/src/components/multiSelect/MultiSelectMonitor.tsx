@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Multiselect from 'react-widgets/lib/Multiselect';
 
 const errorStyle = {
@@ -13,8 +14,8 @@ const MultiSelectMonitor = ({
     meta,
     valueField,
     textField,
-    placeholder,
-}) => {
+    placeholder
+}: $TSFixMe) => {
     return (
         <span style={{ width: '100%' }}>
             <span>

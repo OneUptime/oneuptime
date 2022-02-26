@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -24,8 +25,9 @@ class ApplicationLog extends Component {
         requesting: false,
     };
 
-    prevClicked = (projectId, componentId, skip, limit) => {
+    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchApplicationLogs' does not exist on ... Remove this comment to see the full error message
             .fetchApplicationLogs(
                 projectId,
                 componentId,
@@ -37,16 +39,20 @@ class ApplicationLog extends Component {
                 this.setState(prevState => {
                     return {
                         page:
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                             prevState.page === 1
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 ? prevState.page
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                 : prevState.page - 1,
                     };
                 });
             });
     };
 
-    nextClicked = (projectId, componentId, skip, limit) => {
+    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchApplicationLogs' does not exist on ... Remove this comment to see the full error message
             .fetchApplicationLogs(
                 projectId,
                 componentId,
@@ -57,6 +63,7 @@ class ApplicationLog extends Component {
             .then(() => {
                 this.setState(prevState => {
                     return {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                         page: prevState.page + 1,
                     };
                 });
@@ -64,8 +71,10 @@ class ApplicationLog extends Component {
     };
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadPage' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.loadPage('Logs');
         this.setState({ requesting: true });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
             fetchComponent(currentProject._id, componentSlug).then(() => {
@@ -73,14 +82,19 @@ class ApplicationLog extends Component {
             });
         }
     }
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             prevProps.componentSlug !== this.props.componentSlug
         ) {
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 currentProject,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
                 fetchComponent,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                 componentSlug,
             } = this.props;
             if (currentProject) {
@@ -94,43 +108,58 @@ class ApplicationLog extends Component {
     }
     setRequesting = () => this.setState({ requesting: true });
     ready = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
         const componentId = this.props.componentId;
         const projectId =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
             // join component room
             socket.emit('component_switch', componentId);
 
             this.props
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchApplicationLogs' does not exist on ... Remove this comment to see the full error message
                 .fetchApplicationLogs(projectId, componentId, 0, 5)
                 .then(() => this.setState({ requesting: false }));
         }
     };
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
         socket.removeListener(`createApplicationLog-${this.props.componentId}`);
     }
     toggleForm = () =>
         this.setState(prevState => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showNewLogContainerForm' does not exist ... Remove this comment to see the full error message
             showNewLogContainerForm: !prevState.showNewLogContainerForm,
         }));
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         if (this.props.currentProject) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             document.title = this.props.currentProject.name + ' Dashboard';
             socket.on(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                 `createApplicationLog-${this.props.componentId}`,
-                data => {
+                (data: $TSFixMe) => {
                     history.push(
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/application-logs/${data.slug}`
                     );
                 }
             );
         }
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
             applicationLog: appLogs,
         } = this.props;
 
@@ -151,8 +180,10 @@ class ApplicationLog extends Component {
                         <ApplicationLogList
                             componentId={componentId}
                             applicationLogs={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                                 this.props.applicationLog.applicationLogs
                             }
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                             componentSlug={this.props.componentSlug}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
@@ -160,8 +191,10 @@ class ApplicationLog extends Component {
                             limit={appLogs.limit}
                             count={appLogs.count}
                             page={this.state.page}
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; applicationLogs: any; co... Remove this comment to see the full error message
                             requesting={appLogs.requesting}
                             error={appLogs.error}
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
                             projectId={this.props.activeProjectId}
                             fetchingPage={appLogs.paginatedRequest}
                         />
@@ -181,9 +214,11 @@ class ApplicationLog extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
                     route={getParentRoute(pathname)}
                     name={componentName}
                 />
@@ -196,6 +231,7 @@ class ApplicationLog extends Component {
                             ? 'New Log Container'
                             : 'Logs'
                     }
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: any; pageTitle: string; name: strin... Remove this comment to see the full error message
                     addBtn={applicationLogsList}
                     btnText="Create New Log Container"
                     toggleForm={this.toggleForm}
@@ -204,6 +240,7 @@ class ApplicationLog extends Component {
                     <div>
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                                 this.props.applicationLog.requesting ||
                                 this.state.requesting
                             }
@@ -212,6 +249,7 @@ class ApplicationLog extends Component {
                         </ShouldRender>
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
                                 !this.props.applicationLog.requesting &&
                                 !this.state.requesting
                             }
@@ -219,6 +257,7 @@ class ApplicationLog extends Component {
                             <div className="db-RadarRulesLists-page">
                                 <ShouldRender
                                     if={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
                                         this.props.tutorialStat.applicationLog
                                             .show
                                     }
@@ -226,6 +265,7 @@ class ApplicationLog extends Component {
                                     <TutorialBox
                                         type="applicationLog"
                                         currentProjectId={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                             this.props.currentProject?._id
                                         }
                                     />
@@ -243,7 +283,9 @@ class ApplicationLog extends Component {
                                     <NewApplicationLog
                                         index={2000}
                                         formKey="NewApplicationLogForm"
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                                         componentId={this.props.componentId}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                         componentSlug={this.props.componentSlug}
                                         toggleForm={this.toggleForm}
                                         showCancelBtn={applicationLogsList}
@@ -258,9 +300,10 @@ class ApplicationLog extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ApplicationLog.displayName = 'ApplicationLog';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchApplicationLogs,
@@ -270,7 +313,7 @@ const mapDispatchToProps = dispatch => {
         dispatch
     );
 };
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
@@ -288,6 +331,7 @@ const mapStateToProps = (state, props) => {
     // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
     for (const key in tutorialStat) {
         if (projectCustomTutorial && projectCustomTutorial[key]) {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
@@ -306,6 +350,7 @@ const mapStateToProps = (state, props) => {
         activeProjectId: state.subProject.activeSubProject,
     };
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ApplicationLog.propTypes = {
     tutorialStat: PropTypes.object,
     applicationLog: PropTypes.object,

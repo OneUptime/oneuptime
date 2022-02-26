@@ -51,7 +51,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function resourceCategory(state = INITIAL_STATE, action) {
+export default function resourceCategory(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case CREATE_RESOURCE_CATEGORY_SUCCESS:
             return Object.assign({}, state, {
@@ -66,6 +66,7 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                     resourceCategories: state.resourceCategoryList.resourceCategories.concat(
                         action.payload
                     ),
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.resourceCategoryList.count + 1,
                 },
                 resourceCategoryListForNewResource: {
@@ -109,7 +110,9 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                     ...state.resourceCategoryList,
                     resourceCategories: state.resourceCategoryList.resourceCategories.map(
                         item => {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                             if (item._id === action.payload._id) {
+                                // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
                                 return { ...item, name: action.payload.name };
                             }
                             return item;
@@ -181,6 +184,7 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                     ...state.resourceCategoryListForNewResource,
                     resourceCategories: state.resourceCategoryListForNewResource.resourceCategories.filter(
                         resourceCategory => {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                             if (resourceCategory._id === action.payload) {
                                 return false;
                             } else {
@@ -193,6 +197,7 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                     ...state.resourceCategoryList,
                     resourceCategories: state.resourceCategoryList.resourceCategories.filter(
                         resourceCategory => {
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                             if (resourceCategory._id === action.payload) {
                                 return false;
                             } else {
@@ -200,6 +205,7 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                             }
                         }
                     ),
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     count: state.resourceCategoryList.count - 1,
                 },
                 deletedResourceCategory: {

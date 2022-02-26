@@ -1,6 +1,6 @@
 import React from 'react';
 
-function DataPathHoC(WrappedComponent, data) {
+function DataPathHoC(WrappedComponent: $TSFixMe, data: $TSFixMe) {
     return class extends React.Component {
         static displayName = 'HocCom';
         render() {

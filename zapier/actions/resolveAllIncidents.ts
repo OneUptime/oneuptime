@@ -1,4 +1,4 @@
-const resolveAllIncidents = (z, bundle) => {
+const resolveAllIncidents = (z: $TSFixMe, bundle: $TSFixMe) => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     const data = {
         monitors: bundle.inputData.monitors,
@@ -8,7 +8,7 @@ const resolveAllIncidents = (z, bundle) => {
         url: `${bundle.authData.serverUrl}/zapier/incident/resolveAllIncidents`,
         body: data,
     });
-    return responsePromise.then(response => JSON.parse(response.content));
+    return responsePromise.then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

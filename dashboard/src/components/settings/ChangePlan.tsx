@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm } from 'redux-form';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -15,10 +16,12 @@ import Unauthorised from '../modals/Unauthorised';
 import { openModal } from '../../actions/modal';
 import moment from 'moment';
 
-function Validate(values) {
+function Validate(values: $TSFixMe) {
     const errors = {};
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'text' does not exist on type '(values: a... Remove this comment to see the full error message
     if (!Validate.text(values.planId)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         errors.name = 'Stripe PlanID is required!';
     }
 
@@ -26,15 +29,19 @@ function Validate(values) {
 }
 
 export class Plans extends Component {
-    constructor(props) {
+    getPlansFromToggle: $TSFixMe;
+    initialType: $TSFixMe;
+    plansArr: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.plansArr = PricingPlan.getPlans();
+        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
         this.initialType = PricingPlan.getPlanById(
             props.currentProject.stripePlanId
         ).type;
 
-        this.getPlansFromToggle = (planDuration, plansArr) =>
-            plansArr.filter(plan => plan.type === planDuration);
+        this.getPlansFromToggle = (planDuration: $TSFixMe, plansArr: $TSFixMe) =>
+            plansArr.filter((plan: $TSFixMe) => plan.type === planDuration);
 
         this.state = {
             isAnnual: this.initialType === 'annual' ? true : false,
@@ -43,16 +50,19 @@ export class Plans extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTrial' does not exist on type 'Read... Remove this comment to see the full error message
         const { fetchTrial, currentProject } = this.props;
         fetchTrial(currentProject._id);
     }
 
-    componentDidUpdate(prevProps, prevState) {
+    componentDidUpdate(prevProps: $TSFixMe, prevState: $TSFixMe) {
         this.shouldTogglePlans(prevState);
     }
 
-    shouldTogglePlans = prevState => {
+    shouldTogglePlans = (prevState: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
         if (this.state.isAnnual !== prevState.isAnnual) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
             if (this.state.isAnnual) {
                 this.setState({
                     plans: this.getPlansFromToggle('annual', this.plansArr),
@@ -66,26 +76,37 @@ export class Plans extends Component {
     };
 
     handlePlanToggle = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
         this.setState(prevState => ({ isAnnual: !prevState.isAnnual }));
     };
 
-    submit = values => {
+    submit = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, openModal } = this.props;
         const userId = User.getUserId();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { _id: id, name } = this.props.currentProject;
         if (isOwnerOrAdmin(userId, currentProject)) {
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
                 category: oldCategory,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
                 type: oldType,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
                 details: oldDetails,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             } = PricingPlan.getPlanById(this.props.initialValues.planId);
             const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
             const {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
                 category: newCategory,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
                 type: newType,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
                 details: newDetails,
             } = PricingPlan.getPlanById(values.planId);
             const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePlan' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
         } else {
             openModal({ id: userId, content: Unauthorised });
@@ -94,14 +115,22 @@ export class Plans extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeForm' does not exist on type 'Read... Remove this comment to see the full error message
             activeForm,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequestingTrial' does not exist on typ... Remove this comment to see the full error message
             isRequestingTrial,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trialEndDate' does not exist on type 'Re... Remove this comment to see the full error message
             trialEndDate,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trialLeft' does not exist on type 'Reado... Remove this comment to see the full error message
             trialLeft,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
         const { isAnnual, plans } = this.state;
 
         return (
@@ -245,8 +274,10 @@ export class Plans extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Plans.displayName = 'Plans';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Plans.propTypes = {
     changePlan: PropTypes.func.isRequired,
     fetchTrial: PropTypes.func.isRequired,
@@ -267,7 +298,7 @@ const ChangePlan = new reduxForm({
     Validate,
 })(Plans);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
@@ -297,7 +328,6 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

@@ -5,21 +5,22 @@ export const createCommunicationSlaRequest = () => ({
     type: types.CREATE_COMMUNICATION_SLA_REQUEST,
 });
 
-export const createCommunicationSlaSuccess = payload => ({
+export const createCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_COMMUNICATION_SLA_SUCCESS,
-    payload,
+    payload
 });
 
-export const createCommunicationSlaFailure = error => ({
+export const createCommunicationSlaFailure = (error: $TSFixMe) => ({
     type: types.CREATE_COMMUNICATION_SLA_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const createCommunicationSla = (projectId, data) => async dispatch => {
+export const createCommunicationSla = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(createCommunicationSlaRequest());
 
         const response = await postApi(`incidentSla/${projectId}`, data);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(createCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -38,22 +39,22 @@ export const updateCommunicationSlaRequest = () => ({
     type: types.UPDATE_COMMUNICATION_SLA_REQUEST,
 });
 
-export const updateCommunicationSlaSuccess = payload => ({
+export const updateCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_COMMUNICATION_SLA_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateCommunicationSlaFailure = error => ({
+export const updateCommunicationSlaFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_COMMUNICATION_SLA_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateCommunicationSla = (
-    projectId,
-    incidentSlaId,
-    data,
+    projectId: $TSFixMe,
+    incidentSlaId: $TSFixMe,
+    data: $TSFixMe,
     handleDefault = false
-) => async dispatch => {
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(updateCommunicationSlaRequest());
 
@@ -62,6 +63,7 @@ export const updateCommunicationSla = (
             `incidentSla/${projectId}/${incidentSlaId}`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(updateCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -80,21 +82,21 @@ export const fetchCommunicationSlasRequest = () => ({
     type: types.FETCH_COMMUNICATION_SLAS_REQUEST,
 });
 
-export const fetchCommunicationSlasSuccess = payload => ({
+export const fetchCommunicationSlasSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_COMMUNICATION_SLAS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchCommunicationSlasFailure = error => ({
+export const fetchCommunicationSlasFailure = (error: $TSFixMe) => ({
     type: types.FETCH_COMMUNICATION_SLAS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchCommunicationSlas = (
-    projectId,
+    projectId: $TSFixMe,
     skip = 0,
     limit = 0
-) => async dispatch => {
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(fetchCommunicationSlasRequest());
 
@@ -106,6 +108,7 @@ export const fetchCommunicationSlas = (
                 `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(fetchCommunicationSlasSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -124,26 +127,28 @@ export const deleteCommunicationSlaRequest = () => ({
     type: types.DELETE_COMMUNICATION_SLA_REQUEST,
 });
 
-export const deleteCommunicationSlaSuccess = payload => ({
+export const deleteCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_COMMUNICATION_SLA_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteCommunicationSlaFailure = error => ({
+export const deleteCommunicationSlaFailure = (error: $TSFixMe) => ({
     type: types.DELETE_COMMUNICATION_SLA_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteCommunicationSla = (
-    projectId,
-    incidentSlaId
-) => async dispatch => {
+    projectId: $TSFixMe,
+    incidentSlaId: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(deleteCommunicationSlaRequest());
 
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `incidentSla/${projectId}/${incidentSlaId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -159,32 +164,33 @@ export const deleteCommunicationSla = (
 };
 
 // set active sla
-export const setActiveSla = incidentSlaId => ({
+export const setActiveSla = (incidentSlaId: $TSFixMe) => ({
     type: types.SET_ACTIVE_SLA,
-    payload: incidentSlaId,
+    payload: incidentSlaId
 });
 
 export const fetchDefaultCommunicationSlaRequest = () => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_REQUEST,
 });
 
-export const fetchDefaultCommunicationSlaSuccess = payload => ({
+export const fetchDefaultCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchDefaultCommunicationSlaFailure = error => ({
+export const fetchDefaultCommunicationSlaFailure = (error: $TSFixMe) => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const fetchDefaultCommunicationSla = projectId => async dispatch => {
+export const fetchDefaultCommunicationSla = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(fetchDefaultCommunicationSlaRequest());
 
         const response = await getApi(
             `incidentSla/${projectId}/defaultCommunicationSla`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

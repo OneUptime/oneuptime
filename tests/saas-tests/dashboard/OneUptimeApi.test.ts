@@ -1,9 +1,10 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
 require('should');
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const user = {
     email: utils.generateRandomBusinessEmail(),
@@ -14,10 +15,13 @@ const member = {
     password: '1234567890',
 };
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('API test', () => {
     const operationTimeOut = init.timeout;
 
-    beforeAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    beforeAll(async (done: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,14 +34,16 @@ describe('API test', () => {
         done();
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should render the API page',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -46,11 +52,13 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
             let elementHandle = await init.page$(page, '#boxTitle', {
                 visible: true,
@@ -65,9 +73,10 @@ describe('API test', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should display the API key when clicked',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -76,11 +85,13 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
             let label = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -89,6 +100,7 @@ describe('API test', () => {
             label = await label.getProperty('innerText');
             label = await label.jsonValue();
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#apiKey');
             let newLabel = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -103,9 +115,10 @@ describe('API test', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should reset the API Key',
-        async done => {
+        async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -114,13 +127,16 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#apiKey');
             let oldApiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -136,6 +152,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'button[id=resetApiKeySave]');
             await init.pageWaitForSelector(page, 'button[id=resetApiKeySave]', {
                 hidden: true,
@@ -155,9 +172,10 @@ describe('API test', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should not access API settings if user is a member on a project',
-        async done => {
+        async (done: $TSFixMe) => {
             const projectName = 'Project1';
             const role = 'Member';
 
@@ -169,6 +187,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, 'input[name=project_name]', {
                 visible: true,
@@ -177,6 +196,7 @@ describe('API test', () => {
             await init.pageClick(page, 'input[name=project_name]', {
                 clickCount: 3,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(
                 page,
@@ -186,6 +206,7 @@ describe('API test', () => {
                     timeout: init.timeout,
                 }
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'button[id=btnCreateProject]');
 
             // Invite member on the project
@@ -196,27 +217,33 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#teamMembers');
             await init.pageWaitForSelector(page, `#btn_${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, `#btn_${projectName}`);
             await init.pageWaitForSelector(page, 'input[name=emails]', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[name=emails]');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[name=emails]', member.email);
             await init.pageWaitForSelector(page, `#${role}_${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, `#${role}_${projectName}`);
             await init.pageWaitForSelector(page, 'button[type=submit]', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, 'button[type=submit]', {
                 hidden: true,
@@ -230,11 +257,13 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#api a');
 
             let elementHandle = await init.pageWaitForSelector(

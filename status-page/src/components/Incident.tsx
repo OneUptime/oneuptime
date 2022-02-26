@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Link } from 'react-router-dom';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -18,12 +20,18 @@ import { ACCOUNTS_URL } from '../config';
 import { ListLoader } from './basic/Loader';
 
 class Incident extends Component {
+    handleIncidentStatus: $TSFixMe;
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
             match: { params },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             statusData,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncident' does not exist on type 'R... Remove this comment to see the full error message
             fetchIncident,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNotes' does not exist on ty... Remove this comment to see the full error message
             fetchIncidentNotes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLastIncidentTimeline' does not exis... Remove this comment to see the full error message
             fetchLastIncidentTimeline,
         } = this.props;
         const { incidentSlug } = params;
@@ -55,10 +63,13 @@ class Incident extends Component {
             url = window.location.host;
         }
 
-        this.props.getStatusPage(statusPageSlug, url).catch(err => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getStatusPage' does not exist on type 'R... Remove this comment to see the full error message
+        this.props.getStatusPage(statusPageSlug, url).catch((err: $TSFixMe) => {
             if (err.message === 'Request failed with status code 401') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
                     window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
             }
@@ -71,12 +82,17 @@ class Incident extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
             match: { params },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             statusData,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncident' does not exist on type 'R... Remove this comment to see the full error message
             fetchIncident,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNotes' does not exist on ty... Remove this comment to see the full error message
             fetchIncidentNotes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLastIncidentTimeline' does not exis... Remove this comment to see the full error message
             fetchLastIncidentTimeline,
         } = this.props;
         const { incidentSlug } = params;
@@ -90,9 +106,13 @@ class Incident extends Component {
 
     more() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             statusData,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
             match: { params },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'moreIncidentNotes' does not exist on typ... Remove this comment to see the full error message
             moreIncidentNotes,
         } = this.props;
         const { incidentSlug } = params;
@@ -106,6 +126,7 @@ class Incident extends Component {
     }
 
     renderError = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { error } = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
@@ -114,7 +135,7 @@ class Incident extends Component {
         } else return error;
     };
 
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors) {
             if (monitors.length === 1) {
                 return monitors[0].monitorId.name;
@@ -135,23 +156,35 @@ class Incident extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
             history,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingIncidentNotes' does not exist on... Remove this comment to see the full error message
             fetchingIncidentNotes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingIncident' does not exist on type... Remove this comment to see the full error message
             fetchingIncident,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
             incident,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentNotes' does not exist on type 'R... Remove this comment to see the full error message
             incidentNotes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastIncidentTimeline' does not exist on ... Remove this comment to see the full error message
             lastIncidentTimeline,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             statusData,
         } = this.props;
         const error = this.renderError();
 
         let downtimeColor, uptimeColor, degradedColor;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingStatus' does not exist on type... Remove this comment to see the full error message
             !this.props.requestingStatus &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.statusData &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.statusData.colors
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
             const colors = this.props.statusData.colors;
             downtimeColor = {
                 backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
@@ -169,6 +202,7 @@ class Incident extends Component {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
                 {this.props.statusData.theme === 'Clean Theme' && (
                     <div
                         className="new-main-container"
@@ -241,7 +275,7 @@ class Incident extends Component {
                                 incidentNotes &&
                                 incidentNotes.length > 0 &&
                                 incidentNotes
-                                    .sort((a, b) => {
+                                    .sort((a: $TSFixMe, b: $TSFixMe) => {
                                         (a = moment(a.createdAt)),
                                             (b = moment(b.createdAt));
                                         // order in ascending order
@@ -253,118 +287,116 @@ class Incident extends Component {
                                             return 0;
                                         }
                                     })
-                                    .map(note => (
-                                        <div
-                                            key={note._id}
+                                    .map((note: $TSFixMe) => <div
+                                    key={note._id}
+                                    style={{
+                                        width: '100%',
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 3fr',
+                                        gridColumnGap: 10,
+                                        marginTop: 20,
+                                    }}
+                                >
+                                    <div>
+                                        <span
                                             style={{
-                                                width: '100%',
-                                                display: 'grid',
-                                                gridTemplateColumns: '1fr 3fr',
-                                                gridColumnGap: 10,
-                                                marginTop: 20,
+                                                display: 'block',
+                                                fontWeight: 'bold',
                                             }}
                                         >
-                                            <div>
-                                                <span
+                                            {note.incident_state}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span
+                                            style={{
+                                                color:
+                                                    'rgba(0, 0, 0, 0.6)',
+                                                fontSize: 14,
+                                                display: 'block',
+                                                textAlign: 'justify',
+                                            }}
+                                        >
+                                            {note.content && (
+                                                <div
                                                     style={{
-                                                        display: 'block',
-                                                        fontWeight: 'bold',
+                                                        whiteSpace:
+                                                            'pre-wrap',
                                                     }}
                                                 >
-                                                    {note.incident_state}
-                                                </span>
-                                            </div>
-                                            <div>
+                                                    {note.content
+                                                        .split('\n')
+                                                        .map(
+                                                            (
+                                                                elem: $TSFixMe,
+                                                                index: $TSFixMe
+                                                            ) => (
+                                                                <Markdown
+                                                                    key={`${elem}-${index}`}
+                                                                    options={{
+                                                                        forceBlock: true,
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        elem
+                                                                    }
+                                                                </Markdown>
+                                                            )
+                                                        )}
+                                                </div>
+                                            )}
+                                        </span>
+                                        {note.incident_state ===
+                                            'Identified' && (
+                                            <span
+                                                style={{
+                                                    display: 'block',
+                                                    marginTop: 10,
+                                                    color: '#AAA',
+                                                    fontSize: 12,
+                                                }}
+                                            >
                                                 <span
                                                     style={{
-                                                        color:
-                                                            'rgba(0, 0, 0, 0.6)',
-                                                        fontSize: 14,
-                                                        display: 'block',
-                                                        textAlign: 'justify',
+                                                        fontWeight: 600,
                                                     }}
                                                 >
-                                                    {note.content && (
-                                                        <div
-                                                            style={{
-                                                                whiteSpace:
-                                                                    'pre-wrap',
-                                                            }}
-                                                        >
-                                                            {note.content
-                                                                .split('\n')
-                                                                .map(
-                                                                    (
-                                                                        elem,
-                                                                        index
-                                                                    ) => (
-                                                                        <Markdown
-                                                                            key={`${elem}-${index}`}
-                                                                            options={{
-                                                                                forceBlock: true,
-                                                                            }}
-                                                                        >
-                                                                            {
-                                                                                elem
-                                                                            }
-                                                                        </Markdown>
-                                                                    )
-                                                                )}
-                                                        </div>
+                                                    <Translate>
+                                                        Resource
+                                                        Affected -
+                                                    </Translate>
+                                                </span>{' '}
+                                                <span>
+                                                    {this.handleMonitorList(
+                                                        incident.monitors
                                                     )}
                                                 </span>
-                                                {note.incident_state ===
-                                                    'Identified' && (
-                                                    <span
-                                                        style={{
-                                                            display: 'block',
-                                                            marginTop: 10,
-                                                            color: '#AAA',
-                                                            fontSize: 12,
-                                                        }}
-                                                    >
-                                                        <span
-                                                            style={{
-                                                                fontWeight: 600,
-                                                            }}
-                                                        >
-                                                            <Translate>
-                                                                Resource
-                                                                Affected -
-                                                            </Translate>
-                                                        </span>{' '}
-                                                        <span>
-                                                            {this.handleMonitorList(
-                                                                incident.monitors
-                                                            )}
-                                                        </span>
-                                                    </span>
+                                            </span>
+                                        )}
+                                        <span
+                                            style={{
+                                                display: 'flex',
+                                                marginTop: 5,
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    color: '#AAA',
+                                                    fontSize: 12,
+                                                    display: 'block',
+                                                }}
+                                            >
+                                                Posted on{' '}
+                                                {moment(
+                                                    note.createdAt
+                                                ).format(
+                                                    'MMMM Do YYYY, h:mm a'
                                                 )}
-                                                <span
-                                                    style={{
-                                                        display: 'flex',
-                                                        marginTop: 5,
-                                                        alignItems: 'center',
-                                                    }}
-                                                >
-                                                    <span
-                                                        style={{
-                                                            color: '#AAA',
-                                                            fontSize: 12,
-                                                            display: 'block',
-                                                        }}
-                                                    >
-                                                        Posted on{' '}
-                                                        {moment(
-                                                            note.createdAt
-                                                        ).format(
-                                                            'MMMM Do YYYY, h:mm a'
-                                                        )}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>)}
 
                             {!fetchingIncidentNotes &&
                                 incidentNotes &&
@@ -398,6 +430,7 @@ class Incident extends Component {
                     </div>
                 )}
                 <div className="innernew">
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
                     {this.props.statusData.theme === 'Classic Theme' && (
                         <>
                             <div
@@ -418,6 +451,7 @@ class Incident extends Component {
                                             paddingBottom: 20,
                                         }}
                                     >
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingStatus' does not exist on type... Remove this comment to see the full error message
                                         {!this.props.requestingStatus &&
                                             !fetchingIncident &&
                                             incident.incidentType && (
@@ -427,10 +461,13 @@ class Incident extends Component {
                                                         backgroundColor:
                                                             incident.incidentType ===
                                                             'online'
+                                                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                                                                 ? uptimeColor.backgroundColor
                                                                 : incident.incidentType ===
                                                                   'offline'
+                                                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                                                                 ? downtimeColor.backgroundColor
+                                                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                                                                 : degradedColor.backgroundColor,
                                                     }}
                                                 ></div>
@@ -591,97 +628,95 @@ class Incident extends Component {
                                             {!fetchingIncidentNotes &&
                                                 incidentNotes &&
                                                 incidentNotes.length > 0 &&
-                                                incidentNotes.map(note => (
-                                                    <li
-                                                        key={note._id}
-                                                        className="feed-item clearfix"
+                                                incidentNotes.map((note: $TSFixMe) => <li
+                                                    key={note._id}
+                                                    className="feed-item clearfix"
+                                                >
+                                                    <div
+                                                        className="message"
+                                                        style={{
+                                                            width: '100%',
+                                                            marginLeft: 0,
+                                                            background:
+                                                                'rgb(247, 247, 247)',
+                                                        }}
                                                     >
-                                                        <div
-                                                            className="message"
-                                                            style={{
-                                                                width: '100%',
-                                                                marginLeft: 0,
-                                                                background:
-                                                                    'rgb(247, 247, 247)',
-                                                            }}
-                                                        >
-                                                            <div className="note__wrapper">
+                                                        <div className="note__wrapper">
+                                                            <span
+                                                                style={{
+                                                                    color:
+                                                                        'rgba(0, 0, 0, 0.5)',
+                                                                    fontSize: 14,
+                                                                    display:
+                                                                        'block',
+                                                                    textAlign:
+                                                                        'justify',
+                                                                    whiteSpace:
+                                                                        'pre-wrap',
+                                                                }}
+                                                            >
+                                                                {note.content
+                                                                    .split(
+                                                                        '\n'
+                                                                    )
+                                                                    .map(
+                                                                        (
+                                                                            elem: $TSFixMe,
+                                                                            index: $TSFixMe
+                                                                        ) => (
+                                                                            <Markdown
+                                                                                key={`${elem}-${index}`}
+                                                                                options={{
+                                                                                    forceBlock: true,
+                                                                                }}
+                                                                            >
+                                                                                {
+                                                                                    elem
+                                                                                }
+                                                                            </Markdown>
+                                                                        )
+                                                                    )}
+                                                            </span>
+                                                            <span
+                                                                style={{
+                                                                    display:
+                                                                        'flex',
+                                                                    marginTop: 15,
+                                                                    alignItems:
+                                                                        'center',
+                                                                }}
+                                                            >
                                                                 <span
                                                                     style={{
                                                                         color:
                                                                             'rgba(0, 0, 0, 0.5)',
-                                                                        fontSize: 14,
+                                                                        fontSize: 12,
                                                                         display:
                                                                             'block',
-                                                                        textAlign:
-                                                                            'justify',
-                                                                        whiteSpace:
-                                                                            'pre-wrap',
                                                                     }}
                                                                 >
-                                                                    {note.content
-                                                                        .split(
-                                                                            '\n'
-                                                                        )
-                                                                        .map(
-                                                                            (
-                                                                                elem,
-                                                                                index
-                                                                            ) => (
-                                                                                <Markdown
-                                                                                    key={`${elem}-${index}`}
-                                                                                    options={{
-                                                                                        forceBlock: true,
-                                                                                    }}
-                                                                                >
-                                                                                    {
-                                                                                        elem
-                                                                                    }
-                                                                                </Markdown>
-                                                                            )
-                                                                        )}
+                                                                    Posted
+                                                                    on{' '}
+                                                                    {moment(
+                                                                        note.createdAt
+                                                                    ).format(
+                                                                        'MMMM Do YYYY, h:mm a'
+                                                                    )}
                                                                 </span>
                                                                 <span
                                                                     style={{
-                                                                        display:
-                                                                            'flex',
-                                                                        marginTop: 15,
-                                                                        alignItems:
-                                                                            'center',
+                                                                        marginLeft: 15,
                                                                     }}
+                                                                    className="note-badge badge badge__color--green"
                                                                 >
-                                                                    <span
-                                                                        style={{
-                                                                            color:
-                                                                                'rgba(0, 0, 0, 0.5)',
-                                                                            fontSize: 12,
-                                                                            display:
-                                                                                'block',
-                                                                        }}
-                                                                    >
-                                                                        Posted
-                                                                        on{' '}
-                                                                        {moment(
-                                                                            note.createdAt
-                                                                        ).format(
-                                                                            'MMMM Do YYYY, h:mm a'
-                                                                        )}
-                                                                    </span>
-                                                                    <span
-                                                                        style={{
-                                                                            marginLeft: 15,
-                                                                        }}
-                                                                        className="note-badge badge badge__color--green"
-                                                                    >
-                                                                        {
-                                                                            note.incident_state
-                                                                        }
-                                                                    </span>
+                                                                    {
+                                                                        note.incident_state
+                                                                    }
                                                                 </span>
-                                                            </div>
+                                                            </span>
                                                         </div>
-                                                    </li>
-                                                ))}
+                                                    </div>
+                                                </li>)}
 
                                             {!fetchingIncidentNotes &&
                                                 incidentNotes &&
@@ -810,8 +845,10 @@ class Incident extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Incident.displayName = 'Incident';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Incident.propTypes = {
     match: PropTypes.object,
     statusData: PropTypes.object,
@@ -833,7 +870,7 @@ Incident.propTypes = {
     status: PropTypes.object,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         statusData: state.status.statusPage,
         login: state.login,
@@ -850,16 +887,15 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            getStatusPage,
-            fetchIncident,
-            fetchIncidentNotes,
-            moreIncidentNotes,
-            fetchLastIncidentTimeline,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        getStatusPage,
+        fetchIncident,
+        fetchIncidentNotes,
+        moreIncidentNotes,
+        fetchLastIncidentTimeline,
+    },
+    dispatch
+);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Incident);

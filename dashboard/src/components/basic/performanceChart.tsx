@@ -10,7 +10,9 @@ import {
     Tooltip,
     YAxis,
     XAxis,
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'rech... Remove this comment to see the full error message
 } from 'recharts';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import * as _ from 'lodash';
 import moment from 'moment';
 
@@ -19,7 +21,10 @@ const noDataStyle = {
     flexBasis: 1,
 };
 
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({
+    active,
+    payload
+}: $TSFixMe) => {
     if (active) {
         return (
             <div className="custom-tooltip">
@@ -46,7 +51,7 @@ CustomTooltip.propTypes = {
 };
 
 class PerformanceChart extends Component {
-    calcPercent = (val, total) => {
+    calcPercent = (val: $TSFixMe, total: $TSFixMe) => {
         val = parseFloat(val);
         total = parseFloat(total);
 
@@ -63,23 +68,25 @@ class PerformanceChart extends Component {
         return (val / total) * 100;
     };
 
-    parseDate(a) {
+    parseDate(a: $TSFixMe) {
         if (moment(a).isValid()) {
             return new Date(a).toLocaleString();
         }
         return '';
     }
-    getTime(a) {
+    getTime(a: $TSFixMe) {
         if (moment(a).isValid()) {
             return moment(a).format('LT');
         }
         return '';
     }
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data, name, symbol, requesting, type } = this.props;
         let processedData = [{ display: '', name: '', v: '' }];
         if (requesting) {
             return (
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ textAlign: string; flexBasis: number; }' i... Remove this comment to see the full error message
                 <div style={noDataStyle}>
                     <div
                         className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
@@ -103,7 +110,7 @@ class PerformanceChart extends Component {
             );
         }
         if (data && data.length > 0) {
-            processedData = data.map(a => {
+            processedData = data.map((a: $TSFixMe) => {
                 return {
                     name: a.intervalDate || this.parseDate(a.createdAt),
                     v: a.value,
@@ -113,6 +120,7 @@ class PerformanceChart extends Component {
             });
         } else {
             return (
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ textAlign: string; flexBasis: number; }' i... Remove this comment to see the full error message
                 <div style={noDataStyle}>
                     <div
                         className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
@@ -176,8 +184,10 @@ class PerformanceChart extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 PerformanceChart.displayName = 'PerformanceChart';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 PerformanceChart.propTypes = {
     data: PropTypes.array,
     name: PropTypes.string,

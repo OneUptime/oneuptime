@@ -5,7 +5,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-function RenderIfSubProjectMember(props) {
+function RenderIfSubProjectMember(props: $TSFixMe) {
     const { currentProject, subProjects, children, currentUserId } = props;
     const userId = User.getUserId();
 
@@ -17,17 +17,16 @@ function RenderIfSubProjectMember(props) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user =>
-                user.userId === userId &&
-                user.role !== 'Administrator' &&
-                user.role !== 'Owner' &&
-                user.role !== 'Viewer'
+            (user: $TSFixMe) => user.userId === userId &&
+            user.role !== 'Administrator' &&
+            user.role !== 'Owner' &&
+            user.role !== 'Viewer'
         ).length > 0
     ) {
         renderItems = children;
     } else {
         if (subProjects) {
-            subProjects.forEach(subProject => {
+            subProjects.forEach((subProject: $TSFixMe) => {
                 if (
                     userId &&
                     userId === currentUserId &&
@@ -35,11 +34,10 @@ function RenderIfSubProjectMember(props) {
                     subProject.users &&
                     subProject.users.length > 0 &&
                     subProject.users.filter(
-                        user =>
-                            user.userId === userId &&
-                            user.role !== 'Administrator' &&
-                            user.role !== 'Owner' &&
-                            user.role !== 'Viewer'
+                        (user: $TSFixMe) => user.userId === userId &&
+                        user.role !== 'Administrator' &&
+                        user.role !== 'Owner' &&
+                        user.role !== 'Viewer'
                     ).length > 0
                 ) {
                     renderItems = children;
@@ -50,7 +48,7 @@ function RenderIfSubProjectMember(props) {
     return renderItems;
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,

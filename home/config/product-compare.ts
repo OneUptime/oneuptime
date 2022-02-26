@@ -1,4 +1,4 @@
-export default product => {
+export default (product: $TSFixMe) => {
     const products = {
         pagerduty: {
             productName: 'PagerDuty',
@@ -484,5 +484,6 @@ export default product => {
         },
     };
 
+    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return products[product];
 };

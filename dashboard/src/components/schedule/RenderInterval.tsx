@@ -1,8 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const RenderInterval = ({ input: { onChange, value } }) => {
-    const handleChange = ({ target: { value } }) => {
+const RenderInterval = ({
+    input: { onChange, value }
+}: $TSFixMe) => {
+    const handleChange = ({
+        target: { value }
+    }: $TSFixMe) => {
         onChange(value);
     };
 

@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -20,26 +22,29 @@ class AddExternalStatusPagesModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { statusPage } = this.props.data;
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createExternalStatusPage' does not exist... Remove this comment to see the full error message
             .createExternalStatusPage(
                 statusPage.status.projectId._id,
                 statusPage.status._id,
                 values
             )
-            .then(res => {
+            .then((res: $TSFixMe) => {
                 if (res) {
                     this.handleCloseModal();
                 }
             });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document
                     .getElementById('createExternalStatusPage')
                     .click();
@@ -49,12 +54,15 @@ class AddExternalStatusPagesModal extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'externalStatusPageModalId' does not exis... Remove this comment to see the full error message
             id: this.props.externalStatusPageModalId,
         });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit } = this.props;
 
         return (
@@ -127,7 +135,9 @@ class AddExternalStatusPagesModal extends Component {
                                     <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.statusPage &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.statusPage
                                                     .externalStatusPages.error
                                             }
@@ -151,6 +161,7 @@ class AddExternalStatusPagesModal extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                     .statusPage
                                                                     .externalStatusPages
                                                                     .error
@@ -164,8 +175,10 @@ class AddExternalStatusPagesModal extends Component {
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             onClick={e => {
                                                 e.preventDefault();
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.closeModal({
                                                     id: this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'externalStatusPageModalId' does not exis... Remove this comment to see the full error message
                                                         .externalStatusPageModalId,
                                                 });
                                             }}
@@ -180,14 +193,17 @@ class AddExternalStatusPagesModal extends Component {
                                             id="createExternalStatusPage"
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.statusPage
                                                     .externalStatusPages
                                                     .requesting
                                             }
                                             type="submit"
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                             {this.props.statusPage
                                                 .externalStatusPages &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                 !this.props.statusPage
                                                     .externalStatusPages
                                                     .requesting && (
@@ -198,8 +214,10 @@ class AddExternalStatusPagesModal extends Component {
                                                         </span>
                                                     </>
                                                 )}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                             {this.props.statusPage
                                                 .externalStatusPages &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.statusPage
                                                     .externalStatusPages
                                                     .requesting && (
@@ -217,15 +235,18 @@ class AddExternalStatusPagesModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AddExternalStatusPagesModal.displayName = 'AddExternalStatusPagesModal';
 
 //Client side validation
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.name)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         errors.name = 'Name is not in text format.';
     }
     if (!Validate.text(values.url)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
         errors.url = 'Url is invalid.';
     }
     return errors;
@@ -236,7 +257,7 @@ const AddExternalStatusPagesModalForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(AddExternalStatusPagesModal);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             closeModal,
@@ -246,7 +267,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         statusPage: state.statusPage,
         currentProject: state.project.currentProject,
@@ -254,6 +275,7 @@ function mapStateToProps(state) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AddExternalStatusPagesModal.propTypes = {
     externalStatusPageModalId: PropTypes.string,
     createExternalStatusPage: PropTypes.func,

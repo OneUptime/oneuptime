@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history } from './store';
 import { connect } from 'react-redux';
@@ -19,6 +20,7 @@ if (userData !== undefined) {
     User.setEmail(userData.email);
     User.setName(userData.name);
 } else {
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
     window.location = ACCOUNTS_URL;
 }
 
@@ -53,7 +55,7 @@ const App = () => {
 
 App.displayName = 'App';
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return state.login;
 }
 

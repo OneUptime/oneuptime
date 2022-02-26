@@ -1,9 +1,13 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import IsAdmin from '../basic/IsAdmin';
 
-export default function UserInputs({ users, project }) {
-    return users.map((user, index) => (
+export default function UserInputs({
+    users,
+    project
+}: $TSFixMe) {
+    return users.map((user: $TSFixMe, index: $TSFixMe) => (
         <div className="Box-root Margin-bottom--12" key={`user ${index}`}>
             <div
                 data-test="RetrySettings-failedPaymentsRow"

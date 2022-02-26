@@ -4,7 +4,7 @@ import errors from '../errors';
 import { loginRequired, loginError } from '../actions/login';
 import { probeRequest } from './probe';
 
-export const statusPageSuccess = data => {
+export const statusPageSuccess = (data: $TSFixMe) => {
     return {
         type: types.STATUSPAGE_SUCCESS,
         payload: data,
@@ -17,7 +17,7 @@ export const statusPageRequest = () => {
     };
 };
 
-export const statusPageFailure = error => {
+export const statusPageFailure = (error: $TSFixMe) => {
     return {
         type: types.STATUSPAGE_FAILURE,
         payload: error,
@@ -25,14 +25,15 @@ export const statusPageFailure = error => {
 };
 
 // Calls the API to get status
-export const getStatusPage = (statusPageSlug, url) => {
-    return function(dispatch) {
+export const getStatusPage = (statusPageSlug: $TSFixMe, url: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`status-page/${statusPageSlug}?url=${url}`);
 
         dispatch(statusPageRequest());
 
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(statusPageSuccess(Data.data));
             },
             error => {
@@ -42,6 +43,7 @@ export const getStatusPage = (statusPageSlug, url) => {
                     error.response.status &&
                     error.response.status === 401
                 ) {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 0 arguments, but got 1.
                     dispatch(loginRequired(statusPageSlug));
                 }
                 if (error && error.response && error.response.data)
@@ -64,8 +66,8 @@ export const getStatusPage = (statusPageSlug, url) => {
 };
 
 // Calls the API to get all status page resources
-export const getAllStatusPageResource = (statusPageSlug, url, range) => {
-    return function(dispatch) {
+export const getAllStatusPageResource = (statusPageSlug: $TSFixMe, url: $TSFixMe, range: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         const promises = [];
 
         promises.push(
@@ -130,11 +132,14 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
 
         dispatch(statusPageRequest());
         dispatch(getAnnouncementsRequest());
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         dispatch(fetchMonitorStatusesRequest());
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         dispatch(fetchMonitorLogsRequest());
         dispatch(fetchLastIncidentTimelinesRequest());
         dispatch(statusPageNoteRequest());
         dispatch(fetchAnnouncementLogsRequest());
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         dispatch(probeRequest());
         dispatch(ongoingEventRequest());
         dispatch(futureEventsRequest());
@@ -154,15 +159,25 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
                 monitorStatuses,
             ]) => {
                 const data = {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     ongoingEvents: ongoingEvents.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     futureEvents: futureEvents.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     pastEvents: pastEvents.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     probes: probes.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     monitorLogs: monitorLogs.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     announcement: announcement.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     announcementLogs: announcementLogs.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     timelines: timelines.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     statusPageNote: statusPageNote.data,
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     ...monitorStatuses.data,
                 };
                 dispatch(getAllStatusPageSuccess(data));
@@ -174,6 +189,7 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
                     error.response.status &&
                     error.response.status === 401
                 ) {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 0 arguments, but got 1.
                     dispatch(loginRequired(statusPageSlug));
                 }
 
@@ -200,20 +216,20 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
     };
 };
 
-export const getAllStatusPageSuccess = data => {
+export const getAllStatusPageSuccess = (data: $TSFixMe) => {
     return {
         type: types.FETCH_ALL_RESOURCES_SUCCESS,
         payload: data,
     };
 };
-export const statusPageNoteSuccess = data => {
+export const statusPageNoteSuccess = (data: $TSFixMe) => {
     return {
         type: types.STATUSPAGE_NOTES_SUCCESS,
         payload: data,
     };
 };
 
-export const newThemeIncidentNote = data => {
+export const newThemeIncidentNote = (data: $TSFixMe) => {
     return {
         type: types.NEW_THEME_NOTES_SUCCESS,
         payload: data,
@@ -226,7 +242,7 @@ export const statusPageNoteRequest = () => {
     };
 };
 
-export const statusPageNoteFailure = error => {
+export const statusPageNoteFailure = (error: $TSFixMe) => {
     return {
         type: types.STATUSPAGE_NOTES_FAILURE,
         payload: error,
@@ -239,13 +255,14 @@ export const statusPageNoteReset = () => {
     };
 };
 
-export const showIncidentCard = payload => ({
+export const showIncidentCard = (payload: $TSFixMe) => ({
     // payload => true or false
     type: types.SHOW_INCIDENT_CARD,
-    payload,
+
+    payload
 });
 
-export const individualNoteEnable = message => {
+export const individualNoteEnable = (message: $TSFixMe) => {
     return {
         type: types.INDIVIDUAL_NOTES_ENABLE,
         payload: message,
@@ -259,14 +276,14 @@ export const individualNoteDisable = () => {
 
 // Calls the API to get notes
 export const getStatusPageNote = (
-    projectId,
-    statusPageSlug,
-    skip,
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe,
     limit = 10,
     days = 14,
     newTheme = false
 ) => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
@@ -275,7 +292,9 @@ export const getStatusPageNote = (
 
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(statusPageNoteSuccess(Data.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(newThemeIncidentNote(Data.data));
                 dispatch(individualNoteDisable());
             },
@@ -298,14 +317,14 @@ export const getStatusPageNote = (
 };
 
 export const getStatusPageIndividualNote = (
-    projectId,
-    monitorId,
-    date,
-    name,
-    need,
-    theme
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    date: $TSFixMe,
+    name: $TSFixMe,
+    need: $TSFixMe,
+    theme: $TSFixMe
 ) => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
         );
@@ -314,9 +333,11 @@ export const getStatusPageIndividualNote = (
 
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(statusPageNoteSuccess(Data.data));
                 dispatch(
                     individualNoteEnable({
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         message: Data.data.message,
                         name: {
                             _id: monitorId,
@@ -344,7 +365,7 @@ export const getStatusPageIndividualNote = (
     };
 };
 
-export const scheduledEventSuccess = data => {
+export const scheduledEventSuccess = (data: $TSFixMe) => {
     return {
         type: types.SCHEDULED_EVENTS_SUCCESS,
         payload: data,
@@ -357,7 +378,7 @@ export const scheduledEventRequest = () => {
     };
 };
 
-export const scheduledEventFailure = error => {
+export const scheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.SCHEDULED_EVENTS_FAILURE,
         payload: error,
@@ -372,13 +393,13 @@ export const scheduledEventReset = () => {
 
 // Calls the API to get events
 export const getScheduledEvent = (
-    projectId,
-    statusPageSlug,
-    skip,
-    theme,
-    days
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe,
+    theme: $TSFixMe,
+    days: $TSFixMe
 ) => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
@@ -387,6 +408,7 @@ export const getScheduledEvent = (
 
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(scheduledEventSuccess(Data.data));
             },
             error => {
@@ -407,7 +429,7 @@ export const getScheduledEvent = (
     };
 };
 
-export const ongoingEventSuccess = data => {
+export const ongoingEventSuccess = (data: $TSFixMe) => {
     return {
         type: types.ONGOING_SCHEDULED_EVENTS_SUCCESS,
         payload: data,
@@ -420,7 +442,7 @@ export const ongoingEventRequest = () => {
     };
 };
 
-export const ongoingEventFailure = error => {
+export const ongoingEventFailure = (error: $TSFixMe) => {
     return {
         type: types.ONGOING_SCHEDULED_EVENTS_FAILURE,
         payload: error,
@@ -435,13 +457,13 @@ export const ongoingEventReset = () => {
 
 // Calls the API to get events
 export const getOngoingScheduledEvent = (
-    projectId,
-    statusPageSlug,
-    skip,
-    theme,
-    limit
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe,
+    theme: $TSFixMe,
+    limit: $TSFixMe
 ) => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
         );
@@ -450,6 +472,7 @@ export const getOngoingScheduledEvent = (
 
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(ongoingEventSuccess(Data.data));
             },
 
@@ -475,18 +498,18 @@ export const individualEventsRequest = () => ({
     type: types.INDIVIDUAL_EVENTS_REQUEST,
 });
 
-export const individualEventsSuccess = payload => ({
+export const individualEventsSuccess = (payload: $TSFixMe) => ({
     type: types.INDIVIDUAL_EVENTS_SUCCESS,
-    payload,
+    payload
 });
 
-export const individualEventsFailure = error => ({
+export const individualEventsFailure = (error: $TSFixMe) => ({
     type: types.INDIVIDUAL_EVENTS_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const getIndividualEvent = (projectId, monitorId, date, name, theme) => {
-    return function(dispatch) {
+export const getIndividualEvent = (projectId: $TSFixMe, monitorId: $TSFixMe, date: $TSFixMe, name: $TSFixMe, theme: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
         );
@@ -497,6 +520,7 @@ export const getIndividualEvent = (projectId, monitorId, date, name, theme) => {
             Data => {
                 dispatch(
                     individualEventsSuccess({
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         ...Data.data,
                         date,
                         monitorName: name,
@@ -525,28 +549,29 @@ export const futureEventsRequest = () => ({
     type: types.FUTURE_EVENTS_REQUEST,
 });
 
-export const futureEventsSuccess = payload => ({
+export const futureEventsSuccess = (payload: $TSFixMe) => ({
     type: types.FUTURE_EVENTS_SUCCESS,
-    payload,
+    payload
 });
 
-export const futureEventsFailure = error => ({
+export const futureEventsFailure = (error: $TSFixMe) => ({
     type: types.FUTURE_EVENTS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchFutureEvents = (
-    projectId,
-    statusPageSlug,
-    skip,
-    theme,
-    limit
-) => async dispatch => {
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe,
+    theme: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(futureEventsRequest());
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(futureEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -565,28 +590,29 @@ export const pastEventsRequest = () => ({
     type: types.PAST_EVENTS_REQUEST,
 });
 
-export const pastEventsSuccess = payload => ({
+export const pastEventsSuccess = (payload: $TSFixMe) => ({
     type: types.PAST_EVENTS_SUCCESS,
-    payload,
+    payload
 });
 
-export const pastEventsFailure = error => ({
+export const pastEventsFailure = (error: $TSFixMe) => ({
     type: types.PAST_EVENTS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchPastEvents = (
-    projectId,
-    statusPageSlug,
-    skip,
-    theme,
-    limit
-) => async dispatch => {
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe,
+    theme: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(pastEventsRequest());
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(pastEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -601,8 +627,8 @@ export const fetchPastEvents = (
     }
 };
 
-export const notmonitoredDays = (monitorId, date, name, message) => {
-    return function(dispatch) {
+export const notmonitoredDays = (monitorId: $TSFixMe, date: $TSFixMe, name: $TSFixMe, message: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         dispatch(statusPageNoteReset());
         dispatch(
             individualNoteEnable({
@@ -617,7 +643,7 @@ export const notmonitoredDays = (monitorId, date, name, message) => {
     };
 };
 
-export const moreNoteSuccess = data => {
+export const moreNoteSuccess = (data: $TSFixMe) => {
     return {
         type: types.MORE_NOTES_SUCCESS,
         payload: data,
@@ -630,15 +656,15 @@ export const moreNoteRequest = () => {
     };
 };
 
-export const moreNoteFailure = error => {
+export const moreNoteFailure = (error: $TSFixMe) => {
     return {
         type: types.MORE_NOTES_FAILURE,
         payload: error,
     };
 };
 
-export const getMoreNote = (projectId, statusPageSlug, skip) => {
-    return function(dispatch) {
+export const getMoreNote = (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}`
         );
@@ -646,6 +672,7 @@ export const getMoreNote = (projectId, statusPageSlug, skip) => {
         dispatch(moreNoteRequest());
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(moreNoteSuccess(Data.data));
             },
             error => {
@@ -666,7 +693,7 @@ export const getMoreNote = (projectId, statusPageSlug, skip) => {
     };
 };
 
-export const moreEventSuccess = data => {
+export const moreEventSuccess = (data: $TSFixMe) => {
     return {
         type: types.MORE_EVENTS_SUCCESS,
         payload: data,
@@ -679,15 +706,15 @@ export const moreEventRequest = () => {
     };
 };
 
-export const moreEventFailure = error => {
+export const moreEventFailure = (error: $TSFixMe) => {
     return {
         type: types.MORE_EVENTS_FAILURE,
         payload: error,
     };
 };
 
-export const getMoreEvent = (projectId, statusPageSlug, skip) => {
-    return function(dispatch) {
+export const getMoreEvent = (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}`
         );
@@ -695,6 +722,7 @@ export const getMoreEvent = (projectId, statusPageSlug, skip) => {
         dispatch(moreEventRequest());
         promise.then(
             Data => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(moreEventSuccess(Data.data));
             },
             error => {
@@ -719,27 +747,28 @@ export const moreFutureEventsRequest = () => ({
     type: types.MORE_FUTURE_EVENTS_REQUEST,
 });
 
-export const moreFutureEventsSuccess = payload => ({
+export const moreFutureEventsSuccess = (payload: $TSFixMe) => ({
     type: types.MORE_FUTURE_EVENTS_SUCCESS,
-    payload,
+    payload
 });
 
-export const moreFutureEventsFailure = error => ({
+export const moreFutureEventsFailure = (error: $TSFixMe) => ({
     type: types.MORE_FUTURE_EVENTS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchMoreFutureEvents = (
-    projectId,
-    statusPageSlug,
-    skip,
-    limit
-) => async dispatch => {
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(moreFutureEventsRequest());
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(moreFutureEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -758,26 +787,27 @@ export const morePastEventsRequest = () => ({
     type: types.MORE_PAST_EVENTS_REQUEST,
 });
 
-export const morePastEventsSuccess = payload => ({
+export const morePastEventsSuccess = (payload: $TSFixMe) => ({
     type: types.MORE_PAST_EVENTS_SUCCESS,
-    payload,
+    payload
 });
 
-export const morePastEventsFailure = error => ({
+export const morePastEventsFailure = (error: $TSFixMe) => ({
     type: types.MORE_PAST_EVENTS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchMorePastEvents = (
-    projectId,
-    statusPageSlug,
-    skip
-) => async dispatch => {
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(morePastEventsRequest());
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(morePastEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -792,8 +822,8 @@ export const fetchMorePastEvents = (
     }
 };
 
-export function selectedProbe(val) {
-    return function(dispatch) {
+export function selectedProbe(val: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: types.SELECT_PROBE,
             payload: val,
@@ -802,8 +832,8 @@ export function selectedProbe(val) {
 }
 
 // Fetch Monitor Statuses list
-export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
-    return function(dispatch) {
+export function fetchMonitorStatuses(projectId: $TSFixMe, monitorId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
@@ -817,6 +847,7 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
                     fetchMonitorStatusesSuccess({
                         projectId,
                         monitorId,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         statuses: monitorStatuses.data,
                     })
                 );
@@ -841,29 +872,29 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
     };
 }
 
-export function fetchMonitorStatusesRequest(id) {
+export function fetchMonitorStatusesRequest(id: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_STATUSES_REQUEST,
         payload: id,
     };
 }
 
-export function fetchMonitorStatusesSuccess(monitorStatuses) {
+export function fetchMonitorStatusesSuccess(monitorStatuses: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_STATUSES_SUCCESS,
         payload: monitorStatuses,
     };
 }
 
-export function fetchMonitorStatusesFailure(error) {
+export function fetchMonitorStatusesFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_STATUSES_FAILURE,
         payload: error,
     };
 }
 
-export function fetchMonitorLogs(projectId, monitorId, data) {
-    return function(dispatch) {
+export function fetchMonitorLogs(projectId: $TSFixMe, monitorId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/${monitorId}/monitorLogs`,
             data
@@ -875,6 +906,7 @@ export function fetchMonitorLogs(projectId, monitorId, data) {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         monitorId,
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         logs: monitorLogs.data,
                     })
                 );
@@ -898,21 +930,24 @@ export function fetchMonitorLogs(projectId, monitorId, data) {
     };
 }
 
-function fetchMonitorLogsRequest(monitorId) {
+function fetchMonitorLogsRequest(monitorId: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_LOGS_REQUEST,
         payload: monitorId,
     };
 }
 
-function fetchMonitorLogsSuccess({ monitorId, logs }) {
+function fetchMonitorLogsSuccess({
+    monitorId,
+    logs
+}: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_LOGS_SUCCESS,
         payload: { monitorId, logs },
     };
 }
 
-function fetchMonitorLogsFailure(error) {
+function fetchMonitorLogsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_LOGS_FAILURE,
         payload: error,
@@ -926,28 +961,29 @@ export function fetchEventRequest() {
     };
 }
 
-export function fetchEventSuccess(payload) {
+export function fetchEventSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_EVENT_SUCCESS,
         payload,
     };
 }
 
-export function fetchEventFailure(error) {
+export function fetchEventFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_EVENT_FAILURE,
         payload: error,
     };
 }
 
-export function fetchEvent(projectId, scheduledEventId) {
-    return async function(dispatch) {
+export function fetchEvent(projectId: $TSFixMe, scheduledEventId: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(fetchEventRequest());
 
         try {
             const response = await getApi(
                 `status-page/${projectId}/scheduledEvent/${scheduledEventId}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchEventSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -970,28 +1006,29 @@ export function fetchEventNoteRequest() {
     };
 }
 
-export function fetchEventNoteSuccess(payload) {
+export function fetchEventNoteSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_EVENT_NOTES_SUCCESS,
         payload,
     };
 }
 
-export function fetchEventNoteFailure(error) {
+export function fetchEventNoteFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_EVENT_NOTES_FAILURE,
         payload: error,
     };
 }
 
-export function fetchEventNote(projectId, scheduledEventSlug, type) {
-    return async function(dispatch) {
+export function fetchEventNote(projectId: $TSFixMe, scheduledEventSlug: $TSFixMe, type: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(fetchEventNoteRequest());
 
         try {
             const response = await getApi(
                 `status-page/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchEventNoteSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1013,28 +1050,29 @@ export function moreEventNoteRequest() {
     };
 }
 
-export function moreEventNoteSuccess(payload) {
+export function moreEventNoteSuccess(payload: $TSFixMe) {
     return {
         type: types.MORE_EVENT_NOTE_SUCCESS,
         payload,
     };
 }
 
-export function moreEventNoteFailure(error) {
+export function moreEventNoteFailure(error: $TSFixMe) {
     return {
         type: types.MORE_EVENT_NOTE_FAILURE,
         payload: error,
     };
 }
 
-export function moreEventNote(projectId, scheduledEventId, type, skip) {
-    return async function(dispatch) {
+export function moreEventNote(projectId: $TSFixMe, scheduledEventId: $TSFixMe, type: $TSFixMe, skip: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         try {
             dispatch(moreEventNoteRequest());
 
             const response = await getApi(
                 `status-page/${projectId}/notes/${scheduledEventId}?type=${type}&skip=${skip}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(moreEventNoteSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1057,28 +1095,29 @@ export function fetchIncidentRequest() {
     };
 }
 
-export function fetchIncidentSuccess(payload) {
+export function fetchIncidentSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_INCIDENT_SUCCESS,
         payload,
     };
 }
 
-export function fetchIncidentFailure(error) {
+export function fetchIncidentFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_INCIDENT_FAILURE,
         payload: error,
     };
 }
 
-export function fetchIncident(projectId, incidentSlug) {
-    return async function(dispatch) {
+export function fetchIncident(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchIncidentRequest());
             const response = await getApi(
                 `status-page/${projectId}/incident/${incidentSlug}`
             );
 
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchIncidentSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1100,28 +1139,29 @@ export function fetchIncidentNotesRequest() {
     };
 }
 
-export function fetchIncidentNotesSuccess(payload) {
+export function fetchIncidentNotesSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_INCIDENT_NOTES_SUCCESS,
         payload,
     };
 }
 
-export function fetchIncidentNotesFailure(error) {
+export function fetchIncidentNotesFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_INCIDENT_NOTES_FAILURE,
         payload: error,
     };
 }
 
-export function fetchIncidentNotes(projectId, incidentId, postOnStatusPage) {
-    return async function(dispatch) {
+export function fetchIncidentNotes(projectId: $TSFixMe, incidentId: $TSFixMe, postOnStatusPage: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchIncidentNotesRequest());
 
             const response = await getApi(
                 `status-page/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchIncidentNotesSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1143,14 +1183,14 @@ export function moreIncidentNotesRequest() {
     };
 }
 
-export function moreIncidentNotesSuccess(payload) {
+export function moreIncidentNotesSuccess(payload: $TSFixMe) {
     return {
         type: types.MORE_INCIDENT_NOTES_SUCCESS,
         payload,
     };
 }
 
-export function moreIncidentNotesFailure(error) {
+export function moreIncidentNotesFailure(error: $TSFixMe) {
     return {
         type: types.MORE_INCIDENT_NOTES_FAILURE,
         payload: error,
@@ -1158,18 +1198,19 @@ export function moreIncidentNotesFailure(error) {
 }
 
 export function moreIncidentNotes(
-    projectId,
-    incidentSlug,
-    postOnStatusPage,
-    skip
+    projectId: $TSFixMe,
+    incidentSlug: $TSFixMe,
+    postOnStatusPage: $TSFixMe,
+    skip: $TSFixMe
 ) {
-    return async function(dispatch) {
+    return async function(dispatch: $TSFixMe) {
         try {
             dispatch(moreIncidentNotesRequest());
 
             const response = await getApi(
                 `status-page/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(moreIncidentNotesSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1191,28 +1232,29 @@ export function fetchLastIncidentTimelineRequest() {
     };
 }
 
-export function fetchLastIncidentTimelineSuccess(payload) {
+export function fetchLastIncidentTimelineSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_SUCCESS,
         payload,
     };
 }
 
-export function fetchLastIncidentTimelineFailure(error) {
+export function fetchLastIncidentTimelineFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_FAILURE,
         payload: error,
     };
 }
 
-export function fetchLastIncidentTimeline(projectId, incidentSlug) {
-    return async function(dispatch) {
+export function fetchLastIncidentTimeline(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchLastIncidentTimelineRequest());
 
             const response = await getApi(
                 `status-page/${projectId}/timeline/${incidentSlug}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchLastIncidentTimelineSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1234,28 +1276,29 @@ export function fetchLastIncidentTimelinesRequest() {
     };
 }
 
-export function fetchLastIncidentTimelinesSuccess(payload) {
+export function fetchLastIncidentTimelinesSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
         payload,
     };
 }
 
-export function fetchLastIncidentTimelinesFailure(error) {
+export function fetchLastIncidentTimelinesFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
         payload: error,
     };
 }
 
-export function fetchLastIncidentTimelines(projectId, statusPageSlug) {
-    return async function(dispatch) {
+export function fetchLastIncidentTimelines(projectId: $TSFixMe, statusPageSlug: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
 
             const response = await getApi(
                 `status-page/${projectId}/${statusPageSlug}/timelines`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchLastIncidentTimelinesSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1271,7 +1314,7 @@ export function fetchLastIncidentTimelines(projectId, statusPageSlug) {
     };
 }
 
-export function showEventCard(payload) {
+export function showEventCard(payload: $TSFixMe) {
     // payload => true or false
     return {
         type: types.SHOW_EVENT_CARD,
@@ -1285,28 +1328,29 @@ export function getAnnouncementsRequest() {
     };
 }
 
-export function getAnnouncementsSuccess(data) {
+export function getAnnouncementsSuccess(data: $TSFixMe) {
     return {
         type: types.FETCH_ANNOUNCEMENTS_SUCCESS,
         payload: data,
     };
 }
 
-export function getAnnouncementsFailure(data) {
+export function getAnnouncementsFailure(data: $TSFixMe) {
     return {
         type: types.FETCH_ANNOUNCEMENTS_FAILURE,
         payload: data,
     };
 }
 
-export function getAnnouncements(projectId, statusPageId, skip = 0, limit) {
-    return function(dispatch) {
+export function getAnnouncements(projectId: $TSFixMe, statusPageId: $TSFixMe, skip = 0, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
         );
         dispatch(getAnnouncementsRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getAnnouncementsSuccess(response.data));
             },
             function(error) {
@@ -1325,7 +1369,7 @@ export function getAnnouncements(projectId, statusPageId, skip = 0, limit) {
     };
 }
 
-export function getSingleAnnouncementSuccess(data) {
+export function getSingleAnnouncementSuccess(data: $TSFixMe) {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
         payload: data,
@@ -1338,7 +1382,7 @@ export function getSingleAnnouncementRequest() {
     };
 }
 
-export function getSingleAnnouncementFailure(error) {
+export function getSingleAnnouncementFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_FAILURE,
         payload: error,
@@ -1346,17 +1390,18 @@ export function getSingleAnnouncementFailure(error) {
 }
 
 export function getSingleAnnouncement(
-    projectId,
-    statusPageSlug,
-    announcementSlug
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    announcementSlug: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         dispatch(getSingleAnnouncementRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
             function(error) {
@@ -1381,14 +1426,14 @@ export function fetchAnnouncementLogsRequest() {
     };
 }
 
-export function fetchAnnouncementLogsSuccess(data) {
+export function fetchAnnouncementLogsSuccess(data: $TSFixMe) {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
         payload: data,
     };
 }
 
-export function fetchAnnouncementLogsFailure(error) {
+export function fetchAnnouncementLogsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
         payload: error,
@@ -1396,18 +1441,19 @@ export function fetchAnnouncementLogsFailure(error) {
 }
 
 export function fetchAnnouncementLogs(
-    projectId,
-    statusPageId,
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe,
     skip = 0,
-    limit
+    limit: $TSFixMe
 ) {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
             function(error) {
@@ -1428,29 +1474,29 @@ export function fetchAnnouncementLogs(
     };
 }
 
-export function calculateTimeRequest(monitorId) {
+export function calculateTimeRequest(monitorId: $TSFixMe) {
     return {
         type: types.CALCULATE_TIME_REQUEST,
         payload: monitorId,
     };
 }
 
-export function calculateTimeSuccess(payload) {
+export function calculateTimeSuccess(payload: $TSFixMe) {
     return {
         type: types.CALCULATE_TIME_SUCCESS,
         payload,
     };
 }
 
-export function calculateTimeFailure(error) {
+export function calculateTimeFailure(error: $TSFixMe) {
     return {
         type: types.CALCULATE_TIME_FAILURE,
         payload: error,
     };
 }
 
-export function calculateTime(statuses, start, range, monitorId) {
-    return function(dispatch) {
+export function calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe, monitorId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`monitor/${monitorId}/calculate-time`, {
             statuses,
             start,
@@ -1459,6 +1505,7 @@ export function calculateTime(statuses, start, range, monitorId) {
         dispatch(calculateTimeRequest(monitorId));
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(calculateTimeSuccess(response.data));
             },
             function(error) {
@@ -1479,36 +1526,38 @@ export function calculateTime(statuses, start, range, monitorId) {
     };
 }
 
-export function fetchTweetsRequest(monitorId) {
+export function fetchTweetsRequest(monitorId: $TSFixMe) {
     return {
         type: types.FETCH_TWEETS_REQUEST,
         payload: monitorId,
     };
 }
 
-export function fetchTweetsSuccess(payload) {
+export function fetchTweetsSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_TWEETS_SUCCESS,
         payload,
     };
 }
 
-export function fetchTweetsFailure(error) {
+export function fetchTweetsFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_TWEETS_FAILURE,
         payload: error,
     };
 }
 
-export function fetchTweets(handle, projectId) {
-    return function(dispatch) {
+export function fetchTweets(handle: $TSFixMe, projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`status-page/${projectId}/tweets`, {
             handle,
         });
 
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         dispatch(fetchTweetsRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchTweetsSuccess(response.data));
             },
             function(error) {
@@ -1535,22 +1584,22 @@ export function fetchExternalStatusPagesRequest() {
     };
 }
 
-export function fetchExternalStatusPagesSuccess(payload) {
+export function fetchExternalStatusPagesSuccess(payload: $TSFixMe) {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
         payload,
     };
 }
 
-export function fetchExternalStatusPagesFailure(error) {
+export function fetchExternalStatusPagesFailure(error: $TSFixMe) {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
         payload: error,
     };
 }
 
-export function fetchExternalStatusPages(projectId, statusPageId) {
-    return function(dispatch) {
+export function fetchExternalStatusPages(projectId: $TSFixMe, statusPageId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
@@ -1558,6 +1607,7 @@ export function fetchExternalStatusPages(projectId, statusPageId) {
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
             },
             function(error) {
@@ -1577,7 +1627,7 @@ export function fetchExternalStatusPages(projectId, statusPageId) {
         return promise;
     };
 }
-export function translateLanguage(payload) {
+export function translateLanguage(payload: $TSFixMe) {
     return {
         type: types.TRANSLATE_LANGUAGE,
         payload,

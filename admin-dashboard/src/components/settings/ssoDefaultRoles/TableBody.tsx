@@ -3,10 +3,12 @@ import PropTypes from 'prop-types';
 import TableRow from './TableRow';
 import TableEmptyRow from './TableEmptyRow';
 
-const TableBody = ({ ssoDefaultRoles }) => (
+const TableBody = ({
+    ssoDefaultRoles
+}: $TSFixMe) => (
     <tbody className="Table-body">
         {ssoDefaultRoles.length ? (
-            ssoDefaultRoles.map((item, index) => (
+            ssoDefaultRoles.map((item: $TSFixMe, index: $TSFixMe) => (
                 <TableRow key={index} data={item} />
             ))
         ) : (

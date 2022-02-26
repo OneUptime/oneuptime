@@ -49,7 +49,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function sso(state = INITIAL_STATE, action) {
+export default function sso(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case FETCH_SSOS_REQUEST:
             return Object.assign({}, state, {

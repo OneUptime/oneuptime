@@ -5,7 +5,7 @@
  * @param {nummber} limit maximum amount of content to display
  */
 
-function paginate(items, page = 1, limit = 10) {
+function paginate(items: $TSFixMe, page = 1, limit = 10) {
     const offset = (page - 1) * limit,
         paginatedItems = items.slice(offset).slice(0, limit),
         total_pages = Math.ceil(items.length / limit);

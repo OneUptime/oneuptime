@@ -55,7 +55,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function resourceCategory(state = INITIAL_STATE, action) {
+export default function resourceCategory(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case CREATE_STATUS_PAGE_CATEGORY_REQUEST:
             return {
@@ -110,9 +110,11 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                     categories: state.fetchStatusPageCategories.categories.map(
                         category => {
                             if (
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                                 String(category._id) ===
                                 String(action.payload._id)
                             ) {
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                                 category = action.payload;
                             }
                             return category;
@@ -219,6 +221,7 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
                     ...state.fetchStatusPageCategories,
                     categories: state.fetchStatusPageCategories.categories.filter(
                         category =>
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                             String(category._id) !== String(action.payload._id)
                     ),
                     count: state.fetchStatusPageCategories.count - 1,
@@ -228,6 +231,7 @@ export default function resourceCategory(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 deleteStatusPageCategory: {
+                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'deletedStatusPageCategory' does not exis... Remove this comment to see the full error message
                     ...state.deletedStatusPageCategory,
                     requesting: false,
                     success: false,

@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -24,7 +26,7 @@ import Badge from './basic/Badge';
 const countNum = 10;
 
 class NotesMain extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
 
         this.getAll = this.getAll.bind(this);
@@ -32,13 +34,20 @@ class NotesMain extends Component {
         this.subscribebutton = this.subscribebutton.bind(this);
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         if (prevProps.statusPage !== this.props.statusPage) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
             if (this.props.individualnote) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getStatusPageIndividualNote' does not ex... Remove this comment to see the full error message
                 this.props.getStatusPageIndividualNote(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.projectId,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                     this.props.individualnote._id,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                     this.props.individualnote.date,
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                     this.props.individualnote.name,
                     true
                 );
@@ -47,31 +56,43 @@ class NotesMain extends Component {
     }
 
     getAll = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showIncidentCard' does not exist on type... Remove this comment to see the full error message
         this.props.showIncidentCard(true);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getStatusPageNote' does not exist on typ... Remove this comment to see the full error message
         this.props.getStatusPageNote(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
             this.props.statusPageSlug,
             0
         );
     };
 
     more = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMoreNote' does not exist on type 'Rea... Remove this comment to see the full error message
         this.props.getMoreNote(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
             this.props.statusPageSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             this.props.skip + 5
         );
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLastIncidentTimelines' does not exi... Remove this comment to see the full error message
         this.props.fetchLastIncidentTimelines(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
             this.props.statusPageSlug
         );
     };
 
     subscribebutton = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSubscribeMenu' does not exist on typ... Remove this comment to see the full error message
         this.props.openSubscribeMenu();
     };
 
-    handleIncidentStatus = (incident, timelines) => {
+    handleIncidentStatus = (incident: $TSFixMe, timelines: $TSFixMe) => {
         let incidentTimeline = null,
             timelineStatus = null;
 
@@ -88,6 +109,7 @@ class NotesMain extends Component {
             if (incident.resolved) {
                 timelineStatus = (
                     <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string |... Remove this comment to see the full error message
                         <Translate>Resolved</Translate>
                     </Badge>
                 );
@@ -107,6 +129,7 @@ class NotesMain extends Component {
                                 : 'rgb(250, 109, 70)'
                         }
                     >
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string |... Remove this comment to see the full error message
                         <Translate>Acknowledged</Translate>
                     </Badge>
                 );
@@ -125,24 +148,30 @@ class NotesMain extends Component {
                                 : 'rgb(250, 109, 70)'
                         }
                     >
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string |... Remove this comment to see the full error message
                         <Translate>Active Incident</Translate>
                     </Badge>
                 );
             }
 
             if (
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
                 !incidentTimeline.incident_state &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'never'.
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
                     <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string |... Remove this comment to see the full error message
                         <Translate>Deleted a note</Translate>
                     </Badge>
                 );
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
             if (incidentTimeline.incident_state) {
                 timelineStatus = (
                     <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
                         {capitalize(incidentTimeline.incident_state)}
                     </Badge>
                 );
@@ -160,13 +189,16 @@ class NotesMain extends Component {
             downtimeColor,
             uptimeColor,
             degradedColor,
-            noteBackgroundColor;
+            noteBackgroundColor: $TSFixMe;
         const subheading = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         if (this.props.statusPage) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             const colors = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
             subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
             primaryTextColor = {
                 color: `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`,
@@ -188,12 +220,17 @@ class NotesMain extends Component {
             };
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.noteData &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.noteData.notes &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastIncidentTimelines' does not exist on... Remove this comment to see the full error message
             this.props.lastIncidentTimelines
         ) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element' is not assignable to type 'string'.
             note = (
                 <Notes
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                     notes={this.props.noteData.notes}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
@@ -201,8 +238,11 @@ class NotesMain extends Component {
                     uptimeColor={uptimeColor}
                     degradedColor={degradedColor}
                     noteBackgroundColor={noteBackgroundColor}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
                     statusPageId={this.props.statusPageId}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastIncidentTimelines' does not exist on... Remove this comment to see the full error message
                     incidentTimelines={this.props.lastIncidentTimelines}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
                     statusPageSlug={this.props.statusPageSlug}
                 />
             );
@@ -212,6 +252,7 @@ class NotesMain extends Component {
             smsNotification,
             webhookNotification,
             emailNotification,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         } = this.props.statusPage;
         const showSubscriberOption =
             enableRSSFeed ||
@@ -219,7 +260,7 @@ class NotesMain extends Component {
             webhookNotification ||
             emailNotification;
 
-        const checkDuplicateDates = items => {
+        const checkDuplicateDates = (items: $TSFixMe) => {
             const track = {};
 
             const result = [];
@@ -227,8 +268,10 @@ class NotesMain extends Component {
             for (const item of items) {
                 const date = String(item.createdAt).slice(0, 10);
 
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 if (!track[date]) {
                     item.style = true;
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     track[date] = date;
                 } else {
                     item.style = false;
@@ -240,17 +283,25 @@ class NotesMain extends Component {
             return result;
         };
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
         const incidentNoteData = this.props.noteData;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
             this.props.theme === 'Clean Theme' &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.noteData.notes.length > countNum &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             !this.props.noteData.notes[1].idNumber &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             !this.props.noteData.notes[1].style
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             this.props.noteData.notes.splice(1, 1);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             incidentNoteData.notes = this.props.noteData.notes;
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
         if (this.props.theme === 'Clean Theme') {
             return incidentNoteData && incidentNoteData.requesting ? (
                 <div>
@@ -318,7 +369,9 @@ class NotesMain extends Component {
                                         className="list_k"
                                         style={{ cursor: 'pointer' }}
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
                                             this.props.history.push(
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
                                                 `/status-page/${this.props.statusPageSlug}/incident/${note.slug}`
                                             )
                                         }
@@ -341,12 +394,13 @@ class NotesMain extends Component {
                                         </span>
                                         {this.handleIncidentStatus(
                                             note,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastIncidentTimelines' does not exist on... Remove this comment to see the full error message
                                             this.props.lastIncidentTimelines
                                         )}
                                     </div>
                                     {note.message &&
                                         note.message
-                                            .sort((a, b) => {
+                                            .sort((a: $TSFixMe, b: $TSFixMe) => {
                                                 (a = moment(a.createdAt)),
                                                     (b = moment(b.createdAt));
                                                 // order in ascending order
@@ -358,50 +412,48 @@ class NotesMain extends Component {
                                                     return 0;
                                                 }
                                             })
-                                            .map(message => (
-                                                <div key={message._id}>
-                                                    <div
-                                                        className="incident_desc"
-                                                        style={{
-                                                            marginBottom: 5,
-                                                            whiteSpace:
-                                                                'pre-wrap',
-                                                        }}
-                                                        key={message._id}
-                                                    >
-                                                        <b>
-                                                            {
-                                                                message.incident_state
-                                                            }
-                                                        </b>{' '}
-                                                        {message.content
-                                                            .split('\n')
-                                                            .map(
-                                                                (
-                                                                    elem,
-                                                                    index
-                                                                ) => (
-                                                                    <Markdown
-                                                                        key={`${elem}-${index}`}
-                                                                        options={{
-                                                                            forceBlock: true,
-                                                                        }}
-                                                                        id={`note-${i}`}
-                                                                    >
-                                                                        {elem}
-                                                                    </Markdown>
-                                                                )
-                                                            )}
-                                                    </div>
-                                                    <div className="incident-date">
-                                                        <span>
-                                                            {moment(
-                                                                message.createdAt
-                                                            ).format('LLL')}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            .map((message: $TSFixMe) => <div key={message._id}>
+                                            <div
+                                                className="incident_desc"
+                                                style={{
+                                                    marginBottom: 5,
+                                                    whiteSpace:
+                                                        'pre-wrap',
+                                                }}
+                                                key={message._id}
+                                            >
+                                                <b>
+                                                    {
+                                                        message.incident_state
+                                                    }
+                                                </b>{' '}
+                                                {message.content
+                                                    .split('\n')
+                                                    .map(
+                                                        (
+                                                            elem: $TSFixMe,
+                                                            index: $TSFixMe
+                                                        ) => (
+                                                            <Markdown
+                                                                key={`${elem}-${index}`}
+                                                                options={{
+                                                                    forceBlock: true,
+                                                                }}
+                                                                id={`note-${i}`}
+                                                            >
+                                                                {elem}
+                                                            </Markdown>
+                                                        )
+                                                    )}
+                                            </div>
+                                            <div className="incident-date">
+                                                <span>
+                                                    {moment(
+                                                        message.createdAt
+                                                    ).format('LLL')}
+                                                </span>
+                                            </div>
+                                        </div>)}
                                 </span>
                             ) : (
                                 <div
@@ -421,18 +473,24 @@ class NotesMain extends Component {
                 <div className="no_monitor">
                     <ShouldRender
                         if={
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                             this.props.individualnote &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                             this.props.individualnote
                         }
                     >
                         <div className="date-big bs-color-b">
                             {moment(
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                 this.props.individualnote &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                     this.props.individualnote.date
                             ).format('LL')}
                         </div>
                     </ShouldRender>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notesmessage' does not exist on type 'Re... Remove this comment to see the full error message
                     {typeof this.props.notesmessage === 'string' ? (
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notesmessage' does not exist on type 'Re... Remove this comment to see the full error message
                         this.props.notesmessage
                     ) : (
                         <div>
@@ -442,6 +500,7 @@ class NotesMain extends Component {
                 </div>
             );
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             if (this.props.noteData && this.props.noteData.requesting) {
                 return (
                     <div
@@ -454,7 +513,9 @@ class NotesMain extends Component {
                         >
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     this.props.noteData &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     !this.props.noteData.error
                                 }
                             >
@@ -468,6 +529,7 @@ class NotesMain extends Component {
                                 >
                                     <div className="feed-header">
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                             if={!this.props.individualnote}
                                         >
                                             <span
@@ -478,6 +540,7 @@ class NotesMain extends Component {
                                             </span>
                                         </ShouldRender>
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                             if={this.props.individualnote}
                                         >
                                             <span
@@ -485,14 +548,18 @@ class NotesMain extends Component {
                                                 style={primaryTextColor}
                                             >
                                                 Incidents for{' '}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                                 {this.props.individualnote
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                                     ? this.props.individualnote
                                                           .name
                                                     : ''}{' '}
                                                 on{' '}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                                 {this.props.individualnote
                                                     ? moment(
                                                           this.props
+                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                                               .individualnote
                                                               .date
                                                       ).format('LL')
@@ -502,7 +569,9 @@ class NotesMain extends Component {
                                     </div>
                                     <ShouldRender
                                         if={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.noteData &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                             this.props.noteData.requesting
                                         }
                                     >
@@ -538,8 +607,11 @@ class NotesMain extends Component {
                 );
             }
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
             return this.props.noteData ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                 this.props.individualnote ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showIncidentCardState' does not exist on... Remove this comment to see the full error message
                 this.props.showIncidentCardState ? (
                 <div
                     className="twitter-feed white box"
@@ -560,6 +632,7 @@ class NotesMain extends Component {
                             }}
                         >
                             <div className="feed-header">
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                 <ShouldRender if={!this.props.individualnote}>
                                     <span
                                         className="feed-title"
@@ -568,18 +641,23 @@ class NotesMain extends Component {
                                         <Translate>Incidents</Translate>
                                     </span>
                                 </ShouldRender>
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                 <ShouldRender if={this.props.individualnote}>
                                     <span
                                         className="feed-title"
                                         style={primaryTextColor}
                                     >
                                         Incidents for{' '}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                         {this.props.individualnote
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                             ? this.props.individualnote.name
                                             : ''}{' '}
                                         on{' '}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                         {this.props.individualnote
                                             ? moment(
+                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                                   this.props.individualnote.date
                                               ).format('LL')
                                             : ''}
@@ -587,6 +665,7 @@ class NotesMain extends Component {
                                 </ShouldRender>
                                 <ShouldRender
                                     if={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isSubscriberEnabled' does not exist on t... Remove this comment to see the full error message
                                         this.props.isSubscriberEnabled ===
                                             true && showSubscriberOption
                                     }
@@ -604,6 +683,7 @@ class NotesMain extends Component {
                             </div>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
                                     this.props.subscribed &&
                                     showSubscriberOption
                                 }
@@ -612,9 +692,13 @@ class NotesMain extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     this.props.noteData &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     !this.props.noteData.requesting &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     this.props.noteData.notes &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     this.props.noteData.notes.length
                                 }
                             >
@@ -623,11 +707,17 @@ class NotesMain extends Component {
 
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     (this.props.noteData &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                         !this.props.noteData.requesting &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                         this.props.noteData.notes &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                         !this.props.noteData.notes.length) ||
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'showIncidentCardState' does not exist on... Remove this comment to see the full error message
                                     (this.props.showIncidentCardState &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                         !this.props.noteData.notes.length)
                                 }
                             >
@@ -651,7 +741,9 @@ class NotesMain extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notesmessage' does not exist on type 'Re... Remove this comment to see the full error message
                                             {this.props.notesmessage ? (
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notesmessage' does not exist on type 'Re... Remove this comment to see the full error message
                                                 this.props.notesmessage
                                             ) : (
                                                 <Translate>
@@ -667,14 +759,23 @@ class NotesMain extends Component {
 
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.noteData &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.noteData.notes &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.noteData.notes.length &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                 this.props.count > this.props.skip + 5 &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 !this.props.noteData.requesting &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingmore' does not exist on type '... Remove this comment to see the full error message
                                 !this.props.requestingmore &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 !this.props.noteData.error &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                 !this.props.individualnote &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingIncidentTimelines' does not exis... Remove this comment to see the full error message
                                 !this.props.fetchingIncidentTimelines
                             }
                         >
@@ -695,9 +796,13 @@ class NotesMain extends Component {
                         >
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     this.props.noteData &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     !this.props.noteData.error &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                     !this.props.noteData.requesting &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'individualnote' does not exist on type '... Remove this comment to see the full error message
                                     this.props.individualnote
                                 }
                             >
@@ -712,7 +817,9 @@ class NotesMain extends Component {
 
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.noteData &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.noteData.requesting
                             }
                         >
@@ -731,6 +838,7 @@ class NotesMain extends Component {
 
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteData' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.noteData && this.props.requestingmore
                             }
                         >
@@ -753,9 +861,10 @@ class NotesMain extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 NotesMain.displayName = 'NotesMain';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     let skip =
         state.status.notes && state.status.notes.skip
             ? state.status.notes.skip
@@ -789,19 +898,19 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            getStatusPageNote,
-            getStatusPageIndividualNote,
-            getMoreNote,
-            openSubscribeMenu,
-            fetchLastIncidentTimelines,
-            showIncidentCard,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        getStatusPageNote,
+        getStatusPageIndividualNote,
+        getMoreNote,
+        openSubscribeMenu,
+        fetchLastIncidentTimelines,
+        showIncidentCard,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 NotesMain.propTypes = {
     noteData: PropTypes.object,
     notesmessage: PropTypes.string,

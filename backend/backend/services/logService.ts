@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const _this = this;
 
         // prepare  log model
@@ -19,11 +19,17 @@ export default {
                 : (stringifiedTags = data.tags.join());
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
         log.content = content;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stringifiedContent' does not exist on ty... Remove this comment to see the full error message
         log.stringifiedContent = JSON.stringify(content) + stringifiedTags;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
         log.applicationLogId = data.applicationLogId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
         log.type = data.type;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type 'Document<a... Remove this comment to see the full error message
         log.tags = data.tags;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         log.createdById = data.createdById;
         const savedlog = await log.save();
 
@@ -38,7 +44,11 @@ export default {
         });
         return log;
     },
-    async findOneBy({ query, select, populate }) {
+    async findOneBy({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -53,7 +63,13 @@ export default {
 
         return log;
     },
-    async findBy({ query, limit, skip, populate, select }) {
+    async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -84,7 +100,7 @@ export default {
 
         return logs.reverse();
     },
-    async getLogsByApplicationLogId(applicationLogId, limit, skip) {
+    async getLogsByApplicationLogId(applicationLogId: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
         // try to get the application log by the ID
 
         const applicationLogCount = await ApplicationLogService.countBy({
@@ -93,6 +109,7 @@ export default {
         // send an error if the component doesnt exist
         if (applicationLogCount === 0) {
             const error = new Error('Application Log does not exist.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -115,7 +132,7 @@ export default {
         });
         return logs;
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -124,7 +141,7 @@ export default {
 
         return count;
     },
-    search: async function(query, filter, skip, limit) {
+    search: async function(query: $TSFixMe, filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
         query.stringifiedContent = {
             $regex: new RegExp(filter),
@@ -147,7 +164,7 @@ export default {
 
         return { searchedLogs, totalSearchCount };
     },
-    searchByDuration: async function(query) {
+    searchByDuration: async function(query: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -180,7 +197,7 @@ export default {
         return { searchedLogs, totalSearchCount };
     },
     // Introduce this to know the current date range of the query incase it wasnt given by the user
-    async getDateRange(query) {
+    async getDateRange(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

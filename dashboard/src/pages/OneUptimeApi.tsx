@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -11,8 +12,11 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 class OneUptimeApi extends Component {
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
@@ -24,9 +28,11 @@ class OneUptimeApi extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
                     route={getParentRoute(pathname)}
                     name="Project Settings"
                 />
@@ -34,6 +40,7 @@ class OneUptimeApi extends Component {
                 <div id="oneuptimeApi" className="db-BackboneViewContainer">
                     <div className="react-settings-view react-view">
                         <RenderIfOwner>
+                            // @ts-expect-error ts-migrate(2741) FIXME: Property 'currentProjectId' is missing in type '{ ... Remove this comment to see the full error message
                             <TutorialBox type="api" />
                             <APISettings />
                         </RenderIfOwner>
@@ -90,8 +97,10 @@ class OneUptimeApi extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 OneUptimeApi.displayName = 'OneUptimeApi';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 OneUptimeApi.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
@@ -100,7 +109,7 @@ OneUptimeApi.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 import Badge from '../common/Badge';
 
@@ -56,12 +57,13 @@ const MultiSelectDropDown = ({
     ready,
     selectedMonitors,
     selectedProjects,
-    selectedComponents,
-}) => {
+    selectedComponents
+}: $TSFixMe) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
-    const handleClickOutside = event => {
+    const handleClickOutside = (event: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
         }
@@ -76,7 +78,7 @@ const MultiSelectDropDown = ({
         };
     });
 
-    const onClick = (val, key) => {
+    const onClick = (val: $TSFixMe, key: $TSFixMe) => {
         // setOpen(false);
         updateState(val, key);
     };
@@ -112,7 +114,7 @@ const MultiSelectDropDown = ({
                     >
                         {options && options.length > 0 && (
                             <section>
-                                {options.map(data => {
+                                {options.map((data: $TSFixMe) => {
                                     const isProjectSelected = selectedProjects.includes(
                                         data.projectId
                                     );
@@ -124,6 +126,7 @@ const MultiSelectDropDown = ({
                                                 className="Checkbox-source"
                                                 onChange={() => null}
                                                 checked={isProjectSelected}
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                 tabIndex="-1"
                                             />
                                             <div
@@ -171,7 +174,7 @@ const MultiSelectDropDown = ({
 
                                             {data.components &&
                                                 data.components.map(
-                                                    component => {
+                                                    (component: $TSFixMe) => {
                                                         const isComponentSelected = selectedComponents.includes(
                                                             component.componentId
                                                         );
@@ -191,6 +194,7 @@ const MultiSelectDropDown = ({
                                                                     checked={
                                                                         isComponentSelected
                                                                     }
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                                     tabIndex="-1"
                                                                 />
                                                                 <div
@@ -248,7 +252,7 @@ const MultiSelectDropDown = ({
 
                                                                 {component.monitors &&
                                                                     component.monitors.map(
-                                                                        monitor => {
+                                                                        (monitor: $TSFixMe) => {
                                                                             const isMonitorSelected = selectedMonitors.includes(
                                                                                 monitor.monitorId
                                                                             );
@@ -268,6 +272,7 @@ const MultiSelectDropDown = ({
                                                                                         checked={
                                                                                             isMonitorSelected
                                                                                         }
+                                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                                                         tabIndex="-1"
                                                                                     />
                                                                                     <div

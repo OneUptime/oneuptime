@@ -8,6 +8,7 @@ const {
     sendErrorResponse,
     sendItemResponse,
 } = require('../middlewares/response');
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/performanceTracker"' has n... Remove this comment to see the full error message
 import { isValidAPIKey } from '../middlewares/performanceTracker'
 
 // Route
@@ -44,13 +45,16 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         startDate = decode(startDate);
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         endDate = decode(endDate);
 
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -58,6 +62,7 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -65,6 +70,7 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -72,13 +78,18 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(startDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             startDate = Number(startDate);
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(endDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             endDate = Number(endDate);
         }
 
@@ -102,13 +113,16 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         startDate = decode(startDate);
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         endDate = decode(endDate);
 
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -116,6 +130,7 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -123,6 +138,7 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -130,13 +146,18 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(startDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             startDate = Number(startDate);
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(endDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             endDate = Number(endDate);
         }
 
@@ -156,13 +177,16 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         startDate = decode(startDate);
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         endDate = decode(endDate);
 
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -170,6 +194,7 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -177,6 +202,7 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -184,13 +210,18 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(startDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             startDate = Number(startDate);
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(endDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             endDate = Number(endDate);
         }
 
@@ -213,13 +244,16 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
         const { appId } = req.params;
         const { type, skip, limit } = req.query;
         let { startDate, endDate } = req.query;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         startDate = decode(startDate);
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         endDate = decode(endDate);
 
         if (!type) {
             const error = new Error(
                 'Please specify the type in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -227,6 +261,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -234,6 +269,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -241,6 +277,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -248,13 +285,18 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(startDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             startDate = Number(startDate);
         }
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (!isNaN(endDate)) {
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
             endDate = Number(endDate);
         }
 

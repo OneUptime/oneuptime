@@ -5,21 +5,24 @@ import errors from '../errors';
 export const createSsoRequest = () => ({
     type: types.CREATE_SSO_REQUEST,
 });
-export const createSsoSuccess = payload => ({
+export const createSsoSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_SSO_SUCCESS,
-    payload,
+    payload
 });
-export const createSsoFailure = error => ({
+export const createSsoFailure = (error: $TSFixMe) => ({
     type: types.CREATE_SSO_FAILURE,
-    payload: error,
+    payload: error
 });
-export function createSso({ data }) {
-    return function(dispatch) {
+export function createSso({
+    data
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`sso`, data);
         dispatch(createSsoRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createSsoSuccess(response.data));
             },
             function(error) {
@@ -43,16 +46,20 @@ export function createSso({ data }) {
 export const fetchSsosRequest = () => ({
     type: types.FETCH_SSOS_REQUEST,
 });
-export const fetchSsosSuccess = payload => ({
+export const fetchSsosSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_SSOS_SUCCESS,
-    payload,
+    payload
 });
-export const fetchSsosFailure = error => ({
+export const fetchSsosFailure = (error: $TSFixMe) => ({
     type: types.FETCH_SSOS_FAILURE,
-    payload: error,
+    payload: error
 });
-export function fetchSsos({ projectId, skip, limit }) {
-    return function(dispatch) {
+export function fetchSsos({
+    projectId,
+    skip,
+    limit
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -63,6 +70,7 @@ export function fetchSsos({ projectId, skip, limit }) {
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchSsosSuccess(response.data));
             },
             function(error) {
@@ -86,21 +94,22 @@ export function fetchSsos({ projectId, skip, limit }) {
 export const fetchSsoRequest = () => ({
     type: types.FETCH_SSO_REQUEST,
 });
-export const fetchSsoSuccess = payload => ({
+export const fetchSsoSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_SSO_SUCCESS,
-    payload,
+    payload
 });
-export const fetchSsoFailure = error => ({
+export const fetchSsoFailure = (error: $TSFixMe) => ({
     type: types.FETCH_SSO_FAILURE,
-    payload: error,
+    payload: error
 });
-export function fetchSso(ssoId) {
-    return function(dispatch) {
+export function fetchSso(ssoId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(fetchSsoSuccess(response.data));
             },
             function(error) {
@@ -124,21 +133,25 @@ export function fetchSso(ssoId) {
 export const updateSsoRequest = () => ({
     type: types.UPDATE_SSO_REQUEST,
 });
-export const updateSsoSuccess = payload => ({
+export const updateSsoSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_SSO_SUCCESS,
-    payload,
+    payload
 });
-export const updateSsoFailure = error => ({
+export const updateSsoFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_SSO_FAILURE,
-    payload: error,
+    payload: error
 });
-export function updateSso({ id, data }) {
-    return function(dispatch) {
+export function updateSso({
+    id,
+    data
+}: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`sso/${id}`, data);
         dispatch(updateSsoRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(updateSsoSuccess(response.data));
             },
             function(error) {
@@ -162,21 +175,23 @@ export function updateSso({ id, data }) {
 export const deleteSsoRequest = () => ({
     type: types.DELETE_SSO_REQUEST,
 });
-export const deleteSsoSuccess = payload => ({
+export const deleteSsoSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_SSO_SUCCESS,
-    payload,
+    payload
 });
-export const deleteSsoFailure = error => ({
+export const deleteSsoFailure = (error: $TSFixMe) => ({
     type: types.DELETE_SSO_FAILURE,
-    payload: error,
+    payload: error
 });
-export function deleteSso(ssoId) {
-    return function(dispatch) {
+export function deleteSso(ssoId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteSsoSuccess(response.data));
             },
             function(error) {

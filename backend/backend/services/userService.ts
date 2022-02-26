@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,51 +30,79 @@ export default {
         return users;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         if (!data.email) {
             const error = new Error('Email address can not be empty');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
         const userModel = new UserModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         userModel.name = data.name || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Document<... Remove this comment to see the full error message
         userModel.email = data.email || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Document<a... Remove this comment to see the full error message
         userModel.role = data.role || 'user';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyName' does not exist on type 'Doc... Remove this comment to see the full error message
         userModel.companyName = data.companyName || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyRole' does not exist on type 'Doc... Remove this comment to see the full error message
         userModel.companyRole = data.companyRole || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companySize' does not exist on type 'Doc... Remove this comment to see the full error message
         userModel.companySize = data.companySize || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'referral' does not exist on type 'Docume... Remove this comment to see the full error message
         userModel.referral = data.referral || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyPhoneNumber' does not exist on ty... Remove this comment to see the full error message
         userModel.companyPhoneNumber = data.companyPhoneNumber || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onCallAlert' does not exist on type 'Doc... Remove this comment to see the full error message
         userModel.onCallAlert = data.onCallAlert || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Docu... Remove this comment to see the full error message
         userModel.profilePic = data.profilePic || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeCustomerId' does not exist on type... Remove this comment to see the full error message
         userModel.stripeCustomerId = data.stripeCustomerId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordToken' does not exist on ty... Remove this comment to see the full error message
         userModel.resetPasswordToken = data.resetPasswordToken || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordExpires' does not exist on ... Remove this comment to see the full error message
         userModel.resetPasswordExpires = data.resetPasswordExpires || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type 'Docum... Remove this comment to see the full error message
         userModel.createdAt = data.createdAt || Date.now();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timezone' does not exist on type 'Docume... Remove this comment to see the full error message
         userModel.timezone = data.timezone || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastActive' does not exist on type 'Docu... Remove this comment to see the full error message
         userModel.lastActive = data.lastActive || Date.now();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'coupon' does not exist on type 'Document... Remove this comment to see the full error message
         userModel.coupon = data.coupon || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'adminNotes' does not exist on type 'Docu... Remove this comment to see the full error message
         userModel.adminNotes = data.adminNotes || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tempEmail' does not exist on type 'Docum... Remove this comment to see the full error message
         userModel.tempEmail = data.tempEmail || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'twoFactorAuthEnabled' does not exist on ... Remove this comment to see the full error message
         userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'twoFactorSecretCode' does not exist on t... Remove this comment to see the full error message
         userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'otpauth_url' does not exist on type 'Doc... Remove this comment to see the full error message
         userModel.otpauth_url = data.otpauth_url || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type 'Document... Remove this comment to see the full error message
         userModel.source = data.source || null;
         if (data.password) {
             const hash = await bcrypt.hash(data.password, constants.saltRounds);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type 'Docume... Remove this comment to see the full error message
             userModel.password = hash;
         }
         // setting isVerified true for master admin
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isVerified' does not exist on type 'Docu... Remove this comment to see the full error message
         if (data.role == 'master-admin') userModel.isVerified = true;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'jwtRefreshToken' does not exist on type ... Remove this comment to see the full error message
         userModel.jwtRefreshToken = randToken.uid(256);
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'Document<an... Remove this comment to see the full error message
         if (data.sso) userModel.sso = data.sso;
 
         const user = await userModel.save();
         return user;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -78,7 +112,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -100,7 +134,11 @@ export default {
         return user;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -116,6 +154,7 @@ export default {
 
         if ((user && !IS_SAAS_SERVICE) || user) {
             // find user subprojects and parent projects
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
             let userProjects = await ProjectService.findBy({
                 query: { 'users.userId': user._id },
                 select: 'parentProjectId',
@@ -124,23 +163,23 @@ export default {
             let projectIds = [];
             if (userProjects.length > 0) {
                 const subProjects = userProjects
-                    .map(project => (project.parentProjectId ? project : null))
-                    .filter(subProject => subProject !== null);
+                    .map((project: $TSFixMe) => project.parentProjectId ? project : null)
+                    .filter((subProject: $TSFixMe) => subProject !== null);
                 parentProjectIds = subProjects.map(
-                    subProject =>
-                        subProject.parentProjectId._id ||
-                        subProject.parentProjectId
+                    (subProject: $TSFixMe) => subProject.parentProjectId._id ||
+                    subProject.parentProjectId
                 );
                 const projects = userProjects
-                    .map(project => (project.parentProjectId ? null : project))
-                    .filter(project => project !== null);
-                projectIds = projects.map(project => project._id);
+                    .map((project: $TSFixMe) => project.parentProjectId ? null : project)
+                    .filter((project: $TSFixMe) => project !== null);
+                projectIds = projects.map((project: $TSFixMe) => project._id);
             }
             const populateProject = [
                 { path: 'parentProjectId', select: 'name' },
             ];
             const selectProject =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: { _id: { $in: an... Remove this comment to see the full error message
             userProjects = await ProjectService.findBy({
                 query: {
                     $or: [
@@ -158,7 +197,7 @@ export default {
         return user;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -186,7 +225,7 @@ export default {
         return updatedUser;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -201,14 +240,17 @@ export default {
         return updatedData;
     },
 
-    updatePush: async function({ userId, data }) {
+    updatePush: async function({
+        userId,
+        data
+    }: $TSFixMe) {
         const user = await UserModel.findOne({ _id: userId });
         const checkExist = await user.identification.find(
-            user => String(user.userAgent) === String(data.userAgent)
+            (user: $TSFixMe) => String(user.userAgent) === String(data.userAgent)
         );
         if (!data.checked) {
             const findIndex = await user.identification.findIndex(
-                user => String(user.userAgent) === String(data.userAgent)
+                (user: $TSFixMe) => String(user.userAgent) === String(data.userAgent)
             );
             await user.identification.splice(findIndex, 1);
         } else {
@@ -223,11 +265,11 @@ export default {
         return userData;
     },
 
-    closeTutorialBy: async function(query, type, data, projectId) {
+    closeTutorialBy: async function(query: $TSFixMe, type: $TSFixMe, data: $TSFixMe, projectId: $TSFixMe) {
         if (!query) query = {};
         if (!data) data = {};
 
-        type = type.replace(/-([a-z])/g, function(g) {
+        type = type.replace(/-([a-z])/g, function(g: $TSFixMe) {
             return g[1].toUpperCase();
         });
 
@@ -244,7 +286,7 @@ export default {
         return tutorial || null;
     },
 
-    sendToken: async function(user, email) {
+    sendToken: async function(user: $TSFixMe, email: $TSFixMe) {
         const _this = this;
         const verificationTokenModel = new VerificationTokenModel({
             userId: user._id,
@@ -252,6 +294,7 @@ export default {
         });
         const verificationToken = await verificationTokenModel.save();
         if (verificationToken) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
             const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
             // Checking for already verified user so that he/she will not recieve another email verification
             try {
@@ -276,13 +319,14 @@ export default {
                     });
             }
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'token' does not exist on type 'Document<... Remove this comment to see the full error message
         return verificationToken.token;
     },
     //Description: signup function for new user.
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
-    signup: async function(data) {
+    signup: async function(data: $TSFixMe) {
         const _this = this;
         const email = data.email;
         const stripePlanId = data.planId || null;
@@ -296,6 +340,7 @@ export default {
 
             if (user) {
                 const error = new Error('User already exists.');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             } else {
@@ -309,6 +354,7 @@ export default {
                         const error = new Error(
                             'Unsuccessful attempt to charge card'
                         );
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                         error.code = 400;
                         throw error;
                     }
@@ -374,11 +420,12 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
-    getUserIpLocation: async function(clientIP) {
+    getUserIpLocation: async function(clientIP: $TSFixMe) {
         try {
             const geo = geoip.lookup(clientIP);
             if (geo) {
@@ -392,8 +439,8 @@ export default {
     },
 
     generateUserBackupCodes: async function(
-        secretKey,
-        numberOfCodes,
+        secretKey: $TSFixMe,
+        numberOfCodes: $TSFixMe,
         firstCounter = 0
     ) {
         hotp.options = { digits: 8 };
@@ -407,7 +454,7 @@ export default {
         return backupCodes;
     },
 
-    verifyUserBackupCode: async function(code, secretKey, counter) {
+    verifyUserBackupCode: async function(code: $TSFixMe, secretKey: $TSFixMe, counter: $TSFixMe) {
         const _this = this;
         hotp.options = { digits: 8 };
         const isValid = hotp.check(code, secretKey, counter);
@@ -418,7 +465,7 @@ export default {
                 query: { twoFactorSecretCode: secretKey },
                 select,
             });
-            const backupCodes = user.backupCodes.map(backupCode => {
+            const backupCodes = user.backupCodes.map((backupCode: $TSFixMe) => {
                 if (backupCode.code === code) backupCode.used = true;
                 return backupCode;
             });
@@ -431,7 +478,7 @@ export default {
         return isValid;
     },
 
-    generateTwoFactorSecret: async function(userId) {
+    generateTwoFactorSecret: async function(userId: $TSFixMe) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -454,7 +501,7 @@ export default {
         return { otpauth_url: secretCode.otpauth_url };
     },
 
-    verifyAuthToken: async function(token, userId) {
+    verifyAuthToken: async function(token: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -480,7 +527,7 @@ export default {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function(email, password, clientIP, userAgent) {
+    login: async function(email: $TSFixMe, password: $TSFixMe, clientIP: $TSFixMe, userAgent: $TSFixMe) {
         const _this = this;
         let user = null;
         if (util.isEmailValid(email)) {
@@ -515,12 +562,14 @@ export default {
 
             if (!user) {
                 const error = new Error('User does not exist.');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             } else if (user.sso) {
                 const error = new Error(
                     'This domain is configured as SSO. Please use SSO to log in to your account'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 401;
                 throw error;
             } else {
@@ -528,6 +577,7 @@ export default {
                     // calculate number of days the subscription renewal has failed.
                     const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
                     const daysAfterPaymentFailed = Math.round(
+                        // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
                         (new Date() - user.paymentFailedDate) /
                             oneDayInMilliSeconds
                     );
@@ -541,6 +591,7 @@ export default {
                         const error = new Error(
                             'Your account has been disabled. Kindly contact support@oneuptime.com'
                         );
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                         error.code = 400;
                         throw error;
                     }
@@ -551,6 +602,7 @@ export default {
                     const error = new Error(
                         'Your account has been disabled. Kindly contact support@oneuptime.com'
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     throw error;
                 }
@@ -560,6 +612,7 @@ export default {
                     NODE_ENV !== 'development'
                 ) {
                     const error = new Error('Verify your email first.');
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 401;
                     throw error;
                 }
@@ -567,6 +620,7 @@ export default {
                     const error = new Error(
                         'Your account does not exist. Please sign up.'
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     throw error;
                 } else {
@@ -609,6 +663,7 @@ export default {
                             userAgent,
                             'incorrect password'
                         );
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                         error.code = 400;
                         throw error;
                     }
@@ -616,6 +671,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -625,7 +681,7 @@ export default {
     //Params:
     //Param 1: email: User email.
     //Returns: promise.
-    forgotPassword: async function(email) {
+    forgotPassword: async function(email: $TSFixMe) {
         const _this = this;
         if (util.isEmailValid(email)) {
             let user = await this.findOneBy({
@@ -635,6 +691,7 @@ export default {
 
             if (!user) {
                 const error = new Error('User does not exist.');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             } else {
@@ -643,6 +700,7 @@ export default {
                     const error = new Error(
                         'Your account is currently under maintenance. Please try again later'
                     );
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                     error.code = 400;
                     throw error;
                 }
@@ -664,6 +722,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -674,7 +733,7 @@ export default {
     //Param 1:  password: User password.
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
-    resetPassword: async function(password, token) {
+    resetPassword: async function(password: $TSFixMe, token: $TSFixMe) {
         const _this = this;
         let user = await _this.findOneBy({
             query: {
@@ -694,6 +753,7 @@ export default {
                 const error = new Error(
                     'Your account is currently under maintenance. Please try again later'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -717,11 +777,12 @@ export default {
     },
 
     // Description: replace password temporarily in "admin mode"
-    switchToAdminMode: async function(userId, temporaryPassword) {
+    switchToAdminMode: async function(userId: $TSFixMe, temporaryPassword: $TSFixMe) {
         if (!temporaryPassword) {
             const error = new Error(
                 'A temporary password is required for admin mode'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -733,6 +794,7 @@ export default {
 
         if (!user) {
             const error = new Error('User not found');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         } else {
@@ -763,7 +825,7 @@ export default {
     },
 
     // Descripiton: revert from admin mode and replce user password
-    exitAdminMode: async function(userId) {
+    exitAdminMode: async function(userId: $TSFixMe) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -772,12 +834,14 @@ export default {
 
         if (!user) {
             const error = new Error('User not found');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         } else {
             // ensure user is in admin mode
             if (!user.isAdminMode) {
                 const error = new Error('User is not currently in admin mode');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -803,7 +867,7 @@ export default {
     //Params:
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
-    getNewToken: async function(refreshToken) {
+    getNewToken: async function(refreshToken: $TSFixMe) {
         const _this = this;
         let user = await _this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
@@ -812,6 +876,7 @@ export default {
 
         if (!user) {
             const error = new Error('Invalid Refresh Token');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         } else {
@@ -835,7 +900,7 @@ export default {
         }
     },
 
-    changePassword: async function(data) {
+    changePassword: async function(data: $TSFixMe) {
         const _this = this;
         const currentPassword = data.currentPassword;
         let user = await _this.findOneBy({
@@ -848,6 +913,7 @@ export default {
             const error = new Error(
                 'Your account is currently under maintenance. Please try again later'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -865,12 +931,13 @@ export default {
             return user;
         } else {
             const error = new Error('Current Password is incorrect.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
 
-    getAllUsers: async function(skip, limit) {
+    getAllUsers: async function(skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
@@ -881,8 +948,9 @@ export default {
             select,
         });
         users = await Promise.all(
-            users.map(async user => {
+            users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
                 let userProjects = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
@@ -891,25 +959,23 @@ export default {
                 let projectIds = [];
                 if (userProjects.length > 0) {
                     const subProjects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? project : null
+                        .map((project: $TSFixMe) => project.parentProjectId ? project : null
                         )
-                        .filter(subProject => subProject !== null);
+                        .filter((subProject: $TSFixMe) => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        subProject =>
-                            subProject.parentProjectId._id ||
-                            subProject.parentProjectId
+                        (subProject: $TSFixMe) => subProject.parentProjectId._id ||
+                        subProject.parentProjectId
                     );
                     const projects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? null : project
+                        .map((project: $TSFixMe) => project.parentProjectId ? null : project
                         )
-                        .filter(project => project !== null);
-                    projectIds = projects.map(project => project._id);
+                        .filter((project: $TSFixMe) => project !== null);
+                    projectIds = projects.map((project: $TSFixMe) => project._id);
                 }
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: { _id: { $in: an... Remove this comment to see the full error message
                 userProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -928,7 +994,7 @@ export default {
         return users;
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
 
@@ -936,7 +1002,7 @@ export default {
         let user = await _this.findBy({ query, select });
         if (user && user.length > 1) {
             const users = await Promise.all(
-                user.map(async user => {
+                user.map(async (user: $TSFixMe) => {
                     query._id = user._id;
                     user = await _this.updateOneBy(query._id, {
                         deleted: false,
@@ -961,7 +1027,7 @@ export default {
         }
     },
 
-    addNotes: async function(userId, notes) {
+    addNotes: async function(userId: $TSFixMe, notes: $TSFixMe) {
         const _this = this;
         const user = await _this.updateOneBy(
             {
@@ -974,14 +1040,15 @@ export default {
         return user;
     },
 
-    searchUsers: async function(query, skip, limit) {
+    searchUsers: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         let users = await _this.findBy({ query, skip, limit, select });
         users = await Promise.all(
-            users.map(async user => {
+            users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
                 let userProjects = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
@@ -990,25 +1057,23 @@ export default {
                 let projectIds = [];
                 if (userProjects.length > 0) {
                     const subProjects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? project : null
+                        .map((project: $TSFixMe) => project.parentProjectId ? project : null
                         )
-                        .filter(subProject => subProject !== null);
+                        .filter((subProject: $TSFixMe) => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        subProject =>
-                            subProject.parentProjectId._id ||
-                            subProject.parentProjectId
+                        (subProject: $TSFixMe) => subProject.parentProjectId._id ||
+                        subProject.parentProjectId
                     );
                     const projects = userProjects
-                        .map(project =>
-                            project.parentProjectId ? null : project
+                        .map((project: $TSFixMe) => project.parentProjectId ? null : project
                         )
-                        .filter(project => project !== null);
-                    projectIds = projects.map(project => project._id);
+                        .filter((project: $TSFixMe) => project !== null);
+                    projectIds = projects.map((project: $TSFixMe) => project._id);
                 }
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: { _id: { $in: an... Remove this comment to see the full error message
                 userProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -1027,12 +1092,15 @@ export default {
         return users;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await UserModel.deleteMany(query);
         return 'User(s) Removed Successfully!';
     },
 
-    getAccessToken: function({ userId, expiresIn }) {
+    getAccessToken: function({
+        userId,
+        expiresIn
+    }: $TSFixMe) {
         return jwt.sign(
             {
                 id: userId,
@@ -1043,7 +1111,9 @@ export default {
     },
 };
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
 import bcrypt from 'bcrypt'
+// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../config/constants.json'. Con... Remove this comment to see the full error message
 import constants from '../config/constants.json'
 import UserModel from '../models/user'
 import util from './utilService.js'
@@ -1052,14 +1122,18 @@ import PaymentService from './paymentService'
 import crypto from 'crypto'
 import ProjectService from './projectService'
 import ErrorService from 'common-server/utils/error'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
 import jwt from 'jsonwebtoken'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'geoi... Remove this comment to see the full error message
 import geoip from 'geoip-lite'
 const jwtSecretKey = process.env['JWT_SECRET'];
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server'
 const { NODE_ENV } = process.env;
 import VerificationTokenModel from '../models/verificationToken'
 import MailService from '../services/mailService'
 import AirtableService from './airtableService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'spea... Remove this comment to see the full error message
 import speakeasy from 'speakeasy'
 import { hotp } from 'otplib'
 import LoginHistoryService from './loginHistoryService'

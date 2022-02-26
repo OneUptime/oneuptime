@@ -1,35 +1,46 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-const composableComponent = ComposedComponent => {
+const composableComponent = (ComposedComponent: $TSFixMe) => {
     class Modal extends Component {
-        constructor(props) {
+        constructor(props: $TSFixMe) {
             super(props);
+            // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
             this.props = props;
             this.onClose = this.onClose.bind(this);
             this.onConfirm = this.onConfirm.bind(this);
         }
-        onClose = value => {
+        onClose = (value: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'item' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             if (this.props.item.onClose) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'item' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 this.props.item.onClose(value);
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'onClose' does not exist on type 'Readonl... Remove this comment to see the full error message
                 this.props.onClose(this.props.item);
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'onClose' does not exist on type 'Readonl... Remove this comment to see the full error message
                 this.props.onClose(this.props.item);
             }
         };
-        onConfirm = value => {
+        onConfirm = (value: $TSFixMe) => {
             const _this = this;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'item' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             if (this.props.item.onConfirm) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'item' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 this.props.item.onConfirm(value).then(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'onClose' does not exist on type 'Readonl... Remove this comment to see the full error message
                     () => _this.props.onClose(_this.props.item),
                     () => {}
                 );
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'onClose' does not exist on type 'Readonl... Remove this comment to see the full error message
                 this.props.onClose(this.props.item);
             }
         };
         render() {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'zIndex' does not exist on type 'Readonly... Remove this comment to see the full error message
             const { zIndex } = this.props;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'item' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             const { extraClasses } = this.props.item;
 
             const mainClass = `${extraClasses || ''} modal-dialog-view`;
@@ -58,6 +69,7 @@ const composableComponent = ComposedComponent => {
                     >
                         <div
                             className="modal_container"
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ overflowX: string; overflowY: string; disp... Remove this comment to see the full error message
                             style={modalContainerStyle}
                         >
                             <ComposedComponent
@@ -70,6 +82,7 @@ const composableComponent = ComposedComponent => {
             );
         }
     }
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
     Modal.propTypes = {
         onConfirm: PropTypes.func,
         item: PropTypes.object.isRequired,
@@ -78,6 +91,7 @@ const composableComponent = ComposedComponent => {
         zIndex: PropTypes.number.isRequired,
     };
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
     Modal.displayName = 'Modal';
 
     return Modal;

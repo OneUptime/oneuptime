@@ -7,8 +7,13 @@ import { closeTutorial } from '../../actions/tutorial';
 import ApiDoc from '../oneuptimeApi/ApiDoc';
 import ShouldRender from '../basic/ShouldRender';
 
-const Tutorials = ({ type, closeTutorial, currentProjectId }) => (
+const Tutorials = ({
+    type,
+    closeTutorial,
+    currentProjectId
+}: $TSFixMe) => (
     <div
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
         tabIndex="0"
         className="Box-root Margin-vertical--12"
         id={`quick-tip-${type}`}
@@ -45,6 +50,7 @@ const Tutorials = ({ type, closeTutorial, currentProjectId }) => (
                 <div className="db-Trends-content">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <ShouldRender if={type !== 'api'}>
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; }' is not assignable to type 'I... Remove this comment to see the full error message
                             <Tutorial type={type} />
                         </ShouldRender>
 
@@ -58,8 +64,7 @@ const Tutorials = ({ type, closeTutorial, currentProjectId }) => (
     </div>
 );
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeTutorial }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeTutorial }, dispatch);
 
 Tutorials.displayName = 'TutorialBox';
 

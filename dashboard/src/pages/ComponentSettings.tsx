@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { connect } from 'react-redux';
 import { Spinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../config';
 import { RenderField } from '../components/basic/RenderField';
@@ -14,27 +16,34 @@ import { bindActionCreators } from 'redux';
 import { history } from '../store';
 
 class ComponentSettings extends Component {
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
         if (this.props.initialValues.name === values.name) {
             return;
         }
-        this.props.editComponent(this.props.projectId, values).then(data => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponent' does not exist on type 'R... Remove this comment to see the full error message
+        this.props.editComponent(this.props.projectId, values).then((data: $TSFixMe) => {
             history.replace(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectSlug' does not exist on type 'Rea... Remove this comment to see the full error message
                 `/dashboard/project/${this.props.projectSlug}/component/${data.data.slug}/settings/basic`
             );
         });
     };
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, componentSlug, fetchComponent } = this.props;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
         }
     }
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             prevProps.projectId !== this.props.projectId ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             prevProps.componentSlug !== this.props.componentSlug
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             const { projectId, fetchComponent, componentSlug } = this.props;
             if (projectId) {
                 fetchComponent(projectId, componentSlug);
@@ -43,10 +52,15 @@ class ComponentSettings extends Component {
     }
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
             component,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
         const componentName = component ? component.name : '';
@@ -60,6 +74,7 @@ class ComponentSettings extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -143,6 +158,7 @@ class ComponentSettings extends Component {
                                         <div className="bs-Modal-messages">
                                             <ShouldRender
                                                 if={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
                                                     this.props.editingComponent
                                                         .error
                                                 }
@@ -150,6 +166,7 @@ class ComponentSettings extends Component {
                                                 <p className="bs-Modal-message">
                                                     {
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
                                                             .editingComponent
                                                             .error
                                                     }
@@ -162,6 +179,7 @@ class ComponentSettings extends Component {
                                                 className="bs-Button bs-Button--blue"
                                                 type="submit"
                                                 disabled={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
                                                     this.props.editingComponent
                                                         .requesting
                                                 }
@@ -169,6 +187,7 @@ class ComponentSettings extends Component {
                                                 <ShouldRender
                                                     if={
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
                                                             .editingComponent
                                                             .requesting
                                                     }
@@ -189,8 +208,10 @@ class ComponentSettings extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ComponentSettings.displayName = 'Component Settings Form';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ComponentSettings.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
@@ -212,7 +233,7 @@ ComponentSettings.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     return {
         component:
@@ -230,7 +251,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ editComponent, fetchComponent }, dispatch);
 };
 

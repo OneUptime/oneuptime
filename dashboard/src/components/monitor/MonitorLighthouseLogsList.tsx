@@ -8,22 +8,26 @@ import { ListLoader, Spinner } from '../basic/Loader';
 import { deleteSiteUrl } from '../../actions/monitor';
 import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             deleteSiteUrlModalId: uuidv4(),
         };
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSiteUrlModalId' does not exist on ... Remove this comment to see the full error message
                     id: this.state.deleteSiteUrlModalId,
                 });
             default:
@@ -32,7 +36,9 @@ export class MonitorLighthouseLogsList extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSiteUrlModalId' does not exist on ... Remove this comment to see the full error message
         const { deleteSiteUrlModalId } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { monitor, monitorState } = this.props;
         const lighthouseLogs = monitor.lighthouseLogs || {};
         let skip =
@@ -155,7 +161,7 @@ export class MonitorLighthouseLogsList extends Component {
                         <tbody className="Table-body">
                             {lighthouseLogs.data &&
                             lighthouseLogs.data.length > 0 ? (
-                                lighthouseLogs.data.map((log, i) => {
+                                lighthouseLogs.data.map((log: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <tr
                                             id={`lighthouseLogs_${
@@ -177,10 +183,12 @@ export class MonitorLighthouseLogsList extends Component {
                                                         ? history.push(
                                                               '/dashboard/project/' +
                                                                   this.props
+                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                                       .currentProject
                                                                       .slug +
                                                                   '/component/' +
                                                                   this.props
+                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                                                       .componentSlug +
                                                                   '/monitoring/' +
                                                                   monitor.slug +
@@ -255,6 +263,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                 monitor.siteUrls.length > 0) ? (
                                                 <>
                                                     <td
+                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                         colSpan="5"
                                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     >
@@ -326,6 +335,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                   log.scanning == null) ? (
                                                 <>
                                                     <td
+                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                                         colSpan="5"
                                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     >
@@ -562,20 +572,24 @@ export class MonitorLighthouseLogsList extends Component {
                                                                 <button
                                                                     id={`removeSiteUrl_${monitor.name}_${i}`}
                                                                     onClick={() =>
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                         this.props.openModal(
                                                                             {
                                                                                 id: deleteSiteUrlModalId,
                                                                                 onClose: () =>
                                                                                     '',
                                                                                 onConfirm: () =>
+                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSiteUrl' does not exist on type 'R... Remove this comment to see the full error message
                                                                                     this.props.deleteSiteUrl(
                                                                                         monitor._id,
                                                                                         this
                                                                                             .props
+                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                                                             .currentProject
                                                                                             ._id,
                                                                                         log.url
                                                                                     ),
+                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                                                                                 content: DataPathHoC(
                                                                                     DeleteSiteUrl
                                                                                 ),
@@ -649,6 +663,7 @@ export class MonitorLighthouseLogsList extends Component {
                                 <button
                                     id="btnLighthousePrev"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.prevClicked(
                                             monitor._id,
                                             lighthouseLogs.skip,
@@ -674,6 +689,7 @@ export class MonitorLighthouseLogsList extends Component {
                                 <button
                                     id="btnLighthouseNext"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.nextClicked(
                                             monitor._id,
                                             lighthouseLogs.skip,
@@ -703,22 +719,24 @@ export class MonitorLighthouseLogsList extends Component {
     }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
     };
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { openModal, closeModal, deleteSiteUrl },
         dispatch
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorLighthouseLogsList.displayName = 'MonitorLighthouseLogsList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorLighthouseLogsList.propTypes = {
     monitor: PropTypes.object,
     monitorState: PropTypes.object,

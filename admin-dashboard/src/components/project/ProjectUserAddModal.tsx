@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import {
     userCreate,
@@ -19,12 +22,13 @@ import DataPathHoC from '../DataPathHoC';
 import MessageBox from '../modals/MessageBox';
 import formatEmails from '../../utils/formatEmails';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
     // remove white spaces
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
     const emails = values.emails ? values.emails.split(',') : [];
     if (!Validate.isValidBusinessEmails(emails)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emails' does not exist on type '{}'.
         errors.emails = 'Please enter business emails of the members.';
     }
 
@@ -32,7 +36,7 @@ function validate(values) {
 }
 
 export class FormModal extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             messageModalId: uuidv4(),
@@ -46,8 +50,9 @@ export class FormModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         values.emails = formatEmails(values.emails);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userCreate' does not exist on type 'Read... Remove this comment to see the full error message
         const { userCreate, closeThisDialog, data } = this.props;
         values.projectId = data.projectId;
 
@@ -67,13 +72,16 @@ export class FormModal extends Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 this.props.closeThisDialog();
                 return true;
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                     .getElementById(`btn_modal_${this.props.data.projectName}`)
                     .click();
             default:
@@ -82,7 +90,9 @@ export class FormModal extends Component {
     };
 
     showMessageBox = () =>
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'messageModalId' does not exist on type '... Remove this comment to see the full error message
             id: this.state.messageModalId,
             content: DataPathHoC(MessageBox, {
                 message: (
@@ -100,15 +110,18 @@ export class FormModal extends Component {
                     </span>
                 ),
                 title: 'You cannot add more than 100 members',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'messageModalId' does not exist on type '... Remove this comment to see the full error message
                 messageBoxId: this.state.messageModalId,
             }),
         });
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit, closeThisDialog, data } = this.props;
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -117,6 +130,7 @@ export class FormModal extends Component {
                         <ClickOutside onClickOutside={closeThisDialog}>
                             <form
                                 id={`frm_${data.projectName}`}
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; id: string; lpformnum... Remove this comment to see the full error message
                                 lpformnum="2"
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
@@ -406,6 +420,7 @@ export class FormModal extends Component {
                                         style={{ width: '100%' }}
                                     >
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createUser' does not exist on type 'Read... Remove this comment to see the full error message
                                             if={this.props.createUser.error}
                                         >
                                             <div className="bs-Tail-copy">
@@ -426,6 +441,7 @@ export class FormModal extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createUser' does not exist on type 'Read... Remove this comment to see the full error message
                                                                     .createUser
                                                                     .error
                                                             }
@@ -454,11 +470,13 @@ export class FormModal extends Component {
                                                 id={`btn_modal_${data.projectName}`}
                                                 className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                                 disabled={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createUser' does not exist on type 'Read... Remove this comment to see the full error message
                                                     this.props.createUser
                                                         .requesting
                                                 }
                                                 type="submit"
                                             >
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createUser' does not exist on type 'Read... Remove this comment to see the full error message
                                                 {this.props.createUser
                                                     .requesting ? (
                                                     <FormLoader />
@@ -483,6 +501,7 @@ export class FormModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 FormModal.displayName = 'InviteMemberFormModal';
 
 const ProjectUserAddModal = reduxForm({
@@ -490,19 +509,20 @@ const ProjectUserAddModal = reduxForm({
     validate,
 })(FormModal);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { userCreate, userCreateRequest, userCreateSuccess, userCreateError },
         dispatch
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         createUser: state.project.createUser,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 FormModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     createUser: PropTypes.object.isRequired,

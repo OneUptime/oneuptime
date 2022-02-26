@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -15,11 +16,13 @@ class AddSeats extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -34,6 +37,7 @@ class AddSeats extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                     <ClickOutside onClickOutside={this.props.closeThisDialog}>
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
@@ -60,7 +64,9 @@ class AddSeats extends Component {
                                     <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                 this.props.error &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                                 !this.props.requesting
                                             }
                                         >
@@ -80,6 +86,7 @@ class AddSeats extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                             {this.props.error}
                                                         </span>
                                                     </div>
@@ -89,6 +96,7 @@ class AddSeats extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -100,11 +108,14 @@ class AddSeats extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                                                 this.props.confirmThisDialog
                                             }
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             disabled={this.props.requesting}
                                             autoFocus={true}
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             {!this.props.requesting && (
                                                 <>
                                                     <span>Confirm</span>
@@ -113,6 +124,7 @@ class AddSeats extends Component {
                                                     </span>
                                                 </>
                                             )}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             {this.props.requesting && (
                                                 <FormLoader />
                                             )}
@@ -128,19 +140,21 @@ class AddSeats extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AddSeats.displayName = 'AddSeatsFormModal';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         error: state.monitor.addseat && state.monitor.addseat.error,
         requesting: state.monitor.addseat && state.monitor.addseat.requesting,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AddSeats.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

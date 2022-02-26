@@ -1,7 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-const Twitter = ({ tweets, theme, loading, error }) => {
+const Twitter = ({
+    tweets,
+    theme,
+    loading,
+    error
+}: $TSFixMe) => {
     const TweetLayout =
         theme && theme === 'Classic Theme' ? (
             <div
@@ -37,7 +42,7 @@ const Twitter = ({ tweets, theme, loading, error }) => {
                                     style={{ marginTop: '35px' }}
                                 >
                                     {tweets?.length &&
-                                        tweets.map((tweet, i) =>
+                                        tweets.map((tweet: $TSFixMe, i: $TSFixMe) =>
                                             TweetList(tweet, i)
                                         )}
                                 </ul>
@@ -81,7 +86,7 @@ const Twitter = ({ tweets, theme, loading, error }) => {
                         ) : (
                             <ul className="feed-contents plain">
                                 {tweets?.length &&
-                                    tweets.map((tweet, i) =>
+                                    tweets.map((tweet: $TSFixMe, i: $TSFixMe) =>
                                         TweetList(tweet, i)
                                     )}
                             </ul>
@@ -105,7 +110,7 @@ Twitter.PropTypes = {
 
 export default Twitter;
 
-const TweetList = (tweet, index) => {
+const TweetList = (tweet: $TSFixMe, index: $TSFixMe) => {
     return (
         <li
             style={{

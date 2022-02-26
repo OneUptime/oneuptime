@@ -7,6 +7,7 @@ import { fetchMonitorsIncidents } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import { createNewIncident } from '../../actions/incident';
@@ -15,7 +16,7 @@ import CreateManualIncident from '../modals/CreateManualIncident';
 import DropDownMenu from '../basic/DropDownMenu';
 
 export class MonitorViewIncidentBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             createIncidentModalId: uuidv4(),
@@ -27,35 +28,49 @@ export class MonitorViewIncidentBox extends Component {
     }
 
     prevClicked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
         this.props.fetchMonitorsIncidents(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.projectId._id || this.props.monitor.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor._id,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.skip
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                 ? parseInt(this.props.monitor.skip, 10) - 10
                 : 10,
             10
         );
         this.setState({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     nextClicked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
         this.props.fetchMonitorsIncidents(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.projectId._id || this.props.monitor.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor._id,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.skip
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                 ? parseInt(this.props.monitor.skip, 10) + 10
                 : 10,
             10
         );
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: this.state.page + 1 });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
                     id: this.state.createIncidentModalId,
                 });
             default:
@@ -63,12 +78,13 @@ export class MonitorViewIncidentBox extends Component {
         }
     };
 
-    filterIncidentLogs = status => {
+    filterIncidentLogs = (status: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { monitor } = this.props;
-        const filteredIncidents = [];
+        const filteredIncidents: $TSFixMe = [];
         switch (status) {
             case 'unacknowledged':
-                monitor.incidents.forEach(incident => {
+                monitor.incidents.forEach((incident: $TSFixMe) => {
                     if (!incident.acknowledged) {
                         filteredIncidents.push(incident);
                     }
@@ -76,7 +92,7 @@ export class MonitorViewIncidentBox extends Component {
                 this.setState(() => ({ filteredIncidents, isFiltered: true }));
                 break;
             case 'unresolved':
-                monitor.incidents.forEach(incident => {
+                monitor.incidents.forEach((incident: $TSFixMe) => {
                     if (!incident.resolved) {
                         filteredIncidents.push(incident);
                     }
@@ -94,11 +110,16 @@ export class MonitorViewIncidentBox extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
             createIncidentModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
             filteredIncidents,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isFiltered' does not exist on type 'Read... Remove this comment to see the full error message
             isFiltered,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filterOption' does not exist on type 'Re... Remove this comment to see the full error message
             filterOption,
         } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'create' does not exist on type 'Readonly... Remove this comment to see the full error message
         const creating = this.props.create ? this.props.create : false;
         return (
             <div
@@ -136,7 +157,7 @@ export class MonitorViewIncidentBox extends Component {
                                         },
                                     ]}
                                     value={filterOption}
-                                    updateState={val => {
+                                    updateState={(val: $TSFixMe) => {
                                         switch (val) {
                                             case 'Unacknowledged':
                                                 this.setState({
@@ -175,20 +196,26 @@ export class MonitorViewIncidentBox extends Component {
                                 }
                                 type="button"
                                 disabled={creating}
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                 id={`createIncident_${this.props.monitor.name}`}
                                 onClick={() =>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                     this.props.openModal({
                                         id: createIncidentModalId,
                                         content: DataPathHoC(
                                             CreateManualIncident,
                                             {
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                 monitorId: this.props.monitor
                                                     ._id,
                                                 projectId:
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     this.props.monitor.projectId
                                                         ._id ||
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     this.props.monitor
                                                         .projectId,
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                 monitor: this.props.monitor,
                                             }
                                         ),
@@ -209,12 +236,15 @@ export class MonitorViewIncidentBox extends Component {
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentList
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
                         componentId={this.props.componentId}
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                         incidents={this.props.monitor}
                         prevClicked={this.prevClicked}
                         nextClicked={this.nextClicked}
                         filteredIncidents={filteredIncidents}
                         isFiltered={isFiltered}
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                         page={this.state.page}
                     />
                 </div>
@@ -223,8 +253,10 @@ export class MonitorViewIncidentBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorViewIncidentBox.displayName = 'MonitorViewIncidentBox';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorViewIncidentBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,
@@ -234,13 +266,12 @@ MonitorViewIncidentBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { fetchMonitorsIncidents, openModal, closeModal, createNewIncident },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { fetchMonitorsIncidents, openModal, closeModal, createNewIncident },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,

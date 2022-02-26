@@ -15,6 +15,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
     try {
         const projectId = req.params.projectId;
         const body = req.body;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
 
         const monitors = body.monitors;
@@ -139,6 +140,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         const data = req.body;
         const integrationId = req.params.integrationId;
         data.projectId = req.params.projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         data.userId = req.user ? req.user.id : null;
         data._id = integrationId;
         const select =
@@ -167,6 +169,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
             });
         }
 
+        // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
         if (!data.monitors || !data.monitors.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -210,8 +213,8 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         // restructure the monitors into [{monitorId: 'xyz'}]
         data.monitors =
             data.monitors &&
-            data.monitors.map(monitor => ({
-                monitorId: monitor,
+            data.monitors.map((monitor: $TSFixMe) => ({
+                monitorId: monitor
             }));
 
         const existingWebhook = await IntegrationService.findOneBy({
@@ -251,6 +254,7 @@ router.delete(
         try {
             const projectId = req.params.projectId;
             const integrationId = req.params.integrationId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const data = await IntegrationService.deleteBy(
                 { _id: integrationId, projectId: projectId },

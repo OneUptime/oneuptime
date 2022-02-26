@@ -8,17 +8,20 @@ import { restoreUser } from '../../actions/user';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class UserRestoreBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
     }
 
     handleClick = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'restoreUser' does not exist on type 'Rea... Remove this comment to see the full error message
         const { restoreUser, userId } = this.props;
         return restoreUser(userId);
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
         const { isRequesting } = this.props;
 
         return (
@@ -62,12 +65,12 @@ export class UserRestoreBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UserRestoreBox.displayName = 'UserRestoreBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const user = state.user.user.user || {};
     const userId = user._id;
 
@@ -81,6 +84,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UserRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     userId: PropTypes.oneOfType([
@@ -90,6 +94,7 @@ UserRestoreBox.propTypes = {
     restoreUser: PropTypes.func.isRequired,
 };
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 UserRestoreBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserRestoreBox);

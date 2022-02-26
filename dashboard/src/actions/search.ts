@@ -19,33 +19,33 @@ export const closeSearchBar = function() {
         type: CLOSE_SEARCH_BAR,
     };
 };
-export const resetSearch = () => async dispatch =>
-    dispatch({
-        type: RESET_SEARCH_FIELDS,
-    });
+export const resetSearch = () => async (dispatch: $TSFixMe) => dispatch({
+    type: RESET_SEARCH_FIELDS,
+});
 export function searchRequest() {
     return {
         type: POPULATE_SEARCH_REQUEST,
     };
 }
-export function searchSuccess(payload) {
+export function searchSuccess(payload: $TSFixMe) {
     return {
         type: POPULATE_SEARCH_SUCCESS,
         payload,
     };
 }
-export function searchFailure(payload) {
+export function searchFailure(payload: $TSFixMe) {
     return {
         type: POPULATE_SEARCH_FAILURE,
         payload,
     };
 }
-export function search(projectId, values) {
-    return function(dispatch) {
+export function search(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         dispatch(searchRequest());
         const promise = postApi(`search/${projectId}`, values);
         promise.then(
             function(result) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const search = result.data;
                 dispatch(searchSuccess(search.data));
             },

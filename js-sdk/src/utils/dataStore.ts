@@ -2,6 +2,7 @@
 
 /*eslint-disable no-unused-vars*/
 import axios from 'axios';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
 import cron from 'node-cron'
 class DataStore {
     #store;
@@ -12,7 +13,7 @@ class DataStore {
     #appId;
     #appKey;
     #sendingData;
-    constructor(url, appId, appKey) {
+    constructor(url: $TSFixMe, appId: $TSFixMe, appKey: $TSFixMe) {
         this.#apiUrl = url;
         this.#appId = appId;
         this.#appKey = appKey;
@@ -29,7 +30,7 @@ class DataStore {
             _this.sendData();
         });
     }
-    mapValue(path, store, time, method, errorCount) {
+    mapValue(path: $TSFixMe, store: $TSFixMe, time: $TSFixMe, method: $TSFixMe, errorCount: $TSFixMe) {
         if (store.has(path)) {
             const s = store.get(path);
             const avg = s.avgTime,
@@ -54,13 +55,13 @@ class DataStore {
             };
         }
     }
-    destroy(id) {
+    destroy(id: $TSFixMe) {
         if (this.#store.has(id)) {
             this.#store.delete(id);
         }
     }
 
-    getValue(id) {
+    getValue(id: $TSFixMe) {
         return this.#store.get(id);
     }
 
@@ -80,7 +81,7 @@ class DataStore {
         this.#mongoose.clear();
         return {};
     }
-    setData(value) {
+    setData(value: $TSFixMe) {
         const type = value.type;
         const path = value.path;
         const time = value.duration;
@@ -94,17 +95,21 @@ class DataStore {
             val = this.mapValue(path, this.#outgoing, time, method, errorCount);
             return this.#outgoing.set(path, val);
         } else if (type === 'mongoose') {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
             val = this.mapValue(path, this.#mongoose, time);
             return this.#mongoose.set(path, val);
         }
     }
-    setValue(id, value) {
+    setValue(id: $TSFixMe, value: $TSFixMe) {
         return this.#store.set(id, value);
     }
     async sendData() {
         const data = {
+            // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
             incoming: Object.fromEntries(this.#incoming),
+            // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
             outgoing: Object.fromEntries(this.#outgoing),
+            // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
             mongoose: Object.fromEntries(this.#mongoose),
             sentAt: Date.now(),
         };
@@ -116,8 +121,11 @@ class DataStore {
             this.#sendingData = true;
 
             const data = {
+                // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
                 incoming: Object.fromEntries(this.#incoming),
+                // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
                 outgoing: Object.fromEntries(this.#outgoing),
+                // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
                 mongoose: Object.fromEntries(this.#mongoose),
                 sentAt: Date.now(),
             };
@@ -126,7 +134,7 @@ class DataStore {
             process.exit(1);
         }
     }
-    _makeApiRequest(data) {
+    _makeApiRequest(data: $TSFixMe) {
         return new Promise((resolve, reject) => {
             axios
                 .post(

@@ -7,13 +7,15 @@ import { ListLoader, FormLoader2 } from '../basic/Loader';
 import TooltipMini from '../basic/TooltipMini';
 
 class ErrorEventHeader extends Component {
-    navigate = currentId => {
+    navigate = (currentId: $TSFixMe) => {
         if (currentId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'navigationLink' does not exist on type '... Remove this comment to see the full error message
             this.props.navigationLink(currentId);
         }
         return;
     };
-    handleIgnoreButton = errorTrackerIssue => {
+    handleIgnoreButton = (errorTrackerIssue: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ignoreErrorEvent' does not exist on type... Remove this comment to see the full error message
         const { ignoreErrorEvent } = this.props;
         if (!errorTrackerIssue.ignored) {
             ignoreErrorEvent(errorTrackerIssue._id);
@@ -21,7 +23,8 @@ class ErrorEventHeader extends Component {
             ignoreErrorEvent(errorTrackerIssue._id, true); // set this to true to unresolve an ignored Issue
         }
     };
-    handleResolveButton = errorTrackerIssue => {
+    handleResolveButton = (errorTrackerIssue: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveErrorEvent' does not exist on typ... Remove this comment to see the full error message
         const { resolveErrorEvent, unresolveErrorEvent } = this.props;
         if (!errorTrackerIssue.resolved) {
             resolveErrorEvent(errorTrackerIssue._id);
@@ -31,10 +34,15 @@ class ErrorEventHeader extends Component {
     };
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
             errorEvent,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerIssue' does not exist on typ... Remove this comment to see the full error message
             errorTrackerIssue,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerStatus' does not exist on ty... Remove this comment to see the full error message
             errorTrackerStatus,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openDeleteModal' does not exist on type ... Remove this comment to see the full error message
             openDeleteModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
             errorTrackerState,
         } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
@@ -413,6 +421,7 @@ class ErrorEventHeader extends Component {
         );
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorEventHeader.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
@@ -424,5 +433,6 @@ ErrorEventHeader.propTypes = {
     openDeleteModal: PropTypes.func,
     errorTrackerState: PropTypes.object,
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;

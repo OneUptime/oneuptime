@@ -1,4 +1,4 @@
-const testAuth = (z, bundle) => {
+const testAuth = (z: $TSFixMe, bundle: $TSFixMe) => {
     // Normally you want to make a request to an endpoint that is either specifically designed to test auth, or one that
     // every user will have access to, such as an account or profile endpoint like /me.
     // In this example, we'll hit httpbin, which validates the Authorization Header against the arguments passed in the URL path
@@ -10,7 +10,7 @@ const testAuth = (z, bundle) => {
         .request({
             url: `${bundle.authData.serverUrl}/zapier/test`,
         })
-        .then(response => {
+        .then((response: $TSFixMe) => {
             if (response.status === 400) {
                 throw new Error(
                     'The API Key or Project ID you supplied is invalid!'
@@ -60,5 +60,5 @@ export default {
     // method whenver a user connects their account for the first time.
     test: testAuth,
     // assuming "username" is a key in the json returned from testAuth
-    connectionLabel: (z, bundle) => bundle.inputData.projectName,
+    connectionLabel: (z: $TSFixMe, bundle: $TSFixMe) => bundle.inputData.projectName,
 };

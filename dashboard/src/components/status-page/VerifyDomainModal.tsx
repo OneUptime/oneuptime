@@ -1,6 +1,7 @@
 import React, { Fragment, Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
@@ -9,6 +10,7 @@ import { bindActionCreators } from 'redux';
 
 class VerifyDomainModal extends Component {
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetDomain' does not exist on type 'Rea... Remove this comment to see the full error message
         this.props.resetDomain();
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -17,11 +19,13 @@ class VerifyDomainModal extends Component {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
-    handleKeyboard = e => {
+    handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                 return this.props.confirmThisDialog();
             default:
                 break;
@@ -30,10 +34,15 @@ class VerifyDomainModal extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
             confirmThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainField' does not exist on type 'Rea... Remove this comment to see the full error message
             domainField,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
         } = this.props;
         return (
@@ -126,8 +135,8 @@ class VerifyDomainModal extends Component {
                                                         propArr.map(
                                                             ({
                                                                 _id,
-                                                                verificationToken,
-                                                            }) => (
+                                                                verificationToken
+                                                            }: $TSFixMe) => (
                                                                 <tr
                                                                     key={_id}
                                                                     className="Table-row db-ListViewItem bs-ActionsParent"
@@ -288,13 +297,15 @@ class VerifyDomainModal extends Component {
     }
 }
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     domainField: state.statusPage.verifyDomain,
-    requesting: state.statusPage.requesting,
+    requesting: state.statusPage.requesting
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 VerifyDomainModal.displayName = 'Domain verification';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 VerifyDomainModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,
@@ -304,7 +315,6 @@ VerifyDomainModal.propTypes = {
     resetDomain: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ resetDomain }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ resetDomain }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(VerifyDomainModal);

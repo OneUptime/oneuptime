@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal, openModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -18,7 +19,7 @@ class KubeStatefulset extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Enter':
             case 'Escape':
@@ -38,18 +39,22 @@ class KubeStatefulset extends React.Component {
          * a tiny hack to fix issue with closing stacked modals
          * when a user clicks on the modal
          */
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modals' does not exist on type 'Readonly... Remove this comment to see the full error message
         if (this.props.modals.length === 1) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.closeModal();
         }
     };
 
-    handleStatefulsetData = data => {
+    handleStatefulsetData = (data: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
             content: DataPathHoC(KubeStatefulsetData, { data }),
         });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data } = this.props;
         const statefulsetData = data.data;
         const logTitle = data.title;
@@ -57,6 +62,7 @@ class KubeStatefulset extends React.Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -121,7 +127,7 @@ class KubeStatefulset extends React.Component {
                                             </ShouldRender>
                                             {statefulsetData &&
                                                 statefulsetData.map(
-                                                    (data, index) => (
+                                                    (data: $TSFixMe, index: $TSFixMe) => (
                                                         <div
                                                             key={data._id}
                                                             className="scheduled-event-list-item bs-ObjectList-row db-UserListRow"
@@ -155,6 +161,7 @@ class KubeStatefulset extends React.Component {
                                                                                 ? 'healthy'
                                                                                 : 'unhealthy'
                                                                         }
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: string; index: any; }' is not assi... Remove this comment to see the full error message
                                                                         index={
                                                                             index
                                                                         }
@@ -238,8 +245,10 @@ class KubeStatefulset extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 KubeStatefulset.displayName = 'KubeStatefulset';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 KubeStatefulset.propTypes = {
     closeModal: PropTypes.func.isRequired,
     data: PropTypes.object,
@@ -247,17 +256,16 @@ KubeStatefulset.propTypes = {
     modals: PropTypes.array,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+        openModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => ({
-    modals: state.modal.modals,
+const mapStateToProps = (state: $TSFixMe) => ({
+    modals: state.modal.modals
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(KubeStatefulset);

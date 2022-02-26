@@ -1,25 +1,31 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const smsTemplateModel = new SmsTemplateModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         smsTemplateModel.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Document<a... Remove this comment to see the full error message
         smsTemplateModel.body = data.body || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsType' does not exist on type 'Documen... Remove this comment to see the full error message
         smsTemplateModel.smsType = data.smsType || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'allowedVariables' does not exist on type... Remove this comment to see the full error message
         smsTemplateModel.allowedVariables =
+            // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
             smsTemplateVariables[[data.smsType]];
         const smsTemplate = await smsTemplateModel.save();
 
         return smsTemplate;
     },
 
-    createMany: async function(allData) {
-        allData = allData.map(data => {
+    createMany: async function(allData: $TSFixMe) {
+        allData = allData.map((data: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             data.allowedVariables = smsTemplateVariables[data.smsType];
             return data;
         });
         return await SmsTemplateModel.insertMany(allData);
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -37,7 +43,7 @@ export default {
         return updatedSmsTemplate;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -52,7 +58,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const smsTemplate = await SmsTemplateModel.findOneAndUpdate(
             query,
             {
@@ -69,7 +75,13 @@ export default {
         return smsTemplate;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -101,7 +113,11 @@ export default {
         return smsTemplates;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -119,7 +135,7 @@ export default {
         return smsTemplate;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -129,7 +145,7 @@ export default {
         return count;
     },
 
-    getTemplates: async function(projectId) {
+    getTemplates: async function(projectId: $TSFixMe) {
         const _this = this;
         const populate = [{ path: 'projectId', select: 'name' }];
         const select = 'projectId body smsType allowedVariables';
@@ -151,7 +167,7 @@ export default {
         return templates;
     },
 
-    resetTemplate: async function(projectId, templateId) {
+    resetTemplate: async function(projectId: $TSFixMe, templateId: $TSFixMe) {
         const _this = this;
         const oldTemplate = await _this.findOneBy({
             query: { _id: templateId },
@@ -173,7 +189,7 @@ export default {
         return resetTemplate;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await SmsTemplateModel.deleteMany(query);
         return 'SMS Template(s) removed successfully';
     },

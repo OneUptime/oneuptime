@@ -4,10 +4,10 @@
  * @param {object} subProject the subProject
  */
 
-const isSubProjectViewer = (userId, subProject) => {
+const isSubProjectViewer = (userId: $TSFixMe, subProject: $TSFixMe) => {
     const user = subProject
         ? subProject.users.find(
-              user => user.userId === userId && user.role === 'Viewer'
+              (user: $TSFixMe) => user.userId === userId && user.role === 'Viewer'
           )
         : null;
     if (user) return true;

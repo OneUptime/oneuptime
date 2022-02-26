@@ -29,7 +29,7 @@ const initialState = {
     },
 };
 
-export default function incidents(state = initialState, action) {
+export default function incidents(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.GET_ACTIVE_MEMBERS_REQUEST:
             return Object.assign({}, state, {

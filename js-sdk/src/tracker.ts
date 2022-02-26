@@ -1,12 +1,28 @@
 import OneUptimeListener from './listener';
 import Util from './util';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../package.json'. Consider usi... Remove this comment to see the full error message
 import { name, version } from '../package.json';
 
 class ErrorTracker {
+    MAX_ITEMS_ALLOWED_IN_STACK: $TSFixMe;
+    apiUrl: $TSFixMe;
+    configKeys: $TSFixMe;
+    errorTrackerId: $TSFixMe;
+    errorTrackerKey: $TSFixMe;
+    event: $TSFixMe;
+    eventId: $TSFixMe;
+    extras: $TSFixMe;
+    fingerprint: $TSFixMe;
+    isWindow: $TSFixMe;
+    listenerObj: $TSFixMe;
+    options: $TSFixMe;
+    tags: $TSFixMe;
+    utilObj: $TSFixMe;
     // constructor to set up global listeners
-    constructor(apiUrl, errorTrackerId, errorTrackerKey, options = {}) {
+    constructor(apiUrl: $TSFixMe, errorTrackerId: $TSFixMe, errorTrackerKey: $TSFixMe, options = {}) {
         this._setErrorTrackerId(errorTrackerId);
         this._setApiUrl(apiUrl);
         this._setErrorTrackerKey(errorTrackerKey);
@@ -37,16 +53,16 @@ class ErrorTracker {
             this._setUpNodeErrorListener();
         }
     }
-    _setErrorTrackerId(errorTrackerId) {
+    _setErrorTrackerId(errorTrackerId: $TSFixMe) {
         this.errorTrackerId = errorTrackerId;
     }
-    _setErrorTrackerKey(errorTrackerKey) {
+    _setErrorTrackerKey(errorTrackerKey: $TSFixMe) {
         this.errorTrackerKey = errorTrackerKey;
     }
-    _setApiUrl(apiUrl) {
+    _setApiUrl(apiUrl: $TSFixMe) {
         this.apiUrl = `${apiUrl}/error-tracker/${this.errorTrackerId}/track`;
     }
-    _setUpOptions(options) {
+    _setUpOptions(options: $TSFixMe) {
         for (const [key, value] of Object.entries(options)) {
             // proceed with current key if it is not in the config keys
             if (!this.configKeys.includes(key)) {
@@ -55,6 +71,7 @@ class ErrorTracker {
                     // set max timeline properly after checking conditions
                     if (
                         key === 'maxTimeline' &&
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         (value > this.MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.options[key] = this.MAX_ITEMS_ALLOWED_IN_STACK;
@@ -75,12 +92,12 @@ class ErrorTracker {
     getEventId() {
         return this.eventId;
     }
-    setTag(key, value) {
+    setTag(key: $TSFixMe, value: $TSFixMe) {
         if (!(typeof key === 'string') || !(typeof value === 'string')) {
             return 'Invalid Tags type';
         }
         // get the index if the key exist already
-        const index = this.tags.findIndex(tag => tag.key === key);
+        const index = this.tags.findIndex((tag: $TSFixMe) => tag.key === key);
         if (index !== -1) {
             // replace value if it exist
             this.tags[index].value = value;
@@ -90,7 +107,7 @@ class ErrorTracker {
         }
     }
     // pass an array of tags
-    setTags(tags) {
+    setTags(tags: $TSFixMe) {
         if (!Array.isArray(tags)) {
             return 'Invalid Tags type';
         }
@@ -103,24 +120,24 @@ class ErrorTracker {
     _getTags() {
         return this.tags;
     }
-    setExtras(extras) {
-        extras.forEach(element => {
+    setExtras(extras: $TSFixMe) {
+        extras.forEach((element: $TSFixMe) => {
             if (element.key && element.extra) {
                 this.setExtra(element.key, element.extra);
             }
         });
     }
 
-    setExtra(key, extra) {
+    setExtra(key: $TSFixMe, extra: $TSFixMe) {
         this.extras = { ...this.extras, [key]: extra };
     }
-    setFingerprint(keys) {
+    setFingerprint(keys: $TSFixMe) {
         if (!(typeof keys === 'string') && !Array.isArray(keys)) {
             return 'Invalid Fingerprint Format';
         }
         this.fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
     }
-    _getFingerprint(errorMessage) {
+    _getFingerprint(errorMessage: $TSFixMe) {
         // if no fingerprint exist currently
         if (this.fingerprint.length < 1) {
             // set up finger print based on error since none exist
@@ -135,7 +152,9 @@ class ErrorTracker {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type 'str... Remove this comment to see the full error message
                 ? errorEvent.message.toLowerCase()
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type '{ m... Remove this comment to see the full error message
                 : errorEvent.toLowerCase();
             const substring = 'script error';
             if (string.indexOf(substring) > -1) {
@@ -168,13 +187,14 @@ class ErrorTracker {
             })
             .on('unhandledRejection', err => {
                 // display this for the user
+                // @ts-expect-error ts-migrate(2533) FIXME: Object is possibly 'null' or 'undefined'.
                 // eslint-disable-next-line no-console
                 console.log(`UnhandledPromiseRejectionWarning: ${err.stack}`);
                 // any unhandled promise error
                 _this._manageErrorNode(err);
             });
     }
-    async _manageErrorNode(error) {
+    async _manageErrorNode(error: $TSFixMe) {
         // construct the error object
         const errorObj = await this.utilObj._getErrorStackTrace(error);
 
@@ -186,7 +206,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    addToTimeline(category, content, type) {
+    addToTimeline(category: $TSFixMe, content: $TSFixMe, type: $TSFixMe) {
         const timeline = {
             category,
             data: {
@@ -199,7 +219,7 @@ class ErrorTracker {
     getTimeline() {
         return this.listenerObj.getTimeline();
     }
-    captureMessage(message) {
+    captureMessage(message: $TSFixMe) {
         // set the a handled tag
         this.setTag('handled', 'true');
         this.prepareErrorObject('message', { message });
@@ -207,7 +227,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    async captureException(error) {
+    async captureException(error: $TSFixMe) {
         // construct the error object
         const errorObj = await this.utilObj._getErrorStackTrace(error);
 
@@ -228,7 +248,7 @@ class ErrorTracker {
             // TODO create a way to get host on the backend
         }
     }
-    prepareErrorObject(type, errorStackTrace) {
+    prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe) {
         // log event
         const content = {
             message: errorStackTrace.message,
@@ -270,7 +290,7 @@ class ErrorTracker {
             .catch(error => (content = error));
         return content;
     }
-    _makeApiRequest(data) {
+    _makeApiRequest(data: $TSFixMe) {
         return new Promise((resolve, reject) => {
             axios
                 .post(this.apiUrl, data)
@@ -288,7 +308,7 @@ class ErrorTracker {
     getSDKDetails() {
         return { name, version };
     }
-    _clear(newEventId) {
+    _clear(newEventId: $TSFixMe) {
         // clear tags
         this.tags = [];
         // clear extras

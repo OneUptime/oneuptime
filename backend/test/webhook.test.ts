@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -5,7 +6,9 @@ import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
@@ -16,7 +19,7 @@ import VerificationTokenModel from '../backend/models/verificationToken'
 import GlobalConfig from './utils/globalConfig'
 
 // eslint-disable-next-line
-let token, userId, projectId, monitorId, msTeamsId,msTeamsId1,slackId,slackId1;
+let token: $TSFixMe, userId, projectId: $TSFixMe, monitorId: $TSFixMe, msTeamsId: $TSFixMe,msTeamsId1: $TSFixMe,slackId: $TSFixMe,slackId1: $TSFixMe;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -41,13 +44,15 @@ const slackPayload = {
     type: 'slack',
 };
 
-describe('Webhook API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Webhook API', function(this: $TSFixMe) {
     this.timeout(20000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, async function(err, res) {
+            createUser(request, userData.user, async function(err: $TSFixMe, res: $TSFixMe) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
@@ -58,8 +63,8 @@ describe('Webhook API', function() {
                 );
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
@@ -71,14 +76,14 @@ describe('Webhook API', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
                                         .post(`/monitor/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(monitor)
-                                        .end(function(err, res) {
+                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
                                             monitorId = res.body._id;
                                             msTeamsPayload.monitorId = monitorId;
                                             slackPayload.monitorId = monitorId;
@@ -93,6 +98,7 @@ describe('Webhook API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -113,62 +119,70 @@ describe('Webhook API', function() {
     });
 
     //MS Teams
-    it('should prevent unauthenticated users from creating webhooks.', function(done) {
-        request.post(`/webhook/${projectId}/create`).end(function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should prevent unauthenticated users from creating webhooks.', function(done: $TSFixMe) {
+        request.post(`/webhook/${projectId}/create`).end(function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(401);
             done();
         });
     });
 
-    it('should reject requests missing the endpoint.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should reject requests missing the endpoint.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
+        // @ts-expect-error ts-migrate(2790) FIXME: The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
         delete payload.endpoint;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should reject requests missing the monitorId.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should reject requests missing the monitorId.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
+        // @ts-expect-error ts-migrate(2790) FIXME: The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
         delete payload.monitorId;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should reject requests missing the integration type.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should reject requests missing the integration type.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
+        // @ts-expect-error ts-migrate(2790) FIXME: The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
         delete payload.type;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create msteams webhook.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create msteams webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -180,19 +194,21 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create msteams webhook with a different endpoint.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create msteams webhook with a different endpoint.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
         payload.endpoint = 'http://test1.hackerbay.io';
@@ -200,7 +216,7 @@ describe('Webhook API', function() {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -212,7 +228,8 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should update the msteams webhook.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should update the msteams webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
@@ -220,7 +237,7 @@ describe('Webhook API', function() {
             .put(`/webhook/${projectId}/${msTeamsId}`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -231,12 +248,13 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should return the list of msteams webhook.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return the list of msteams webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/webhook/${projectId}/hooks?type=msteams`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -246,12 +264,13 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should delete msteams webhooks.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete msteams webhooks.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/webhook/${projectId}/delete/${msTeamsId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -263,13 +282,14 @@ describe('Webhook API', function() {
             });
     });
     //Slack
-    it('should create slack webhook.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create slack webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(slackPayload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -281,19 +301,21 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should not create slack webhook, with the same integration type and endpoint, for the same monitorId.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not create slack webhook, with the same integration type and endpoint, for the same monitorId.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(slackPayload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create slack webhook with a different endpoint.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should create slack webhook with a different endpoint.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...slackPayload };
         payload.endpoint = 'http://test1.slack.hackerbay.io';
@@ -301,7 +323,7 @@ describe('Webhook API', function() {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -313,7 +335,8 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should update the slack webhook.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should update the slack webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...slackPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
@@ -321,7 +344,7 @@ describe('Webhook API', function() {
             .put(`/webhook/${projectId}/${slackId}`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -332,12 +355,13 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should return the list of slack webhook.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return the list of slack webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/webhook/${projectId}/hooks?type=slack`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -347,12 +371,13 @@ describe('Webhook API', function() {
             });
     });
 
-    it('should delete slack webhooks.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete slack webhooks.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/webhook/${projectId}/delete/${slackId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');

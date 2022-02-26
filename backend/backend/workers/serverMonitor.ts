@@ -8,6 +8,7 @@ const MonitorService = require('../services/monitorService'),
 export default {
     checkAllServerMonitors: async () => {
         try {
+            // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
             const newDate = new moment();
             const monitors = await MonitorService.findBy({
                 query: { type: 'server-monitor' },
@@ -15,7 +16,8 @@ export default {
             });
 
             if (monitors) {
-                monitors.forEach(async monitor => {
+                monitors.forEach(async (monitor: $TSFixMe) => {
+                    // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
                     const d = new moment(monitor.lastPingTime);
                     const log = await MonitorLogService.findOneBy({
                         query: { monitorId: monitor._id },
@@ -45,7 +47,7 @@ export default {
     },
 };
 
-const job = async monitor => {
+const job = async (monitor: $TSFixMe) => {
     try {
         const { stat: validUp, successReasons } =
             monitor && monitor.criteria && monitor.criteria.up
@@ -59,7 +61,7 @@ const job = async monitor => {
             await ProbeService.saveMonitorLog({
                 monitorId: monitor._id,
                 status: 'offline',
-                reason: await successReasons.filter(function(item, pos, self) {
+                reason: await successReasons.filter(function(item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) {
                     return self.indexOf(item) == pos;
                 }),
             });

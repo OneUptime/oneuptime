@@ -3,6 +3,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DeleteSchedule from '../modals/DeleteSchedule';
 import CancelSchedule from '../modals/CancelSchedule';
@@ -11,7 +12,8 @@ import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 
 class ScheduleEventDeleteBox extends Component {
-    constructor(props) {
+    handleKeyBoard: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4(), cancelModalId: uuidv4() };
     }
@@ -23,12 +25,18 @@ class ScheduleEventDeleteBox extends Component {
         alert('im to cancel');
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId, cancelModalId } = this.state;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
             scheduledEventId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEvent' does not exist on type '... Remove this comment to see the full error message
             scheduledEvent,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
             deleting,
         } = this.props;
         return (
@@ -168,14 +176,14 @@ class ScheduleEventDeleteBox extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal }, dispatch);
-const mapStateToProps = state => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleting: state.scheduledEvent.deletedScheduledEvent.requesting,
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ScheduleEventDeleteBox.propTypes = {
     projectId: PropTypes.string.isRequired,
     scheduledEventId: PropTypes.string.isRequired,
@@ -183,6 +191,7 @@ ScheduleEventDeleteBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     scheduledEvent: PropTypes.object.isRequired,
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ScheduleEventDeleteBox.displayName = 'ScheduleEventDeleteBox';
 export default connect(
     mapStateToProps,

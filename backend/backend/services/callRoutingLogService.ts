@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,19 +30,24 @@ export default {
         return callRoutingLog;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const callRoutingLogModel = new CallRoutingLogModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callRoutingId' does not exist on type 'D... Remove this comment to see the full error message
         callRoutingLogModel.callRoutingId = data.callRoutingId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'calledFrom' does not exist on type 'Docu... Remove this comment to see the full error message
         callRoutingLogModel.calledFrom = data.calledFrom;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'calledTo' does not exist on type 'Docume... Remove this comment to see the full error message
         callRoutingLogModel.calledTo = data.calledTo;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callSid' does not exist on type 'Documen... Remove this comment to see the full error message
         callRoutingLogModel.callSid = data.callSid;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dialTo' does not exist on type 'Document... Remove this comment to see the full error message
         callRoutingLogModel.dialTo = data.dialTo;
 
         const logs = await callRoutingLogModel.save();
         return logs;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -46,7 +57,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -68,7 +79,11 @@ export default {
         return logs;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -84,7 +99,7 @@ export default {
         return log;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -103,7 +118,7 @@ export default {
         return updatedCallRoutingLog;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -118,7 +133,7 @@ export default {
         return updatedData;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await CallRoutingLogModel.deleteMany(query);
         return 'Call routing Log(s) Removed Successfully!';
     },

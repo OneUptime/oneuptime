@@ -13,8 +13,9 @@ import PropTypes from 'prop-types';
 import { User } from '../../config';
 
 class Invoice extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
     }
 
@@ -23,24 +24,30 @@ class Invoice extends Component {
     }
 
     resetAndFetchInvoices = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getInvoiceReset' does not exist on type ... Remove this comment to see the full error message
         this.props.getInvoiceReset();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getInvoice' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.getInvoice(this.props.userId);
     };
 
     nextClicked = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'invoices' does not exist on type 'Readon... Remove this comment to see the full error message
             invoices: { data },
         } = this.props;
         const startingAfter = data[data.length - 1].id;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getInvoice' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.getInvoice(this.props.userId, startingAfter);
     };
 
     prevClicked = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'invoices' does not exist on type 'Readon... Remove this comment to see the full error message
             invoices: { data },
         } = this.props;
         const endingBefore = data[0].id;
         const startingAfter = data[data.length - 1].id;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getInvoice' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.getInvoice(this.props.userId, startingAfter, endingBefore);
     };
 
@@ -79,7 +86,9 @@ class Invoice extends Component {
                                             </div>
                                             {
                                                 <InvoiceList
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ invoices: any; nextClicked: () => void; pr... Remove this comment to see the full error message
                                                     invoices={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'invoices' does not exist on type 'Readon... Remove this comment to see the full error message
                                                         this.props.invoices
                                                     }
                                                     nextClicked={
@@ -102,7 +111,7 @@ class Invoice extends Component {
     }
 }
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const userId = User.getUserId();
     const invoices = state.invoice.invoices;
     const isRequesting = state.invoice.requesting;
@@ -111,7 +120,7 @@ const mapStateToProps = state => {
     return { userId, invoices, isRequesting, isSuccessful };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             getInvoice,
@@ -124,6 +133,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Invoice.propTypes = {
     getInvoice: PropTypes.func.isRequired,
     userId: PropTypes.string,
@@ -131,6 +141,7 @@ Invoice.propTypes = {
     getInvoiceReset: PropTypes.func.isRequired,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Invoice.displayName = 'Invoice';
 
 export default connect(mapStateToProps, mapDispatchToProps)(Invoice);

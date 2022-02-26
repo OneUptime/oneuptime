@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -10,7 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { updateprobebysocket } from '../../actions/socket';
 
-function MonitorList(props) {
+function MonitorList(props: $TSFixMe) {
     const monitors = props.monitors ? props.monitors : [];
     const skip = props.skip;
     const limit = props.limit;
@@ -25,12 +26,13 @@ function MonitorList(props) {
     let monitorDetails = null;
     if (props.monitors && props.monitors.length > 0) {
         const monitors = props.monitors;
-        monitorDetails = monitors.map((monitor, i) => (
+        monitorDetails = monitors.map((monitor: $TSFixMe, i: $TSFixMe) => (
             <div id={`monitor${i}`} key={monitor._id}>
                 <RenderIfUserInSubProject
                     subProjectId={monitor.projectId._id || monitor.projectId}
                 >
                     <MonitorDetail
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ shouldRenderProjectType: boolean; projectN... Remove this comment to see the full error message
                         shouldRenderProjectType={false}
                         projectName={props.projectName}
                         projectType={props.projectType}
@@ -57,6 +59,7 @@ function MonitorList(props) {
         <div>
             {monitorDetails}
 
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
             <div className="Box-root Card-shadow--medium" tabIndex="0">
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
@@ -182,10 +185,9 @@ MonitorList.propTypes = {
     // updateprobebysocket: PropTypes.func,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ updateprobebysocket }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ updateprobebysocket }, dispatch);
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
 
     return {

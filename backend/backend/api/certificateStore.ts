@@ -82,6 +82,7 @@ router.delete('/store/:id', async (req, res) => {
 router.post('/certOrder', async (req, res) => {
     try {
         const domains = [];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
         const greenlock = global.greenlock;
         // to refresh the managers set clearManager to true
         const { domain, clearManagers } = req.body;
@@ -122,6 +123,7 @@ router.post('/certOrder', async (req, res) => {
                 select: 'domains',
             });
 
+            // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
             for (const statusPage of statusPages) {
                 for (const domain of statusPage.domains) {
                     if (
@@ -166,6 +168,7 @@ router.post('/certOrder', async (req, res) => {
 // id => domain/subdomain
 router.delete('/certDelete/:id', async (req, res) => {
     try {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
         const greenlock = global.greenlock;
         const { id } = req.body;
 

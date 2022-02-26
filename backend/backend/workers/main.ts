@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
 import cron from 'node-cron'
 //import iotMonitorCron from './iotMonitor'
 import escalationPolicy from './escalationPolicy'
@@ -30,6 +31,7 @@ cron.schedule('* * * * *', () => {
 
 cron.schedule('0 0 * * *', () => {
     setTimeout(
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
         () => subscription.handleUnpaidSubscription(),
         subscriptionCronMinutesStartTime * 1000
     );

@@ -2,7 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, SubmissionError } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -21,7 +23,7 @@ import { updateDomain } from '../../actions/domain';
 import { Validate } from '../../config';
 
 // eslint-disable-next-line no-unused-vars
-function validate(_values) {
+function validate(_values: $TSFixMe) {
     const error = undefined;
     return error;
 }
@@ -29,8 +31,11 @@ function validate(_values) {
 class EditMoreDomainModal extends React.Component {
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type 'Readonly... Remove this comment to see the full error message
             domain,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadCertFileSuccess' does not exist on... Remove this comment to see the full error message
             uploadCertFileSuccess,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadPrivateKeySuccess' does not exist ... Remove this comment to see the full error message
             uploadPrivateKeySuccess,
         } = this.props;
         uploadCertFileSuccess(domain.cert);
@@ -43,14 +48,21 @@ class EditMoreDomainModal extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
             statusPageId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateDomain' does not exist on type 'Re... Remove this comment to see the full error message
             updateDomain,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'certFile' does not exist on type 'Readon... Remove this comment to see the full error message
             certFile,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKeyFile' does not exist on type '... Remove this comment to see the full error message
             privateKeyFile,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type 'Readonly... Remove this comment to see the full error message
             domain,
         } = this.props;
 
@@ -76,13 +88,18 @@ class EditMoreDomainModal extends React.Component {
         };
 
         if (values.enableHttps && !values.autoProvisioning) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cert' does not exist on type '{ projectI... Remove this comment to see the full error message
             data.cert = certFile.file;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{ pr... Remove this comment to see the full error message
             data.privateKey = privateKeyFile.file;
         }
 
         updateDomain(data).then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateDomainError' does not exist on typ... Remove this comment to see the full error message
             if (!this.props.updateDomainError) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeCertFile' does not exist on type '... Remove this comment to see the full error message
                 this.props.removeCertFile();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'removePrivateKeyFile' does not exist on ... Remove this comment to see the full error message
                 this.props.removePrivateKeyFile();
                 closeModal({
                     id: statusPageId,
@@ -91,11 +108,12 @@ class EditMoreDomainModal extends React.Component {
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('updateCustomDomainBtn').click();
             default:
                 return false;
@@ -103,13 +121,16 @@ class EditMoreDomainModal extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
             id: this.props.statusPageId,
         });
     };
 
-    changeCertFile = e => {
+    changeCertFile = (e: $TSFixMe) => {
         e.preventDefault();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, uploadCertFile } = this.props;
 
         const reader = new FileReader();
@@ -125,8 +146,9 @@ class EditMoreDomainModal extends React.Component {
         }
     };
 
-    changePrivateKey = e => {
+    changePrivateKey = (e: $TSFixMe) => {
         e.preventDefault();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, uploadPrivateKey } = this.props;
 
         const reader = new FileReader();
@@ -143,28 +165,39 @@ class EditMoreDomainModal extends React.Component {
     };
 
     removeCertFile = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeCertFile' does not exist on type '... Remove this comment to see the full error message
         this.props.removeCertFile();
     };
 
     removePrivateKeyFile = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'removePrivateKeyFile' does not exist on ... Remove this comment to see the full error message
         this.props.removePrivateKeyFile();
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateDomainError' does not exist on typ... Remove this comment to see the full error message
             updateDomainError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
             statusPageId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'certFile' does not exist on type 'Readon... Remove this comment to see the full error message
             certFile,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKeyFile' does not exist on type '... Remove this comment to see the full error message
             privateKeyFile,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             formValues,
         } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -375,6 +408,7 @@ class EditMoreDomainModal extends React.Component {
                                                                 <div>
                                                                     <label
                                                                         className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                                         type="button"
                                                                     >
                                                                         <ShouldRender
@@ -479,6 +513,7 @@ class EditMoreDomainModal extends React.Component {
                                                                 <div>
                                                                     <label
                                                                         className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
                                                                         type="button"
                                                                     >
                                                                         <ShouldRender
@@ -635,8 +670,10 @@ class EditMoreDomainModal extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EditMoreDomainModal.displayName = 'EditMoreDomainModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EditMoreDomainModal.propTypes = {
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -664,22 +701,21 @@ const EditMoreDomainForm = reduxForm({
     validate,
 })(EditMoreDomainModal);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-            uploadCertFile,
-            uploadPrivateKey,
-            removeCertFile,
-            removePrivateKeyFile,
-            updateDomain,
-            uploadCertFileSuccess,
-            uploadPrivateKeySuccess,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+        uploadCertFile,
+        uploadPrivateKey,
+        removeCertFile,
+        removePrivateKeyFile,
+        updateDomain,
+        uploadCertFileSuccess,
+        uploadPrivateKeySuccess,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const domainObj = state.modal.modals[0].domain;
     const initialValues = {
         domain: domainObj.domain,

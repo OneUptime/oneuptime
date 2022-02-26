@@ -1,4 +1,6 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
+// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai'
 const expect = require('chai').expect;
@@ -6,8 +8,10 @@ import userData from './data/user'
 import dockerCredential from './data/dockerCredential'
 import app from '../server'
 chai.use(require('chai-http'));
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import VerificationTokenModel from '../backend/models/verificationToken'
 import UserService from '../backend/services/userService'
@@ -15,14 +19,16 @@ import ProjectService from '../backend/services/projectService'
 import DockerCredentialService from '../backend/services/dockerCredentialService'
 import AirtableService from '../backend/services/airtableService'
 
-describe('Docker Credential API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Docker Credential API', function(this: $TSFixMe) {
     const timeout = 30000;
-    let projectId, userId, token, credentialId;
+    let projectId: $TSFixMe, userId, token: $TSFixMe, credentialId: $TSFixMe;
     const dockerRegistryUrl = dockerCredential.dockerRegistryUrl;
     const dockerUsername = dockerCredential.dockerUsername;
     const dockerPassword = dockerCredential.dockerPassword;
 
     this.timeout(timeout);
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(async function() {
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -42,6 +48,7 @@ describe('Docker Credential API', function() {
         token = res1.body.tokens.jwtAccessToken;
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -54,6 +61,7 @@ describe('Docker Credential API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should add docker credential', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -69,6 +77,7 @@ describe('Docker Credential API', function() {
         expect(res.body.dockerRegistryUrl).to.be.equal(dockerRegistryUrl);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should update a docker credential', async function() {
         const authorization = `Basic ${token}`;
         const dockerUsername = 'username';
@@ -86,6 +95,7 @@ describe('Docker Credential API', function() {
         expect(res.body.dockerUsername).to.be.equal(dockerUsername);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not update docker credential with invalid username or password', async function() {
         const authorization = `Basic ${token}`;
         const dockerUsername = 'randomUsername';
@@ -98,6 +108,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Invalid docker credential');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not add docker credential if username or password is invalid', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -112,6 +123,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Invalid docker credential');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should remove a docker credential', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -122,6 +134,7 @@ describe('Docker Credential API', function() {
         expect(res.body.deleted).to.be.true;
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should get all the docker credentials in a project', async function() {
         const authorization = `Basic ${token}`;
         await request
@@ -139,6 +152,7 @@ describe('Docker Credential API', function() {
         expect(res.body).to.be.an('array');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create docker credential with an existing docker registry url and docker username in a project', async function() {
         const authorization = `Basic ${token}`;
 
@@ -156,6 +170,7 @@ describe('Docker Credential API', function() {
         );
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create docker credential if docker registry url is missing', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -170,6 +185,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Docker Registry URL is required');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create docker credential if docker username is missing', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -184,6 +200,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Docker Username is required');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create docker credential if docker password is missing', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -197,6 +214,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Docker Password is required');
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not remove a non-existing docker credential', async function() {
         const authorization = `Basic ${token}`;
         const newCredentialId = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id

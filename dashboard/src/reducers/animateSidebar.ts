@@ -4,7 +4,7 @@ const initialState = {
     animateSidebar: false,
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case ANIMATE_SIDEBAR:
             return Object.assign({}, state, {

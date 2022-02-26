@@ -33,8 +33,9 @@ class IncidentPrioritiesListClass extends React.Component {
                                     Action
                                 </div>
                             </header>
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPrioritiesList' does not exist o... Remove this comment to see the full error message
                             {this.props.incidentPrioritiesList.map(
-                                (incidentPriority, index) => (
+                                (incidentPriority: $TSFixMe, index: $TSFixMe) => (
                                     <div
                                         key={index}
                                         className="bs-ObjectList-row db-UserListRow db-UserListRow--withName"
@@ -80,6 +81,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
                                                         onClick={() =>
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleEditIncidentPriority' does not exi... Remove this comment to see the full error message
                                                             this.props.handleEditIncidentPriority(
                                                                 incidentPriority._id
                                                             )
@@ -100,6 +102,7 @@ class IncidentPrioritiesListClass extends React.Component {
                                                         className="Button bs-ButtonLegacy"
                                                         type="button"
                                                         onClick={() => {
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleDeleteIncidentPriority' does not e... Remove this comment to see the full error message
                                                             this.props.handleDeleteIncidentPriority(
                                                                 incidentPriority._id
                                                             );
@@ -127,20 +130,21 @@ class IncidentPrioritiesListClass extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncidentPrioritiesListClass.displayName = 'IncidentPrioritiesList';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncidentPrioritiesListClass.propTypes = {
     incidentPrioritiesList: PropTypes.array.isRequired,
     handleEditIncidentPriority: PropTypes.func.isRequired,
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+    },
+    dispatch
+);
 
 export const IncidentPrioritiesList = connect(
     null,

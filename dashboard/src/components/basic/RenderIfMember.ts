@@ -5,7 +5,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-function RenderIfMember(props) {
+function RenderIfMember(props: $TSFixMe) {
     const { currentProject, children, currentUserId } = props;
     const userId = User.getUserId();
 
@@ -17,11 +17,10 @@ function RenderIfMember(props) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user =>
-                user.userId === userId &&
-                user.role !== 'Administrator' &&
-                user.role !== 'Owner' &&
-                user.role !== 'Viewer'
+            (user: $TSFixMe) => user.userId === userId &&
+            user.role !== 'Administrator' &&
+            user.role !== 'Owner' &&
+            user.role !== 'Viewer'
         ).length > 0
     ) {
         renderItems = children;
@@ -30,7 +29,7 @@ function RenderIfMember(props) {
     return renderItems;
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         currentProject: state.project.currentProject,
     };

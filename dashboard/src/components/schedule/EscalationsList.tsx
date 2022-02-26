@@ -1,9 +1,13 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module './EscalationSingle' or its cor... Remove this comment to see the full error message
 import { EscalationSingle } from './EscalationSingle';
 
-const EscalationsList = ({ escalations, subProjectId }) => {
+const EscalationsList = ({
+    escalations,
+    subProjectId
+}: $TSFixMe) => {
     return escalations.length > 0 ? (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -22,7 +26,7 @@ const EscalationsList = ({ escalations, subProjectId }) => {
                         </div>
                     </div>
                 </div>
-                {escalations.map((escalation, i) => (
+                {escalations.map((escalation: $TSFixMe, i: $TSFixMe) => (
                     <EscalationSingle
                         escalation={escalation}
                         key={i}
@@ -44,7 +48,7 @@ EscalationsList.propTypes = {
     subProjectId: PropTypes.string.isRequired,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const { escalations } = state.schedule;
     return { escalations };
 };

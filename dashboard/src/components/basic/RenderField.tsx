@@ -16,8 +16,8 @@ const RenderField = ({
     autofilled,
     parentStyle = {},
     handleFocus,
-    handleBlur,
-}) => (
+    handleBlur
+}: $TSFixMe) => (
     <span style={{ width: '100%', ...parentStyle }}>
         <span>
             <input

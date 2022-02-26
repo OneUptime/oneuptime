@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const ProcessedDescription = text => {
+const ProcessedDescription = (text: $TSFixMe) => {
     if (!text || typeof text !== 'string') return text;
 
     const tempArr = text.split(/\[Learn more\]/i);
@@ -25,7 +25,9 @@ const ProcessedDescription = text => {
 
 ProcessedDescription.displayName = 'ProcessedDescription';
 
-const WebsiteIssuesList = ({ issues }) => {
+const WebsiteIssuesList = ({
+    issues
+}: $TSFixMe) => {
     return (
         <div>
             <table id="websiteIssuesList" className="Table">
@@ -55,7 +57,7 @@ const WebsiteIssuesList = ({ issues }) => {
                 </thead>
                 <tbody className="Table-body">
                     {issues && issues.length > 0 ? (
-                        issues.map((issue, i) => {
+                        issues.map((issue: $TSFixMe, i: $TSFixMe) => {
                             return (
                                 <tr
                                     id={`website_issues_${i}`}

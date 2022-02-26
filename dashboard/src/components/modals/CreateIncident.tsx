@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm, change, formValueSelector } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { createNewIncident, resetCreateIncident } from '../../actions/incident';
 import {
@@ -21,7 +23,7 @@ import { closeModal } from '../../actions/modal';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 class CreateIncident extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             componentId: props.componentId,
@@ -36,8 +38,11 @@ class CreateIncident extends Component {
 
     componentDidMount() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
             fetchCustomFields,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetCreateIncident' does not exist on t... Remove this comment to see the full error message
             resetCreateIncident,
         } = this.props;
         fetchCustomFields(currentProject._id);
@@ -52,19 +57,31 @@ class CreateIncident extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = async values => {
+    submitForm = async (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createNewIncident' does not exist on typ... Remove this comment to see the full error message
             createNewIncident,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
             monitorsList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
             monitors: subProjectMonitors,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
             subProjectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getIncidents' does not exist on type 'Re... Remove this comment to see the full error message
             getIncidents,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getComponentIncidents' does not exist on... Remove this comment to see the full error message
             getComponentIncidents,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
             currentProjectId,
         } = this.props;
         const thisObj = this;
@@ -78,9 +95,12 @@ class CreateIncident extends Component {
         } = values;
         let monitors = [];
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
             this.state.selectedMonitors &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
             this.state.selectedMonitors.length > 0
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
             monitors = this.state.selectedMonitors;
         }
         if (
@@ -95,7 +115,7 @@ class CreateIncident extends Component {
 
         if (selectAllMonitors) {
             const allMonitors = monitorsList;
-            monitors = allMonitors.map(monitor => monitor._id);
+            monitors = allMonitors.map((monitor: $TSFixMe) => monitor._id);
         }
 
         const isDuplicate = monitors
@@ -113,21 +133,23 @@ class CreateIncident extends Component {
 
         // const subProjectId = data.subProjectId;
         const subProjectMonitor = subProjectMonitors.find(
-            subProjectMonitor => subProjectMonitor._id === data.subProjectId
+            (subProjectMonitor: $TSFixMe) => subProjectMonitor._id === data.subProjectId
         );
-        subProjectMonitor.monitors.forEach(monitor => {
+        subProjectMonitor.monitors.forEach((monitor: $TSFixMe) => {
             if (monitor._id === values)
                 currentProject._id = monitor.projectId._id || monitor.projectId;
         });
 
-        const customFields = this.props.customFields.map(field => ({
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
+        const customFields = this.props.customFields.map((field: $TSFixMe) => ({
             fieldName: field.fieldName,
             fieldType: field.fieldType,
             uniqueField: field.uniqueField,
+
             fieldValue:
                 field.fieldType === 'number'
                     ? parseFloat(values[field.fieldName])
-                    : values[field.fieldName],
+                    : values[field.fieldName]
         }));
 
         this.setState({ loading: true });
@@ -156,12 +178,14 @@ class CreateIncident extends Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'Escape':
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                     return this.props.closeModal({});
                 case 'Enter':
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     return document.getElementById('createIncident').click();
                 default:
                     return false;
@@ -169,12 +193,13 @@ class CreateIncident extends Component {
         }
     };
 
-    setTemplateValues = value => {
+    setTemplateValues = (value: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { change, incidentTemplateObj } = this.props;
 
         if (value) {
             !incidentTemplateObj.requesting &&
-                incidentTemplateObj.templates.forEach(template => {
+                incidentTemplateObj.templates.forEach((template: $TSFixMe) => {
                     if (String(template._id) === String(value)) {
                         change('title', template.title);
                         change('description', template.description);
@@ -190,13 +215,16 @@ class CreateIncident extends Component {
     };
 
     formatData = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
         const monitors = this.props.monitorsList;
         const hash = {};
 
-        monitors.forEach(monitor => {
+        monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
             const componentId = monitor.componentId._id || monitor.componentId;
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (!hash[projectId]) {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 hash[projectId] = {
                     projectName: monitor.projectId?.name,
                     projectId,
@@ -215,9 +243,12 @@ class CreateIncident extends Component {
                 };
             } else {
                 let monitorAdded = false;
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 hash[projectId] = {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     ...hash[projectId],
-                    components: hash[projectId].components.map(componentObj => {
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
                             const newMonitor = {
                                 monitorName: monitor.name,
@@ -247,9 +278,12 @@ class CreateIncident extends Component {
                             },
                         ],
                     };
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     hash[projectId] = {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...hash[projectId],
                         components: [
+                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             ...hash[projectId].components,
                             componentData,
                         ],
@@ -270,12 +304,13 @@ class CreateIncident extends Component {
         });
     };
 
-    updateState = (value, key) => {
+    updateState = (value: $TSFixMe, key: $TSFixMe) => {
         this.setState(prevState => {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             let currentValue = prevState[key];
 
             if (currentValue.includes(value)) {
-                currentValue = currentValue.filter(val => val !== value);
+                currentValue = currentValue.filter((val: $TSFixMe) => val !== value);
                 this.updateMultipleState(value, key, currentValue);
 
                 return {
@@ -292,11 +327,12 @@ class CreateIncident extends Component {
         });
     };
 
-    updateMultipleState = (id, key, databank) => {
+    updateMultipleState = (id: $TSFixMe, key: $TSFixMe, databank: $TSFixMe) => {
         if (key === 'selectedProjects' && databank.includes(id)) {
-            const monitorIds = [];
-            const componentIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            const componentIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
                     componentIds.push(
@@ -307,18 +343,21 @@ class CreateIncident extends Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
                 selectedComponents: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
                     new Set([...prevState.selectedComponents, ...componentIds])
                 ),
             }));
         }
 
         if (key === 'selectedProjects' && !databank.includes(id)) {
-            const monitorIds = [];
-            const componentIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            const componentIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
                     componentIds.push(
@@ -328,18 +367,21 @@ class CreateIncident extends Component {
             });
 
             return this.setState(prevState => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                 selectedMonitors: prevState.selectedMonitors.filter(
-                    monitorId => !monitorIds.includes(monitorId)
+                    (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
                 selectedComponents: prevState.selectedComponents.filter(
-                    componentId => !componentIds.includes(componentId)
+                    (componentId: $TSFixMe) => !componentIds.includes(componentId)
                 ),
             }));
         }
 
         if (key === 'selectedComponents' && databank.includes(id)) {
-            const monitorIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
                 }
@@ -347,22 +389,25 @@ class CreateIncident extends Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
             }));
         }
 
         if (key === 'selectedComponents' && !databank.includes(id)) {
-            const monitorIds = [];
-            this.props.monitorsList.forEach(monitor => {
+            const monitorIds: $TSFixMe = [];
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+            this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
                 }
             });
 
             return this.setState(prevState => ({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
                 selectedMonitors: prevState.selectedMonitors.filter(
-                    monitorId => !monitorIds.includes(monitorId)
+                    (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
             }));
         }
@@ -370,38 +415,55 @@ class CreateIncident extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
             monitors,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriorities' does not exist on ty... Remove this comment to see the full error message
             incidentPriorities,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
             customFields,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
             monitorsList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTemplateObj' does not exist on t... Remove this comment to see the full error message
             incidentTemplateObj,
         } = this.props;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues } = this.props;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedProjects' does not exist on type... Remove this comment to see the full error message
             selectedProjects,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
             selectedComponents,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
             selectedMonitors,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectData' does not exist on type 'Read... Remove this comment to see the full error message
             selectData,
         } = this.state;
 
         const subProjectMonitor = monitors.find(
-            subProjectMonitor => subProjectMonitor._id === data.subProjectId
+            (subProjectMonitor: $TSFixMe) => subProjectMonitor._id === data.subProjectId
         );
 
         const allMonitors =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             this.state.componentId &&
             monitorsList.filter(
-                monitor => monitor.componentId._id === this.state.componentId
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+                (monitor: $TSFixMe) => monitor.componentId._id === this.state.componentId
             );
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -563,6 +625,7 @@ class CreateIncident extends Component {
                                                                     disabled={
                                                                         this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                             .newIncident
                                                                             .requesting
                                                                     }
@@ -617,22 +680,24 @@ class CreateIncident extends Component {
                                                                             disabled={
                                                                                 this
                                                                                     .props
+                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                     .newIncident
                                                                                     .requesting
                                                                             }
                                                                             options={[
                                                                                 ...incidentTemplateObj.templates.map(
-                                                                                    template => ({
+                                                                                    (template: $TSFixMe) => ({
                                                                                         value:
                                                                                             template._id,
+
                                                                                         label:
-                                                                                            template.name,
+                                                                                            template.name
                                                                                     })
                                                                                 ),
                                                                             ]}
                                                                             onChange={(
-                                                                                event,
-                                                                                newValue
+                                                                                event: $TSFixMe,
+                                                                                newValue: $TSFixMe
                                                                             ) =>
                                                                                 this.setTemplateValues(
                                                                                     newValue
@@ -667,16 +732,18 @@ class CreateIncident extends Component {
                                                                         disabled={
                                                                             this
                                                                                 .props
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                 .newIncident
                                                                                 .requesting
                                                                         }
                                                                         options={[
                                                                             ...incidentPriorities.map(
-                                                                                incidentPriority => ({
+                                                                                (incidentPriority: $TSFixMe) => ({
                                                                                     value:
                                                                                         incidentPriority._id,
+
                                                                                     label:
-                                                                                        incidentPriority.name,
+                                                                                        incidentPriority.name
                                                                                 })
                                                                             ),
                                                                         ]}
@@ -704,6 +771,7 @@ class CreateIncident extends Component {
                                                                     disabled={
                                                                         this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                             .newIncident
                                                                             .requesting
                                                                     }
@@ -743,8 +811,8 @@ class CreateIncident extends Component {
                                                                 <>
                                                                     {customFields.map(
                                                                         (
-                                                                            field,
-                                                                            index
+                                                                            field: $TSFixMe,
+                                                                            index: $TSFixMe
                                                                         ) => (
                                                                             <div
                                                                                 key={
@@ -775,6 +843,7 @@ class CreateIncident extends Component {
                                                                                         disabled={
                                                                                             this
                                                                                                 .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                 .newIncident
                                                                                                 .requesting
                                                                                         }
@@ -813,6 +882,7 @@ class CreateIncident extends Component {
                                                                     '/dashboard/project/' +
                                                                         this
                                                                             .props
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                                             .currentProject
                                                                             .slug +
                                                                         '/components'
@@ -837,7 +907,9 @@ class CreateIncident extends Component {
                                     >
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.newIncident &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.newIncident.error
                                             }
                                         >
@@ -859,6 +931,7 @@ class CreateIncident extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                     .newIncident
                                                                     .error
                                                             }
@@ -890,16 +963,21 @@ class CreateIncident extends Component {
                                                 id="createIncident"
                                                 className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                                 disabled={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                     this.props.newIncident &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                     this.props.newIncident
                                                         .requesting
                                                 }
                                                 type="submit"
                                                 style={{ height: '35px' }}
                                             >
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 {this.props.newIncident &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                     !this.props.newIncident
                                                         .requesting &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'loading' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     !this.state.loading && (
                                                         <>
                                                             <span>Create</span>
@@ -908,9 +986,12 @@ class CreateIncident extends Component {
                                                             </span>
                                                         </>
                                                     )}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 {this.props.newIncident &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
                                                     (this.props.newIncident
                                                         .requesting ||
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loading' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                         this.state.loading) && (
                                                         <FormLoader />
                                                     )}
@@ -927,7 +1008,9 @@ class CreateIncident extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CreateIncident.displayName = 'CreateIncidentFormModal';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 CreateIncident.propTypes = {
     closeModal: PropTypes.func.isRequired,
     createNewIncident: PropTypes.func.isRequired,
@@ -965,7 +1048,7 @@ const CreateIncidentForm = reduxForm({
 
 const selector = formValueSelector(formName);
 
-function mapStateToProps(state, props) {
+function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     const { data } = props;
     const { subProjectId, componentId, componentSlug, currentProjectId } = data;
     const { projects } = state.project.projects;
@@ -973,9 +1056,9 @@ function mapStateToProps(state, props) {
     const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
     const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
 
-    const monitorsList = [];
-    state.monitor.monitorsList.monitors.forEach(item => {
-        item.monitors.forEach(m => {
+    const monitorsList: $TSFixMe = [];
+    state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
+        item.monitors.forEach((m: $TSFixMe) => {
             monitorsList.push(m);
         });
     });
@@ -997,9 +1080,13 @@ function mapStateToProps(state, props) {
     };
     const defaultTemplate = defaultTemplateObj.template;
     if (defaultTemplate) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTemplate' does not exist on type... Remove this comment to see the full error message
         initialValues.incidentTemplate = defaultTemplate._id;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type '{ inciden... Remove this comment to see the full error message
         initialValues.title = defaultTemplate.title;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{ i... Remove this comment to see the full error message
         initialValues.description = defaultTemplate.description;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
         initialValues.incidentPriority =
             defaultTemplate.incidentPriority._id ||
             defaultTemplate.incidentPriority;
@@ -1030,7 +1117,7 @@ function mapStateToProps(state, props) {
     };
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             createNewIncident,

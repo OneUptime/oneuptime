@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -11,13 +13,15 @@ import { bindActionCreators } from 'redux';
 import { deleteAccount } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import { teamLoading, subProjectTeamLoading } from '../../actions/team';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import { trim } from 'lodash';
 import { IS_SAAS_SERVICE } from '../../config';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.name)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         errors.name = 'This field cannot be empty';
     }
     return errors;
@@ -37,63 +41,69 @@ class DeleteAccount extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('btn_confirm_delete').click();
             default:
                 return false;
         }
     };
 
-    ownProjects = userId => {
+    ownProjects = (userId: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
         const { projects } = this.props;
-        return projects.filter(project => {
+        return projects.filter((project: $TSFixMe) => {
             return project.users.find(
-                user =>
-                    user.userId === userId &&
-                    user.role === 'Owner' &&
-                    project.users.length > 1
+                (user: $TSFixMe) => user.userId === userId &&
+                user.role === 'Owner' &&
+                project.users.length > 1
             );
         });
     };
 
-    projectsWithoutMultipleOwners = userId => {
+    projectsWithoutMultipleOwners = (userId: $TSFixMe) => {
         const projects = this.ownProjects(userId);
-        return projects.filter(project => {
+        return projects.filter((project: $TSFixMe) => {
             const otherOwner = project.users.find(
-                user => user.userId !== userId && user.role === 'Owner'
+                (user: $TSFixMe) => user.userId !== userId && user.role === 'Owner'
             );
             return otherOwner ? false : true;
         });
     };
 
-    renderOwnProjects = userId => {
+    renderOwnProjects = (userId: $TSFixMe) => {
         const projects = this.projectsWithoutMultipleOwners(userId);
-        return projects.map(project => {
+        return projects.map((project: $TSFixMe) => {
             return <li key={project._id}>{project.name}</li>;
         });
     };
 
-    onChange = event => {
+    onChange = (event: $TSFixMe) => {
         const { value } = event.target;
         const deleteMyAccount =
             trim(value.toUpperCase()) === 'DELETE MY ACCOUNT' ? true : false;
         this.setState({ deleteMyAccount });
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
         const userId = this.props.profileSettings.data.id;
         values.deleteMyAccount = values.deleteMyAccount.toUpperCase();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteAccount' does not exist on type 'R... Remove this comment to see the full error message
         const promise = this.props.deleteAccount(userId, values);
 
         return promise;
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteAccountSetting' does not exist on ... Remove this comment to see the full error message
         const deleting = this.props.deleteAccountSetting.requesting;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
         const { profileSettings, handleSubmit, closeThisDialog } = this.props;
         const userId = profileSettings.data.id;
         const shouldRender =
@@ -191,6 +201,7 @@ class DeleteAccount extends Component {
                                                 <CancelBtn
                                                     closeThisDialog={
                                                         this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                                             .closeThisDialog
                                                     }
                                                 />
@@ -247,6 +258,7 @@ class DeleteAccount extends Component {
                                                             className={`bs-Button btn__modal`}
                                                             type="button"
                                                             onClick={() =>
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'logoutUser' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 this.props.logoutUser()
                                                             }
                                                             id="close"
@@ -341,6 +353,7 @@ class DeleteAccount extends Component {
                                                         <CancelBtn
                                                             closeThisDialog={
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                                                     .closeThisDialog
                                                             }
                                                         />
@@ -389,6 +402,7 @@ class DeleteAccount extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteAccount.displayName = 'DeleteAccount';
 
 const DeleteAccountForm = reduxForm({
@@ -396,6 +410,7 @@ const DeleteAccountForm = reduxForm({
     validate,
 })(DeleteAccount);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteAccount.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     deleteAccountSetting: PropTypes.shape({
@@ -417,7 +432,7 @@ DeleteAccount.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleteAccountSetting: state.profileSettings.deleteAccount,
         profileSettings: state.profileSettings.profileSetting,
@@ -426,15 +441,14 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { deleteAccount, logoutUser, teamLoading, subProjectTeamLoading },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { deleteAccount, logoutUser, teamLoading, subProjectTeamLoading },
+    dispatch
+);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteAccountForm);
 
-function CancelBtn(props) {
+function CancelBtn(props: $TSFixMe) {
     return (
         <button
             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"

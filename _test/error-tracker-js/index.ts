@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'oneuptime-staging' or its corr... Remove this comment to see the full error message
 import oneuptime from 'oneuptime-staging'
 
 // constructor
@@ -31,11 +32,13 @@ tracker.setTags([
 ]); // an array of tags
 
 // capturing error exception authomatically
+// @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'NonExistingMethodCall'.
 NonExistingMethodCall(); // this is authomatically captured and sent to your oneuptime dashboard
 
 // capturing error exception manually
 try {
     // your code logic
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'NonExistingMethodCall'.
     NonExistingMethodCall();
 } catch (error) {
     tracker.captureException(error);

@@ -15,8 +15,8 @@ const RenderField = ({
     id,
     disabled,
     initialValue,
-    style,
-}) => (
+    style
+}: $TSFixMe) => (
     <span>
         <span>
             <input

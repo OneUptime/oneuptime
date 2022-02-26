@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectTable from './SubProjectTable';
 import SubProjectForm from './SubProjectForm';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -15,7 +16,7 @@ import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
 
 export class SubProjects extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { subProjectModalId: uuidv4(), page: 1 };
     }
@@ -28,8 +29,10 @@ export class SubProjects extends Component {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
-    handleKeyboard = e => {
+    handleKeyboard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { modalId, modalList } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
         const { subProjectModalId } = this.state;
 
         if (e.target.localName === 'body' && e.key) {
@@ -51,26 +54,33 @@ export class SubProjects extends Component {
     };
 
     paginatePrev = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10);
         this.setState({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     paginateNext = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: this.state.page + 1 });
     };
 
     handleAddSubProject = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, openModal } = this.props;
         const userId = User.getUserId();
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
                   id: this.state.subProjectModalId,
                   content: DataPathHoC(SubProjectForm, {
+                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
                       subProjectModalId: this.state.subProjectModalId,
                       editSubProject: false,
                       subProjectId: null,
@@ -78,12 +88,15 @@ export class SubProjects extends Component {
                   }),
               })
             : openModal({
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
                   id: this.state.subProjectModalId,
+                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
                   content: DataPathHoC(Unauthorised),
               });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { limit, skip, count, subProjectState } = this.props;
         const { subProjects } = subProjectState;
         const canNext = count > skip + limit ? false : true;
@@ -179,9 +192,10 @@ export class SubProjects extends Component {
                                             {subProjects &&
                                             subProjects.length > 0
                                                 ? subProjects.map(
-                                                      (subProject, i) => {
+                                                      (subProject: $TSFixMe, i: $TSFixMe) => {
                                                           return (
                                                               <SubProjectTable
+                                                                  // @ts-expect-error ts-migrate(2322) FIXME: Type '{ subProject: any; key: any; loop: any; }' i... Remove this comment to see the full error message
                                                                   subProject={
                                                                       subProject
                                                                   }
@@ -246,6 +260,7 @@ export class SubProjects extends Component {
                                         <span>
                                             {numbersOfPage > 0
                                                 ? `Page ${
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                       this.state.page
                                                   } of ${numbersOfPage} (${count} Sub Project${
                                                       count === 1 ? '' : 's'
@@ -307,8 +322,10 @@ export class SubProjects extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubProjects.displayName = 'SubProjects';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubProjects.propTypes = {
     count: PropTypes.number,
     currentProject: PropTypes.object,
@@ -321,14 +338,14 @@ SubProjects.propTypes = {
     modalList: PropTypes.array,
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { openModal, closeModal, getSubProjects },
         dispatch
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     let skip =
         state.subProject.subProjects && state.subProject.subProjects.skip
             ? state.subProject.subProjects.skip

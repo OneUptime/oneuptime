@@ -7,18 +7,18 @@ import IncidentList from '../incident/IncidentList';
 import DataPathHoC from '../DataPathHoC';
 import DropDownMenu from '../basic/DropDownMenu';
 
-const IncidentProjectBox = props => {
+const IncidentProjectBox = (props: $TSFixMe) => {
     const [incidents, setIncidents] = useState({});
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [filterOption, setFilterOption] = useState('Filter By');
     const [isFiltered, setIsFiltered] = useState(false);
 
-    const filterIncidentLogs = status => {
+    const filterIncidentLogs = (status: $TSFixMe) => {
         const unFilteredIncidents = props.subProjectIncident;
-        const filtered = [];
+        const filtered: $TSFixMe = [];
         switch (status) {
             case 'unacknowledged':
-                unFilteredIncidents.incidents.forEach(incident => {
+                unFilteredIncidents.incidents.forEach((incident: $TSFixMe) => {
                     if (!incident.acknowledged) {
                         filtered.push(incident);
                     }
@@ -27,7 +27,7 @@ const IncidentProjectBox = props => {
                 setFilteredIncidents(filtered);
                 break;
             case 'unresolved':
-                unFilteredIncidents.incidents.forEach(incident => {
+                unFilteredIncidents.incidents.forEach((incident: $TSFixMe) => {
                     if (!incident.resolved) {
                         filtered.push(incident);
                     }
@@ -43,7 +43,7 @@ const IncidentProjectBox = props => {
     };
 
     useEffect(() => {
-        const handleKeyboard = event => {
+        const handleKeyboard = (event: $TSFixMe) => {
             const { modalList, allProjectLength } = props;
 
             if (allProjectLength === 1) {
@@ -53,6 +53,7 @@ const IncidentProjectBox = props => {
                         case 'n':
                             if (modalList.length === 0) {
                                 event.preventDefault();
+                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                                 return document
                                     .getElementById(
                                         `btnCreateIncident_${props.subProjectName}`
@@ -127,7 +128,7 @@ const IncidentProjectBox = props => {
                                         },
                                     ]}
                                     value={filterOption}
-                                    updateState={val => {
+                                    updateState={(val: $TSFixMe) => {
                                         switch (val) {
                                             case 'Unacknowledged':
                                                 setFilterOption(

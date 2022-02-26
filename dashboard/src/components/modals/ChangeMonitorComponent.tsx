@@ -2,7 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal, openModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,13 +16,14 @@ import { history } from '../../store';
 
 import MessageBox from '../modals/MessageBox';
 import DataPathHoC from '../DataPathHoC';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { addCurrentComponent } from '../../actions/component';
 
 const formName = 'changeMonitorComponentForm';
 
 class ChangeMonitorComponent extends React.Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             changeMonitorSuccessMessageBoxId: uuidv4(),
@@ -34,8 +37,10 @@ class ChangeMonitorComponent extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    showSuccessMessageBox = async newComponent => {
+    showSuccessMessageBox = async (newComponent: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         this.props.openModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorSuccessMessageBoxId' does n... Remove this comment to see the full error message
             id: this.state.changeMonitorSuccessMessageBoxId,
             content: DataPathHoC(MessageBox, {
                 message: `Monitor component successfully changed to ${newComponent.name}`,
@@ -44,8 +49,10 @@ class ChangeMonitorComponent extends React.Component {
         });
     };
 
-    handleMonitorComponentChanged = async monitor => {
+    handleMonitorComponentChanged = async (monitor: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentModalId' does not ... Remove this comment to see the full error message
             id: this.state.changeMonitorComponentModalId,
         });
         const newComponent = monitor.componentId;
@@ -53,11 +60,12 @@ class ChangeMonitorComponent extends React.Component {
 
         // get component from component list
         let componentWithProjects;
-        this.props.components.find(subCompo => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
+        this.props.components.find((subCompo: $TSFixMe) => {
             const belongsToProject = subCompo._id === projectId;
             if (!belongsToProject) return false;
 
-            return subCompo.components.find(compo => {
+            return subCompo.components.find((compo: $TSFixMe) => {
                 if (compo._id === newComponent._id) {
                     componentWithProjects = compo;
                     return true;
@@ -67,6 +75,7 @@ class ChangeMonitorComponent extends React.Component {
             });
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCurrentComponent' does not exist on t... Remove this comment to see the full error message
         this.props.addCurrentComponent(componentWithProjects);
 
         this.showSuccessMessageBox(newComponent);
@@ -75,7 +84,8 @@ class ChangeMonitorComponent extends React.Component {
         return;
     };
 
-    handleRedirectOnSuccess = async monitor => {
+    handleRedirectOnSuccess = async (monitor: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject } = this.props;
         const { slug, componentId: newComponent } = monitor;
 
@@ -84,13 +94,15 @@ class ChangeMonitorComponent extends React.Component {
         return history.push(redirectTo);
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data, changeMonitorComponent } = this.props;
         const projectId = data.monitor.projectId;
         const monitorId = data.monitor._id;
         const { newComponentId } = values;
         changeMonitorComponent(projectId, monitorId, newComponentId).then(
-            response => {
+            (response: $TSFixMe) => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentError' does not ex... Remove this comment to see the full error message
                 if (!this.props.changeMonitorComponentError) {
                     this.handleMonitorComponentChanged(response.data);
                 }
@@ -98,11 +110,12 @@ class ChangeMonitorComponent extends React.Component {
         );
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document
                     .getElementById('changeMonitorComponentButton')
                     .click();
@@ -112,18 +125,26 @@ class ChangeMonitorComponent extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentModalId' does not ... Remove this comment to see the full error message
             id: this.props.changeMonitorComponentModalId,
         });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentError' does not ex... Remove this comment to see the full error message
             changeMonitorComponentError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
             components,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
         } = this.props;
 
@@ -133,6 +154,7 @@ class ChangeMonitorComponent extends React.Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -199,8 +221,8 @@ class ChangeMonitorComponent extends React.Component {
                                                                 components={components
                                                                     .reduce(
                                                                         (
-                                                                            result,
-                                                                            component
+                                                                            result: $TSFixMe,
+                                                                            component: $TSFixMe
                                                                         ) => {
                                                                             if (
                                                                                 component._id ===
@@ -217,9 +239,8 @@ class ChangeMonitorComponent extends React.Component {
                                                                         []
                                                                     )
                                                                     .filter(
-                                                                        component =>
-                                                                            component._id !==
-                                                                            oldComponentId
+                                                                        (component: $TSFixMe) => component._id !==
+                                                                        oldComponentId
                                                                     )}
                                                                 validate={
                                                                     ValidateField.select
@@ -267,6 +288,7 @@ class ChangeMonitorComponent extends React.Component {
                                             onClick={() =>
                                                 closeModal({
                                                     id: this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentModalId' does not ... Remove this comment to see the full error message
                                                         .changeMonitorComponentModalId,
                                                 })
                                             }
@@ -303,8 +325,10 @@ class ChangeMonitorComponent extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ChangeMonitorComponent.displayName = 'ChangeMonitorComponent';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ChangeMonitorComponent.propTypes = {
     closeModal: PropTypes.func.isRequired,
     openModal: PropTypes.func,
@@ -325,18 +349,17 @@ const ChangeMonitorComponentForm = reduxForm({
     destroyOnUnmount: true,
 })(ChangeMonitorComponent);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            changeMonitorComponent,
-            closeModal,
-            openModal,
-            addCurrentComponent,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        changeMonitorComponent,
+        closeModal,
+        openModal,
+        addCurrentComponent,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         components: state.component.componentList.components,
         requesting: state.monitor.changeMonitorComponent.requesting,

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { RenderIfAdmin } from '../basic/RenderIfAdmin';
 import ShouldRender from '../basic/ShouldRender';
@@ -27,19 +28,25 @@ class TrackerInfo extends Component {
 
     toggleConfirmationBox = () => {
         this.setState(state => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmBoxHidden' does not exist on type... Remove this comment to see the full error message
             confirmBoxHidden: !state.confirmBoxHidden,
         }));
     };
     changeAPIKeyVisualState = () => {
         this.setState(state => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hidden' does not exist on type 'Readonly... Remove this comment to see the full error message
             hidden: !state.hidden,
         }));
     };
     handleReset = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPerformanceTrackerKey' does not exi... Remove this comment to see the full error message
             resetPerformanceTrackerKey,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerObj' does not exist on type 'Read... Remove this comment to see the full error message
             trackerObj,
         } = this.props;
         const { currentProject, performanceTracker } = data;
@@ -53,7 +60,8 @@ class TrackerInfo extends Component {
             }
         });
     };
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         const { closeModal } = this.props;
 
         switch (e.key) {
@@ -73,6 +81,7 @@ class TrackerInfo extends Component {
 
     render() {
         const { hidden } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data, closeModal, trackerObj } = this.props;
         const { currentProject, performanceTracker } = data;
         return (
@@ -357,8 +366,10 @@ class TrackerInfo extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 TrackerInfo.displayName = 'TrackerInfo';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TrackerInfo.propTypes = {
     data: PropTypes.object,
     closeModal: PropTypes.func,
@@ -366,14 +377,13 @@ TrackerInfo.propTypes = {
     resetPerformanceTrackerKey: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         trackerObj: state.performanceTracker.resetPerformanceTrackerKey,
         data: state.modal.modals[0],
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ resetPerformanceTrackerKey, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ resetPerformanceTrackerKey, closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(TrackerInfo);

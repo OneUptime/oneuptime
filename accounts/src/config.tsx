@@ -1,7 +1,10 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'sane... Remove this comment to see the full error message
 import isEmail from 'sane-email-validation';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
 import validUrl from 'valid-url';
 import valid from 'card-validator';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'file... Remove this comment to see the full error message
 import FileSaver from 'file-saver';
 // import { emaildomains } from './constants/emaildomains';
 
@@ -29,7 +32,8 @@ if (
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
 }
 
-export function env(value) {
+export function env(value: $TSFixMe) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -56,7 +60,7 @@ export const User = {
         return localStorage.getItem('access_token');
     },
 
-    setAccessToken(token) {
+    setAccessToken(token: $TSFixMe) {
         localStorage.setItem('access_token', token);
     },
 
@@ -64,11 +68,11 @@ export const User = {
         return localStorage.getItem('cardRegistered');
     },
 
-    setCardRegistered(value) {
+    setCardRegistered(value: $TSFixMe) {
         localStorage.setItem('cardRegistered', value);
     },
 
-    setUserId(id) {
+    setUserId(id: $TSFixMe) {
         localStorage.setItem('id', id);
     },
 
@@ -80,7 +84,7 @@ export const User = {
         return localStorage.getItem('name');
     },
 
-    setName(name) {
+    setName(name: $TSFixMe) {
         localStorage.setItem('name', name);
     },
 
@@ -88,7 +92,7 @@ export const User = {
         return localStorage.getItem('email');
     },
 
-    setEmail(email) {
+    setEmail(email: $TSFixMe) {
         localStorage.setItem('email', email);
     },
 
@@ -96,11 +100,11 @@ export const User = {
         return sessionStorage.getItem('initialUrl');
     },
 
-    setInitialUrl(url) {
+    setInitialUrl(url: $TSFixMe) {
         sessionStorage.setItem('initialUrl', url);
     },
 
-    setProject(project) {
+    setProject(project: $TSFixMe) {
         localStorage.setItem('project', project);
     },
 
@@ -131,15 +135,15 @@ export const User = {
 
 //Data validation Util goes in here.
 export const Validate = {
-    isDomain(domain) {
+    isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
 
-    url(url) {
+    url(url: $TSFixMe) {
         return validUrl.isUri(url);
     },
 
-    text(text) {
+    text(text: $TSFixMe) {
         if (!text || text.trim() === '') {
             return false;
         }
@@ -147,7 +151,7 @@ export const Validate = {
         return true;
     },
 
-    number(number) {
+    number(number: $TSFixMe) {
         if (number && number.length && !isNaN(number)) {
             return true;
         } else {
@@ -155,36 +159,36 @@ export const Validate = {
         }
     },
 
-    isValidNumber(number) {
+    isValidNumber(number: $TSFixMe) {
         if (number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-s./0-9]*$')) {
             return true;
         }
         return false;
     },
 
-    isStrongPassword(password) {
+    isStrongPassword(password: $TSFixMe) {
         if (password.match('^(?=.{8,})')) {
             return true;
         }
         return false;
     },
 
-    email(email) {
+    email(email: $TSFixMe) {
         if (this.text(email)) return isEmail(email);
         return false;
     },
 
     //eslint-disable-next-line
-    isValidBusinessEmail(email) {
+    isValidBusinessEmail(email: $TSFixMe) {
         //return emaildomains.test(email);
         return true;
     },
 
-    compare(text1, text2) {
+    compare(text1: $TSFixMe, text2: $TSFixMe) {
         return text1 === text2;
     },
 
-    card(cardNumber) {
+    card(cardNumber: $TSFixMe) {
         const numberValidation = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -194,7 +198,7 @@ export const Validate = {
         return true;
     },
 
-    cardExpiration(expiry) {
+    cardExpiration(expiry: $TSFixMe) {
         const numberValidation = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -204,7 +208,7 @@ export const Validate = {
         return true;
     },
 
-    cvv(cvv) {
+    cvv(cvv: $TSFixMe) {
         const numberValidation = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -214,7 +218,7 @@ export const Validate = {
         return true;
     },
 
-    postalCode(postalCode) {
+    postalCode(postalCode: $TSFixMe) {
         const numberValidation = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
@@ -224,7 +228,7 @@ export const Validate = {
         return true;
     },
 
-    isValidName(name) {
+    isValidName(name: $TSFixMe) {
         if (name.match('[A-Z][a-zA-Z][^#&<>"~;$^%{}?]{1,20}$')) {
             return true;
         }
@@ -330,7 +334,7 @@ export const PricingPlan = {
         }
     },
 
-    getPlanById(id) {
+    getPlanById(id: $TSFixMe) {
         const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];
@@ -409,7 +413,7 @@ export const tutorials = {
     },
 };
 
-export function getQueryVar(variable, url) {
+export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -419,7 +423,7 @@ export function getQueryVar(variable, url) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export function saveFile(content, filename) {
+export function saveFile(content: $TSFixMe, filename: $TSFixMe) {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }

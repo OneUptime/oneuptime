@@ -1,6 +1,8 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators, compose } from 'redux';
@@ -13,17 +15,19 @@ import DataPathHoC from '../DataPathHoC';
 import ChangeMonitorComponent from '../modals/ChangeMonitorComponent';
 
 class MonitorViewChangeComponentBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             changeMonitorComponentModalId: uuidv4(),
         };
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentModalId' does not ... Remove this comment to see the full error message
                     id: this.state.changeMonitorComponentModalId,
                 });
             default:
@@ -34,15 +38,22 @@ class MonitorViewChangeComponentBox extends Component {
     render() {
         let changingComponent = false;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.monitorState &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.monitorState.changeMonitorComponent &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.monitorState.changeMonitorComponent ===
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                 this.props.monitor._id
         ) {
             changingComponent = true;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeMonitorComponentModalId' does not ... Remove this comment to see the full error message
         const { changeMonitorComponentModalId } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
         const oldComponentId = this.props.monitor.componentId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
         const newComponent = this.props.component;
         return (
             <div
@@ -71,8 +82,10 @@ class MonitorViewChangeComponentBox extends Component {
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         disabled={changingComponent}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                         id={`change-component-${this.props.monitor.name}`}
                                         onClick={() => {
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.openModal({
                                                 id: changeMonitorComponentModalId,
                                                 onClose: () => '',
@@ -80,10 +93,12 @@ class MonitorViewChangeComponentBox extends Component {
                                                     ChangeMonitorComponent,
                                                     {
                                                         monitor: this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                             .monitor,
                                                         oldComponentId,
                                                         newComponent,
                                                         component: this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
                                                             .component,
                                                     }
                                                 ),
@@ -107,19 +122,19 @@ class MonitorViewChangeComponentBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorViewChangeComponentBox.displayName = 'MonitorViewChangeComponentBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { openModal, closeModal, changeMonitorComponent, addCurrentComponent },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { openModal, closeModal, changeMonitorComponent, addCurrentComponent },
+    dispatch
+);
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
+    state.component.componentList.components.forEach((item: $TSFixMe) => {
+        item.components.forEach((c: $TSFixMe) => {
             if (String(c.slug) === String(componentSlug)) {
                 component = c;
             }
@@ -133,6 +148,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorViewChangeComponentBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,

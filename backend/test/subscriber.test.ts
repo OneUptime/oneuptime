@@ -1,10 +1,13 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 chai.use(require('chai-http'));
 import app from '../server'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import GlobalConfig from './utils/globalConfig'
 import UserService from '../backend/services/userService'
@@ -20,13 +23,13 @@ import VerificationTokenModel from '../backend/models/verificationToken'
 import ComponentModel from '../backend/models/component'
 import ComponentService from '../backend/services/componentService'
 
-let projectId,
+let projectId: $TSFixMe,
     userId,
-    monitorId,
-    token,
-    subscriberId,
-    statusPageId,
-    componentId;
+    monitorId: $TSFixMe,
+    token: $TSFixMe,
+    subscriberId: $TSFixMe,
+    statusPageId: $TSFixMe,
+    componentId: $TSFixMe;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -52,19 +55,21 @@ const csvData = {
     ],
 };
 
-describe('Subscriber API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('Subscriber API', function(this: $TSFixMe) {
     this.timeout(20000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
@@ -76,7 +81,7 @@ describe('Subscriber API', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -90,7 +95,7 @@ describe('Subscriber API', function() {
                                                 ...monitor,
                                                 componentId,
                                             })
-                                            .end(function(err, res) {
+                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
                                                 monitorId = res.body._id;
                                                 expect(
                                                     res.body.name
@@ -114,7 +119,7 @@ describe('Subscriber API', function() {
                                                         projectId,
                                                         monitorIds: [monitorId],
                                                     })
-                                                    .end(function(err, res) {
+                                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
                                                         statusPageId =
                                                             res.body._id;
                                                         expect(
@@ -131,6 +136,7 @@ describe('Subscriber API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -151,7 +157,8 @@ describe('Subscriber API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should register subscriber with valid monitorIds and contact email or phone number', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should register subscriber with valid monitorIds and contact email or phone number', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${statusPageId}`)
             .send({
@@ -163,7 +170,7 @@ describe('Subscriber API', function() {
                     method: 'email',
                 },
             })
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 subscriberId = res.body[0]._id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
@@ -174,20 +181,22 @@ describe('Subscriber API', function() {
             });
     });
 
-    it('should not register subscriber without contact email or phone number', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not register subscriber without contact email or phone number', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${statusPageId}`)
             .send({
                 monitorIds: monitorId,
             })
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should get list of subscribers to a project', done => {
-        request.get(`/subscriber/${projectId}`).end((err, res) => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get list of subscribers to a project', (done: $TSFixMe) => {
+        request.get(`/subscriber/${projectId}`).end((err: $TSFixMe, res: $TSFixMe) => {
             expect(res).to.have.status(200);
             expect(res.body).to.be.an('object');
             expect(res.body).to.have.property('data');
@@ -196,10 +205,11 @@ describe('Subscriber API', function() {
         });
     });
 
-    it('should get list of subscribers to a monitorId', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get list of subscribers to a monitorId', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/monitor/${monitorId}`)
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -208,32 +218,35 @@ describe('Subscriber API', function() {
             });
     });
 
-    it('should get a subscriber', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get a subscriber', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/${subscriberId}`)
-            .end((err, res) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
             });
     });
 
-    it('should delete a subscriber', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete a subscriber', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/subscriber/${projectId}/${subscriberId}`)
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('Should upload subscribers from a csv file', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should upload subscribers from a csv file', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err, res) => {
+            .end((_err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.lengthOf(2);
                 expect(res.body[0]).to.have.property('_id');
@@ -242,11 +255,12 @@ describe('Subscriber API', function() {
             });
     });
 
-    it('Should not register subscriber twice on the same monitor', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should not register subscriber twice on the same monitor', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err, res) => {
+            .end((_err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body[0]).to.not.have.property('_id');
                 expect(res.body[0]).to.not.have.property('projectId');
@@ -254,7 +268,8 @@ describe('Subscriber API', function() {
             });
     });
 
-    it('Should ignore exisiting subscribers and register only new subscribers from the svc file', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should ignore exisiting subscribers and register only new subscribers from the svc file', (done: $TSFixMe) => {
         csvData.data.push({
             alertVia: 'sms',
             contactEmail: '',
@@ -265,7 +280,7 @@ describe('Subscriber API', function() {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err, res) => {
+            .end((_err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body[0]).to.not.have.property('_id');
                 expect(res.body[0]).to.not.have.property('projectId');
@@ -277,12 +292,13 @@ describe('Subscriber API', function() {
             });
     });
 
-    it('Should not register subscribers if scv file is blank', done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should not register subscribers if scv file is blank', (done: $TSFixMe) => {
         csvData.data = [];
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err, res) => {
+            .end((_err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('Empty files submitted');
                 done();

@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import * as _ from 'lodash';
 
 import AuditLogsList from '../components/auditLogs/AuditLogsList';
@@ -11,11 +12,13 @@ import {
     fetchAuditLogStatus,
 } from '../actions/auditLogs';
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
 class AuditLogs extends React.Component {
-    constructor(props) {
+    handleKeyBoard: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
 
         this.state = {
@@ -24,8 +27,10 @@ class AuditLogs extends React.Component {
         };
     }
 
-    prevClicked = (skip, limit) => {
+    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchBox' does not exist on type 'Reado... Remove this comment to see the full error message
         const { searchBox } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAuditLogs' does not exist on type '... Remove this comment to see the full error message
         const { fetchAuditLogs, searchAuditLogs } = this.props;
 
         if (searchBox && searchBox !== '') {
@@ -37,11 +42,14 @@ class AuditLogs extends React.Component {
         } else {
             fetchAuditLogs((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
-    nextClicked = (skip, limit) => {
+    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchBox' does not exist on type 'Reado... Remove this comment to see the full error message
         const { searchBox } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAuditLogs' does not exist on type '... Remove this comment to see the full error message
         const { fetchAuditLogs, searchAuditLogs } = this.props;
 
         if (searchBox && searchBox !== '') {
@@ -49,16 +57,20 @@ class AuditLogs extends React.Component {
         } else {
             fetchAuditLogs(skip + limit, 10);
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: this.state.page + 1 });
     };
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAuditLogs' does not exist on type '... Remove this comment to see the full error message
         this.props.fetchAuditLogs();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAuditLogStatus' does not exist on t... Remove this comment to see the full error message
         this.props.fetchAuditLogStatus();
     }
 
-    onChange = e => {
+    onChange = (e: $TSFixMe) => {
         const value = e.target.value;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchAuditLogs' does not exist on type ... Remove this comment to see the full error message
         const { searchAuditLogs } = this.props;
 
         this.setState({ searchBox: value });
@@ -67,6 +79,7 @@ class AuditLogs extends React.Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogStatus' does not exist on type '... Remove this comment to see the full error message
         const { auditLogStatus } = this.props;
         return (
             <div
@@ -138,6 +151,7 @@ class AuditLogs extends React.Component {
                                                     }
                                                 >
                                                     <AlertPanel
+                                                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                                                         className=""
                                                         message={
                                                             <span id="auditLogDisabled">
@@ -162,13 +176,18 @@ class AuditLogs extends React.Component {
                                             </div>
                                         </div>
                                         <AuditLogsList
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ auditLogs: any; prevClicked: (skip: any, l... Remove this comment to see the full error message
                                             auditLogs={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 this.props.auditLogs || {}
                                             }
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
                                             userId={this.props.userId}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                             requesting={this.props.requesting}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                             page={this.state.page}
                                         />
                                     </div>
@@ -182,9 +201,10 @@ class AuditLogs extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AuditLogs.displayName = 'AuditLogs';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchAuditLogs,
@@ -195,7 +215,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const auditLogs = state.auditLogs.auditLogs;
     const searchAuditLogs = state.auditLogs.searchAuditLogs;
     const requesting =
@@ -214,6 +234,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AuditLogs.propTypes = {
     fetchAuditLogs: PropTypes.func.isRequired,
     searchAuditLogs: PropTypes.func.isRequired,

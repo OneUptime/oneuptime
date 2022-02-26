@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -11,12 +12,13 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { formatDecimal, formatBytes } from '../../config';
 import ShouldRender from '../../components/basic/ShouldRender';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'to-p... Remove this comment to see the full error message
 import toPascalCase from 'to-pascal-case';
 import ViewScriptLogs from '../modals/ViewScriptLogs';
 import { updatemonitorlogbysocket } from '../../actions/socket';
 
 export class MonitorLogsList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             viewJsonModalId: uuidv4(),
@@ -33,6 +35,7 @@ export class MonitorLogsList extends Component {
         // socket.removeListener(`updateMonitorLog-${this.props.projectId}`);
     }
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorLogs' does not exist on type 'Rea... Remove this comment to see the full error message
         const { monitorLogs } = this.props;
         let skip = monitorLogs && monitorLogs.skip ? monitorLogs.skip : null;
         let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
@@ -67,9 +70,12 @@ export class MonitorLogsList extends Component {
                     <table className="Table">
                         <thead className="Table-body">
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                 {this.props.monitorType &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                 this.props.monitorType === 'server-monitor' ? (
                                     <>
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentless' does not exist on type 'Reado... Remove this comment to see the full error message
                                         <ShouldRender if={this.props.agentless}>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -147,6 +153,7 @@ export class MonitorLogsList extends Component {
                                         </td>
                                         <td
                                             id="overflow"
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                             type="action"
                                             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
@@ -170,8 +177,10 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType &&
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType !==
                                                                 'incomingHttpRequest'
                                                         }
@@ -181,8 +190,10 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType &&
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType ===
                                                                 'incomingHttpRequest'
                                                         }
@@ -207,11 +218,15 @@ export class MonitorLogsList extends Component {
                                         </td>
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.monitorType &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.monitorType !==
                                                     'incomingHttpRequest' &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.monitorType !==
                                                     'kubernetes' &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.monitorType !==
                                                     'script'
                                             }
@@ -241,7 +256,9 @@ export class MonitorLogsList extends Component {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.monitorType &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                 this.props.monitorType ===
                                                     'script'
                                             }
@@ -287,26 +304,31 @@ export class MonitorLogsList extends Component {
                             {monitorLogs &&
                             monitorLogs.logs &&
                             monitorLogs.logs.length > 0 ? (
-                                monitorLogs.logs.map((log, i) => {
+                                monitorLogs.logs.map((log: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <tr
                                             id={`monitor_log_${
                                                 log.monitorId &&
                                                 log.monitorId.name
                                                     ? log.monitorId.name
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                     : this.props.monitorName
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                     ? this.props.monitorName
                                                     : 'Unknown Monitor'
                                             }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                             {this.props.monitorType &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                             this.props.monitorType ===
                                                 'server-monitor' ? (
                                                 <>
                                                     <ShouldRender
                                                         if={
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentless' does not exist on type 'Reado... Remove this comment to see the full error message
                                                             this.props.agentless
                                                         }
                                                     >
@@ -449,6 +471,7 @@ export class MonitorLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log.cpuLoad
+                                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                                                                                                 ? formatDecimal(
                                                                                                       log.cpuLoad,
                                                                                                       2
@@ -481,6 +504,7 @@ export class MonitorLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log.memoryUsed
+                                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                                                                                 ? formatBytes(
                                                                                                       log.memoryUsed
                                                                                                   )
@@ -511,6 +535,7 @@ export class MonitorLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log.storageUsage
+                                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                                                                                                 ? formatDecimal(
                                                                                                       log.storageUsage,
                                                                                                       2
@@ -581,24 +606,29 @@ export class MonitorLogsList extends Component {
                                                                                         className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                                                         type="button"
                                                                                         onClick={() =>
+                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                                             this.props.openModal(
                                                                                                 {
                                                                                                     id: this
                                                                                                         .state
+                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
                                                                                                         .viewJsonModalId,
                                                                                                     content: DataPathHoC(
                                                                                                         ViewJsonLogs,
                                                                                                         {
                                                                                                             viewJsonModalId: this
                                                                                                                 .state
+                                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
                                                                                                                 .viewJsonModalId,
                                                                                                             jsonLog: log,
                                                                                                             title: `Monitor Log for ${
                                                                                                                 this
                                                                                                                     .props
+                                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                                     .monitorName
                                                                                                                     ? this
                                                                                                                           .props
+                                                                                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                                           .monitorName
                                                                                                                     : log.monitorId &&
                                                                                                                       log
@@ -654,6 +684,7 @@ export class MonitorLogsList extends Component {
                                                                                   .probeName
                                                                             : this
                                                                                   .props
+                                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                   .monitorType &&
                                                                               [
                                                                                   'incomingHttpRequest',
@@ -661,6 +692,7 @@ export class MonitorLogsList extends Component {
                                                                               ].includes(
                                                                                   this
                                                                                       .props
+                                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                       .monitorType
                                                                               )
                                                                             ? 'OneUptime'
@@ -769,14 +801,18 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType &&
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType !==
                                                                 'incomingHttpRequest' &&
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType !==
                                                                 'kubernetes' &&
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType !==
                                                                 'script'
                                                         }
@@ -873,8 +909,10 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType &&
                                                             this.props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                 .monitorType ===
                                                                 'script'
                                                         }
@@ -994,6 +1032,7 @@ export class MonitorLogsList extends Component {
                                                                                         if={
                                                                                             this
                                                                                                 .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                 .monitorType ===
                                                                                             'script'
                                                                                         }
@@ -1010,16 +1049,19 @@ export class MonitorLogsList extends Component {
                                                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                                                             type="button"
                                                                                             onClick={() =>
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                                                 this.props.openModal(
                                                                                                     {
                                                                                                         id: this
                                                                                                             .state
+                                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewScriptLogModalId' does not exist on ... Remove this comment to see the full error message
                                                                                                             .viewScriptLogModalId,
                                                                                                         content: DataPathHoC(
                                                                                                             ViewScriptLogs,
                                                                                                             {
                                                                                                                 viewScriptLogModalId: this
                                                                                                                     .state
+                                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewScriptLogModalId' does not exist on ... Remove this comment to see the full error message
                                                                                                                     .viewScriptLogModalId,
                                                                                                                 consoleLogs:
                                                                                                                     log
@@ -1028,9 +1070,11 @@ export class MonitorLogsList extends Component {
                                                                                                                 title: `Console logs for "${
                                                                                                                     this
                                                                                                                         .props
+                                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                                         .monitorName
                                                                                                                         ? this
                                                                                                                               .props
+                                                                                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                                               .monitorName
                                                                                                                         : log.monitorId &&
                                                                                                                           log
@@ -1059,6 +1103,7 @@ export class MonitorLogsList extends Component {
                                                                                         if={
                                                                                             this
                                                                                                 .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                 .monitorType !==
                                                                                             'script'
                                                                                         }
@@ -1075,24 +1120,29 @@ export class MonitorLogsList extends Component {
                                                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                                                             type="button"
                                                                                             onClick={() =>
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                                                 this.props.openModal(
                                                                                                     {
                                                                                                         id: this
                                                                                                             .state
+                                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
                                                                                                             .viewJsonModalId,
                                                                                                         content: DataPathHoC(
                                                                                                             ViewJsonLogs,
                                                                                                             {
                                                                                                                 viewJsonModalId: this
                                                                                                                     .state
+                                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
                                                                                                                     .viewJsonModalId,
                                                                                                                 jsonLog: log,
                                                                                                                 title: `Monitor Log for ${
                                                                                                                     this
                                                                                                                         .props
+                                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                                         .monitorName
                                                                                                                         ? this
                                                                                                                               .props
+                                                                                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
                                                                                                                               .monitorName
                                                                                                                         : log.monitorId &&
                                                                                                                           log
@@ -1164,6 +1214,7 @@ export class MonitorLogsList extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
                                         ? `Page ${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                               this.props.page
                                           } of ${numberOfPages} (${
                                               count
@@ -1186,8 +1237,11 @@ export class MonitorLogsList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.prevClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.monitorId
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 ? this.props.monitorId
                                                 : null,
                                             skip,
@@ -1213,8 +1267,11 @@ export class MonitorLogsList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.nextClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.monitorId
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 ? this.props.monitorId
                                                 : null,
                                             skip,
@@ -1244,37 +1301,41 @@ export class MonitorLogsList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { openModal, closeModal, updatemonitorlogbysocket },
         dispatch
     );
 };
 
-function mapStateToProps(state, props) {
+function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     const monitorId = props.monitorId ? props.monitorId : null;
     const monitorLogs = monitorId ? state.monitor.monitorLogs[monitorId] : {};
 
     if (monitorLogs && monitorLogs.logs) {
-        monitorLogs.logs = monitorLogs.logs.map(log => {
+        monitorLogs.logs = monitorLogs.logs.map((log: $TSFixMe) => {
             if (
                 log.kubernetesLog &&
                 Object.keys(log.kubernetesLog).length > 0
             ) {
                 const initialData = { ...log.kubernetesLog };
                 const newData = {};
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'podData' does not exist on type '{}'.
                 newData.podData = {
                     podStat: initialData.podData.podStat,
                     healthyPodData: initialData.podData.healthyPodData,
                     unhealthyPodData: initialData.podData.unhealthyPodData,
                     allPodData: initialData.podData.allPodData,
                 };
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'jobData' does not exist on type '{}'.
                 newData.jobData = {
                     jobStat: initialData.jobData.jobStat,
                     healthyJobData: initialData.jobData.healthyJobData,
                     unhealthyJobData: initialData.jobData.unhealthyJobData,
                 };
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'serviceData' does not exist on type '{}'... Remove this comment to see the full error message
                 newData.serviceData = initialData.serviceData;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deploymentData' does not exist on type '... Remove this comment to see the full error message
                 newData.deploymentData = {
                     desiredDeployment:
                         initialData.deploymentData.desiredDeployment,
@@ -1288,6 +1349,7 @@ function mapStateToProps(state, props) {
                     allDeploymentData:
                         initialData.deploymentData.allDeploymentData,
                 };
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statefulsetData' does not exist on type ... Remove this comment to see the full error message
                 newData.statefulsetData = {
                     readyStatefulsets:
                         initialData.statefulsetData.readyStatefulsets,
@@ -1314,8 +1376,10 @@ function mapStateToProps(state, props) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorLogsList.displayName = 'MonitorLogsList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorLogsList.propTypes = {
     monitorId: PropTypes.string,
     monitorLogs: PropTypes.object,

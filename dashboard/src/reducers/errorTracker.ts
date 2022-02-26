@@ -82,7 +82,7 @@ const INITIAL_STATE = {
     errorTrackerIssueMembers: {},
     deleteErrorTrackerIssue: false,
 };
-export default function errorTracker(state = INITIAL_STATE, action) {
+export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
     let temporaryIssues,
         temporaryErrorEvents,
         temporaryErrorTrackers,
@@ -181,10 +181,12 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case FETCH_ISSUES_FAILURE:
             temporaryIssues = {
                 ...state.errorTrackerIssues,
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 [action.payload.errorTrackerId]: state.errorTrackerIssues[
                     action.payload.errorTrackerId
                 ]
                     ? {
+                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           ...state.errorTrackerIssues[
                               action.payload.errorTrackerId
                           ],
@@ -213,8 +215,10 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case FETCH_ISSUES_REQUEST:
             temporaryIssues = {
                 ...state.errorTrackerIssues,
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 [action.payload]: state.errorTrackerIssues[action.payload]
                     ? {
+                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           ...state.errorTrackerIssues[action.payload],
                           requesting: true,
                       }
@@ -238,10 +242,12 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             // if it does, update the requesting
             temporaryErrorEvents = {
                 ...state.errorEvents,
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 [action.payload.errorEventId]: state.errorEvents[
                     action.payload.errorEventId
                 ]
                     ? {
+                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           ...state.errorEvents[action.payload.errorEventId],
                           requesting: true,
                       }
@@ -276,10 +282,12 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case FETCH_ERROR_EVENT_FAILURE:
             temporaryErrorEvents = {
                 ...state.errorEvents,
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 [action.payload.errorEventId]: state.errorEvents[
                     action.payload.errorEventId
                 ]
                     ? {
+                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           ...state.errorEvents[action.payload.errorEventId],
                           error: action.payload.error,
                       }
@@ -342,11 +350,16 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case EDIT_ERROR_TRACKER_SWITCH:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                     if (errorTracker._id === action.payload) {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
                         if (!errorTracker.editMode)
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
                             errorTracker.editMode = true;
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
                         else errorTracker.editMode = false;
                     } else {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
                         errorTracker.editMode = false;
                     }
                     return errorTracker;
@@ -369,7 +382,9 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case EDIT_ERROR_TRACKER_SUCCESS:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                     if (errorTracker._id === action.payload._id) {
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                         errorTracker = action.payload;
                     }
                     return errorTracker;
@@ -409,7 +424,9 @@ export default function errorTracker(state = INITIAL_STATE, action) {
         case RESET_ERROR_TRACKER_KEY_SUCCESS:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                     if (errorTracker._id === action.payload._id) {
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                         errorTracker = action.payload;
                     }
                     return errorTracker;
@@ -450,15 +467,17 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 },
             });
         case IGNORE_ERROR_EVENT_SUCCESS:
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 ? state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.ignoredIssues];
-            temporaryIssues.map(errorTrackerIssues => {
+            temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue = action.payload.ignoredIssues.filter(
-                    ignoredIssue => ignoredIssue._id === errorTrackerIssues._id
+                    (ignoredIssue: $TSFixMe) => ignoredIssue._id === errorTrackerIssues._id
                 );
 
                 if (issue && issue.length > 0) {
@@ -473,6 +492,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -522,16 +542,17 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
         case UNRESOLVE_ERROR_EVENT_SUCCESS:
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 ? state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.unresolvedIssues];
-            temporaryIssues.map(errorTrackerIssues => {
+            temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue = action.payload.unresolvedIssues.filter(
-                    unresolvedIssue =>
-                        unresolvedIssue._id === errorTrackerIssues._id
+                    (unresolvedIssue: $TSFixMe) => unresolvedIssue._id === errorTrackerIssues._id
                 );
 
                 if (issue && issue.length > 0) {
@@ -546,6 +567,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -595,16 +617,17 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
         case RESOLVE_ERROR_EVENT_SUCCESS:
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 ? state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.resolvedIssues];
-            temporaryIssues.map(errorTrackerIssues => {
+            temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue = action.payload.resolvedIssues.filter(
-                    resolvedIssue =>
-                        resolvedIssue._id === errorTrackerIssues._id
+                    (resolvedIssue: $TSFixMe) => resolvedIssue._id === errorTrackerIssues._id
                 );
 
                 if (issue && issue.length > 0) {
@@ -619,6 +642,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -672,6 +696,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
                     [action.payload.issueId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssueMembers[
                             action.payload.issueId
                         ],
@@ -687,6 +712,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
                     [action.payload.issueId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssueMembers[
                             action.payload.issueId
                         ],
@@ -702,6 +728,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
                     [action.payload.issueId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssueMembers[
                             action.payload.issueId
                         ],
@@ -713,9 +740,10 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 },
             });
         case UPDATE_ERROR_EVENT_MEMBER_SUCCESS:
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
-            ].errorTrackerIssues.map(issue => {
+            ].errorTrackerIssues.map((issue: $TSFixMe) => {
                 if (issue._id === action.payload.issueId) {
                     issue.members = action.payload.members;
                 }
@@ -725,6 +753,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -738,20 +767,22 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             });
         case NEW_ERROR_EVENT_SUCCESS:
             temporaryIssues =
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 state.errorTrackerIssues[
                     action.payload.errorEvent.errorTrackerId
                 ].errorTrackerIssues;
             temporaryIssue = temporaryIssues.filter(
-                issue => issue._id === action.payload.errorEvent.issueId
+                (issue: $TSFixMe) => issue._id === action.payload.errorEvent.issueId
             );
             // if issue exist
             if (
                 temporaryIssue.length > 0 &&
                 temporaryIssue[0].latestId !== action.payload.errorEvent._id
             ) {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 temporaryIssues = state.errorTrackerIssues[
                     action.payload.errorEvent.errorTrackerId
-                ].errorTrackerIssues.map(issue => {
+                ].errorTrackerIssues.map((issue: $TSFixMe) => {
                     if (issue._id === action.payload.errorEvent.issueId) {
                         issue = action.payload.issue;
                     }
@@ -759,6 +790,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 });
             } else if (temporaryIssue.length < 1) {
                 temporaryIssues = [action.payload.issue].concat(
+                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     state.errorTrackerIssues[
                         action.payload.errorEvent.errorTrackerId
                     ].errorTrackerIssues
@@ -769,6 +801,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorEvent.errorTrackerId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssues[
                             action.payload.errorEvent.errorTrackerId
                         ],
@@ -778,11 +811,14 @@ export default function errorTracker(state = INITIAL_STATE, action) {
             });
         case DELETE_ERROR_TRACKER_ISSUE_SUCCESS:
             temporaryIssues =
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 state.errorTrackerIssues[action.payload.errorTrackerId]
                     .errorTrackerIssues;
 
             temporaryIssues = temporaryIssues.filter(
-                ({ _id }) => _id !== action.payload._id
+                ({
+                    _id
+                }: $TSFixMe) => _id !== action.payload._id
             );
             return Object.assign({}, state, {
                 errorTrackerIssues: {
@@ -791,6 +827,7 @@ export default function errorTracker(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                     [action.payload.errorTrackerId]: {
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],

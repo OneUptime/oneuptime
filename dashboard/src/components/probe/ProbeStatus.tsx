@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-function ProbeStatus({ lastAlive, id }) {
+function ProbeStatus({
+    lastAlive,
+    id
+}: $TSFixMe) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
@@ -44,6 +47,7 @@ ProbeStatus.displayName = 'ProbeStatus';
 
 ProbeStatus.propTypes = {
     lastAlive: PropTypes.oneOfType([
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
         PropTypes.instanceOf(moment),
         PropTypes.string,
         PropTypes.object,

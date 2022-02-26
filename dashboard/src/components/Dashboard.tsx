@@ -8,10 +8,12 @@ import { getProjects } from '../actions/project';
 import CreateProjectModal from './project/CreateProjectModal';
 import UpgradePlanModal from './project/UpgradePlanModal';
 import DeleteProjectModal from './project/DeleteProjectModal';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import ShouldRender from './basic/ShouldRender';
 import ProfileMenu from './profile/ProfileMenu';
 import { showForm } from '../actions/project';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { hideProfileMenu } from '../actions/profile';
 import NotificationMenu from './notification/NotificationMenu';
@@ -27,12 +29,13 @@ import LoadingBar from 'react-top-loading-bar';
 
 export class DashboardApp extends Component {
     // eslint-disable-next-line
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { progress: 10 };
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { project, getProjects } = this.props;
 
         this.setState({ progress: 100 });
@@ -43,25 +46,31 @@ export class DashboardApp extends Component {
             project.projects.projects.length === 0 &&
             !project.projects.requesting
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             getProjects(this.props.projectId || null);
         }
     }
 
     showProjectForm = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showForm' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.showForm();
     };
 
     hideProfileMenu = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
         this.props.hideProfileMenu();
     };
     closeNotificationMenu = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeNotificationMenu' does not exist on... Remove this comment to see the full error message
         this.props.closeNotificationMenu();
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeNotificationMenu' does not exist on... Remove this comment to see the full error message
                 this.props.closeNotificationMenu();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
                 this.props.hideProfileMenu();
                 this.closeModal();
                 return true;
@@ -71,27 +80,32 @@ export class DashboardApp extends Component {
     };
 
     closeModal = () =>
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentModal' does not exist on type 'Re... Remove this comment to see the full error message
             id: this.props.currentModal ? this.props.currentModal.id : '',
         });
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
             project,
             children,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
             project: { currentProject },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notification' does not exist on type 'Re... Remove this comment to see the full error message
             notification: {
                 notifications: { notifications },
             },
         } = this.props;
         const projectId = currentProject ? currentProject._id : '';
         const incidentNotifications = notifications.filter(
-            notification =>
-                notification.read.length === 0 &&
-                notification.meta &&
-                notification.meta.type === 'Incident' &&
-                !notification.closed.includes(User.getUserId())
+            (notification: $TSFixMe) => notification.read.length === 0 &&
+            notification.meta &&
+            notification.meta.type === 'Incident' &&
+            !notification.closed.includes(User.getUserId())
         );
 
         const userProfile =
@@ -145,10 +159,13 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'progress' does not exist on type 'Readon... Remove this comment to see the full error message
                 <LoadingBar color="#000000" progress={this.state.progress} />
                 {userProfile && (
                     <BreadCrumbItem
+                        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                         route={profileFunc().route}
+                        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
                         name={profileFunc().name}
                     />
                 )}
@@ -159,10 +176,12 @@ export class DashboardApp extends Component {
                 <DeleteProjectModal />
 
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ visible: any; }' is not assignable to type... Remove this comment to see the full error message
                     <ProfileMenu visible={this.props.profile.menuVisible} />
                 </ClickOutside>
                 <ClickOutside onClickOutside={this.closeNotificationMenu}>
                     <NotificationMenu
+                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                         visible={this.props.notification.notificationsVisible}
                     />
                 </ClickOutside>
@@ -204,15 +223,19 @@ export class DashboardApp extends Component {
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
                                             <BreadCrumbs
                                                 styles="breadCrumbContainer Card-shadow--medium db-mb"
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pageName' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 name={this.props.pageName}
                                             />
                                             <ShouldRender
                                                 if={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'profile' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     this.props.profile
                                                         .profileSetting.data &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'profile' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     this.props.profile
                                                         .profileSetting.data
                                                         .email &&
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'profile' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     !this.props.profile
                                                         .profileSetting.data
                                                         .isVerified
@@ -341,6 +364,7 @@ export class DashboardApp extends Component {
                     }
                 >
                     <IncidentCreated
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ notifications: any; slug: any; }' is not a... Remove this comment to see the full error message
                         notifications={incidentNotifications}
                         slug={currentProject ? currentProject.slug : null}
                     />
@@ -350,8 +374,10 @@ export class DashboardApp extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DashboardApp.displayName = 'DashboardApp';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DashboardApp.propTypes = {
     project: PropTypes.object.isRequired,
     profile: PropTypes.object.isRequired,
@@ -368,30 +394,31 @@ DashboardApp.propTypes = {
     pageName: PropTypes.string,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     project: state.project,
     profile: state.profileSettings,
     projectId: state.project.currentProject && state.project.currentProject._id,
     notification: state.notifications,
+
     currentModal:
         state.modal.modals && state.modal.modals.length > 0
             ? state.modal.modals[state.modal.modals.length - 1]
             : null,
+
     switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-    pageName: state.page.title,
+    pageName: state.page.title
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            getProjects,
-            showForm,
-            hideProfileMenu,
-            closeNotificationMenu,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        getProjects,
+        showForm,
+        hideProfileMenu,
+        closeNotificationMenu,
+        closeModal,
+    },
+    dispatch
+);
 
 export default withRouter(
     connect(mapStateToProps, mapDispatchToProps)(DashboardApp)

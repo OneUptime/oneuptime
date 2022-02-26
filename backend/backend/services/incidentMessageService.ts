@@ -1,12 +1,18 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         let incidentMessage = new IncidentMessageModel();
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
         incidentMessage.content = data.content;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
         incidentMessage.incidentId = data.incidentId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         incidentMessage.createdById = data.createdById;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
         incidentMessage.type = data.type;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
         incidentMessage.incident_state = data.incident_state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'postOnStatusPage' does not exist on type... Remove this comment to see the full error message
         incidentMessage.postOnStatusPage = data.post_statuspage;
 
         incidentMessage = await incidentMessage.save();
@@ -29,6 +35,7 @@ export default {
             populate,
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'postOnStatusPage' does not exist on type... Remove this comment to see the full error message
         if (incidentMessage && incidentMessage.postOnStatusPage) {
             // run in the background
             RealTimeService.addIncidentNote(incidentMessage);
@@ -36,7 +43,7 @@ export default {
 
         return incidentMessage;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -66,7 +73,11 @@ export default {
         RealTimeService.updateIncidentNote(incidentMessage);
         return incidentMessage;
     },
-    async findOneBy({ query, populate, select }) {
+    async findOneBy({
+        query,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -80,7 +91,13 @@ export default {
         const incidentMessage = await incidentMessageQuery;
         return incidentMessage;
     },
-    findBy: async function({ query, skip, limit, populate, select }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -101,7 +118,7 @@ export default {
         const incidentMessages = await incidentMessagesQuery;
         return incidentMessages;
     },
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -111,7 +128,7 @@ export default {
 
         return count;
     },
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }

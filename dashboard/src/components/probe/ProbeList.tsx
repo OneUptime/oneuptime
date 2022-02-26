@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
@@ -12,55 +13,75 @@ import DataPathHoC from '../DataPathHoC';
 import { API_URL } from '../../config';
 
 export class ProbeList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { ProbeDetailModalId: uuidv4() };
     }
 
     render() {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList.skip &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             typeof this.props.probesList.skip === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList.skip = parseInt(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.probesList.skip,
                 10
             );
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList.limit &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             typeof this.props.probesList.limit === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList.limit = parseInt(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.probesList.limit,
                 10
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
         if (!this.props.probesList.skip) this.props.probesList.skip = 0;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
         if (!this.props.probesList.limit) this.props.probesList.limit = 0;
 
         let canNext =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList.count &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList.count >
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.probesList.skip + this.props.probesList.limit
                 ? true
                 : false;
         let canPrev =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList && this.props.probesList.skip <= 0
                 ? false
                 : true;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.probesList &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.probesList.requesting || !this.props.probesList.data)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages = Math.ceil(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
             parseInt(this.props.probesList && this.props.probesList.count) / 10
         );
         return (
@@ -130,18 +151,24 @@ export class ProbeList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                             {this.props.probesList &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                             this.props.probesList.data &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                             this.props.probesList.data.length ? (
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                 this.props.probesList.data.map(
-                                    (probesData, index) => (
+                                    (probesData: $TSFixMe, index: $TSFixMe) => (
                                         <tr
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                                             key={probesData._id}
                                             id={`probe_${index}`}
                                             onClick={() =>
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 this.props.openModal({
                                                     id: this.state
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ProbeDetailModalId' does not exist on ty... Remove this comment to see the full error message
                                                         .ProbeDetailModalId,
                                                     onClose: () => '',
                                                     content: DataPathHoC(
@@ -149,9 +176,11 @@ export class ProbeList extends Component {
                                                         {
                                                             ProbeDetailModalId: this
                                                                 .state
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'ProbeDetailModalId' does not exist on ty... Remove this comment to see the full error message
                                                                 .ProbeDetailModalId,
                                                             closeModal: this
                                                                 .props
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                                                                 .closeModal,
                                                             probesData,
                                                         }
@@ -191,6 +220,7 @@ export class ProbeList extends Component {
                                                                         '25px',
                                                                     marginRight:
                                                                         '10px',
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "0.3"' is not assignable to type 'Op... Remove this comment to see the full error message
                                                                     opacity:
                                                                         !probesData.probeImage &&
                                                                         '0.3',
@@ -295,6 +325,7 @@ export class ProbeList extends Component {
                         </tbody>
                     </table>
                 </div>
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                 {this.props.probesList && this.props.probesList.requesting ? (
                     <ListLoader />
                 ) : null}
@@ -306,14 +337,21 @@ export class ProbeList extends Component {
                         padding: '0 10px',
                     }}
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                     {this.props.probesList &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                     (!this.props.probesList.data ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                         !this.props.probesList.data.length) &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                     !this.props.probesList.requesting &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                     !this.props.probesList.error
                         ? 'Probes does not exist. Please contact admin to add one.'
                         : null}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                     {this.props.probesList && this.props.probesList.error
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                         ? this.props.probesList.error
                         : null}
                 </div>
@@ -322,15 +360,22 @@ export class ProbeList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                     {this.props.probesList &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                     this.props.probesList.count
                                         ? `Page ${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                               this.props.page
                                           } of ${numberOfPages} (${this.props
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                               .probesList &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                               this.props.probesList
                                                   .count} Probe${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                               this.props.probesList &&
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'probesList' does not exist on type 'Read... Remove this comment to see the full error message
                                               this.props.probesList.count === 1
                                                   ? ''
                                                   : 's'
@@ -344,6 +389,7 @@ export class ProbeList extends Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                     onClick={this.props.prevClicked}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -362,6 +408,7 @@ export class ProbeList extends Component {
                             </div>
                             <div className="Box-root">
                                 <button
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                     onClick={this.props.nextClicked}
                                     className={
                                         'Button bs-ButtonLegacy' +
@@ -386,18 +433,20 @@ export class ProbeList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         currentProject: state.project.currentProject,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ProbeList.displayName = 'ProbeList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ProbeList.propTypes = {
     probesList: PropTypes.object,
     skip: PropTypes.number,

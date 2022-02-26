@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update, save } from '../util/db'
 
 const monitorCollection = 'monitors';
@@ -28,6 +29,7 @@ async function run() {
         const query = {
             projectId,
         };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
         const incidents = await global.db
             .collection(incidentsCollection)
             .find(query)
@@ -52,6 +54,7 @@ async function run() {
         const query = {
             projectId: project._id,
         };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
         const incidentPriorities = await global.db
             .collection(incidentprioritiesCollection)
             .find(query)

@@ -2,18 +2,22 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { fetchAnnouncementLogs } from '../../actions/statusPage';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 import moment from 'moment';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { openModal } from '../../actions/modal';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAnnouncementLog from '../modals/DeleteAnnouncementLog';
 
 class AnnouncementLog extends Component {
-    constructor(props) {
+    deleteAnnouncement: $TSFixMe;
+    limit: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.limit = 10;
         this.state = {
@@ -21,11 +25,12 @@ class AnnouncementLog extends Component {
         };
     }
     async componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         await fetchAnnouncementLogs(projectId, statusPage._id, 0, this.limit);
     }
 
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'No monitor in this announcement';
         }
@@ -44,7 +49,8 @@ class AnnouncementLog extends Component {
         } and ${monitors.length - 2} others`;
     };
 
-    prevClicked = skip => {
+    prevClicked = (skip: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         fetchAnnouncementLogs(
             projectId,
@@ -54,7 +60,8 @@ class AnnouncementLog extends Component {
         );
     };
 
-    nextClicked = skip => {
+    nextClicked = (skip: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         fetchAnnouncementLogs(
             projectId,
@@ -66,13 +73,19 @@ class AnnouncementLog extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             logs: { announcementLogs, count, skip, limit },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             statusPage,
         } = this.props;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
@@ -143,7 +156,7 @@ class AnnouncementLog extends Component {
                                 </header>
                                 {announcementLogs &&
                                     announcementLogs.length > 0 &&
-                                    announcementLogs.map(log => {
+                                    announcementLogs.map((log: $TSFixMe) => {
                                         return (
                                             <div
                                                 key={`announcement-${log._id}`}
@@ -223,6 +236,7 @@ class AnnouncementLog extends Component {
                                                             marginLeft: 10,
                                                         }}
                                                         onClick={() =>
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                             this.props.openModal(
                                                                 {
                                                                     id: deleteModalId,
@@ -379,8 +393,10 @@ class AnnouncementLog extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AnnouncementLog.displayName = 'AnnouncementLog';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AnnouncementLog.propTypes = {
     fetchAnnouncementLogs: PropTypes.func,
     projectId: PropTypes.string,
@@ -391,13 +407,12 @@ AnnouncementLog.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     logs: state.statusPage.announcementLogs.logsList,
     requesting: state.statusPage.announcementLogs.requesting,
-    error: state.statusPage.announcementLogs.error,
+    error: state.statusPage.announcementLogs.error
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ fetchAnnouncementLogs, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchAnnouncementLogs, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AnnouncementLog);

@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update, save, updateMany, findOne } from '../util/db'
 import { ObjectId } from 'mongodb'
 import moment from 'moment'
@@ -28,8 +29,8 @@ async function run() {
             });
 
             let updatedMonitors = statusPage.monitors;
-            const monitorIds = statusPage.monitors.map(monitorObj =>
-                ObjectId(monitorObj.monitor)
+            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -58,19 +59,21 @@ async function run() {
                         }
                     );
 
-                    let monitorIds = monitors.map(monitor =>
-                        ObjectId(monitor._id)
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                    let monitorIds = monitors.map((monitor: $TSFixMe) => ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
                         { _id: { $in: monitorIds } },
+                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                         { statusPageCategory: ObjectId(statusPageCategory._id) }
                     );
 
                     // stringify the ids
-                    monitorIds = monitorIds.map(id => String(id));
-                    updatedMonitors = statusPage.monitors.map(monitorObj => {
+                    monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
+                    updatedMonitors = statusPage.monitors.map((monitorObj: $TSFixMe) => {
                         if (monitorIds.includes(String(monitorObj.monitor))) {
+                            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                             monitorObj.statusPageCategory = ObjectId(
                                 statusPageCategory._id
                             );
@@ -95,8 +98,8 @@ async function run() {
             });
 
             let updatedMonitors = statusPage.monitors;
-            const monitorIds = statusPage.monitors.map(monitorObj =>
-                ObjectId(monitorObj.monitor)
+            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -115,19 +118,21 @@ async function run() {
                         }
                     );
 
-                    let monitorIds = monitors.map(monitor =>
-                        ObjectId(monitor._id)
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                    let monitorIds = monitors.map((monitor: $TSFixMe) => ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
                         { _id: { $in: monitorIds } },
+                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                         { statusPageCategory: ObjectId(statusPageCategory._id) }
                     );
 
                     // stringify the ids
-                    monitorIds = monitorIds.map(id => String(id));
-                    updatedMonitors = statusPage.monitors.map(monitorObj => {
+                    monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
+                    updatedMonitors = statusPage.monitors.map((monitorObj: $TSFixMe) => {
                         if (monitorIds.includes(String(monitorObj.monitor))) {
+                            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                             monitorObj.statusPageCategory = ObjectId(
                                 statusPageCategory._id
                             );

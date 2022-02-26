@@ -13,7 +13,7 @@ const INITIAL_STATE = {
     error: false,
 };
 
-export default (state = INITIAL_STATE, action) => {
+export default (state = INITIAL_STATE, action: $TSFixMe) => {
     switch (action.type) {
         case LOGIN_REQUIRED:
             return Object.assign({}, state, {

@@ -7,16 +7,18 @@ import ShouldRender from '../basic/ShouldRender';
 import { disableAdminMode } from '../../actions/user';
 
 export class UserAdminModeDisableBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
     }
 
     handleClick = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'disableAdminMode' does not exist on type... Remove this comment to see the full error message
         const { disableAdminMode, userId } = this.props;
         disableAdminMode(userId);
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
         const { isRequesting } = this.props;
 
         return (
@@ -61,12 +63,12 @@ export class UserAdminModeDisableBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ disableAdminMode }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ disableAdminMode }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {
@@ -78,12 +80,14 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UserAdminModeDisableBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     disableAdminMode: PropTypes.func.isRequired,
     userId: PropTypes.string,
 };
 
+// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
 UserAdminModeDisableBox.contextTypes = {};
 
 export default connect(

@@ -1,13 +1,19 @@
 import React, { useEffect } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field } from 'redux-form';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 
-const ScheduleInput = ({ schedules = [], fields, currentProject = {} }) => {
+const ScheduleInput = ({
+    schedules = [],
+    fields,
+    currentProject = {}
+}: $TSFixMe) => {
     useEffect(() => {
         // add default schedule fields if none is available
         if (fields && !fields.length) {
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'schedule' implicitly has an 'any' type.
             schedules.forEach(schedule => {
                 fields.push({
                     [schedule._id.toString()]: false,
@@ -18,7 +24,7 @@ const ScheduleInput = ({ schedules = [], fields, currentProject = {} }) => {
 
     return (
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart ">
-            {fields.map((fieldName, index) => {
+            {fields.map((fieldName: $TSFixMe, index: $TSFixMe) => {
                 return (
                     <div
                         key={`${fieldName}.${

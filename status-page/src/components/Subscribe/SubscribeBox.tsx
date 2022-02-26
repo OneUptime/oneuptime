@@ -8,26 +8,32 @@ import Webhook from './Webhook';
 import Monitors from './Monitors';
 import { openSubscribeMenu, selectedMenu } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutHandler from 'react-onclickout';
 import { API_URL } from '../../config';
 
 class SubscribeBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.subscribebutton = this.subscribebutton.bind(this);
         this.selectbutton = this.selectbutton.bind(this);
     }
     subscribebutton = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
         if (this.props.theme) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
             this.props.handleCloseButtonClick();
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSubscribeMenu' does not exist on typ... Remove this comment to see the full error message
             this.props.openSubscribeMenu();
         }
     };
-    selectbutton = data => {
+    selectbutton = (data: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMenu' does not exist on type 'Re... Remove this comment to see the full error message
         this.props.selectedMenu(data);
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { statusPage } = this.props;
         const {
             enableRSSFeed,
@@ -36,10 +42,12 @@ class SubscribeBox extends Component {
             emailNotification,
             selectIndividualMonitors,
         } = statusPage;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const theme = this.props.theme;
         return (
             <div className="subscribe-overlay">
                 <ClickOutHandler
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSubscribeMenu' does not exist on typ... Remove this comment to see the full error message
                     onClickOut={() => this.props.openSubscribeMenu()}
                 >
                     <div
@@ -58,9 +66,11 @@ class SubscribeBox extends Component {
                             <ShouldRender if={emailNotification}>
                                 <button
                                     id="updates-dropdown-email-btn"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
                                     disabled={this.props.subscribed.requesting}
                                     onClick={() => this.selectbutton(1)}
                                     className={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                         this.props.select === 1
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -80,9 +90,11 @@ class SubscribeBox extends Component {
                             <ShouldRender if={smsNotification}>
                                 <button
                                     id="updates-dropdown-sms-btn"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
                                     disabled={this.props.subscribed.requesting}
                                     onClick={() => this.selectbutton(2)}
                                     className={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                         this.props.select === 2
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -102,9 +114,11 @@ class SubscribeBox extends Component {
                             <ShouldRender if={webhookNotification}>
                                 <button
                                     id="updates-dropdown-webhook-btn"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
                                     disabled={this.props.subscribed.requesting}
                                     onClick={() => this.selectbutton(3)}
                                     className={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                         this.props.select === 3
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -124,9 +138,11 @@ class SubscribeBox extends Component {
                             <ShouldRender if={enableRSSFeed}>
                                 <button
                                     id="updates-dropdown-atom-btn"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
                                     disabled={this.props.subscribed.requesting}
                                     onClick={() => this.selectbutton(4)}
                                     className={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                         this.props.select === 4
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -146,6 +162,7 @@ class SubscribeBox extends Component {
                             <button
                                 id="updates-dropdown-close-btn"
                                 onClick={() => this.subscribebutton()}
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
                                 disabled={this.props.subscribed.requesting}
                                 className="icon-container"
                             >
@@ -170,13 +187,17 @@ class SubscribeBox extends Component {
                         >
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSelectedBox' does not exist on type ... Remove this comment to see the full error message
                                     !this.props.openSelectedBox &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                     this.props.select === 1 &&
                                     emailNotification
                                 }
                             >
                                 <Message
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ handleCloseButtonClick: any; theme: any; }... Remove this comment to see the full error message
                                     handleCloseButtonClick={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -184,13 +205,17 @@ class SubscribeBox extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSelectedBox' does not exist on type ... Remove this comment to see the full error message
                                     !this.props.openSelectedBox &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                     this.props.select === 2 &&
                                     smsNotification
                                 }
                             >
                                 <Call
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ handleCloseButtonClick: any; theme: any; }... Remove this comment to see the full error message
                                     handleCloseButtonClick={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -198,13 +223,17 @@ class SubscribeBox extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSelectedBox' does not exist on type ... Remove this comment to see the full error message
                                     !this.props.openSelectedBox &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                     this.props.select === 3 &&
                                     webhookNotification
                                 }
                             >
                                 <Webhook
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ handleCloseButtonClick: any; theme: any; }... Remove this comment to see the full error message
                                     handleCloseButtonClick={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -212,7 +241,9 @@ class SubscribeBox extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSelectedBox' does not exist on type ... Remove this comment to see the full error message
                                     !this.props.openSelectedBox &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'select' does not exist on type 'Readonly... Remove this comment to see the full error message
                                     this.props.select === 4 &&
                                     enableRSSFeed
                                 }
@@ -235,12 +266,15 @@ class SubscribeBox extends Component {
                             </ShouldRender>
                             <ShouldRender
                                 if={
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSelectedBox' does not exist on type ... Remove this comment to see the full error message
                                     this.props.openSelectedBox &&
                                     selectIndividualMonitors
                                 }
                             >
                                 <Monitors
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ handleCloseButtonClick: any; theme: any; }... Remove this comment to see the full error message
                                     handleCloseButtonClick={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -254,18 +288,19 @@ class SubscribeBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubscribeBox.displayName = 'SubscribeBox';
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
     openSelectedBox: state.subscribe.openSelectedBox,
-    statusPage: state.status.statusPage,
+    statusPage: state.status.statusPage
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubscribeBox.propTypes = {
     openSubscribeMenu: PropTypes.func,
     selectedMenu: PropTypes.func,

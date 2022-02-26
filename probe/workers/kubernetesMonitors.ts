@@ -2,13 +2,17 @@ import { spawn } from 'child_process'
 import fs from 'fs'
 import Path from 'path'
 import fetch from 'node-fetch-commonjs'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4: uuidv4 } from 'uuid'
 import ApiService from '../utils/apiService'
 import ErrorService from '../utils/errorService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
 import { serverUrl } from '../utils/config'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/fsHandlers"' has no exported mem... Remove this comment to see the full error message
 import { deleteFile } from '../utils/fsHandlers'
 
 export default {
+    // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'monitor' implicitly has an 'any' ... Remove this comment to see the full error message
     run: async function({ monitor }) {
         try {
             if (
@@ -28,6 +32,7 @@ export default {
                 await fetch(`${serverUrl}/file/${configurationFile}`).then(
                     res => {
                         const dest = fs.createWriteStream(configPath);
+                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                         res.body.pipe(dest);
                         // at this point, writing to the specified file is complete
                         dest.on('finish', async () => {
@@ -56,15 +61,22 @@ export default {
                                     statefulsetOutput
                                 ) {
                                     // handle pod output
+                                    // @ts-expect-error ts-migrate(7034) FIXME: Variable 'healthyPods' implicitly has type 'any[]'... Remove this comment to see the full error message
                                     const healthyPods = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'healthyPodData' implicitly has type 'any... Remove this comment to see the full error message
                                         healthyPodData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'unhealthyPods' implicitly has type 'any[... Remove this comment to see the full error message
                                         unhealthyPods = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'unhealthyPodData' implicitly has type 'a... Remove this comment to see the full error message
                                         unhealthyPodData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allPods' implicitly has type 'any[]' in ... Remove this comment to see the full error message
                                         allPods = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allPodData' implicitly has type 'any[]' ... Remove this comment to see the full error message
                                         allPodData = [];
                                     let runningPods = 0,
                                         completedPods = 0,
                                         failedPods = 0;
+                                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                                     podOutput.items.forEach(item => {
                                         /**
                                          *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
@@ -235,23 +247,37 @@ export default {
                                             runningPods,
                                             completedPods,
                                             failedPods,
+                                            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                                             totalPods: podOutput.items.length,
                                         },
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'healthyPods' implicitly has an 'any[]' t... Remove this comment to see the full error message
                                         healthyPods,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'unhealthyPods' implicitly has an 'any[]'... Remove this comment to see the full error message
                                         unhealthyPods,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allPods' implicitly has an 'any[]' type.
                                         allPods,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'healthyPodData' implicitly has an 'any[]... Remove this comment to see the full error message
                                         healthyPodData,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'unhealthyPodData' implicitly has an 'any... Remove this comment to see the full error message
                                         unhealthyPodData,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allPodData' implicitly has an 'any[]' ty... Remove this comment to see the full error message
                                         allPodData,
                                     };
 
                                     // handle job output
+                                    // @ts-expect-error ts-migrate(7034) FIXME: Variable 'runningJobs' implicitly has type 'any[]'... Remove this comment to see the full error message
                                     const runningJobs = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'succeededJobs' implicitly has type 'any[... Remove this comment to see the full error message
                                         succeededJobs = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'failedJobs' implicitly has type 'any[]' ... Remove this comment to see the full error message
                                         failedJobs = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'runningJobData' implicitly has type 'any... Remove this comment to see the full error message
                                         runningJobData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'succeededJobData' implicitly has type 'a... Remove this comment to see the full error message
                                         succeededJobData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'failedJobData' implicitly has type 'any[... Remove this comment to see the full error message
                                         failedJobData = [];
+                                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                                     jobOutput.items.forEach(item => {
                                         /**
                                          * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
@@ -389,46 +415,69 @@ export default {
                                                 succeededJobs.length,
                                             unhealthy: failedJobs.length,
                                         },
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'runningJobs' implicitly has an 'any[]' t... Remove this comment to see the full error message
                                         runningJobs,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'succeededJobs' implicitly has an 'any[]'... Remove this comment to see the full error message
                                         succeededJobs,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedJobs' implicitly has an 'any[]' ty... Remove this comment to see the full error message
                                         failedJobs,
                                         allJobs: [
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'runningJobs' implicitly has an 'any[]' t... Remove this comment to see the full error message
                                             ...runningJobs,
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'succeededJobs' implicitly has an 'any[]'... Remove this comment to see the full error message
                                             ...succeededJobs,
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedJobs' implicitly has an 'any[]' ty... Remove this comment to see the full error message
                                             ...failedJobs,
                                         ],
                                         allJobData: [
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'runningJobData' implicitly has an 'any[]... Remove this comment to see the full error message
                                             ...runningJobData,
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'succeededJobData' implicitly has an 'any... Remove this comment to see the full error message
                                             ...succeededJobData,
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedJobData' implicitly has an 'any[]'... Remove this comment to see the full error message
                                             ...failedJobData,
                                         ],
                                         healthyJobs: [
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'runningJobs' implicitly has an 'any[]' t... Remove this comment to see the full error message
                                             ...runningJobs,
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'succeededJobs' implicitly has an 'any[]'... Remove this comment to see the full error message
                                             ...succeededJobs,
                                         ],
                                         healthyJobData: [
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'runningJobData' implicitly has an 'any[]... Remove this comment to see the full error message
                                             ...runningJobData,
+                                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'succeededJobData' implicitly has an 'any... Remove this comment to see the full error message
                                             ...succeededJobData,
                                         ],
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedJobs' implicitly has an 'any[]' ty... Remove this comment to see the full error message
                                         unhealthyJobs: [...failedJobs],
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedJobData' implicitly has an 'any[]'... Remove this comment to see the full error message
                                         unhealthyJobData: [...failedJobData],
                                     };
 
                                     // handle services output
                                     const serviceData = {
                                         runningServices:
+                                            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                                             serviceOutput.items.length,
                                     };
 
                                     // handle deployment output
                                     let desiredDeployment = 0,
                                         readyDeployment = 0;
+                                    // @ts-expect-error ts-migrate(7034) FIXME: Variable 'unhealthyDeployments' implicitly has typ... Remove this comment to see the full error message
                                     const unhealthyDeployments = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'healthyDeployments' implicitly has type ... Remove this comment to see the full error message
                                         healthyDeployments = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allDeployments' implicitly has type 'any... Remove this comment to see the full error message
                                         allDeployments = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'unhealthyDeploymentData' implicitly has ... Remove this comment to see the full error message
                                         unhealthyDeploymentData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'healthyDeploymentData' implicitly has ty... Remove this comment to see the full error message
                                         healthyDeploymentData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allDeploymentData' implicitly has type '... Remove this comment to see the full error message
                                         allDeploymentData = [];
+                                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                                     deploymentOutput.items.forEach(item => {
                                         if (item.status.readyReplicas) {
                                             readyDeployment +=
@@ -551,25 +600,38 @@ export default {
                                     const deploymentData = {
                                         desiredDeployment,
                                         readyDeployment,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'healthyDeployments' implicitly has an 'a... Remove this comment to see the full error message
                                         healthyDeployments,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'unhealthyDeployments' implicitly has an ... Remove this comment to see the full error message
                                         unhealthyDeployments,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allDeployments' implicitly has an 'any[]... Remove this comment to see the full error message
                                         allDeployments,
                                         healthy: healthyDeployments.length,
                                         unhealthy: unhealthyDeployments.length,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'healthyDeploymentData' implicitly has an... Remove this comment to see the full error message
                                         healthyDeploymentData,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'unhealthyDeploymentData' implicitly has ... Remove this comment to see the full error message
                                         unhealthyDeploymentData,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allDeploymentData' implicitly has an 'an... Remove this comment to see the full error message
                                         allDeploymentData,
                                     };
 
                                     // handle statefulset output
                                     let desiredStatefulsets = 0,
                                         readyStatefulsets = 0;
+                                    // @ts-expect-error ts-migrate(7034) FIXME: Variable 'healthyStatefulsets' implicitly has type... Remove this comment to see the full error message
                                     const healthyStatefulsets = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'unhealthyStatefulsets' implicitly has ty... Remove this comment to see the full error message
                                         unhealthyStatefulsets = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allStatefulset' implicitly has type 'any... Remove this comment to see the full error message
                                         allStatefulset = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'healthyStatefulsetData' implicitly has t... Remove this comment to see the full error message
                                         healthyStatefulsetData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'unhealthyStatefulsetData' implicitly has... Remove this comment to see the full error message
                                         unhealthyStatefulsetData = [],
+                                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allStatefulsetData' implicitly has type ... Remove this comment to see the full error message
                                         allStatefulsetData = [];
+                                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                                     statefulsetOutput.items.forEach(item => {
                                         if (item.status.readyReplicas) {
                                             readyStatefulsets +=
@@ -686,13 +748,19 @@ export default {
                                     const statefulsetData = {
                                         readyStatefulsets,
                                         desiredStatefulsets,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'healthyStatefulsets' implicitly has an '... Remove this comment to see the full error message
                                         healthyStatefulsets,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'unhealthyStatefulsets' implicitly has an... Remove this comment to see the full error message
                                         unhealthyStatefulsets,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allStatefulset' implicitly has an 'any[]... Remove this comment to see the full error message
                                         allStatefulset,
                                         healthy: healthyStatefulsets.length,
                                         unhealthy: unhealthyStatefulsets.length,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'healthyStatefulsetData' implicitly has a... Remove this comment to see the full error message
                                         healthyStatefulsetData,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'unhealthyStatefulsetData' implicitly has... Remove this comment to see the full error message
                                         unhealthyStatefulsetData,
+                                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allStatefulsetData' implicitly has an 'a... Remove this comment to see the full error message
                                         allStatefulsetData,
                                     };
 
@@ -733,6 +801,7 @@ export default {
     },
 };
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'configPath' implicitly has an 'any' typ... Remove this comment to see the full error message
 function loadPodOutput(configPath, namespace) {
     return new Promise(resolve => {
         let podOutput = '';
@@ -756,6 +825,7 @@ function loadPodOutput(configPath, namespace) {
     });
 }
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'configPath' implicitly has an 'any' typ... Remove this comment to see the full error message
 function loadJobOutput(configPath, namespace) {
     return new Promise(resolve => {
         let jobOutput = '';
@@ -779,6 +849,7 @@ function loadJobOutput(configPath, namespace) {
     });
 }
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'configPath' implicitly has an 'any' typ... Remove this comment to see the full error message
 function loadServiceOutput(configPath, namespace) {
     return new Promise(resolve => {
         let serviceOutput = '';
@@ -802,6 +873,7 @@ function loadServiceOutput(configPath, namespace) {
     });
 }
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'configPath' implicitly has an 'any' typ... Remove this comment to see the full error message
 function loadDeploymentOutput(configPath, namespace) {
     return new Promise(resolve => {
         let deploymentOutput = '';
@@ -825,6 +897,7 @@ function loadDeploymentOutput(configPath, namespace) {
     });
 }
 
+// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'configPath' implicitly has an 'any' typ... Remove this comment to see the full error message
 function loadStatefulsetOutput(configPath, namespace) {
     return new Promise(resolve => {
         let statefulsetOutput = '';

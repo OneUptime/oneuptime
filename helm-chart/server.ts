@@ -17,15 +17,17 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
 import express from 'express'
 const app = express();
 import path from 'path'
 import version from './api/version'
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
 import cors from 'cors'
 
 app.use(cors());
 
-app.use(function(req, res, next) {
+app.use(function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

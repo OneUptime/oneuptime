@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,9 +20,10 @@ class DeleteIncident extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal();
             case 'Enter':
                 return this.deleteIncident();
@@ -37,10 +39,13 @@ class DeleteIncident extends Component {
             componentSlug,
             currentProjectSlug,
             monitors,
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         } = this.props.data;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncident' does not exist on type '... Remove this comment to see the full error message
         const promise = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.closeModal();
 
             if (componentSlug) {
@@ -63,6 +68,7 @@ class DeleteIncident extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
         const { deleting, closeModal } = this.props;
 
         return (
@@ -133,8 +139,10 @@ class DeleteIncident extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteIncident.displayName = 'DeleteIncidentFormModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteIncident.propTypes = {
     data: PropTypes.object.isRequired,
     closeModal: PropTypes.func,
@@ -142,7 +150,7 @@ DeleteIncident.propTypes = {
     deleting: PropTypes.bool,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting
@@ -150,7 +158,6 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, deleteIncident }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteIncident }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteIncident);

@@ -7,14 +7,14 @@ export function deleteWebHookRequest() {
     };
 }
 
-export function deleteWebHookError(error) {
+export function deleteWebHookError(error: $TSFixMe) {
     return {
         type: types.DELETE_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function deleteWebHookSuccess(deleteWebHook) {
+export function deleteWebHookSuccess(deleteWebHook: $TSFixMe) {
     return {
         type: types.DELETE_WEB_HOOK_SUCCESS,
         payload: deleteWebHook,
@@ -28,8 +28,8 @@ export const resetDeleteWebHook = () => {
 };
 
 // Calls the API to link webhook team to project
-export function deleteWebHook(projectId, webhookId) {
-    return function(dispatch) {
+export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${webhookId}`,
             null
@@ -39,7 +39,9 @@ export function deleteWebHook(projectId, webhookId) {
 
         return promise.then(
             function(webhook) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteWebHookSuccess(webhook.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return webhook.data;
             },
             function(error) {
@@ -59,21 +61,21 @@ export function deleteWebHook(projectId, webhookId) {
     };
 }
 
-export function getWebHookRequest(promise) {
+export function getWebHookRequest(promise: $TSFixMe) {
     return {
         type: types.GET_WEB_HOOK_REQUEST,
         payload: promise,
     };
 }
 
-export function getWebHookError(error) {
+export function getWebHookError(error: $TSFixMe) {
     return {
         type: types.GET_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function getWebHookSuccess(webhooks) {
+export function getWebHookSuccess(webhooks: $TSFixMe) {
     return {
         type: types.GET_WEB_HOOK_SUCCESS,
         payload: webhooks,
@@ -86,8 +88,8 @@ export const resetGetWebHook = () => {
     };
 };
 
-export function getWebHook(projectId, skip, limit) {
-    return function(dispatch) {
+export function getWebHook(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10}`
@@ -96,6 +98,7 @@ export function getWebHook(projectId, skip, limit) {
 
         promise.then(
             function(webhooks) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function(error) {
@@ -117,8 +120,8 @@ export function getWebHook(projectId, skip, limit) {
     };
 }
 
-export function getWebHookMonitor(projectId, monitorId, skip, limit) {
-    return function(dispatch) {
+export function getWebHookMonitor(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
@@ -128,6 +131,7 @@ export function getWebHookMonitor(projectId, monitorId, skip, limit) {
 
         promise.then(
             function(webhooks) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function(error) {
@@ -155,14 +159,14 @@ export function createWebHookRequest() {
     };
 }
 
-export function createWebHookError(error) {
+export function createWebHookError(error: $TSFixMe) {
     return {
         type: types.CREATE_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function createWebHookSuccess(newWebHook) {
+export function createWebHookSuccess(newWebHook: $TSFixMe) {
     return {
         type: types.CREATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
@@ -176,15 +180,17 @@ export const resetCreateWebHook = () => {
 };
 
 // Calls the API to add webhook to project
-export function createWebHook(projectId, data) {
-    return function(dispatch) {
+export function createWebHook(projectId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createWebHookRequest());
 
         return promise.then(
             function(webhook) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(createWebHookSuccess(webhook.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return webhook.data;
             },
             function(error) {
@@ -210,14 +216,14 @@ export function updateWebHookRequest() {
     };
 }
 
-export function updateWebHookError(error) {
+export function updateWebHookError(error: $TSFixMe) {
     return {
         type: types.UPDATE_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function updateWebHookSuccess(newWebHook) {
+export function updateWebHookSuccess(newWebHook: $TSFixMe) {
     return {
         type: types.UPDATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
@@ -231,15 +237,17 @@ export const resetUpdateWebHook = () => {
 };
 
 // Calls the API to add webhook to project
-export function updateWebHook(projectId, webhookId, data) {
-    return function(dispatch) {
+export function updateWebHook(projectId: $TSFixMe, webhookId: $TSFixMe, data: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
         dispatch(updateWebHookRequest());
 
         return promise.then(
             function(webhook) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(updateWebHookSuccess(webhook.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return webhook.data;
             },
             function(error) {
@@ -279,8 +287,8 @@ export function paginateReset() {
     };
 }
 
-export function paginate(type) {
-    return function(dispatch) {
+export function paginate(type: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

@@ -2,6 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -12,13 +13,15 @@ import EmailLogsErrorViewModal from './EmailLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export class EmailLogsList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
     }
 
     handleDelete = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
         openModal({
             id: deleteModalId,
@@ -26,9 +29,10 @@ export class EmailLogsList extends Component {
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -37,45 +41,64 @@ export class EmailLogsList extends Component {
 
     render() {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs.skip &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             typeof this.props.emailLogs.skip === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs.skip = parseInt(this.props.emailLogs.skip, 10);
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs.limit &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             typeof this.props.emailLogs.limit === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs.limit = parseInt(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                 this.props.emailLogs.limit,
                 10
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
         if (!this.props.emailLogs.skip) this.props.emailLogs.skip = 0;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
         if (!this.props.emailLogs.limit) this.props.emailLogs.limit = 0;
 
         let canNext =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs.count &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs.count >
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                 this.props.emailLogs.skip + this.props.emailLogs.limit
                 ? true
                 : false;
         let canPrev =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs && this.props.emailLogs.skip <= 0
                 ? false
                 : true;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.emailLogs &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.requesting || !this.props.emailLogs.emailLogs)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages = Math.ceil(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
             parseInt(this.props.emailLogs && this.props.emailLogs.count) / 10
         );
         return (
@@ -155,6 +178,7 @@ export class EmailLogsList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                             {this.props.requesting ? (
                                 <Fragment>
                                     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -175,10 +199,14 @@ export class EmailLogsList extends Component {
                                         </td>
                                     </tr>
                                 </Fragment>
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                             ) : this.props.emailLogs &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                               this.props.emailLogs.emailLogs &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                               this.props.emailLogs.emailLogs.length > 0 ? (
-                                this.props.emailLogs.emailLogs.map(emailLog => {
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+                                this.props.emailLogs.emailLogs.map((emailLog: $TSFixMe) => {
                                     return (
                                         <tr
                                             key={emailLog._id}
@@ -305,20 +333,19 @@ export class EmailLogsList extends Component {
                                                                 <span>
                                                                     <button
                                                                         onClick={() => {
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                             this.props.openModal(
                                                                                 {
                                                                                     id: uuidv4(),
                                                                                     onConfirm: () => {
                                                                                         return Promise.resolve();
                                                                                     },
-                                                                                    content: props => (
-                                                                                        <EmailLogsContentViewModal
-                                                                                            {...props}
-                                                                                            content={
-                                                                                                emailLog.content
-                                                                                            }
-                                                                                        />
-                                                                                    ),
+                                                                                    content: (props: $TSFixMe) => <EmailLogsContentViewModal
+                                                                                        {...props}
+                                                                                        content={
+                                                                                            emailLog.content
+                                                                                        }
+                                                                                    />,
                                                                                 }
                                                                             );
                                                                         }}
@@ -348,20 +375,19 @@ export class EmailLogsList extends Component {
                                                                     <span>
                                                                         <button
                                                                             onClick={() => {
+                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                                 this.props.openModal(
                                                                                     {
                                                                                         id: uuidv4(),
                                                                                         onConfirm: () => {
                                                                                             return Promise.resolve();
                                                                                         },
-                                                                                        content: props => (
-                                                                                            <EmailLogsErrorViewModal
-                                                                                                {...props}
-                                                                                                content={
-                                                                                                    emailLog.error
-                                                                                                }
-                                                                                            />
-                                                                                        ),
+                                                                                        content: (props: $TSFixMe) => <EmailLogsErrorViewModal
+                                                                                            {...props}
+                                                                                            content={
+                                                                                                emailLog.error
+                                                                                            }
+                                                                                        />,
                                                                                     }
                                                                                 );
                                                                             }}
@@ -393,14 +419,21 @@ export class EmailLogsList extends Component {
                     id="logsStatus"
                     style={{ textAlign: 'center', marginTop: '10px' }}
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                     {this.props.emailLogs &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                     (!this.props.emailLogs.emailLogs ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                         !this.props.emailLogs.emailLogs.length) &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                     !this.props.requesting &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                     !this.props.emailLogs.error
                         ? "We don't have any logs yet"
                         : null}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                     {this.props.emailLogs && this.props.emailLogs.error
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                         ? this.props.emailLogs.error
                         : null}
                 </div>
@@ -414,17 +447,22 @@ export class EmailLogsList extends Component {
                                 >
                                     <ShouldRender
                                         if={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.emailLogs &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.emailLogs.count
                                         }
                                     >
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                         Page {this.props.page} of{' '}
                                         {numberOfPages} (
                                         <span id="email-log-count">
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             {this.props.emailLogs.count}
                                         </span>{' '}
                                         Log
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             if={this.props.emailLogs.count > 0}
                                         >
                                             s
@@ -441,8 +479,11 @@ export class EmailLogsList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.prevClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.emailLogs.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.emailLogs.limit
                                         );
                                     }}
@@ -465,8 +506,11 @@ export class EmailLogsList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.nextClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.emailLogs.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.emailLogs.limit
                                         );
                                     }}
@@ -492,6 +536,7 @@ export class EmailLogsList extends Component {
                                     className={'Button bs-ButtonLegacy'}
                                     // data-db-analytics-name="list_view.pagination.next"
                                     type="button"
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
                                     disabled={this.props.requesting}
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -509,19 +554,21 @@ export class EmailLogsList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         users: state.user.users.users,
         deleteRequest: state.emailLogs.emailLogs.deleteRequest,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EmailLogsList.displayName = 'ProjectList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EmailLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

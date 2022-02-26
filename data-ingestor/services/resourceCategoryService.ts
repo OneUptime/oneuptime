@@ -1,5 +1,9 @@
 export default {
-    findBy: async function({ query, limit, skip }) {
+    findBy: async function({
+        query,
+        limit,
+        skip
+    }: $TSFixMe) {
         try {
             if (!skip) skip = 0;
 
@@ -30,10 +34,11 @@ export default {
                 .sort({ createdAt: -1 })
                 .toArray();
 
-            resourceCategories = resourceCategories.map(resourceCategory => ({
+            resourceCategories = resourceCategories.map((resourceCategory: $TSFixMe) => ({
                 name: resourceCategory.name,
+                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                 _id: ObjectId(resourceCategory._id),
-                createdAt: resourceCategory.createdAt,
+                createdAt: resourceCategory.createdAt
             }));
             return resourceCategories;
         } catch (error) {
@@ -43,6 +48,7 @@ export default {
     },
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const resourceCategoryCollection = global.db.collection('resourcecategories');
 import { ObjectId } from 'mongodb'
 import ErrorService from './errorService'

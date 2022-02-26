@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import store, { history, isServer } from './store';
@@ -19,7 +20,7 @@ import 'react-big-calendar/lib/sass/styles.scss';
 import isSubProjectViewer from './utils/isSubProjectViewer';
 
 if (!isServer) {
-    history.listen(location => {
+    history.listen((location: $TSFixMe) => {
         ReactGA.set({ page: location.pathname });
         ReactGA.pageview(location.pathname);
     });
@@ -37,11 +38,12 @@ if (userData !== undefined) {
 } else {
     // store original destination url
     const redirectTo = window.location.href;
+    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
     window.location = ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
     store.dispatch(loadPage('Home'));
 }
 
-const App = props => {
+const App = (props: $TSFixMe) => {
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
     const titleToExclude = [
@@ -101,15 +103,14 @@ const App = props => {
                                 .map((route, index) => {
                                     return (
                                         <Route
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exact' does not exist on type '{ title: ... Remove this comment to see the full error message
                                             exact={route.exact}
                                             path={route.path}
                                             key={index}
-                                            render={props => (
-                                                <route.component
-                                                    icon={route.icon}
-                                                    {...props}
-                                                />
-                                            )}
+                                            render={(props: $TSFixMe) => <route.component
+                                                icon={route.icon}
+                                                {...props}
+                                            />}
                                         />
                                     );
                                 })}
@@ -153,7 +154,7 @@ const App = props => {
 
 App.displayName = 'App';
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     const currentProject = state.project.currentProject;
     const subProjects = state.subProject.subProjects.subProjects;
     const activeSubProjectId = state.subProject.activeSubProject;

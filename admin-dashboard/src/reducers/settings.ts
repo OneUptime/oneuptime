@@ -21,7 +21,7 @@ const INITIAL_STATE = {
     testSuccess: false,
 };
 
-export default function profileSettings(state = INITIAL_STATE, action) {
+export default function profileSettings(state = INITIAL_STATE, action: $TSFixMe) {
     const settings = {};
     switch (action.type) {
         case REQUESTING_SETTINGS:
@@ -32,10 +32,13 @@ export default function profileSettings(state = INITIAL_STATE, action) {
 
         case REQUESTING_SETTINGS_SUCCEEDED:
             if (action.payloadType === 'smtp') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtp' does not exist on type '{}'.
                 settings.smtp = action.payload;
             } else if (action.payloadType === 'twilio') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'twilio' does not exist on type '{}'.
                 settings.twilio = action.payload;
             } else if (action.payloadType === 'sso') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type '{}'.
                 settings.sso = action.payload;
             }
             return {

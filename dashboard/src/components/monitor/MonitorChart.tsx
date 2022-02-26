@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import BlockChart from '../blockchart/BlockChart';
 import AreaChart from '../areachart';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'to-p... Remove this comment to see the full error message
 import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
@@ -17,7 +18,7 @@ import KubeStatefulset from '../modals/KubeStatefulset';
 import KubeDeployment from '../modals/KubeDeployment';
 import DataPathHoC from '../DataPathHoC';
 
-const calculateTime = (statuses, start, range) => {
+const calculateTime = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => {
     const timeBlock = [];
     let totalUptime = 0;
     let totalTime = 0;
@@ -54,8 +55,8 @@ const calculateTime = (statuses, start, range) => {
          * 4- Fill the timeObj
          */
         //First step
-        let incidentsHappenedDuringTheDay = [];
-        reversedStatuses.forEach(monitorStatus => {
+        let incidentsHappenedDuringTheDay: $TSFixMe = [];
+        reversedStatuses.forEach((monitorStatus: $TSFixMe) => {
             if (monitorStatus.endTime === null) {
                 monitorStatus.endTime = new Date().toISOString();
             }
@@ -80,6 +81,7 @@ const calculateTime = (statuses, start, range) => {
             }
         });
         //Second step
+        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'a' implicitly has an 'any' type.
         incidentsHappenedDuringTheDay.sort((a, b) =>
             moment(a.start).isSame(b.start)
                 ? 0
@@ -174,6 +176,7 @@ const calculateTime = (statuses, start, range) => {
         }
         //Remove events having start and end time equal.
         incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'event' implicitly has an 'any' type.
             event => !moment(event.start).isSame(event.end)
         );
         //Last step
@@ -219,8 +222,8 @@ export function MonitorChart({
     activeProbe,
     probes,
     requesting,
-    openModal,
-}) {
+    openModal
+}: $TSFixMe) {
     const [now, setNow] = useState(Date.now());
     const [kubeMonitoring] = useState(true);
 
@@ -273,6 +276,7 @@ export function MonitorChart({
 
     const block = [];
     for (let i = 0; i < range; i++) {
+        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
@@ -291,8 +295,8 @@ export function MonitorChart({
             statusColor = 'blue';
     }
 
-    function handlePodDisplay(dataLog, type) {
-        let data = [],
+    function handlePodDisplay(dataLog: $TSFixMe, type: $TSFixMe) {
+        let data: $TSFixMe = [],
             title;
         if (dataLog) {
             if (type === 'all') {
@@ -313,8 +317,8 @@ export function MonitorChart({
         });
     }
 
-    function handleJobDisplay(dataLog, type) {
-        let data = [],
+    function handleJobDisplay(dataLog: $TSFixMe, type: $TSFixMe) {
+        let data: $TSFixMe = [],
             title;
         if (dataLog) {
             if (type === 'all') {
@@ -335,8 +339,8 @@ export function MonitorChart({
         });
     }
 
-    function handleStatefulsetDisplay(dataLog, type) {
-        let data = [],
+    function handleStatefulsetDisplay(dataLog: $TSFixMe, type: $TSFixMe) {
+        let data: $TSFixMe = [],
             title;
         if (dataLog) {
             if (type === 'all') {
@@ -357,8 +361,8 @@ export function MonitorChart({
         });
     }
 
-    function handleDeploymentDisplay(dataLog, type) {
-        let data = [],
+    function handleDeploymentDisplay(dataLog: $TSFixMe, type: $TSFixMe) {
+        let data: $TSFixMe = [],
             title;
         if (dataLog) {
             if (type === 'all') {
@@ -476,6 +480,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].cpuLoad
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                                                         ? formatDecimal(
                                                               data[0].cpuLoad,
                                                               2
@@ -505,6 +510,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].avgCpuLoad
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                                                         ? formatDecimal(
                                                               data[0]
                                                                   .avgCpuLoad,
@@ -545,6 +551,7 @@ export function MonitorChart({
                             </div>
                         </div>
                         <div className="block-chart-main line-chart">
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
                             <AreaChart type={type} data={data} name={'load'} />
                         </div>
                     </div>
@@ -569,6 +576,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].memoryUsed
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                                         ? formatBytes(
                                                               data[0].memoryUsed
                                                           )
@@ -596,6 +604,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].totalMemory
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                                         ? formatBytes({
                                                               value:
                                                                   data[0]
@@ -627,6 +636,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].swapUsed
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                                         ? formatBytes(
                                                               data[0].swapUsed
                                                           )
@@ -640,6 +650,7 @@ export function MonitorChart({
                         </div>
                         <div className="block-chart-main line-chart">
                             <AreaChart
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
                                 type={type}
                                 data={data}
                                 name={'memory'}
@@ -667,6 +678,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].storageUsed
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                                         ? formatBytes(
                                                               data[0]
                                                                   .storageUsed
@@ -695,6 +707,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].totalStorage
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                                         ? formatBytes(
                                                               data[0]
                                                                   .totalStorage
@@ -723,6 +736,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     {checkLogs &&
                                                     data[0].storageUsage
+                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                                                         ? formatDecimal(
                                                               data[0]
                                                                   .storageUsage,
@@ -738,6 +752,7 @@ export function MonitorChart({
                             </div>
                         </div>
                         <div className="block-chart-main line-chart">
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
                             <AreaChart type={type} data={data} name={'disk'} />
                         </div>
                     </div>
@@ -802,6 +817,7 @@ export function MonitorChart({
                             </div>
                             <div className="block-chart-main line-chart">
                                 <AreaChart
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
                                     type={type}
                                     data={data}
                                     name={'temperature'}
@@ -1017,6 +1033,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
                                             type={type}
                                             data={data}
                                             name={'pod'}
@@ -1176,6 +1193,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
                                             type={type}
                                             data={data}
                                             name={'job'}
@@ -1334,6 +1352,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
                                             type={type}
                                             data={data}
                                             name={'deployment'}
@@ -1492,6 +1511,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
                                             type={type}
                                             data={data}
                                             name={'statefulset'}
@@ -1627,6 +1647,7 @@ export function MonitorChart({
                     <ShouldRender if={!isCurrentlyNotMonitoring}>
                         <div className="block-chart-main line-chart">
                             <AreaChart
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
                                 type={type}
                                 data={data}
                                 name={'response time'}
@@ -2064,6 +2085,7 @@ export function MonitorChart({
                 </div>
                 <div className="block-chart-main line-chart">
                     <AreaChart
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: { date: string; downTime:... Remove this comment to see the full error message
                         type={type}
                         data={timeBlock}
                         name={'downtime'}
@@ -2151,11 +2173,13 @@ MonitorChart.propTypes = {
     start: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object,
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
         PropTypes.instanceOf(moment),
     ]),
     end: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object,
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
         PropTypes.instanceOf(moment),
     ]),
     monitor: PropTypes.object,
@@ -2169,7 +2193,7 @@ MonitorChart.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
@@ -2177,7 +2201,6 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorChart);

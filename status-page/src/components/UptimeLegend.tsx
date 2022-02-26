@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 
@@ -9,8 +10,8 @@ const UptimeLegend = ({
     uptimeColor,
     degradedColor,
     disabledColor,
-    disabled,
-}) => (
+    disabled
+}: $TSFixMe) => (
     <div className="uptime-legend box-inner clearfix" style={background}>
         <span className="legend-item">
             <span className="legend-color graph-up" style={uptimeColor}></span>

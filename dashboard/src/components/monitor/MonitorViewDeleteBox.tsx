@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
@@ -12,28 +13,32 @@ import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 
 export class MonitorViewDeleteBox extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
     }
 
     deleteMonitor = () => {
         const projectId =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
         const promise = this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteMonitor' does not exist on type 'R... Remove this comment to see the full error message
             .deleteMonitor(this.props.monitor._id, projectId)
             .then(() => {
                 history.push(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                     `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
                 );
             });
         return promise; // onConfirm function is expecting a promise(async call).
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -43,12 +48,16 @@ export class MonitorViewDeleteBox extends Component {
     render() {
         let deleting = false;
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.monitorState &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.monitorState.deleteMonitor &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.monitorState.deleteMonitor === this.props.monitor._id
         ) {
             deleting = true;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
 
         return (
@@ -76,8 +85,10 @@ export class MonitorViewDeleteBox extends Component {
                                     <button
                                         className="bs-Button bs-Button--red Box-background--red"
                                         disabled={deleting}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                         id={`delete_${this.props.monitor.name}`}
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.openModal({
                                                 id: deleteModalId,
                                                 onClose: () => '',
@@ -88,6 +99,7 @@ export class MonitorViewDeleteBox extends Component {
                                                     DeleteMonitor,
                                                     {
                                                         monitor: this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                             .monitor,
                                                     }
                                                 ),
@@ -111,18 +123,19 @@ export class MonitorViewDeleteBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorViewDeleteBox.displayName = 'MonitorViewDeleteBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorViewDeleteBox.propTypes = {
     currentProject: PropTypes.object.isRequired,
     componentSlug: PropTypes.string.isRequired,

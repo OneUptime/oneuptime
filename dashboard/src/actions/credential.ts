@@ -6,17 +6,20 @@ export const addGitCredentialRequest = () => ({
     type: types.ADD_GIT_CREDENTIAL_REQUEST,
 });
 
-export const addGitCredentialSuccess = payload => ({
+export const addGitCredentialSuccess = (payload: $TSFixMe) => ({
     type: types.ADD_GIT_CREDENTIAL_SUCCESS,
-    payload,
+    payload
 });
 
-export const addGitCredentialFailure = error => ({
+export const addGitCredentialFailure = (error: $TSFixMe) => ({
     type: types.ADD_GIT_CREDENTIAL_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const addGitCredential = ({ projectId, data }) => async dispatch => {
+export const addGitCredential = ({
+    projectId,
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addGitCredentialRequest());
 
     try {
@@ -24,6 +27,7 @@ export const addGitCredential = ({ projectId, data }) => async dispatch => {
             `credential/${projectId}/gitCredential`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(addGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -43,21 +47,21 @@ export const updateGitCredentialRequest = () => ({
     type: types.UPDATE_GIT_CREDENTIAL_REQUEST,
 });
 
-export const updateGitCredentialSuccess = payload => ({
+export const updateGitCredentialSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_GIT_CREDENTIAL_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateGitCredentialFailure = error => ({
+export const updateGitCredentialFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_GIT_CREDENTIAL_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateGitCredential = ({
     projectId,
     credentialId,
-    data,
-}) => async dispatch => {
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(updateGitCredentialRequest());
 
     try {
@@ -66,6 +70,7 @@ export const updateGitCredential = ({
             data
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(updateGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -85,21 +90,24 @@ export const getGitCredentialsRequest = () => ({
     type: types.GET_GIT_CREDENTIALS_REQUEST,
 });
 
-export const getGitCredentialsSuccess = payload => ({
+export const getGitCredentialsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_GIT_CREDENTIALS_SUCCESS,
-    payload,
+    payload
 });
 
-export const getGitCredentialsFailure = error => ({
+export const getGitCredentialsFailure = (error: $TSFixMe) => ({
     type: types.GET_GIT_CREDENTIALS_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const getGitCredentials = ({ projectId }) => async dispatch => {
+export const getGitCredentials = ({
+    projectId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getGitCredentialsRequest());
 
     try {
         const response = await getApi(`credential/${projectId}/gitCredential`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getGitCredentialsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -119,27 +127,29 @@ export const deleteGitCredentialRequest = () => ({
     type: types.DELETE_GIT_CREDENTIAL_REQUEST,
 });
 
-export const deleteGitCredentialSuccess = payload => ({
+export const deleteGitCredentialSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_GIT_CREDENTIAL_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteGitCredentialFailure = error => ({
+export const deleteGitCredentialFailure = (error: $TSFixMe) => ({
     type: types.DELETE_GIT_CREDENTIAL_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteGitCredential = ({
     projectId,
-    credentialId,
-}) => async dispatch => {
+    credentialId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteGitCredentialRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `credential/${projectId}/gitCredential/${credentialId}`
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -160,20 +170,20 @@ export const getGitSecuritiesRequest = () => ({
     type: types.GET_GIT_SECURITIES_REQUEST,
 });
 
-export const getGitSecuritiesSuccess = payload => ({
+export const getGitSecuritiesSuccess = (payload: $TSFixMe) => ({
     type: types.GET_GIT_SECURITIES_SUCCESS,
-    payload,
+    payload
 });
 
-export const getGitSecuritiesFailure = error => ({
+export const getGitSecuritiesFailure = (error: $TSFixMe) => ({
     type: types.GET_GIT_SECURITIES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getGitSecurities = ({
     projectId,
-    credentialId,
-}) => async dispatch => {
+    credentialId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getGitSecuritiesRequest());
 
     try {
@@ -181,6 +191,7 @@ export const getGitSecurities = ({
             `security/${projectId}/application/${credentialId}`
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getGitSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -201,17 +212,20 @@ export const addDockerCredentialRequest = () => ({
     type: types.ADD_DOCKER_CREDENTIAL_REQUEST,
 });
 
-export const addDockerCredentialSuccess = payload => ({
+export const addDockerCredentialSuccess = (payload: $TSFixMe) => ({
     type: types.ADD_DOCKER_CREDENTIAL_SUCCESS,
-    payload,
+    payload
 });
 
-export const addDockerCredentialFailure = error => ({
+export const addDockerCredentialFailure = (error: $TSFixMe) => ({
     type: types.ADD_DOCKER_CREDENTIAL_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const addDockerCredential = ({ projectId, data }) => async dispatch => {
+export const addDockerCredential = ({
+    projectId,
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addDockerCredentialRequest());
 
     try {
@@ -219,6 +233,7 @@ export const addDockerCredential = ({ projectId, data }) => async dispatch => {
             `credential/${projectId}/dockerCredential`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(addDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -238,21 +253,21 @@ export const updateDockerCredentialRequest = () => ({
     type: types.UPDATE_DOCKER_CREDENTIAL_REQUEST,
 });
 
-export const updateDockerCredentialSuccess = payload => ({
+export const updateDockerCredentialSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_DOCKER_CREDENTIAL_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateDockerCredentialFailure = error => ({
+export const updateDockerCredentialFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_DOCKER_CREDENTIAL_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateDockerCredential = ({
     projectId,
     credentialId,
-    data,
-}) => async dispatch => {
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(updateDockerCredentialRequest());
 
     try {
@@ -261,6 +276,7 @@ export const updateDockerCredential = ({
             data
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(updateDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -280,23 +296,26 @@ export const getDockerCredentialsRequest = () => ({
     type: types.GET_DOCKER_CREDENTIALS_REQUEST,
 });
 
-export const getDockerCredentialsSuccess = payload => ({
+export const getDockerCredentialsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_DOCKER_CREDENTIALS_SUCCESS,
-    payload,
+    payload
 });
 
-export const getDockerCredentialsFailure = error => ({
+export const getDockerCredentialsFailure = (error: $TSFixMe) => ({
     type: types.GET_DOCKER_CREDENTIALS_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const getDockerCredentials = ({ projectId }) => async dispatch => {
+export const getDockerCredentials = ({
+    projectId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getDockerCredentialsRequest());
 
     try {
         const response = await getApi(
             `credential/${projectId}/dockerCredential`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getDockerCredentialsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -316,27 +335,29 @@ export const deleteDockerCredentialRequest = () => ({
     type: types.DELETE_DOCKER_CREDENTIAL_REQUEST,
 });
 
-export const deleteDockerCredentialSuccess = payload => ({
+export const deleteDockerCredentialSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_DOCKER_CREDENTIAL_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteDockerCredentialFailure = error => ({
+export const deleteDockerCredentialFailure = (error: $TSFixMe) => ({
     type: types.DELETE_DOCKER_CREDENTIAL_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteDockerCredential = ({
     projectId,
-    credentialId,
-}) => async dispatch => {
+    credentialId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteDockerCredentialRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `credential/${projectId}/dockerCredential/${credentialId}`
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -357,20 +378,20 @@ export const getDockerSecuritiesRequest = () => ({
     type: types.GET_DOCKER_SECURITIES_REQUEST,
 });
 
-export const getDockerSecuritiesSuccess = payload => ({
+export const getDockerSecuritiesSuccess = (payload: $TSFixMe) => ({
     type: types.GET_DOCKER_SECURITIES_SUCCESS,
-    payload,
+    payload
 });
 
-export const getDockerSecuritiesFailure = error => ({
+export const getDockerSecuritiesFailure = (error: $TSFixMe) => ({
     type: types.GET_DOCKER_SECURITIES_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const getDockerSecurities = ({
     projectId,
-    credentialId,
-}) => async dispatch => {
+    credentialId
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getDockerSecuritiesRequest());
 
     try {
@@ -378,6 +399,7 @@ export const getDockerSecurities = ({
             `security/${projectId}/container/${credentialId}`
         );
 
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getDockerSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =

@@ -6,13 +6,17 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from './ShouldRender';
 class ExternalStatusPages extends Component {
     async componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchExternalStatusPages' does not exist... Remove this comment to see the full error message
         this.props.fetchExternalStatusPages(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.statusPage.projectId._id,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.statusPage._id
         );
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'externalStatusPages' does not exist on t... Remove this comment to see the full error message
         const { externalStatusPages, theme } = this.props;
         return (
             <div>
@@ -26,7 +30,7 @@ class ExternalStatusPages extends Component {
                         }}
                     >
                         {externalStatusPages?.externalStatusPagesList?.map(
-                            (link, i) => {
+                            (link: $TSFixMe, i: $TSFixMe) => {
                                 return (
                                     <div key={i}>
                                         <div
@@ -135,7 +139,7 @@ class ExternalStatusPages extends Component {
                                     </div>
                                     <ul className="feed-contents plain">
                                         {externalStatusPages?.externalStatusPagesList?.map(
-                                            (link, i) => {
+                                            (link: $TSFixMe, i: $TSFixMe) => {
                                                 return (
                                                     <li
                                                         key={i}
@@ -232,17 +236,18 @@ class ExternalStatusPages extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ExternalStatusPages.displayName = 'ExternalStatusPages';
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     statusPage: state.status.statusPage,
     externalStatusPages: state.status.externalStatusPages,
     requesting: state.status.announcementLogs.requesting,
-    error: state.status.announcementLogs.error,
+    error: state.status.announcementLogs.error
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ fetchExternalStatusPages }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ExternalStatusPages.propTypes = {
     externalStatusPages: PropTypes.object,
     fetchExternalStatusPages: PropTypes.func,

@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import { Validate } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
@@ -19,11 +21,13 @@ const errorStyle = {
 };
 
 export class ResetPasswordForm extends Component {
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPassword' does not exist on type 'R... Remove this comment to see the full error message
         this.props.resetPassword(values);
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
         const resetPasswordError = this.props.resetPasswordState.error;
         let header;
         if (resetPasswordError) {
@@ -41,6 +45,7 @@ export class ResetPasswordForm extends Component {
                 <div id="main-body" className="box css">
                     <div className="inner">
                         <form
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
                             onSubmit={this.props.handleSubmit(this.submitForm)}
                             className="request-reset"
                         >
@@ -48,6 +53,7 @@ export class ResetPasswordForm extends Component {
                                 <div className="title">
                                     <h2>{header}</h2>
                                 </div>
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
                                 {this.props.resetPasswordState.success && (
                                     <p
                                         id="reset-password-success"
@@ -59,6 +65,7 @@ export class ResetPasswordForm extends Component {
                                         Please don&apos;t forget to check spam.{' '}
                                     </p>
                                 )}
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
                                 {!this.props.resetPasswordState.success && (
                                     <p className="message">
                                         {' '}
@@ -68,6 +75,7 @@ export class ResetPasswordForm extends Component {
                                     </p>
                                 )}
 
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
                                 {!this.props.resetPasswordState.success && (
                                     <div>
                                         {' '}
@@ -92,14 +100,17 @@ export class ResetPasswordForm extends Component {
                                                 className="button blue medium"
                                                 disabled={
                                                     this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
                                                         .resetPasswordState
                                                         .requesting
                                                 }
                                             >
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
                                                 {!this.props.resetPasswordState
                                                     .requesting && (
                                                     <span>Reset Password</span>
                                                 )}
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordState' does not exist on ty... Remove this comment to see the full error message
                                                 {this.props.resetPasswordState
                                                     .requesting && (
                                                     <ButtonSpinner />
@@ -117,13 +128,16 @@ export class ResetPasswordForm extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResetPasswordForm.displayName = 'ResetPasswordForm';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.email)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
         errors.email = 'Email is required.';
     } else if (!Validate.email(values.email)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
         errors.email = 'Email is invalid.';
     }
     return errors;
@@ -134,7 +148,7 @@ const resetPasswordForm = reduxForm({
     validate,
 })(ResetPasswordForm);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             resetPasswordError,
@@ -146,12 +160,13 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         resetPasswordState: state.resetPassword,
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResetPasswordForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     resetPasswordState: PropTypes.object.isRequired,

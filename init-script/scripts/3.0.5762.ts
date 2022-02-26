@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update, removeField, rename } from '../util/db'
 
 const monitorCategoryCollection = 'monitorcategories';
@@ -12,7 +13,7 @@ async function run() {
     const monitors = await find(monitorCollection, {
         monitorCategoryId: { $exists: true },
     });
-    monitors.forEach(async monitor => {
+    monitors.forEach(async (monitor: $TSFixMe) => {
         const resourceCategory = monitor.monitorCategoryId;
 
         // set their resourceCategory as the monitorCategoryId

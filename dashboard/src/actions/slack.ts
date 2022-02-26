@@ -10,14 +10,14 @@ export function deleteSlackLinkRequest() {
     };
 }
 
-export function deleteSlackLinkError(error) {
+export function deleteSlackLinkError(error: $TSFixMe) {
     return {
         type: types.DELETE_SLACK_LINK_FAILED,
         payload: error,
     };
 }
 
-export function deleteSlackLinkSuccess(deletedTeam) {
+export function deleteSlackLinkSuccess(deletedTeam: $TSFixMe) {
     return {
         type: types.DELETE_SLACK_LINK_SUCCESS,
         payload: deletedTeam,
@@ -31,15 +31,17 @@ export const resetdeleteSlackLink = () => {
 };
 
 // Calls the API to link slack team to project
-export function deleteSlackLink(projectId, teamId) {
-    return function(dispatch) {
+export function deleteSlackLink(projectId: $TSFixMe, teamId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`slack/${projectId}/unLink/${teamId}`, null);
 
         dispatch(deleteSlackLinkRequest());
 
         return promise.then(
             function(teams) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(deleteSlackLinkSuccess(teams.data));
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return teams.data;
             },
             function(error) {
@@ -59,21 +61,21 @@ export function deleteSlackLink(projectId, teamId) {
     };
 }
 
-export function getSlackTeamsRequest(promise) {
+export function getSlackTeamsRequest(promise: $TSFixMe) {
     return {
         type: types.GET_SLACK_TEAM_REQUEST,
         payload: promise,
     };
 }
 
-export function getSlackTeamsError(error) {
+export function getSlackTeamsError(error: $TSFixMe) {
     return {
         type: types.GET_SLACK_TEAM_FAILED,
         payload: error,
     };
 }
 
-export function getSlackTeamsSuccess(teams) {
+export function getSlackTeamsSuccess(teams: $TSFixMe) {
     return {
         type: types.GET_SLACK_TEAM_SUCCESS,
         payload: teams,
@@ -86,8 +88,8 @@ export const resetGetSlackTeams = () => {
     };
 };
 
-export function getSlackTeams(projectId, skip, limit) {
-    return function(dispatch) {
+export function getSlackTeams(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         let promise = null;
         if (skip && limit)
             promise = getApi(
@@ -100,6 +102,7 @@ export function getSlackTeams(projectId, skip, limit) {
 
         promise.then(
             function(teams) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
             function(error) {
@@ -141,8 +144,8 @@ export function paginateReset() {
     };
 }
 
-export function paginate(type) {
-    return function(dispatch) {
+export function paginate(type: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

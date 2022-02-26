@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
@@ -17,9 +18,10 @@ class DeleteConfirmationModal extends Component {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
-    handleKeyboard = e => {
+    handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -29,6 +31,7 @@ class DeleteConfirmationModal extends Component {
     };
 
     handleDelete = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { error, deleteSmsLogs, closeModal, modalId } = this.props;
         deleteSmsLogs().then(() => {
             if (!error) {
@@ -37,6 +40,7 @@ class DeleteConfirmationModal extends Component {
         });
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog, deleteRequest, error } = this.props;
 
         return (
@@ -136,17 +140,18 @@ class DeleteConfirmationModal extends Component {
     }
 }
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     deleteRequest: state.smsLogs.smsLogs.deleteRequest,
     error: state.smsLogs.smsLogs.error,
-    modalId: state.modal.modals[0].id,
+    modalId: state.modal.modals[0].id
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, deleteSmsLogs }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteSmsLogs }, dispatch);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeleteConfirmationModal.propTypes = {
     closeThisDialog: PropTypes.func,
     deleteRequest: PropTypes.bool,

@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -9,7 +10,7 @@ import DeleteSlackTeam from '../modals/deleteSlackTeam';
 import DataPathHoC from '../DataPathHoC';
 
 class SlackTeamItem extends React.Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
 
         this.state = {
@@ -18,16 +19,22 @@ class SlackTeamItem extends React.Component {
     }
 
     unLink = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSlackLink' does not exist on type ... Remove this comment to see the full error message
         return this.props.deleteSlackLink(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'team' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             this.props.team._id
         );
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'team' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             team,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteTeam' does not exist on type 'Read... Remove this comment to see the full error message
             deleteTeam: { requesting },
         } = this.props;
 
@@ -77,6 +84,7 @@ class SlackTeamItem extends React.Component {
                                 className="bs-Button bs-Button--block"
                                 disabled={requesting}
                                 onClick={() =>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                     this.props.openModal({
                                         id: deleteModalId,
                                         onClose: () => '',
@@ -99,23 +107,24 @@ class SlackTeamItem extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SlackTeamItem.displayName = 'SlackTeamItem';
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject,
-    deleteTeam: state.slack.deleteTeam,
+    deleteTeam: state.slack.deleteTeam
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-            closeModal,
-            deleteSlackLink,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+        closeModal,
+        deleteSlackLink,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SlackTeamItem.propTypes = {
     deleteSlackLink: PropTypes.func,
     deleteTeam: PropTypes.object.isRequired,

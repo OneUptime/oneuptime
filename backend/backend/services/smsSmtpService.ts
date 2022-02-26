@@ -1,26 +1,37 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const iv = Crypto.randomBytes(16);
         data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
         const twilioModel = new TwilioModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         twilioModel.projectId = data.projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountSid' does not exist on type 'Docu... Remove this comment to see the full error message
         twilioModel.accountSid = data.accountSid;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
         twilioModel.authToken = data.authToken;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type 'Doc... Remove this comment to see the full error message
         twilioModel.phoneNumber = data.phoneNumber;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
         twilioModel.iv = iv;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enabled' does not exist on type 'Documen... Remove this comment to see the full error message
         twilioModel.enabled = true;
         const twilioSettings = await twilioModel.save();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
         if (twilioSettings && twilioSettings.authToken && twilioSettings.iv) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
             twilioSettings.authToken = await EncryptDecrypt.decrypt(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
                 twilioSettings.authToken,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
                 twilioSettings.iv
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
             delete twilioSettings.iv;
         }
         return twilioSettings;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -56,7 +67,7 @@ export default {
         return updatedTwilioSettings;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -72,7 +83,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const deletedData = await TwilioModel.findOneAndUpdate(
             query,
             {
@@ -96,7 +107,13 @@ export default {
         return deletedData;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -138,7 +155,11 @@ export default {
         return twilioSettings;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -164,7 +185,7 @@ export default {
         return twilio;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -174,7 +195,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await TwilioModel.deleteMany(query);
         return 'SMS Smtp(s) removed successfully';
     },

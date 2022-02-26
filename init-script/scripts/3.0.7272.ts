@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update } from '../util/db'
 
 const PROJECT_COLLECTION = 'projects';
@@ -23,7 +24,7 @@ async function run() {
     );
     // update project by setting the investigationNotification options to default value of true
     projectsWithoutInvestigationNoteNotificationOptionFields.forEach(
-        project => {
+        (project: $TSFixMe) => {
             // add a default value only if the field is missing
             const updateValues = {};
             if (
@@ -32,6 +33,7 @@ async function run() {
                     'enableInvestigationNoteNotificationSMS'
                 )
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableInvestigationNoteNotificationSMS' ... Remove this comment to see the full error message
                 updateValues.enableInvestigationNoteNotificationSMS = true;
             }
             if (
@@ -40,6 +42,7 @@ async function run() {
                     'enableInvestigationNoteNotificationEmail'
                 )
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableInvestigationNoteNotificationEmail... Remove this comment to see the full error message
                 updateValues.enableInvestigationNoteNotificationEmail = true;
             }
             if (
@@ -48,6 +51,7 @@ async function run() {
                     'enableInvestigationNoteNotificationWebhook'
                 )
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableInvestigationNoteNotificationWebho... Remove this comment to see the full error message
                 updateValues.enableInvestigationNoteNotificationWebhook = true;
             }
 

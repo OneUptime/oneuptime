@@ -1,6 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
 import { metricsQuickStart } from '../../config';
 import AceCodeEditor from '../basic/AceCodeEditor';
@@ -30,11 +31,17 @@ function renderLibraries() {
     return list;
 }
 
-const QuickStart = ({ appId, appKey, close, library }) => {
+const QuickStart = ({
+    appId,
+    appKey,
+    close,
+    library
+}: $TSFixMe) => {
     const guide = metricsQuickStart
         .getQuickStarts(appId, appKey)
         .filter(quickStart => quickStart.id === library)[0];
     return (
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
         <div tabIndex="0" className="Box-root Margin-vertical--12">
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
                 <div
@@ -94,10 +101,13 @@ const QuickStart = ({ appId, appKey, close, library }) => {
                                                             id="library"
                                                             placeholder="Choose Library"
                                                             options={[
+                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
                                                                 ...(metricsQuickStart.getQuickStarts() &&
+                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
                                                                 metricsQuickStart.getQuickStarts()
                                                                     .length > 0
                                                                     ? metricsQuickStart
+                                                                          // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
                                                                           .getQuickStarts()
                                                                           .map(
                                                                               library => ({
@@ -121,6 +131,7 @@ const QuickStart = ({ appId, appKey, close, library }) => {
                     </div>
                 </div>
                 <div className="Box-root">
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'installation' does not exist on type 'st... Remove this comment to see the full error message
                     {guide && guide.performanceTracker.installation ? (
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-direction--column ">
                             <div>
@@ -128,8 +139,10 @@ const QuickStart = ({ appId, appKey, close, library }) => {
                                     <span>
                                         {' '}
                                         {guide &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'installation' does not exist on type 'st... Remove this comment to see the full error message
                                         guide.performanceTracker.installation
                                             ? guide.performanceTracker
+                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'installation' does not exist on type 'st... Remove this comment to see the full error message
                                                   .installation.package
                                             : ''}
                                     </span>
@@ -137,11 +150,14 @@ const QuickStart = ({ appId, appKey, close, library }) => {
 
                                 <div>
                                     <AceCodeEditor
+                                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                                         value={
                                             guide &&
                                             guide.performanceTracker
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'installation' does not exist on type 'st... Remove this comment to see the full error message
                                                 .installation
                                                 ? guide.performanceTracker
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'installation' does not exist on type 'st... Remove this comment to see the full error message
                                                       .installation.command
                                                 : ''
                                         }
@@ -156,10 +172,13 @@ const QuickStart = ({ appId, appKey, close, library }) => {
                                 </span>
                                 <div>
                                     <AceCodeEditor
+                                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                                         value={
                                             guide &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'usage' does not exist on type 'string | ... Remove this comment to see the full error message
                                             guide.performanceTracker.usage
                                                 ? guide &&
+                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'usage' does not exist on type 'string | ... Remove this comment to see the full error message
                                                   guide.performanceTracker.usage
                                                 : ''
                                         }
@@ -194,7 +213,7 @@ QuickStart.propTypes = {
     library: PropTypes.string,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const initialValues = {
         library: 'js',
     };

@@ -1,8 +1,9 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 require('should');
 
 // user credentials
@@ -11,10 +12,13 @@ const password = '1234567890';
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
     beforeAll(async () => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,12 +33,14 @@ describe('Monitor API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    test('should display lighthouse scores', async done => {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    test('should display lighthouse scores', async (done: $TSFixMe) => {
         // Navigate to Component details
         // This navigates to the monitor created alongside the created component
         await init.navigateToMonitorDetails(componentName, monitorName, page);
@@ -112,9 +118,10 @@ describe('Monitor API', () => {
         done();
     }, 600000);
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'should display multiple probes and monitor chart on refresh',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Component details
             // This navigates to the monitor created alongside the created component
             await init.navigateToMonitorDetails(
@@ -123,16 +130,20 @@ describe('Monitor API', () => {
                 page
             );
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const probe0 = await init.pageWaitForSelector(page, '#probes-btn0');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const probe1 = await init.pageWaitForSelector(page, '#probes-btn1');
 
             expect(probe0).toBeDefined();
             expect(probe1).toBeDefined();
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const monitorStatus = await init.pageWaitForSelector(
                 page,
                 `#monitor-status-${monitorName}`
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const sslStatus = await init.pageWaitForSelector(
                 page,
                 `#ssl-status-${monitorName}`

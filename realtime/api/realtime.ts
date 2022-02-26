@@ -1,15 +1,17 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
 import express from 'express'
 const router = express.Router();
 const {
     sendErrorResponse,
     sendEmptyResponse,
 } = require('../middlewares/response');
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
 import { isAuthorizedService } from '../middlewares/serviceAuthorization'
 import RealtimeService from '../services/realtimeService'
 
 router.post('/send-created-incident', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, incident } = req.body;
@@ -22,8 +24,8 @@ router.post('/send-created-incident', isAuthorizedService, async function(
 });
 
 router.post('/send-incident-timeline', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, data } = req.body;
@@ -36,8 +38,8 @@ router.post('/send-incident-timeline', isAuthorizedService, async function(
 });
 
 router.post('/send-sla-countdown', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, incident, countDown } = req.body;
@@ -53,7 +55,7 @@ router.post('/send-sla-countdown', isAuthorizedService, async function(
     }
 });
 
-router.post('/delete-incident', isAuthorizedService, async function(req, res) {
+router.post('/delete-incident', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { projectId, incident } = req.body;
 
@@ -65,8 +67,8 @@ router.post('/delete-incident', isAuthorizedService, async function(req, res) {
 });
 
 router.post('/add-incident-note', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, incidentNote } = req.body;
@@ -79,8 +81,8 @@ router.post('/add-incident-note', isAuthorizedService, async function(
 });
 
 router.post('/update-incident-note', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, incidentNote } = req.body;
@@ -93,8 +95,8 @@ router.post('/update-incident-note', isAuthorizedService, async function(
 });
 
 router.post('/update-incident-timeline', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { incidentTimeline, projectId } = req.body;
@@ -106,7 +108,7 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
     }
 });
 
-router.post('/update-incident', isAuthorizedService, async function(req, res) {
+router.post('/update-incident', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { incident, projectId } = req.body;
 
@@ -118,8 +120,8 @@ router.post('/update-incident', isAuthorizedService, async function(req, res) {
 });
 
 router.post('/delete-incident-note', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { incidentNote, projectId } = req.body;
@@ -132,8 +134,8 @@ router.post('/delete-incident-note', isAuthorizedService, async function(
 });
 
 router.post('/add-scheduled-event', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { event, projectId } = req.body;
@@ -146,8 +148,8 @@ router.post('/add-scheduled-event', isAuthorizedService, async function(
 });
 
 router.post('/delete-scheduled-event', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { event, projectId } = req.body;
@@ -160,8 +162,8 @@ router.post('/delete-scheduled-event', isAuthorizedService, async function(
 });
 
 router.post('/update-scheduled-event', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { event, projectId } = req.body;
@@ -174,8 +176,8 @@ router.post('/update-scheduled-event', isAuthorizedService, async function(
 });
 
 router.post('/resolve-scheduled-event', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { event, projectId } = req.body;
@@ -190,7 +192,7 @@ router.post('/resolve-scheduled-event', isAuthorizedService, async function(
 router.post(
     '/add-scheduled-event-internal-note',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -208,7 +210,7 @@ router.post(
 router.post(
     '/add-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -227,7 +229,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-internal-note',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -245,7 +247,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -264,7 +266,7 @@ router.post(
 router.post(
     '/update-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -283,7 +285,7 @@ router.post(
 router.post(
     '/update-scheduled-event-internal-note',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -299,8 +301,8 @@ router.post(
 );
 
 router.post('/send-component-created', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { component, projectId } = req.body;
@@ -313,8 +315,8 @@ router.post('/send-component-created', isAuthorizedService, async function(
 });
 
 router.post('/send-monitor-created', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { monitor, projectId } = req.body;
@@ -327,8 +329,8 @@ router.post('/send-monitor-created', isAuthorizedService, async function(
 });
 
 router.post('/send-monitor-delete', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { monitor, projectId } = req.body;
@@ -341,8 +343,8 @@ router.post('/send-monitor-delete', isAuthorizedService, async function(
 });
 
 router.post('/send-component-delete', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { component, projectId } = req.body;
@@ -355,8 +357,8 @@ router.post('/send-component-delete', isAuthorizedService, async function(
 });
 
 router.post('/incident-resolved', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { incident, projectId } = req.body;
@@ -369,8 +371,8 @@ router.post('/incident-resolved', isAuthorizedService, async function(
 });
 
 router.post('/incident-acknowledged', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { incident, projectId } = req.body;
@@ -382,7 +384,7 @@ router.post('/incident-acknowledged', isAuthorizedService, async function(
     }
 });
 
-router.post('/status-page-edit', isAuthorizedService, async function(req, res) {
+router.post('/status-page-edit', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { statusPage, projectId } = req.body;
 
@@ -393,7 +395,7 @@ router.post('/status-page-edit', isAuthorizedService, async function(req, res) {
     }
 });
 
-router.post('/component-edit', isAuthorizedService, async function(req, res) {
+router.post('/component-edit', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { component, projectId } = req.body;
 
@@ -404,7 +406,7 @@ router.post('/component-edit', isAuthorizedService, async function(req, res) {
     }
 });
 
-router.post('/monitor-edit', isAuthorizedService, async function(req, res) {
+router.post('/monitor-edit', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { monitor, projectId } = req.body;
 
@@ -416,8 +418,8 @@ router.post('/monitor-edit', isAuthorizedService, async function(req, res) {
 });
 
 router.post('/update-monitor-log', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const {
@@ -442,8 +444,8 @@ router.post('/update-monitor-log', isAuthorizedService, async function(
 });
 
 router.post('/update-lighthouse-log', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const body = req.body;
@@ -462,8 +464,8 @@ router.post('/update-lighthouse-log', isAuthorizedService, async function(
 });
 
 router.post('/update-all-lighthouse-log', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, data, parentProjectId, monitorId } = req.body;
@@ -481,8 +483,8 @@ router.post('/update-all-lighthouse-log', isAuthorizedService, async function(
 });
 
 router.post('/update-monitor-status', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { data, projectId, monitorId, parentProjectId } = req.body;
@@ -499,7 +501,7 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
     }
 });
 
-router.post('/update-probe', isAuthorizedService, async function(req, res) {
+router.post('/update-probe', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { data } = req.body;
 
@@ -511,8 +513,8 @@ router.post('/update-probe', isAuthorizedService, async function(req, res) {
 });
 
 router.post('/send-notification', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { data, projectId } = req.body;
@@ -525,8 +527,8 @@ router.post('/send-notification', isAuthorizedService, async function(
 });
 
 router.post('/update-team-member-role', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, data } = req.body;
@@ -539,8 +541,8 @@ router.post('/update-team-member-role', isAuthorizedService, async function(
 });
 
 router.post('/create-team-member', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, data } = req.body;
@@ -553,8 +555,8 @@ router.post('/create-team-member', isAuthorizedService, async function(
 });
 
 router.post('/delete-team-member', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { projectId, data } = req.body;
@@ -569,7 +571,7 @@ router.post('/delete-team-member', isAuthorizedService, async function(
 router.post(
     '/send-application-log-created',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { applicationLog, componentId } = req.body;
 
@@ -585,8 +587,8 @@ router.post(
 );
 
 router.post('/send-application-log-delete', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { applicationLog, componentId } = req.body;
@@ -601,7 +603,7 @@ router.post('/send-application-log-delete', isAuthorizedService, async function(
     }
 });
 
-router.post('/send-log-created', isAuthorizedService, async function(req, res) {
+router.post('/send-log-created', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { contentLog, applicationLogId } = req.body;
 
@@ -613,8 +615,8 @@ router.post('/send-log-created', isAuthorizedService, async function(req, res) {
 });
 
 router.post('/application-log-key-reset', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { applicationLog, componentId } = req.body;
@@ -629,7 +631,7 @@ router.post('/application-log-key-reset', isAuthorizedService, async function(
 router.post(
     '/send-container-security-created',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { containerSecurity, componentId } = req.body;
 
@@ -647,7 +649,7 @@ router.post(
 router.post(
     '/send-application-security-created',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { applicationSecurity, componentId } = req.body;
 
@@ -663,8 +665,8 @@ router.post(
 );
 
 router.post('/send-error-tracker-created', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { errorTracker, componentId } = req.body;
@@ -677,8 +679,8 @@ router.post('/send-error-tracker-created', isAuthorizedService, async function(
 });
 
 router.post('/send-error-tracker-delete', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { errorTracker, componentId } = req.body;
@@ -691,8 +693,8 @@ router.post('/send-error-tracker-delete', isAuthorizedService, async function(
 });
 
 router.post('/error-tracker-key-reset', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { errorTracker, componentId } = req.body;
@@ -705,8 +707,8 @@ router.post('/error-tracker-key-reset', isAuthorizedService, async function(
 });
 
 router.post('/send-error-event-created', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { data, errorTrackerId } = req.body;
@@ -719,8 +721,8 @@ router.post('/send-error-event-created', isAuthorizedService, async function(
 });
 
 router.post('/send-issue-status-change', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { issue, type, errorTrackerId } = req.body;
@@ -735,7 +737,7 @@ router.post('/send-issue-status-change', isAuthorizedService, async function(
 router.post(
     '/send-error-tracker-issue-delete',
     isAuthorizedService,
-    async function(req, res) {
+    async function(req: $TSFixMe, res: $TSFixMe) {
         try {
             const { issue, errorTrackerId } = req.body;
 
@@ -751,8 +753,8 @@ router.post(
 );
 
 router.post('/send-time-metrics', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { appId, data } = req.body;
@@ -765,8 +767,8 @@ router.post('/send-time-metrics', isAuthorizedService, async function(
 });
 
 router.post('/send-throughput-metrics', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { appId, data } = req.body;
@@ -779,8 +781,8 @@ router.post('/send-throughput-metrics', isAuthorizedService, async function(
 });
 
 router.post('/send-error-metrics', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { appId, data } = req.body;
@@ -792,7 +794,7 @@ router.post('/send-error-metrics', isAuthorizedService, async function(
     }
 });
 
-router.post('/handle-scanning', isAuthorizedService, async function(req, res) {
+router.post('/handle-scanning', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { security } = req.body;
 
@@ -803,7 +805,7 @@ router.post('/handle-scanning', isAuthorizedService, async function(req, res) {
     }
 });
 
-router.post('/handle-log', isAuthorizedService, async function(req, res) {
+router.post('/handle-log', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const { securityId, securityLog } = req.body;
 
@@ -815,8 +817,8 @@ router.post('/handle-log', isAuthorizedService, async function(req, res) {
 });
 
 router.post('/status-page-update-tweets', isAuthorizedService, async function(
-    req,
-    res
+    req: $TSFixMe,
+    res: $TSFixMe
 ) {
     try {
         const { tweets, statusPageId, _projectId } = req.body;

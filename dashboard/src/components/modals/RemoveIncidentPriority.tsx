@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -18,15 +19,19 @@ class RemoveIncidentPriority extends Component {
 
     handleSubmit() {
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentPriorityAction' does not e... Remove this comment to see the full error message
             .deleteIncidentPriorityAction(this.props.currentProject._id, {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 _id: this.props.data.selectedIncidentPriority,
             })
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             .then(() => this.props.closeThisDialog());
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleSubmit();
@@ -36,6 +41,7 @@ class RemoveIncidentPriority extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -65,6 +71,7 @@ class RemoveIncidentPriority extends Component {
                                         <ShouldRender
                                             if={
                                                 this.props
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentPriority' does not exist o... Remove this comment to see the full error message
                                                     .deleteIncidentPriority
                                                     .error
                                             }
@@ -87,6 +94,7 @@ class RemoveIncidentPriority extends Component {
                                                         >
                                                             {
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentPriority' does not exist o... Remove this comment to see the full error message
                                                                     .deleteIncidentPriority
                                                                     .error
                                                             }
@@ -99,6 +107,7 @@ class RemoveIncidentPriority extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -112,6 +121,7 @@ class RemoveIncidentPriority extends Component {
                                             onClick={() => this.handleSubmit()}
                                             disabled={
                                                 this.props
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentPriority' does not exist o... Remove this comment to see the full error message
                                                     .deleteIncidentPriority
                                                     .requesting
                                             }
@@ -125,6 +135,7 @@ class RemoveIncidentPriority extends Component {
                                             <ShouldRender
                                                 if={
                                                     this.props
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentPriority' does not exist o... Remove this comment to see the full error message
                                                         .deleteIncidentPriority
                                                         .requesting
                                                 }
@@ -143,8 +154,10 @@ class RemoveIncidentPriority extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RemoveIncidentPriority.displayName = 'RemoveIncidentPriorityFormModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RemoveIncidentPriority.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     deleteIncidentPriorityAction: PropTypes.func.isRequired,
@@ -153,20 +166,19 @@ RemoveIncidentPriority.propTypes = {
     deleteIncidentPriority: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         deleteIncidentPriority: state.incidentPriorities.deleteIncidentPriority,
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            deleteIncidentPriorityAction,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        deleteIncidentPriorityAction,
+    },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

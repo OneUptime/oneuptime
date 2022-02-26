@@ -11,7 +11,7 @@ const INITIAL_STATE = {
     skip: null,
 };
 
-export default function probes(state = INITIAL_STATE, action) {
+export default function probes(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {
@@ -108,6 +108,7 @@ export default function probes(state = INITIAL_STATE, action) {
                 probes:
                     state.probes.length > 0
                         ? state.probes.map(probe => {
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                               return probe._id === action.payload._id
                                   ? action.payload
                                   : probe;

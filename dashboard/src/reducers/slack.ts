@@ -29,7 +29,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     let teams, index, count;
     switch (action.type) {
         case GET_SLACK_TEAM_FAILED:
@@ -89,10 +89,12 @@ export default (state = initialState, action) => {
 
         case DELETE_SLACK_LINK_SUCCESS:
             teams = Object.assign([], state.teams.teams);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
             index = teams.findIndex(team => team._id === action.payload._id);
             action.payload.n === 1 &&
                 action.payload.ok === 1 &&
                 teams.splice(index, 1);
+            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
             count = state.teams.count - 1;
 
             return Object.assign({}, state, {

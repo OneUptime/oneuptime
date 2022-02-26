@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update } from '../util/db'
 
 const projectCollection = 'projects';
@@ -13,7 +14,7 @@ async function run() {
         sendResolvedIncidentNotificationEmail: { $exists: false },
     });
 
-    projects.forEach(async project => {
+    projects.forEach(async (project: $TSFixMe) => {
         const data = {
             sendCreatedIncidentNotificationSms: true,
             sendAcknowledgedIncidentNotificationSms: true,

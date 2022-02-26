@@ -13,10 +13,15 @@ import { WebHookTableBody, WebHookBadgeTableBody } from './WebHookRow';
 class WebHookInput extends React.Component {
     deleteItem = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
             monitors,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
             monitorId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateWebHook' does not exist on type 'R... Remove this comment to see the full error message
             updateWebHook,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
         } = this.props;
 
@@ -25,37 +30,49 @@ class WebHookInput extends React.Component {
         //if not delete the monitor
         if (monitorId) {
             const newMonitors = monitors
-                .filter(monitor => monitor.monitorId._id !== monitorId)
-                .map(monitor => ({ monitorId: monitor.monitorId._id }));
+                .filter((monitor: $TSFixMe) => monitor.monitorId._id !== monitorId)
+                .map((monitor: $TSFixMe) => ({
+                monitorId: monitor.monitorId._id
+            }));
 
             if (newMonitors.length > 0) {
                 const postObj = {};
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpoint' does not exist on type '{}'.
                 postObj.endpoint = data && data.data.endpoint;
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
                 postObj.monitors = newMonitors;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
                 postObj.type = 'webhook';
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpointType' does not exist on type '{}... Remove this comment to see the full error message
                 postObj.endpointType = data && data.data.endpointType;
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentCreated' does not exist on type ... Remove this comment to see the full error message
                 postObj.incidentCreated =
                     data && data.notificationOptions.incidentCreated;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentResolved' does not exist on type... Remove this comment to see the full error message
                 postObj.incidentResolved =
                     data && data.notificationOptions.incidentResolved;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentAcknowledged' does not exist on ... Remove this comment to see the full error message
                 postObj.incidentAcknowledged =
                     data && data.notificationOptions.incidentAcknowledged;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentNoteAdded' does not exist on typ... Remove this comment to see the full error message
                 postObj.incidentNoteAdded =
                     data && data.notificationOptions.incidentNoteAdded;
 
                 return updateWebHook(currentProject._id, data._id, postObj);
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteWebHook' does not exist on type 'R... Remove this comment to see the full error message
                 return this.props.deleteWebHook(currentProject._id, data._id);
             }
         } else {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteWebHook' does not exist on type 'R... Remove this comment to see the full error message
             return this.props.deleteWebHook(currentProject._id, data._id);
         }
     };
 
-    getMonitors(monitors) {
-        const gt = i => monitors.length > i;
+    getMonitors(monitors: $TSFixMe) {
+        const gt = (i: $TSFixMe) => monitors.length > i;
 
         let temp = gt(0) ? monitors[0].name : 'Not Yet Added';
         temp += gt(1)
@@ -66,6 +83,7 @@ class WebHookInput extends React.Component {
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data, webhooks, monitors, monitorId } = this.props;
 
         const { endpoint, endpointType } = data.data;
@@ -93,6 +111,7 @@ class WebHookInput extends React.Component {
 
                 <WebHookBadgeTableBody
                     text={endpointType}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ text: any; primary: boolean; }' is not ass... Remove this comment to see the full error message
                     primary={endpointType === 'post'}
                 />
 
@@ -108,6 +127,7 @@ class WebHookInput extends React.Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.openModal({
                                                 id: data._id,
                                                 onClose: () => '',
@@ -127,6 +147,7 @@ class WebHookInput extends React.Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.openModal({
                                                 id: data._id,
                                                 onClose: () => '',
@@ -151,25 +172,26 @@ class WebHookInput extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 WebHookInput.displayName = 'WebHookInput';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            deleteWebHook,
-            updateWebHook,
-            openModal,
-            closeModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        deleteWebHook,
+        updateWebHook,
+        openModal,
+        closeModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     webhooks: state.webHooks,
     team: state.team,
-    currentProject: state.project.currentProject,
+    currentProject: state.project.currentProject
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 WebHookInput.propTypes = {
     currentProject: PropTypes.object.isRequired,
     deleteWebHook: PropTypes.func.isRequired,

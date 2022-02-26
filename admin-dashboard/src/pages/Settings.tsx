@@ -11,7 +11,7 @@ import CallLog from '../components/settings/callLog';
 import SmsLog from '../components/settings/smsLog';
 
 // eslint-disable-next-line react/display-name
-const getChild = key => {
+const getChild = (key: $TSFixMe) => {
     switch (key) {
         case '/admin/settings/smtp':
             return <SMTP />; // eslint-disable-line react/jsx-pascal-case
@@ -37,7 +37,9 @@ const getChild = key => {
     }
 };
 
-const Component = ({ location: { pathname } }) => {
+const Component = ({
+    location: { pathname }
+}: $TSFixMe) => {
     return (
         <div className="Box-root Margin-vertical--12">
             <div>

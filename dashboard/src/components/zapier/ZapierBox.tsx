@@ -1,4 +1,5 @@
 import React from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { ListLoader } from '../basic/Loader';
 
@@ -56,6 +57,7 @@ class ZapierBox extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ZapierBox.displayName = 'ZapierBox';
 
 export default withRouter(ZapierBox);

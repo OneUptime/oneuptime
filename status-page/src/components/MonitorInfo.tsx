@@ -1,5 +1,6 @@
 import React, { Component, createRef } from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import BlockChart from './BlockChart';
 import moment from 'moment';
@@ -9,10 +10,10 @@ import { fetchMonitorStatuses, calculateTime } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
 import ShouldRender from './ShouldRender';
 
-function debounce(fn, ms) {
-    let timer;
+function debounce(this: $TSFixMe, fn: $TSFixMe, ms: $TSFixMe) {
+    let timer: $TSFixMe;
     // eslint-disable-next-line no-unused-vars
-    return _ => {
+    return (_: $TSFixMe) => {
         clearTimeout(timer);
         // eslint-disable-next-line no-unused-vars
         timer = setTimeout(_ => {
@@ -23,7 +24,10 @@ function debounce(fn, ms) {
 }
 
 class MonitorInfo extends Component {
-    constructor(props) {
+    container: $TSFixMe;
+    scrollContent: $TSFixMe;
+    scrollWrapper: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
 
         this.container = createRef();
@@ -36,12 +40,14 @@ class MonitorInfo extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { monitor } = this.props;
 
         if (monitor) {
             const endDate = moment(Date.now());
             const startDate = moment(Date.now()).subtract(90, 'days');
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorStatuses' does not exist on ... Remove this comment to see the full error message
             this.props.fetchMonitorStatuses(
                 monitor.projectId._id || monitor.projectId,
                 monitor._id,
@@ -59,16 +65,23 @@ class MonitorInfo extends Component {
         });
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             monitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'calculateTime' does not exist on type 'R... Remove this comment to see the full error message
             calculateTime,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             monitorState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
             probes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
             activeProbe,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStatus' does not exist on type 'R... Remove this comment to see the full error message
             monitorStatus,
         } = this.props;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'range' does not exist on type 'Readonly<... Remove this comment to see the full error message
         let { range } = this.props;
 
         let currentProbe =
@@ -85,15 +98,17 @@ class MonitorInfo extends Component {
         if (
             prevProbe?._id !== currentProbe?._id ||
             JSON.stringify(prevProps.monitorStatus) !==
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStatus' does not exist on type 'R... Remove this comment to see the full error message
                 JSON.stringify(this.props.monitorStatus) ||
             prevProps.range !== range
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
             range = !this.props.theme ? 90 : range;
 
             const now = Date.now();
 
             const monitorData = monitorState.find(
-                a => String(a._id) === String(monitor._id)
+                (a: $TSFixMe) => String(a._id) === String(monitor._id)
             );
 
             //this fixes the problem if the monitor is just created and its an api monitor
@@ -101,9 +116,8 @@ class MonitorInfo extends Component {
                 currentProbe =
                     probes && probes.length > 0
                         ? probes.filter(
-                              probe =>
-                                  String(probe._id) ===
-                                  String(monitorData.statuses[0]._id)
+                              (probe: $TSFixMe) => String(probe._id) ===
+                              String(monitorData.statuses[0]._id)
                           )[0]
                         : null;
             }
@@ -120,6 +134,7 @@ class MonitorInfo extends Component {
             if (monitor) {
                 const endDate = moment(Date.now());
                 const startDate = moment(Date.now()).subtract(90, 'days');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorStatuses' does not exist on ... Remove this comment to see the full error message
                 this.props.fetchMonitorStatuses(
                     monitor.projectId._id || monitor.projectId,
                     monitor._id,
@@ -155,6 +170,7 @@ class MonitorInfo extends Component {
         setTimeout(() => {
             // adjust width
             scrollWrapper.style.width = `${container.clientWidth}px`;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
             if (!this.props.theme) {
                 scrollContent.style.width = 'max-content';
             } else {
@@ -168,7 +184,8 @@ class MonitorInfo extends Component {
         }, 400);
     }
 
-    handleMonitorStatus = status => {
+    handleMonitorStatus = (status: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onlineText' does not exist on type 'Read... Remove this comment to see the full error message
         const { onlineText, offlineText, degradedText } = this.props;
         return status === 'online'
             ? onlineText
@@ -177,10 +194,11 @@ class MonitorInfo extends Component {
             : offlineText;
     };
 
-    checkOngoingEventMonitor = events => {
+    checkOngoingEventMonitor = (events: $TSFixMe) => {
         let result = false;
         for (const event of events) {
             for (const monitor of event.monitors) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                 if (monitor.monitorId._id === this.props.monitor._id) {
                     result = true;
                 }
@@ -191,19 +209,31 @@ class MonitorInfo extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
             monitorState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             monitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
             probes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
             activeProbe,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'colors' does not exist on type 'Readonly... Remove this comment to see the full error message
             colors,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
             selectedCharts,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
             resourceCategory,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isGroupedByMonitorCategory' does not exi... Remove this comment to see the full error message
             isGroupedByMonitorCategory,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorInfo' does not exist on type 'Rea... Remove this comment to see the full error message
             monitorInfo,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
         let range = !this.props.theme && 90;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
         if (this.props.theme) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'windowSize' does not exist on type 'Read... Remove this comment to see the full error message
             const { windowSize } = this.state;
             if (windowSize <= 600) {
                 range = 30;
@@ -217,13 +247,14 @@ class MonitorInfo extends Component {
         }
 
         const monitorData = monitorState.find(
-            a => String(a._id) === String(monitor._id)
+            (a: $TSFixMe) => String(a._id) === String(monitor._id)
         );
 
         const probe =
             probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
                 : null;
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         const statuses = filterProbeData(monitorData, probe);
 
         const calculatingTime = monitor
@@ -256,12 +287,15 @@ class MonitorInfo extends Component {
             for (let i = 0; i < range; i++) {
                 block.unshift(
                     <BlockChart
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitorId: any; monitorName: any; time: an... Remove this comment to see the full error message
                         monitorId={monitor._id}
                         monitorName={monitor.name}
                         time={timeBlock[i]}
                         key={i}
                         id={i}
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
                         theme={this.props.theme}
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'windowSize' does not exist on type 'Read... Remove this comment to see the full error message
                         windowSize={this.state.windowSize}
                         range={range}
                     />
@@ -288,25 +322,36 @@ class MonitorInfo extends Component {
         const subheading = {};
         const primaryText = {};
         if (colors) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
             subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
             primaryText.color = `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`;
             if (monitorStatus === 'degraded') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
                 status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`; // "degraded-status";
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                 status.font = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`; // "degraded-status";
             } else if (monitorStatus === 'online') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
                 status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`; // "online-status";
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                 status.font = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`; // "online-status";
             } else if (monitorStatus === 'offline') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
                 status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`; // "red-downtime";
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                 status.font = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`; // "red-downtime";
             } else {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
                 status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`; // "grey-disabled";
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                 status.font = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`; // "grey-disabled";
             }
         }
 
         return (
             <>
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
                 <ShouldRender if={this.props.theme}>
                     <>
                         <div className="op-disp">
@@ -317,6 +362,7 @@ class MonitorInfo extends Component {
                                     >
                                         <div
                                             id={`monitorCategory_${monitor.name}`}
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ display: string; marginBottom: number; fon... Remove this comment to see the full error message
                                             style={monitorCategoryStyle}
                                         >
                                             <span>
@@ -365,22 +411,30 @@ class MonitorInfo extends Component {
                             <div
                                 style={{
                                     color:
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
                                         (this.props.ongoing &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
                                             this.props.ongoing.length > 0) ||
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                                         status.font === 'rgba(255, 222, 36, 1)'
                                             ? '#e39f48'
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                                             : status.font ===
                                               'rgba(108, 219, 86, 1)'
                                             ? '#49c3b1'
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                                             : status.font ===
                                               'rgba(250, 109, 70, 1)'
                                             ? '#FA6D46'
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                                             : status.font,
                                     textTransform: 'capitalize',
                                 }}
                             >
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
                                 {this.props.ongoing &&
                                 this.checkOngoingEventMonitor(
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
                                     this.props.ongoing
                                 )
                                     ? 'Ongoing Scheduled Event'
@@ -392,6 +446,7 @@ class MonitorInfo extends Component {
                         >
                             <div
                                 className="uptime-graph-section dashboard-uptime-graph ma-t-20"
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'Readonly<{}>... Remove this comment to see the full error message
                                 id={this.props.id}
                                 ref={this.container}
                             >
@@ -400,9 +455,11 @@ class MonitorInfo extends Component {
                                         ref={this.scrollWrapper}
                                         className="block-chart"
                                         style={{
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"scroll" | "none"' is not assignable to type... Remove this comment to see the full error message
                                             overflowX: this.props.theme
                                                 ? 'none'
                                                 : 'scroll',
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                             overflow: this.props.theme
                                                 ? 'visible'
                                                 : 'scroll',
@@ -430,6 +487,7 @@ class MonitorInfo extends Component {
                                 <div className="alerts_days">
                                     <div
                                         style={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
                                             'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
@@ -440,21 +498,25 @@ class MonitorInfo extends Component {
                                     </div>
                                     <div
                                         style={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
                                             'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
                                         className={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'checkUptime' does not exist on type 'Rea... Remove this comment to see the full error message
                                             this.props.checkUptime
                                                 ? 'spacer bs-mar-right'
                                                 : 'spacer'
                                         }
                                     ></div>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'checkUptime' does not exist on type 'Rea... Remove this comment to see the full error message
                                     <ShouldRender if={!this.props.checkUptime}>
                                         {uptime === 'N/A' ? (
                                             <div
                                                 style={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                                     subheading.color ===
                                                     'rgba(76, 76, 76, 1)'
                                                         ? {
@@ -468,6 +530,7 @@ class MonitorInfo extends Component {
                                         ) : (
                                             <div
                                                 style={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                                     subheading.color ===
                                                     'rgba(76, 76, 76, 1)'
                                                         ? {
@@ -483,12 +546,14 @@ class MonitorInfo extends Component {
                                     </ShouldRender>
                                     <div
                                         style={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
                                             'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
                                         className={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'checkUptime' does not exist on type 'Rea... Remove this comment to see the full error message
                                             this.props.checkUptime
                                                 ? 'spacer bs-mar-left'
                                                 : 'spacer'
@@ -496,6 +561,7 @@ class MonitorInfo extends Component {
                                     ></div>
                                     <div
                                         style={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
                                             'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
@@ -510,9 +576,11 @@ class MonitorInfo extends Component {
                     </>
                 </ShouldRender>
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
                 <ShouldRender if={!this.props.theme}>
                     <div
                         className="uptime-graph-section dashboard-uptime-graph monitorLists"
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'Readonly<{}>... Remove this comment to see the full error message
                         id={this.props.id}
                         ref={this.container}
                     >
@@ -526,6 +594,7 @@ class MonitorInfo extends Component {
                                 <ShouldRender if={isGroupedByMonitorCategory}>
                                     <div
                                         id={`monitorCategory_${monitor.name}`}
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ display: string; marginBottom: number; fon... Remove this comment to see the full error message
                                         style={monitorCategoryStyle}
                                     >
                                         <span>
@@ -540,6 +609,7 @@ class MonitorInfo extends Component {
                                     </div>
                                 </ShouldRender>
                                 <div style={{ display: 'flex' }}>
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                     <ShouldRender if={!this.props.theme}>
                                         <div>
                                             <span style={status}></span>
@@ -574,6 +644,7 @@ class MonitorInfo extends Component {
                                     className="percentage"
                                     style={primaryText}
                                 >
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'checkUptime' does not exist on type 'Rea... Remove this comment to see the full error message
                                     <ShouldRender if={!this.props.checkUptime}>
                                         {uptime === 'N/A' ? (
                                             <>
@@ -594,6 +665,7 @@ class MonitorInfo extends Component {
                                 ref={this.scrollWrapper}
                                 className="block-chart"
                                 style={{
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '"scroll" | "none"' is not assignable to type... Remove this comment to see the full error message
                                     overflowX: this.props.theme
                                         ? 'none'
                                         : 'scroll',
@@ -624,15 +696,16 @@ class MonitorInfo extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorInfo.displayName = 'UptimeGraphs';
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     const ongoing =
         state.status &&
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
         state.status.ongoing.ongoing.filter(
-            ongoingSchedule => !ongoingSchedule.cancelled
+            (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
         );
 
     const monitorStatus = state.status.monitorStatuses[ownProps.monitor._id];
@@ -649,15 +722,15 @@ function mapStateToProps(state, ownProps) {
     };
 }
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchMonitorStatuses,
-            calculateTime,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchMonitorStatuses,
+        calculateTime,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorInfo.propTypes = {
     monitor: PropTypes.object,
     colors: PropTypes.object,

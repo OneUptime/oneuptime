@@ -17,14 +17,16 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
 import express from 'express'
 import path from 'path'
 const app = express();
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cors... Remove this comment to see the full error message
 import cors from 'cors'
 
 app.use(cors());
 
-app.use(function(req, res, next) {
+app.use(function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -41,28 +43,43 @@ app.use(function(req, res, next) {
     return next();
 });
 
-app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
+app.get(['/env.js', '/dashboard/env.js'], function(req: $TSFixMe, res: $TSFixMe) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
         global.dashboardHost = 'https://' + req.host + '/dashboard';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
         global.homeHost = 'https://' + req.host;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
         global.accountsHost = 'https://' + req.host + '/accounts';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'backendHost' does not exist on type 'Glo... Remove this comment to see the full error message
         global.backendHost = 'https://' + req.host + '/api';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'realtimeHost' does not exist on type 'Gl... Remove this comment to see the full error message
         global.realtimeHost = 'https://' + req.host + '/realtime';
     }
     if (req.host.includes('localhost')) {
         if (req.get('host').includes('localhost:')) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
             global.dashboardHost =
                 'http://' + req.host + ':' + (process.env.PORT || 3002);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
             global.accountsHost = 'http://' + req.host + ':' + 3003;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
             global.homeHost = 'http://' + req.host + ':' + 1444;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backendHost' does not exist on type 'Glo... Remove this comment to see the full error message
             global.backendHost = 'http://' + req.host + ':' + 3002;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'realtimeHost' does not exist on type 'Gl... Remove this comment to see the full error message
             global.realtimeHost = 'http://' + req.host + ':' + 3300;
         } else if (!isClustLocal) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
             global.dashboardHost = 'http://' + req.host + '/dashboard';
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
             global.accountsHost = 'http://' + req.host + '/accounts';
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
             global.homeHost = 'http://' + req.host;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backendHost' does not exist on type 'Glo... Remove this comment to see the full error message
             global.backendHost = 'http://' + req.host + '/api';
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'realtimeHost' does not exist on type 'Gl... Remove this comment to see the full error message
             global.realtimeHost = 'http://' + req.host + '/realtime';
         }
     }
@@ -70,8 +87,11 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         ...(!isClustLocal && {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
             REACT_APP_HOST: global.dashboardHost,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
             REACT_APP_ACCOUNTS_HOST: global.accountsHost,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backendHost' does not exist on type 'Glo... Remove this comment to see the full error message
             REACT_APP_BACKEND_HOST: global.backendHost,
         }),
         REACT_APP_DOMAIN: req.host,
@@ -88,12 +108,12 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
 });
 
 //APP VERSION
-app.use(['/dashboard/api/version', '/dashboard/version'], function(req, res) {
+app.use(['/dashboard/api/version', '/dashboard/version'], function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'application/json');
     res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
-app.get(['/dashboard/status', '/status'], function(req, res) {
+app.get(['/dashboard/status', '/status'], function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -144,7 +164,7 @@ app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 //     }
 // });
 
-app.get('/*', function(req, res) {
+app.get('/*', function(req: $TSFixMe, res: $TSFixMe) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

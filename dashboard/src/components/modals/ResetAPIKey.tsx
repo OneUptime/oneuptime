@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,11 +15,13 @@ class ResetAPIKey extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -26,6 +29,7 @@ class ResetAPIKey extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog } = this.props;
 
         return (
@@ -64,6 +68,7 @@ class ResetAPIKey extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Close</span>
@@ -76,11 +81,13 @@ class ResetAPIKey extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
                                                 this.props.confirmThisDialog
                                             }
                                             autoFocus={true}
                                         >
                                             <ShouldRender
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                 if={!this.props.isRequesting}
                                             >
                                                 <span>RESET</span>
@@ -89,6 +96,7 @@ class ResetAPIKey extends Component {
                                                 </span>
                                             </ShouldRender>
                                             <ShouldRender
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
                                                 if={this.props.isRequesting}
                                             >
                                                 <FormLoader />
@@ -105,14 +113,16 @@ class ResetAPIKey extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ResetAPIKey.displayName = 'ResetAPIKeyModal';
 
 const mapDispatchToProps = null;
 
-const mapStateToProps = state => ({
-    isRequesting: state.project.resetToken.requesting,
+const mapStateToProps = (state: $TSFixMe) => ({
+    isRequesting: state.project.resetToken.requesting
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ResetAPIKey.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     confirmThisDialog: PropTypes.func.isRequired,

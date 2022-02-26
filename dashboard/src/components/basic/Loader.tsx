@@ -41,7 +41,9 @@ export const FormLoader2 = () => (
 FormLoader2.displayName = 'FormLoader2';
 
 // eslint-disable-next-line react/prop-types
-export const ListLoader = ({ style }) => (
+export const ListLoader = ({
+    style
+}: $TSFixMe) => (
     <div
         className="ball-beat"
         style={{ textAlign: 'center', marginTop: '20px', ...style }}
@@ -77,7 +79,9 @@ export const TeamListLoader = () => (
 TeamListLoader.displayName = 'TeamListLoader';
 
 // eslint-disable-next-line react/prop-types
-export const Spinner = ({ style }) => (
+export const Spinner = ({
+    style
+}: $TSFixMe) => (
     <div
         className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center"
         style={{ top: 3 }}

@@ -4,20 +4,21 @@ import { connect } from 'react-redux';
 import { openModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';
 import RunAutomationScript from '../modals/RunAutomationScript';
 import { fetchAutomatedScript } from '../../actions/automatedScript';
 
-const AutomatedTabularList = props => {
+const AutomatedTabularList = (props: $TSFixMe) => {
     const [automatedId] = useState(uuidv4);
     const { scripts, count, requesting } = props.scriptsObj;
     let { skip, limit } = props.scriptsObj;
     const projectId = props.currentProject && props.currentProject._id;
     const pathName = props.history.location.pathname;
 
-    const handleNewScript = e => {
+    const handleNewScript = (e: $TSFixMe) => {
         if (e.keyCode === 78) {
             props.toggleNewScript();
         }
@@ -177,7 +178,7 @@ const AutomatedTabularList = props => {
                         </thead>
                         <tbody className="Table-body">
                             {scripts.length > 0 &&
-                                scripts.map((script, index) => (
+                                scripts.map((script: $TSFixMe, index: $TSFixMe) => (
                                     <tr
                                         key={index}
                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
@@ -372,14 +373,13 @@ AutomatedTabularList.propTypes = {
     showProjectName: PropTypes.bool,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         scriptsObj: state.automatedScripts.fetchScripts,
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
 
 export default connect(
     mapStateToProps,

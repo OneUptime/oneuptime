@@ -5,8 +5,8 @@ class UpdateActionBase extends BaseAction {
         friendlyName,
         apiPath,
         isResourceInProject,
-        isRequestAllowed,
-    }) {
+        isRequestAllowed
+    }: $TSFixMe) {
         super({
             friendlyName,
             apiPath,

@@ -10,7 +10,9 @@ const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
 import { IS_SAAS_SERVICE } from '../config/server'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -69,6 +71,7 @@ router.post('/create', getUser, async function(req, res) {
         }
 
         const projectName = data.projectName;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         data.userId = userId;
 
@@ -116,6 +119,7 @@ router.post('/create', getUser, async function(req, res) {
                         { _id: userId },
                         { stripeCustomerId: checkedPaymentIntent.customer }
                     ),
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                     PaymentService.subscribePlan(
                         stripePlanId,
                         checkedPaymentIntent.customer
@@ -140,12 +144,15 @@ router.post('/create', getUser, async function(req, res) {
                 return sendItemResponse(req, res, project);
             } else {
                 if (IS_SAAS_SERVICE) {
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                     const subscription = await PaymentService.subscribePlan(
                         stripePlanId,
                         user.stripeCustomerId
                     );
                     if (
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptionPaymentStatus' does not exis... Remove this comment to see the full error message
                         subscription.subscriptionPaymentStatus === 'canceled' ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptionPaymentStatus' does not exis... Remove this comment to see the full error message
                         subscription.subscriptionPaymentStatus === 'unpaid'
                     ) {
                         user = await UserService.findOneBy({
@@ -153,6 +160,7 @@ router.post('/create', getUser, async function(req, res) {
                             select: 'email name',
                         });
                         try {
+                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
                             MailService.sendPaymentFailedEmail(
                                 projectName,
                                 user.email,
@@ -208,8 +216,10 @@ router.post('/create', getUser, async function(req, res) {
 // Returns: 200: [{project}]; 400: Error.
 router.get('/projects', getUser, async function(req, res) {
     try {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
         const userProjects = await ProjectService.findBy({
             query: { 'users.userId': userId },
             select: 'parentProjectId _id',
@@ -218,16 +228,15 @@ router.get('/projects', getUser, async function(req, res) {
         let projectIds = [];
         if (userProjects.length > 0) {
             const subProjects = userProjects
-                .map(project => (project.parentProjectId ? project : null))
-                .filter(subProject => subProject !== null);
+                .map((project: $TSFixMe) => project.parentProjectId ? project : null)
+                .filter((subProject: $TSFixMe) => subProject !== null);
             parentProjectIds = subProjects.map(
-                subProject =>
-                    subProject.parentProjectId._id || subProject.parentProjectId
+                (subProject: $TSFixMe) => subProject.parentProjectId._id || subProject.parentProjectId
             );
             const projects = userProjects
-                .map(project => (project.parentProjectId ? null : project))
-                .filter(project => project !== null);
-            projectIds = projects.map(project => project._id);
+                .map((project: $TSFixMe) => project.parentProjectId ? null : project)
+                .filter((project: $TSFixMe) => project !== null);
+            projectIds = projects.map((project: $TSFixMe) => project._id);
         }
 
         // query data
@@ -390,6 +399,7 @@ router.put(
     async function(req, res) {
         try {
             const projectId = req.params.projectId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
 
             if (!projectId) {
@@ -485,6 +495,7 @@ router.delete(
     async function(req, res) {
         try {
             const projectId = req.params.projectId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user.id;
             const feedback = req.body.feedback;
 
@@ -554,6 +565,7 @@ router.delete(
             }
 
             let userId = null;
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: string; }; selec... Remove this comment to see the full error message
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users _id',
@@ -594,6 +606,7 @@ router.post(
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
             const planId = req.body.planId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const oldPlan = req.body.oldPlan;
             const newPlan = req.body.newPlan;
@@ -666,6 +679,7 @@ router.put(
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
             const planId = req.body.planId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const oldPlan = req.body.oldPlan;
             const newPlan = req.body.newPlan;
@@ -712,11 +726,12 @@ router.put(
                     });
                 }
 
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: string; }; selec... Remove this comment to see the full error message
                 const project = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'users',
                 });
-                const owner = project.users.find(user => user.role === 'Owner');
+                const owner = project.users.find((user: $TSFixMe) => user.role === 'Owner');
                 const [updatedProject, user] = await Promise.all([
                     ProjectService.changePlan(projectId, owner.userId, planId),
                     UserService.findOneBy({
@@ -756,6 +771,7 @@ router.post(
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const oldPlan = req.body.oldPlan;
 
@@ -815,8 +831,10 @@ router.delete(
     async function(req, res) {
         // Call the ProjectService
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
             const teamMember = await ProjectService.exitProject(
                 projectId,
                 userId
@@ -837,6 +855,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function(
     res
 ) {
     try {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         const parentProjectId = req.params.projectId;
         const subProjectName =
@@ -876,6 +895,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function(
         const populate = [{ path: 'parentProjectId', select: 'name' }];
         const select =
             '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
         subProjects = await ProjectService.findBy({
             query: { _id: subProjects._id },
             select,
@@ -896,6 +916,7 @@ router.delete(
         try {
             const parentProjectId = req.params.projectId;
             const subProjectId = req.params.subProjectId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user.id;
 
             if (!subProjectId) {
@@ -926,6 +947,7 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
     // Call the ProjectService
     try {
         const parentProjectId = req.params.projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
@@ -1061,6 +1083,7 @@ router.put(
                     message: 'New alert limit must be present.',
                 });
             }
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: string; deleted:... Remove this comment to see the full error message
             const oldProject = await ProjectService.findOneBy({
                 query: { _id: projectId, deleted: false },
                 select: 'alertLimit',
@@ -1169,7 +1192,7 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function(
     try {
         const projectId = req.params.projectId;
         if (Array.isArray(req.body)) {
-            const data = [];
+            const data: $TSFixMe = [];
             if (req.body.length > 0) {
                 for (const val of req.body) {
                     if (!val._id) {

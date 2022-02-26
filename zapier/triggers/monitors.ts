@@ -1,9 +1,9 @@
 // fetches a list of records from the endpoint
-const fetchList = (z, bundle) => {
+const fetchList = (z: $TSFixMe, bundle: $TSFixMe) => {
     const options = {
         url: `${bundle.authData.serverUrl}/zapier/monitors`,
     };
-    return z.request(options).then(response => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

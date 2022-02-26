@@ -12,10 +12,12 @@ class ExtraCharge extends React.Component {
     componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
                     id: this.props.modalId,
                 });
             default:
@@ -71,7 +73,9 @@ class ExtraCharge extends React.Component {
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         type="button"
                                         onClick={() =>
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.closeModal({
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                 id: this.props.modalId,
                                             })
                                         }
@@ -90,20 +94,22 @@ class ExtraCharge extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ExtraCharge.propTypes = {
     closeModal: PropTypes.func,
     modalId: PropTypes.string,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ExtraCharge.displayName = 'ExtraCharge';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         modalId: state.modal.modals[0].id,
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             closeModal,

@@ -13,6 +13,7 @@ import IncidentService from '../services/incidentService'
 import ErrorTrackerService from '../services/errorTrackerService'
 import LogContainerService from '../services/applicationLogService'
 import PerformanceTracker from '../services/performanceTrackerService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/subProject"' has no export... Remove this comment to see the full error message
 import { getSubProjects } from '../middlewares/subProject'
 
 const router = express.Router();
@@ -21,8 +22,10 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
     try {
         const val = req.body.search;
         const parentProjectId = req.params.projectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map(project => project._id)
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
         const searchResponse = [];
@@ -42,6 +45,7 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
             getComponents(subProjectIds, val, parentProjectId),
             getMonitors(subProjectIds, val, parentProjectId),
             getStatusPages(subProjectIds, val, parentProjectId),
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 3.
             getUsers(subProjectIds, val, parentProjectId),
             getOnCallDuty(subProjectIds, val, parentProjectId),
             getSchedultEvent(subProjectIds, val, parentProjectId),
@@ -88,7 +92,7 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
     }
 });
 
-const getComponents = async (projectIds, val, parentProjectId) => {
+const getComponents = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const populateComponent = [
         { path: 'projectId', select: 'name' },
         { path: 'componentCategoryId', select: 'name' },
@@ -108,15 +112,17 @@ const getComponents = async (projectIds, val, parentProjectId) => {
     if (components.length > 0) {
         const resultObj = {
             title: 'Components',
-            values: components.map(component => ({
+            values: components.map((component: $TSFixMe) => ({
                 name: component.name,
                 componentSlug: component.slug,
                 url: 'component/' + component.slug + '/monitoring',
                 componentId: component._id,
                 projectId: component.projectId._id,
+
                 parentProject:
                     parentProjectId === String(component.projectId._id),
-                projectName: component.projectId.name,
+
+                projectName: component.projectId.name
             })),
         };
         return resultObj;
@@ -125,7 +131,7 @@ const getComponents = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getMonitors = async (projectIds, val, parentProjectId) => {
+const getMonitors = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const query = {
         projectId: { $in: projectIds },
         deleted: false,
@@ -147,7 +153,7 @@ const getMonitors = async (projectIds, val, parentProjectId) => {
     if (monitors.length > 0) {
         const resultObj = {
             title: 'Monitors',
-            values: monitors.map(monitor => ({
+            values: monitors.map((monitor: $TSFixMe) => ({
                 name: monitor.componentId.name + '/' + monitor.name,
                 componentSlug: monitor.componentId.slug,
                 type: monitor.type,
@@ -157,9 +163,11 @@ const getMonitors = async (projectIds, val, parentProjectId) => {
                 url: monitor.componentId.slug + '/monitoring/' + monitor.slug,
                 componentId: monitor.componentId._id,
                 projectId: monitor.projectId._id,
+
                 parentProject:
                     parentProjectId === String(monitor.projectId._id),
-                projectName: monitor.projectId.name,
+
+                projectName: monitor.projectId.name
             })),
         };
         return resultObj;
@@ -168,7 +176,7 @@ const getMonitors = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getStatusPages = async (projectIds, val, parentProjectId) => {
+const getStatusPages = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const populateStatusPage = [
         {
             path: 'projectId',
@@ -197,17 +205,21 @@ const getStatusPages = async (projectIds, val, parentProjectId) => {
         select: selectStatusPage,
         populate: populateStatusPage,
     });
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
     if (statusPages.length > 0) {
         const resultObj = {
             title: 'Status Pages',
-            values: statusPages.map(statusPage => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'map' does not exist on type '{}'.
+            values: statusPages.map((statusPage: $TSFixMe) => ({
                 name: statusPage.name,
                 statusPageSlug: statusPage.slug,
                 statusPage: statusPage,
                 projectId: statusPage.projectId,
+
                 parentProject:
                     parentProjectId === String(statusPage.projectId._id),
-                projectName: statusPage.projectId.name,
+
+                projectName: statusPage.projectId.name
             })),
         };
         return resultObj;
@@ -216,17 +228,18 @@ const getStatusPages = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getUsers = async (projectIds, val) => {
+const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe) => {
     //get project users id so as to search for only users in a project and its subproject
-    const projectUsers = [];
+    const projectUsers: $TSFixMe = [];
+    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: { $in: any; }; }... Remove this comment to see the full error message
     const projects = await ProjectService.findBy({
         query: { _id: { $in: projectIds } },
         select: 'users',
     });
-    projects.forEach(project => {
+    projects.forEach((project: $TSFixMe) => {
         projectUsers.push(project.users);
     });
-    const userIds = projectUsers.flat().map(user => user.userId);
+    const userIds = projectUsers.flat().map((user: $TSFixMe) => user.userId);
     const users = await UserService.findBy({
         query: {
             _id: { $in: userIds },
@@ -245,9 +258,9 @@ const getUsers = async (projectIds, val) => {
     if (users.length > 0) {
         const resultObj = {
             title: 'Team Members',
-            values: users.map(user => ({
+            values: users.map((user: $TSFixMe) => ({
                 name: user.name,
-                userId: user._id,
+                userId: user._id
             })),
         };
 
@@ -257,7 +270,7 @@ const getUsers = async (projectIds, val) => {
     return null;
 };
 
-const getOnCallDuty = async (projectIds, val, parentProjectId) => {
+const getOnCallDuty = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const populate = [
         { path: 'userIds', select: 'name' },
         { path: 'createdById', select: 'name' },
@@ -290,13 +303,15 @@ const getOnCallDuty = async (projectIds, val, parentProjectId) => {
     if (schedules.length > 0) {
         const resultObj = {
             title: 'On-Call Duty',
-            values: schedules.map(schedule => ({
+            values: schedules.map((schedule: $TSFixMe) => ({
                 name: schedule.name,
                 scheduleSlug: schedule.slug,
                 projectId: schedule.projectId._id,
+
                 parentProject:
                     parentProjectId === String(schedule.projectId._id),
-                projectName: schedule.projectId.name,
+
+                projectName: schedule.projectId.name
             })),
         };
         return resultObj;
@@ -305,7 +320,7 @@ const getOnCallDuty = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getSchedultEvent = async (projectIds, val, parentProjectId) => {
+const getSchedultEvent = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const populateScheduledEvent = [
         { path: 'resolvedBy', select: 'name' },
         { path: 'projectId', select: 'name slug' },
@@ -331,14 +346,16 @@ const getSchedultEvent = async (projectIds, val, parentProjectId) => {
     if (scheduleEvents.length > 0) {
         const resultObj = {
             title: 'Schedule Events',
-            values: scheduleEvents.map(scheduleEvent => ({
+            values: scheduleEvents.map((scheduleEvent: $TSFixMe) => ({
                 name: scheduleEvent.name,
                 scheduleEventSlug: scheduleEvent.slug,
                 projectId: scheduleEvent.projectId._id,
                 scheduleEvents: scheduleEvent,
+
                 parentProject:
                     parentProjectId === String(scheduleEvent.projectId._id),
-                projectName: scheduleEvent.projectId.name,
+
+                projectName: scheduleEvent.projectId.name
             })),
         };
         return resultObj;
@@ -347,7 +364,7 @@ const getSchedultEvent = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getIncidents = async (projectIds, val, parentProjectId) => {
+const getIncidents = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const isNumber = Number(val);
     if (isNumber) {
         const populate = [
@@ -387,7 +404,7 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
         if (incidents.length > 0) {
             const resultObj = {
                 title: 'Incidents',
-                values: incidents.map(incident => {
+                values: incidents.map((incident: $TSFixMe) => {
                     return {
                         name: `Incident #${incident.idNumber}`,
                         idNumber: incident.idNumber,
@@ -407,12 +424,12 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getErrorTrackers = async (projectIds, val, parentProjectId) => {
+const getErrorTrackers = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const components = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds = components.map(component => component._id);
+    const componentIds = components.map((component: $TSFixMe) => component._id);
     const select =
         'componentId name slug key showQuickStart resourceCategory createdById createdAt';
     const populate = [
@@ -435,16 +452,18 @@ const getErrorTrackers = async (projectIds, val, parentProjectId) => {
     if (errorTrackers.length > 0) {
         const resultObj = {
             title: 'Error Trackers',
-            values: errorTrackers.map(errorTracker => ({
+            values: errorTrackers.map((errorTracker: $TSFixMe) => ({
                 name: errorTracker.name,
                 errorTrackerSlug: errorTracker.slug,
                 projectId: errorTracker.componentId.projectId._id,
                 errorTracker: errorTracker,
                 componentSlug: errorTracker.componentId.slug,
+
                 parentProject:
                     parentProjectId ===
                     String(errorTracker.componentId.projectId._id),
-                projectName: errorTracker.componentId.projectId.name,
+
+                projectName: errorTracker.componentId.projectId.name
             })),
         };
         return resultObj;
@@ -453,12 +472,12 @@ const getErrorTrackers = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getLogContainers = async (projectIds, val, parentProjectId) => {
+const getLogContainers = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const components = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds = components.map(component => component._id);
+    const componentIds = components.map((component: $TSFixMe) => component._id);
     const populateAppLogs = [
         {
             path: 'componentId',
@@ -485,16 +504,18 @@ const getLogContainers = async (projectIds, val, parentProjectId) => {
     if (logContainers.length > 0) {
         const resultObj = {
             title: 'Log Containers',
-            values: logContainers.map(logContainer => ({
+            values: logContainers.map((logContainer: $TSFixMe) => ({
                 name: logContainer.name,
                 logContainerSlug: logContainer.slug,
                 projectId: logContainer.componentId.projectId._id,
                 logContainer: logContainer,
                 componentSlug: logContainer.componentId.slug,
+
                 parentProject:
                     parentProjectId ===
                     String(logContainer.componentId.projectId._id),
-                projectName: logContainer.componentId.projectId.name,
+
+                projectName: logContainer.componentId.projectId.name
             })),
         };
         return resultObj;
@@ -503,13 +524,13 @@ const getLogContainers = async (projectIds, val, parentProjectId) => {
     return null;
 };
 
-const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
+const getPerformanceTrackers = async (projectIds: $TSFixMe, val: $TSFixMe, parentProjectId: $TSFixMe) => {
     const components = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
         select: 'id',
     });
 
-    const componentIds = components.map(component => component._id);
+    const componentIds = components.map((component: $TSFixMe) => component._id);
     const selectPerfTracker =
         'componentId name slug key showQuickStart createdById';
 
@@ -533,16 +554,18 @@ const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
     if (performanceTrackers.length > 0) {
         const resultObj = {
             title: 'Performance Tracker',
-            values: performanceTrackers.map(performanceTracker => ({
+            values: performanceTrackers.map((performanceTracker: $TSFixMe) => ({
                 name: performanceTracker.name,
                 performanceTrackerSlug: performanceTracker.slug,
                 projectId: performanceTracker.componentId.projectId._id,
                 performanceTracker: performanceTracker,
                 componentSlug: performanceTracker.componentId.slug,
+
                 parentProject:
                     parentProjectId ===
                     String(performanceTracker.componentId.projectId._id),
-                projectName: performanceTracker.componentId.projectId.name,
+
+                projectName: performanceTracker.componentId.projectId.name
             })),
         };
         return resultObj;

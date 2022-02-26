@@ -1,7 +1,9 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const query = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
         if (data.monitorId) query.monitorId = data.monitorId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
         if (data.probeId) query.probeId = data.probeId;
 
         const select = '_id status lastStatus';
@@ -40,12 +42,18 @@ export default {
 
             const monitorStatus = new MonitorStatusModel();
             if (data.lastStatus) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastStatus' does not exist on type 'Docu... Remove this comment to see the full error message
                 monitorStatus.lastStatus = data.lastStatus;
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
             monitorStatus.monitorId = data.monitorId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type 'Documen... Remove this comment to see the full error message
             monitorStatus.probeId = data.probeId || null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
             monitorStatus.incidentId = data.incidentId || null;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'manuallyCreated' does not exist on type ... Remove this comment to see the full error message
             monitorStatus.manuallyCreated = data.manuallyCreated || false;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
             monitorStatus.status = data.status;
 
             const savedMonitorStatus = await monitorStatus.save();
@@ -58,11 +66,13 @@ export default {
 
     // allData is an array of object
     // to be bulk written to the db
-    createMany: async function(allData) {
+    createMany: async function(allData: $TSFixMe) {
         const dataList = [];
         for (const data of allData) {
             const query = {};
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
             if (data.monitorId) query.monitorId = data.monitorId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
             if (data.probeId) query.probeId = data.probeId;
 
             const select = '_id status lastStatus';
@@ -106,14 +116,15 @@ export default {
         if (dataList.length > 0) {
             const docs = await MonitorStatusModel.insertMany(dataList);
             // we don't want to await this ):
-            docs.forEach(doc => _this.sendMonitorStatus(doc));
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'forEach' does not exist on type 'Documen... Remove this comment to see the full error message
+            docs.forEach((doc: $TSFixMe) => _this.sendMonitorStatus(doc));
 
             return docs;
         }
         return null;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -130,7 +141,7 @@ export default {
         return updatedMonitorStatus;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -145,7 +156,13 @@ export default {
         return updatedData;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -177,7 +194,11 @@ export default {
         return monitorStatus;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -192,7 +213,7 @@ export default {
         return monitorStatus;
     },
 
-    async sendMonitorStatus(data) {
+    async sendMonitorStatus(data: $TSFixMe) {
         const monitor = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
@@ -203,7 +224,7 @@ export default {
             RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
         }
     },
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};

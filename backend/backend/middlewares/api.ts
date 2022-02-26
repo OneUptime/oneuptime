@@ -9,7 +9,7 @@ export default {
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    isValidProjectIdAndApiKey: async function(req, res, next) {
+    isValidProjectIdAndApiKey: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         //get project id
         let projectId, apiKey;
 
@@ -81,13 +81,13 @@ export default {
         }
     },
 
-    isValidProjectId: function(projectId) {
+    isValidProjectId: function(projectId: $TSFixMe) {
         if (!ObjectID.isValid(projectId)) {
             return false;
         }
         return true;
     },
-    hasAPIKey: function(req) {
+    hasAPIKey: function(req: $TSFixMe) {
         if (req.query && req.query.apiKey) {
             return true;
         } else if (req.headers && (req.headers.apiKey || req.headers.apikey)) {
@@ -99,7 +99,7 @@ export default {
         return false;
     },
 
-    getProjectId: function(req) {
+    getProjectId: function(req: $TSFixMe) {
         // Get Project Id, If Available
         let projectId;
 
@@ -122,7 +122,7 @@ export default {
         return projectId;
     },
 
-    getStatusPageId: function(req) {
+    getStatusPageId: function(req: $TSFixMe) {
         const statusPageId =
             req.params?.statusPageId ||
             req.query?.statusPageId ||
@@ -133,7 +133,7 @@ export default {
         return statusPageId;
     },
 
-    getStatusPageSlug: function(req) {
+    getStatusPageSlug: function(req: $TSFixMe) {
         const statusPageSlug =
             req.params?.statusPageSlug ||
             req.query?.statusPageSlug ||
@@ -144,7 +144,7 @@ export default {
         return statusPageSlug;
     },
 
-    getStatusPageUrl: function(req) {
+    getStatusPageUrl: function(req: $TSFixMe) {
         const statusPageUrl =
             req.params?.url ||
             req.query?.url ||
@@ -154,11 +154,12 @@ export default {
         return statusPageUrl;
     },
 
-    isValidMonitor: async function(req, res, next) {
+    isValidMonitor: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({
             query: {
                 type: 'incomingHttpRequest',
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
                 'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
             },
             select: 'lastPingTime criteria type _id',

@@ -12,7 +12,7 @@ const initialState = {
     dockerSecurities: [],
 };
 
-export default function credential(state = initialState, action) {
+export default function credential(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.ADD_GIT_CREDENTIAL_REQUEST:
             return {
@@ -59,7 +59,9 @@ export default function credential(state = initialState, action) {
 
         case types.UPDATE_GIT_CREDENTIAL_SUCCESS: {
             const gitCredentials = state.gitCredentials.map(gitCredential => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 if (String(gitCredential._id) === String(action.payload._id)) {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                     gitCredential = action.payload;
                 }
                 return gitCredential;
@@ -131,6 +133,7 @@ export default function credential(state = initialState, action) {
             // update the list of git credential
             const gitCredentials = state.gitCredentials.filter(
                 gitCredential =>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                     String(gitCredential._id) !== String(action.payload._id)
             );
 
@@ -236,9 +239,11 @@ export default function credential(state = initialState, action) {
             const dockerCredentials = state.dockerCredentials.map(
                 dockerCredential => {
                     if (
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         String(dockerCredential._id) ===
                         String(action.payload._id)
                     ) {
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                         dockerCredential = action.payload;
                     }
                     return dockerCredential;
@@ -311,6 +316,7 @@ export default function credential(state = initialState, action) {
             // update the list of git credential
             const dockerCredentials = state.dockerCredentials.filter(
                 dockerCredential =>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                     String(dockerCredential._id) !== String(action.payload._id)
             );
 

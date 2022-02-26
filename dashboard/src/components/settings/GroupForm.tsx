@@ -1,8 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -22,13 +24,18 @@ export class GroupForm extends React.Component {
         teamMemberId: '',
     };
     componentDidMount() {
-        const projectTeam = this.props.teamMembers.filter(project => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'Rea... Remove this comment to see the full error message
+        const projectTeam = this.props.teamMembers.filter((project: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             return project._id === this.props.projectId;
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editGroup' does not exist on type 'Reado... Remove this comment to see the full error message
         if (this.props.editGroup) {
-            const teamId = this.props.teams.map(team => team._id);
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type 'Readonly<... Remove this comment to see the full error message
+            const teamId = this.props.teams.map((team: $TSFixMe) => team._id);
             this.setState({
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type 'Readonly<... Remove this comment to see the full error message
                 projectTeam: this.props.teams,
                 teamMemberIds: teamId,
             });
@@ -37,10 +44,10 @@ export class GroupForm extends React.Component {
                 projectTeam[0] &&
                 projectTeam[0].teamMembers &&
                 projectTeam[0].teamMembers.filter(
-                    member =>
-                        !this.props.teams.some(
-                            team => team._id === member.userId
-                        )
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                    (member: $TSFixMe) => !this.props.teams.some(
+                        (team: $TSFixMe) => team._id === member.userId
+                    )
                 );
             this.setState({
                 teams:
@@ -70,22 +77,29 @@ export class GroupForm extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const { groupName } = values;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editGroup' does not exist on type 'Reado... Remove this comment to see the full error message
             editGroup,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createGroup' does not exist on type 'Rea... Remove this comment to see the full error message
             createGroup,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateGroup' does not exist on type 'Rea... Remove this comment to see the full error message
             updateGroup,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupModalId' does not exist on type 'Re... Remove this comment to see the full error message
             groupModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetErrorMessage' does not exist on typ... Remove this comment to see the full error message
             resetErrorMessage,
         } = this.props;
 
         if (!editGroup) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             createGroup(this.props.projectId, {
                 name: groupName,
                 teams: this.state.teamMemberIds,
-            }).then(data => {
+            }).then((data: $TSFixMe) => {
                 if (!data.error) {
                     closeModal({
                         id: groupModalId,
@@ -95,10 +109,11 @@ export class GroupForm extends React.Component {
             });
         } else {
             const { teamMemberIds } = this.state;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             updateGroup(this.props.projectId, this.props.groupId, {
                 name: groupName,
                 teams: teamMemberIds,
-            }).then(data => {
+            }).then((data: $TSFixMe) => {
                 if (!data.error) {
                     closeModal({
                         id: groupModalId,
@@ -109,11 +124,12 @@ export class GroupForm extends React.Component {
         }
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('btnAddGroup').click();
             default:
                 return false;
@@ -121,12 +137,15 @@ export class GroupForm extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupModalId' does not exist on type 'Re... Remove this comment to see the full error message
             id: this.props.groupModalId,
         });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetErrorMessage' does not exist on typ... Remove this comment to see the full error message
         this.props.resetErrorMessage();
     };
-    handleChange = value => {
+    handleChange = (value: $TSFixMe) => {
         if (value) {
             this.setState({
                 teamMemberId: value,
@@ -137,23 +156,28 @@ export class GroupForm extends React.Component {
     //this adds a team member to the group
     handleAddTeam = () => {
         const { teamMemberId } = this.state;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string' is not assignable to par... Remove this comment to see the full error message
         if (teamMemberId && !this.state.teamMemberIds.includes(teamMemberId)) {
             const newTeamMemberIds = [
                 ...this.state.teamMemberIds,
                 teamMemberId,
             ];
             const filteredTeamMember = this.state.teams
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'never'.
                 .filter(user => user.userId === teamMemberId)
                 .map(user => {
                     return {
+                        // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
                         ...user,
                         _id: user.userId,
                     };
                 });
             const newTeam = this.state.teams
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'never'.
                 .filter(user => user.userId !== teamMemberId)
                 .map(user => {
                     return {
+                        // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
                         ...user,
                         _id: user.userId,
                     };
@@ -166,15 +190,17 @@ export class GroupForm extends React.Component {
         }
     };
     //it removes the team members from the list
-    handleRemoveTeamMember = id => {
+    handleRemoveTeamMember = (id: $TSFixMe) => {
         //get the user being removed from the list
         const userRemoved = this.state.projectTeam.filter(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
             user => user._id === id
         );
         //add the user back to the teams list
         const newTeam = [...this.state.teams, ...userRemoved];
         //remove the user from the project teams
         const newProjectTeam = this.state.projectTeam.filter(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
             user => user._id !== id
         );
         //also remove the user id from list of user id to submit
@@ -189,13 +215,21 @@ export class GroupForm extends React.Component {
     };
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editGroup' does not exist on type 'Reado... Remove this comment to see the full error message
             editGroup,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupName' does not exist on type 'Reado... Remove this comment to see the full error message
             groupName,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupModalId' does not exist on type 'Re... Remove this comment to see the full error message
             groupModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorMessage' does not exist on type 'Re... Remove this comment to see the full error message
             errorMessage,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupId' does not exist on type 'Readonl... Remove this comment to see the full error message
             groupId,
         } = this.props;
         return (
@@ -292,6 +326,7 @@ export class GroupForm extends React.Component {
                                                 {this.state.projectTeam.map(
                                                     user => (
                                                         <div
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'never'.
                                                             key={user.userId}
                                                             style={{
                                                                 display: 'flex',
@@ -312,8 +347,11 @@ export class GroupForm extends React.Component {
                                                                     alt=""
                                                                 />
                                                                 <span>
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'never'.
                                                                     {user.name
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'never'.
                                                                         ? user.name
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'never'.
                                                                         : user.email}
                                                                 </span>
                                                             </span>
@@ -327,6 +365,7 @@ export class GroupForm extends React.Component {
                                                                 }}
                                                                 onClick={() =>
                                                                     this.handleRemoveTeamMember(
+                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                                                                         user._id
                                                                     )
                                                                 }
@@ -352,14 +391,18 @@ export class GroupForm extends React.Component {
                                                 options={[
                                                     ...this.state.teams.map(
                                                         user => ({
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'never'.
                                                             value: user.userId,
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'never'.
                                                             label: user.name
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'never'.
                                                                 ? user.name
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'never'.
                                                                 : user.email,
                                                         })
                                                     ),
                                                 ]}
-                                                onChange={(event, value) => {
+                                                onChange={(event: $TSFixMe, value: $TSFixMe) => {
                                                     this.handleChange(value);
                                                 }}
                                             />
@@ -388,6 +431,7 @@ export class GroupForm extends React.Component {
                                                     closeModal({
                                                         id: groupModalId,
                                                     });
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetErrorMessage' does not exist on typ... Remove this comment to see the full error message
                                                     this.props.resetErrorMessage();
                                                 }}
                                                 disabled={
@@ -409,6 +453,7 @@ export class GroupForm extends React.Component {
                                                         : requesting &&
                                                           'bs-is-disabled'
                                                 }`}
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '"save"' is not assignable to type '"reset" |... Remove this comment to see the full error message
                                                 type="save"
                                                 disabled={
                                                     editGroup
@@ -454,6 +499,7 @@ export class GroupForm extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 GroupForm.displayName = 'GroupForm';
 
 const CreateGroupForm = reduxForm({
@@ -461,7 +507,7 @@ const CreateGroupForm = reduxForm({
     enableReinitialize: true,
 })(GroupForm);
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const initval = props.data.editGroup
         ? { groupName: props.data.groupName }
         : {};
@@ -488,7 +534,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             closeModal,
@@ -500,6 +546,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 GroupForm.propTypes = {
     closeModal: PropTypes.func,
     editGroup: PropTypes.bool,

@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
 
 export class MonitorTitle extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
 
         this.state = {
@@ -21,9 +21,12 @@ export class MonitorTitle extends Component {
         this.setLastAlive();
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
         if (prevProps.probes !== this.props.probes) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
             if (this.state.nowHandler) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
                 clearTimeout(this.state.nowHandler);
             }
 
@@ -41,7 +44,7 @@ export class MonitorTitle extends Component {
         this.setState({ nowHandler });
     };
 
-    replaceDashWithSpace = string => {
+    replaceDashWithSpace = (string: $TSFixMe) => {
         if (string === 'incomingHttpRequest') {
             return 'incoming Http Request';
         }
@@ -49,18 +52,26 @@ export class MonitorTitle extends Component {
     };
 
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
         if (this.state.nowHandler) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
             clearTimeout(this.state.nowHandler);
         }
     }
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
             monitor,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
             status,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
             activeProbe,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
             probes,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             logs,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
         } = this.props;
 
@@ -88,6 +99,7 @@ export class MonitorTitle extends Component {
         }
         const isCurrentlyNotMonitoring =
             (lastAlive &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'now' does not exist on type 'Readonly<{}... Remove this comment to see the full error message
                 moment(this.state.now).diff(moment(lastAlive), 'seconds') >=
                     300) ||
             !lastAlive;
@@ -103,6 +115,7 @@ export class MonitorTitle extends Component {
                             >
                                 <StatusIndicator
                                     status={status}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: any; monitorName: any; }' is not a... Remove this comment to see the full error message
                                     monitorName={monitor.name}
                                 />
                                 <span id={`monitor-title-${monitor.name}`}>
@@ -231,8 +244,10 @@ export class MonitorTitle extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 MonitorTitle.displayName = 'MonitorTitle';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 MonitorTitle.propTypes = {
     monitor: PropTypes.object.isRequired,
     status: PropTypes.string,
@@ -242,9 +257,9 @@ MonitorTitle.propTypes = {
     requesting: PropTypes.bool,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,

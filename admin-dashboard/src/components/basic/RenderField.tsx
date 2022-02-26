@@ -11,8 +11,8 @@ const RenderField = ({
     disabled,
     initialValue,
     style,
-    autoFocus,
-}) => (
+    autoFocus
+}: $TSFixMe) => (
     <span>
         <span>
             <input

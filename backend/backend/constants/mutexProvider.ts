@@ -1,5 +1,6 @@
 import { Mutex } from 'async-mutex'
 import mongoose from 'mongoose'
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module '../services/errorService' or i... Remove this comment to see the full error message
 import errorService from '../services/errorService'
 import MUTEX_RESOURCES from './MUTEX_RESOURCES'
 
@@ -17,7 +18,7 @@ const monitorMutexStorage = new Map();
  * @param {*} id unique id of the resource to lock
  * @return {*} a mutex for the project
  */
-const getMutex = (mutexResource, resourceId) => {
+const getMutex = (mutexResource: $TSFixMe, resourceId: $TSFixMe) => {
     let mutex;
     let mutexStorage;
     try {

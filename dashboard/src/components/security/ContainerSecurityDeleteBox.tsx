@@ -13,8 +13,9 @@ export class ContainerSecurityDeleteBox extends Component {
         componentId,
         containerSecurityId,
         containerSecuritySlug,
-        componentSlug,
-    }) => {
+        componentSlug
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal } = this.props;
 
         openModal({
@@ -34,11 +35,17 @@ export class ContainerSecurityDeleteBox extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
             deleting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'containerSecurityId' does not exist on t... Remove this comment to see the full error message
             containerSecurityId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'containerSecuritySlug' does not exist on... Remove this comment to see the full error message
             containerSecuritySlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
         } = this.props;
 
@@ -92,17 +99,18 @@ export class ContainerSecurityDeleteBox extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ContainerSecurityDeleteBox.displayName = 'ContainerSecurityDeleteBox';
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleting: state.security.deleteApplication.requesting,
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ContainerSecurityDeleteBox.propTypes = {
     componentId: PropTypes.string.isRequired,
     componentSlug: PropTypes.string.isRequired,

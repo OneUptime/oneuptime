@@ -1,5 +1,5 @@
 export default {
-    async getProbeMonitors(probeId, limit = 10) {
+    async getProbeMonitors(probeId: $TSFixMe, limit = 10) {
         //get monitors that have not been pinged for the last minute.
         const date = new Date(new Date().getTime() - 60 * 1000);
 
@@ -35,7 +35,7 @@ export default {
         };
 
         try {
-            let monitors = [];
+            let monitors: $TSFixMe = [];
 
             const monitorsThatHaveNeverBeenPinged = await monitorCollection
                 .find(emptyQuery)
@@ -56,6 +56,7 @@ export default {
 
             if (monitors && monitors.length > 0) {
                 await monitorCollection.updateMany(
+                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
                     { _id: { $in: monitors.map(monitor => monitor._id) } },
                     { $set: { [key]: new Date(moment().format()) } }
                 );
@@ -73,4 +74,5 @@ export default {
 
 import ErrorService from './errorService'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorCollection = global.db.collection('monitors');

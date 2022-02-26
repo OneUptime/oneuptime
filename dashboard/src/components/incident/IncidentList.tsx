@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
@@ -13,7 +14,7 @@ import { API_URL } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 
 export class IncidentList extends Component {
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'No monitor in this incident';
         }
@@ -34,66 +35,99 @@ export class IncidentList extends Component {
 
     render() {
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.skip &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             typeof this.props.incidents.skip === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.skip = parseInt(this.props.incidents.skip, 10);
         }
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.limit &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             typeof this.props.incidents.limit === 'string'
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.limit = parseInt(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                 this.props.incidents.limit,
                 10
             );
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
         if (this.props.incidents && !this.props.incidents.skip)
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.skip = 0;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
         if (this.props.incidents && !this.props.incidents.limit)
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.limit = 0;
 
         let canNext =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.count &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents.count >
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                 this.props.incidents.skip + this.props.incidents.limit
                 ? true
                 : false;
         let canPrev =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents && this.props.incidents.skip <= 0
                 ? false
                 : true;
 
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             this.props.incidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             (this.props.incidents.requesting || !this.props.incidents.incidents)
         ) {
             canNext = false;
             canPrev = false;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberOfPage' does not exist on type 'Re... Remove this comment to see the full error message
         const numberOfPages = this.props.numberOfPage
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberOfPage' does not exist on type 'Re... Remove this comment to see the full error message
             ? this.props.numberOfPage
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
             : Math.ceil(parseInt(this.props.incidents.count) / 10);
         let incidents =
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
             this.props.filteredIncidents &&
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
             this.props.filteredIncidents.length > 0
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
                 ? this.props.filteredIncidents
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
                 : this.props.filteredIncidents &&
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
                   this.props.filteredIncidents.length === 0 &&
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'isFiltered' does not exist on type 'Read... Remove this comment to see the full error message
                   this.props.isFiltered
                 ? []
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                 : this.props.incidents &&
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                   this.props.incidents.incidents &&
+                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                   this.props.incidents.incidents.length > 0
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                 ? this.props.incidents.incidents
                 : [];
 
-        const updatedIncidents = [],
-            incidentIds = [];
-        incidents.forEach(incident => {
+        const updatedIncidents: $TSFixMe = [],
+            incidentIds: $TSFixMe = [];
+        incidents.forEach((incident: $TSFixMe) => {
             if (!incidentIds.includes(incident._id)) {
                 updatedIncidents.push(incident);
                 incidentIds.push(incident._id);
@@ -189,6 +223,7 @@ export class IncidentList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -201,7 +236,7 @@ export class IncidentList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {incidents && incidents.length > 0 ? (
-                                incidents.map((incident, i) => {
+                                incidents.map((incident: $TSFixMe, i: $TSFixMe) => {
                                     let probeName = 'OneUptime';
                                     let probeImage =
                                         '/dashboard/assets/img/ou-wb.svg';
@@ -235,15 +270,18 @@ export class IncidentList extends Component {
                                             onClick={() => {
                                                 setTimeout(() => {
                                                     if (
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                                         this.props.componentSlug
                                                     ) {
                                                         history.push(
                                                             '/dashboard/project/' +
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                                     .currentProject
                                                                     .slug +
                                                                 '/component/' +
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                                                     .componentSlug +
                                                                 '/incidents/' +
                                                                 incident.slug
@@ -258,15 +296,19 @@ export class IncidentList extends Component {
                                                                 incident.slug
                                                         );
                                                     }
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                                     this.props.animateSidebar(
                                                         false
                                                     );
                                                 }, 200);
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAsRead' does not exist on type 'Read... Remove this comment to see the full error message
                                                 this.props.markAsRead(
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                     this.props.currentProject
                                                         ._id,
                                                     incident.notifications
                                                 );
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
                                                 this.props.animateSidebar(true);
                                             }}
                                         >
@@ -1003,16 +1045,22 @@ export class IncidentList extends Component {
                                         </tr>
                                     );
                                 })
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                             ) : this.props.incidents &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                               (!this.props.incidents.incidents ||
+                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                   !this.props.incidents.incidents.length) &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                               !this.props.incidents.requesting &&
+                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                               !this.props.incidents.error ? (
                                 <tr></tr>
                             ) : (
                                 <tr>
                                     <td
                                         className="Padding-all--20 Text-align--center"
+                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                                         colSpan="6"
                                     >
                                         <span id="noIncidentsInnerText">
@@ -1025,12 +1073,19 @@ export class IncidentList extends Component {
                     </table>
                 </div>
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                 {(this.props.incidents && this.props.requesting) ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                 (this.props.monitorState &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                     this.props.monitorState.fetchMonitorsIncidentRequest &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.incidents.incidents &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     this.props.incidents.incidents[0] &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                     this.props.monitorState.fetchMonitorsIncidentRequest ===
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                         this.props.incidents.incidents[0].monitorId) ? (
                     <ListLoader />
                 ) : null}
@@ -1042,14 +1097,21 @@ export class IncidentList extends Component {
                         padding: '0 10px',
                     }}
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     {this.props.incidents &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     (!this.props.incidents.incidents ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                         !this.props.incidents.incidents.length) &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     !this.props.incidents.requesting &&
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     !this.props.incidents.error
                         ? "We don't have any incidents yet"
                         : null}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                     {this.props.incidents && this.props.incidents.error
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                         ? this.props.incidents.error
                         : null}
                 </div>
@@ -1062,12 +1124,15 @@ export class IncidentList extends Component {
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
                                     <ShouldRender if={numberOfPages > 0}>
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                         Page {this.props.page} of{' '}
                                         {numberOfPages} (
                                         <ShouldRender if={incidents}>
                                             <span id="numberOfIncidents">
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 {this.props.incidents.count}
                                             </span>{' '}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             {this.props.incidents.count > 1
                                                 ? 'total incidents'
                                                 : 'Incident'}{' '}
@@ -1076,7 +1141,9 @@ export class IncidentList extends Component {
                                     </ShouldRender>
                                     <ShouldRender if={!(numberOfPages > 0)}>
                                         <span id="numberOfIncidents">
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             {this.props.incidents.count}{' '}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             {this.props.incidents.count > 1
                                                 ? 'total incidents'
                                                 : 'Incident'}
@@ -1092,11 +1159,16 @@ export class IncidentList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.prevClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.incidents
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 ? this.props.incidents._id
                                                 : null,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.incidents.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.incidents.limit
                                         );
                                     }}
@@ -1119,11 +1191,16 @@ export class IncidentList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
                                         this.props.nextClicked(
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.incidents
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                                 ? this.props.incidents._id
                                                 : null,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.incidents.skip,
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
                                             this.props.incidents.limit
                                         );
                                     }}
@@ -1150,11 +1227,11 @@ export class IncidentList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     const { componentSlug } = ownProps.match.params;
     return {
         monitorState: state.monitor,
@@ -1164,8 +1241,10 @@ function mapStateToProps(state, ownProps) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncidentList.displayName = 'IncidentList';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncidentList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

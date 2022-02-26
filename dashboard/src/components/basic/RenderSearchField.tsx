@@ -24,8 +24,8 @@ const RenderSearchField = ({
     frame,
     onFrameClick,
     handleIconClick,
-    display,
-}) => (
+    display
+}: $TSFixMe) => (
     <div style={{ width: '100%', ...parentStyle }} id="search-input-container">
         <ShouldRender if={iconLeft}>
             <img

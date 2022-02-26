@@ -1,12 +1,17 @@
 import Crypto from 'crypto'
 import GitCredentialModel from '../models/gitCredential'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
 import { encrypt } from '../config/encryptDecrypt'
 import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 import fs from 'fs'
 
 export default {
-    findOneBy: async function({ query, populate, select }) {
+    findOneBy: async function({
+        query,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -19,7 +24,13 @@ export default {
 
         return gitCredential;
     },
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -46,7 +57,7 @@ export default {
 
         return gitCredentials;
     },
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const {
             gitUsername,
             gitPassword,
@@ -63,6 +74,7 @@ export default {
                 const error = new Error(
                     'Git Credential already exist in this project'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -86,6 +98,7 @@ export default {
                 const error = new Error(
                     'Git Ssh already exist in this project'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -98,7 +111,7 @@ export default {
             return response;
         }
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -124,9 +137,12 @@ export default {
         const populateGitCredentials = [
             { path: 'projectId', select: 'name slug' },
         ];
+        // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type 'Document... Remove this comment to see the full error message
         gitCredential = await this.findOneBy({
             query: {
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 _id: gitCredential._id,
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 deleted: gitCredential.deleted,
             },
             select: selectGitCredentials,
@@ -137,19 +153,21 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         return gitCredential;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         let gitCredential = await this.findOneBy({ query, select: '_id' });
 
         if (!gitCredential) {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -161,7 +179,7 @@ export default {
 
         return gitCredential;
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await GitCredentialModel.deleteMany(query);
         return 'Git credential(s) successfully deleted';
     },

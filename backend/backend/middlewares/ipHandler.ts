@@ -4,7 +4,7 @@ import apiMiddleware from './api'
 import ipaddr from 'ipaddr.js'
 
 const _this = {
-    ipWhitelist: async function(req, res, next) {
+    ipWhitelist: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         const statusPageSlug = apiMiddleware.getStatusPageSlug(req);
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
@@ -37,10 +37,13 @@ const _this = {
             return next();
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableIpWhitelist' does not exist on typ... Remove this comment to see the full error message
         if (!statusPage.enableIpWhitelist) {
             return next();
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
         const ipWhitelist = statusPage.ipWhitelist
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
             ? [...statusPage.ipWhitelist]
             : [];
         // if ip whitelist is enabled and no ip is saved
@@ -67,7 +70,7 @@ const _this = {
         clientIp = clientIp.trim();
         const ipFound = ipWhitelist.some(ip => {
             if (ip.indexOf('-') !== -1) {
-                const ipRange = ip.split('-').map(ip => ip.trim());
+                const ipRange = ip.split('-').map((ip: $TSFixMe) => ip.trim());
                 return _this.inRange(clientIp, ipRange);
             }
 
@@ -88,7 +91,7 @@ const _this = {
      * @description Gets the ip of the client
      * @param {Object} req Object made available by express
      */
-    getClientIp: function(req) {
+    getClientIp: function(req: $TSFixMe) {
         // Cloudflare Connecting Ip.
         // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
         let ip =
@@ -109,7 +112,7 @@ const _this = {
     },
 
     // https://www.npmjs.com/package/ip-range-check
-    check_single_cidr: function(addr, cidr) {
+    check_single_cidr: function(addr: $TSFixMe, cidr: $TSFixMe) {
         try {
             const parsed_addr = ipaddr.process(addr);
             if (cidr.indexOf('/') === -1) {
@@ -138,16 +141,16 @@ const _this = {
      * @description converts an ip to a normal number, for comparison purposes
      * @param {String} ip a string container an ip address
      */
-    IPtoNum: function(ip) {
+    IPtoNum: function(ip: $TSFixMe) {
         return Number(
             ip
                 .split('.')
-                .map(d => ('000' + d).substr(-3))
+                .map((d: $TSFixMe) => ('000' + d).substr(-3))
                 .join('')
         );
     },
 
-    inRange: function(ip, range) {
+    inRange: function(ip: $TSFixMe, range: $TSFixMe) {
         const min = _this.IPtoNum(range[0]);
         const max = _this.IPtoNum(range[1]);
         ip = _this.IPtoNum(ip);

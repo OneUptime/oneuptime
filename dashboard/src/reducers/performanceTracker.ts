@@ -59,7 +59,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function(state = INITIAL_STATE, action) {
+export default function(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case 'SET_START_DATE':
             return {
@@ -387,6 +387,7 @@ export default function(state = INITIAL_STATE, action) {
             const metrics = state.lastMetrics.metrics
                 .filter(
                     metric =>
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerId' does not exist on ... Remove this comment to see the full error message
                         String(metric.performanceTrackerId) !==
                         String(action.payload.performanceTrackerId)
                 )

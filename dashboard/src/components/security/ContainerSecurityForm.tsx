@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, reset } from 'redux-form';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
@@ -15,13 +16,16 @@ import DockerCredentialModal from '../credential/DockerCredentialModal';
 
 class ContainerSecurityForm extends Component {
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, getDockerCredentials } = this.props;
         if (projectId) {
             getDockerCredentials({ projectId });
         }
     }
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         if (prevProps.projectId !== this.props.projectId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             const { projectId, getDockerCredentials } = this.props;
             if (projectId) {
                 getDockerCredentials({ projectId });
@@ -29,7 +33,8 @@ class ContainerSecurityForm extends Component {
         }
     }
 
-    submitForm = (values, dispatch) => {
+    submitForm = (values: $TSFixMe, dispatch: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
         const { componentId, projectId, addContainerSecurity } = this.props;
         if (!values) return;
 
@@ -39,6 +44,7 @@ class ContainerSecurityForm extends Component {
     };
 
     handleDockerCredential = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, projectId } = this.props;
 
         openModal({
@@ -50,11 +56,17 @@ class ContainerSecurityForm extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addingContainer' does not exist on type ... Remove this comment to see the full error message
             addingContainer,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addContainerError' does not exist on typ... Remove this comment to see the full error message
             addContainerError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingDockerCredentials' does not ex... Remove this comment to see the full error message
             requestingDockerCredentials,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dockerCredentials' does not exist on typ... Remove this comment to see the full error message
             dockerCredentials,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategoryList' does not exist on ... Remove this comment to see the full error message
             resourceCategoryList,
         } = this.props;
 
@@ -147,11 +159,12 @@ class ContainerSecurityForm extends Component {
                                                                     resourceCategoryList.length >
                                                                         0
                                                                         ? resourceCategoryList.map(
-                                                                              category => ({
+                                                                              (category: $TSFixMe) => ({
                                                                                   value:
                                                                                       category._id,
+
                                                                                   label:
-                                                                                      category.name,
+                                                                                      category.name
                                                                               })
                                                                           )
                                                                         : []),
@@ -187,11 +200,12 @@ class ContainerSecurityForm extends Component {
                                                                 dockerCredentials.length >
                                                                     0
                                                                     ? dockerCredentials.map(
-                                                                          dockerCredential => ({
+                                                                          (dockerCredential: $TSFixMe) => ({
                                                                               value:
                                                                                   dockerCredential._id,
+
                                                                               label:
-                                                                                  dockerCredential.dockerUsername,
+                                                                                  dockerCredential.dockerUsername
                                                                           })
                                                                       )
                                                                     : []),
@@ -292,7 +306,9 @@ class ContainerSecurityForm extends Component {
                                 <div>
                                     <ShouldRender
                                         if={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCancelBtn' does not exist on type 'R... Remove this comment to see the full error message
                                             this.props.showCancelBtn &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.toggleForm
                                         }
                                     >
@@ -302,6 +318,7 @@ class ContainerSecurityForm extends Component {
                                                 addingContainer ||
                                                 requestingDockerCredentials
                                             }
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
                                             onClick={this.props.toggleForm}
                                             type="button"
                                         >
@@ -335,8 +352,10 @@ class ContainerSecurityForm extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ContainerSecurityForm.displayName = 'Container Security Form';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ContainerSecurityForm.propTypes = {
     addContainerSecurity: PropTypes.func,
     handleSubmit: PropTypes.func,
@@ -353,17 +372,16 @@ ContainerSecurityForm.propTypes = {
     showCancelBtn: PropTypes.bool,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            addContainerSecurity,
-            getDockerCredentials,
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        addContainerSecurity,
+        getDockerCredentials,
+        openModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         addingContainer: state.security.addContainer.requesting,
         addContainerError: state.security.addContainer.error,

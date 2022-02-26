@@ -5,14 +5,16 @@ import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
 import ShouldRender from '../basic/ShouldRender';
 import AlertPanel from '../basic/AlertPanel';
 
 class ErrorTrackerDetailView extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             selectedErrorEvents: [],
@@ -20,15 +22,16 @@ class ErrorTrackerDetailView extends Component {
             memberModalId: uuidv4(),
         };
     }
-    selectErrorEvent = errorEventId => {
+    selectErrorEvent = (errorEventId: $TSFixMe) => {
         this.setState(state => ({
             selectedErrorEvents: this.removeOrAdd(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedErrorEvents' does not exist on t... Remove this comment to see the full error message
                 state.selectedErrorEvents,
                 errorEventId
             ),
         }));
     };
-    removeOrAdd(selectedErrorEvents, errorEventId) {
+    removeOrAdd(selectedErrorEvents: $TSFixMe, errorEventId: $TSFixMe) {
         let response;
         const index = selectedErrorEvents.indexOf(errorEventId);
         if (index === -1) {
@@ -36,7 +39,7 @@ class ErrorTrackerDetailView extends Component {
             response = [...selectedErrorEvents, errorEventId];
         } else {
             // it exist, remove it
-            response = selectedErrorEvents.filter(id => id !== errorEventId);
+            response = selectedErrorEvents.filter((id: $TSFixMe) => id !== errorEventId);
         }
         return response;
     }
@@ -44,11 +47,14 @@ class ErrorTrackerDetailView extends Component {
         let errorEventsId = [];
         // if the number of selected error events is different from the total number of available issues, select all ids and set it as the new selected array
         if (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedErrorEvents' does not exist on t... Remove this comment to see the full error message
             this.state.selectedErrorEvents.length !==
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerIssues' does not exist on ty... Remove this comment to see the full error message
             this.props.errorTrackerIssues.errorTrackerIssues.length
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerIssues' does not exist on ty... Remove this comment to see the full error message
             errorEventsId = this.props.errorTrackerIssues.errorTrackerIssues.map(
-                errorTrackerIssue => errorTrackerIssue._id
+                (errorTrackerIssue: $TSFixMe) => errorTrackerIssue._id
             );
         }
 
@@ -56,8 +62,9 @@ class ErrorTrackerDetailView extends Component {
             selectedErrorEvents: errorEventsId,
         });
     };
-    ignoreErrorEvent = ignore => {
+    ignoreErrorEvent = (ignore: $TSFixMe) => {
         const promise = this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ignoreErrorEvent' does not exist on type... Remove this comment to see the full error message
             .ignoreErrorEvent(this.state.selectedErrorEvents, ignore)
             .then();
         this.setState({
@@ -67,6 +74,7 @@ class ErrorTrackerDetailView extends Component {
     };
     resolveErrorEvent = () => {
         const promise = this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveErrorEvent' does not exist on typ... Remove this comment to see the full error message
             .resolveErrorEvent(this.state.selectedErrorEvents)
             .then();
         this.setState({
@@ -74,21 +82,26 @@ class ErrorTrackerDetailView extends Component {
         });
         return promise;
     };
-    resolveSingleIssue = issueId => {
+    resolveSingleIssue = (issueId: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveErrorEvent' does not exist on typ... Remove this comment to see the full error message
         const promise = this.props.resolveErrorEvent([issueId]).then();
         return promise;
     };
-    prevClicked = (skip, limit) => {
+    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleNavigationButtonClick' does not ex... Remove this comment to see the full error message
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
-    nextClicked = (skip, limit) => {
+    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleNavigationButtonClick' does not ex... Remove this comment to see the full error message
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
-    openEventMemberModal = errorTrackerIssue => {
+    openEventMemberModal = (errorTrackerIssue: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, updateErrorEventMember, teamMembers } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'memberModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { memberModalId } = this.state;
 
         openModal({
@@ -103,15 +116,24 @@ class ErrorTrackerDetailView extends Component {
         });
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedErrorEvents' does not exist on t... Remove this comment to see the full error message
         const { selectedErrorEvents, ignoreModalId } = this.state;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerIssues' does not exist on ty... Remove this comment to see the full error message
             errorTrackerIssues,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
             errorTracker,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
             componentId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerStatus' does not exist on ty... Remove this comment to see the full error message
             errorTrackerStatus,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             componentSlug,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             slug,
         } = this.props;
         let skip =
@@ -159,6 +181,7 @@ class ErrorTrackerDetailView extends Component {
                     }
                 >
                     <AlertPanel
+                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
                         id={`${errorTracker.name}-no-error-warning`}
                         message={
                             <span>
@@ -205,12 +228,14 @@ class ErrorTrackerDetailView extends Component {
                                                 type="checkbox"
                                                 checked={
                                                     this.state
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedErrorEvents' does not exist on t... Remove this comment to see the full error message
                                                         .selectedErrorEvents
                                                         .length ===
                                                         errorTrackerIssues
                                                             .errorTrackerIssues
                                                             .length &&
                                                     this.state
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedErrorEvents' does not exist on t... Remove this comment to see the full error message
                                                         .selectedErrorEvents
                                                         .length !== 0
                                                         ? true
@@ -264,7 +289,7 @@ class ErrorTrackerDetailView extends Component {
                                         </button>
                                         {errorTrackerIssues &&
                                             errorTrackerIssues.errorTrackerIssues.map(
-                                                e => {
+                                                (e: $TSFixMe) => {
                                                     return e.ignored ===
                                                         false ? (
                                                         <button
@@ -410,7 +435,7 @@ class ErrorTrackerDetailView extends Component {
                             errorTrackerIssues.errorTrackerIssues &&
                             errorTrackerIssues.errorTrackerIssues.length > 0 ? (
                                 errorTrackerIssues.errorTrackerIssues.map(
-                                    (errorTrackerIssue, i) => {
+                                    (errorTrackerIssue: $TSFixMe, i: $TSFixMe) => {
                                         return (
                                             <ErrorTrackerIssue
                                                 errorTrackerIssue={
@@ -418,6 +443,7 @@ class ErrorTrackerDetailView extends Component {
                                                 }
                                                 errorTracker={errorTracker}
                                                 key={i}
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ errorTrackerIssue: any; errorTracker: any;... Remove this comment to see the full error message
                                                 projectId={projectId}
                                                 componentId={componentId}
                                                 selectErrorEvent={
@@ -425,6 +451,7 @@ class ErrorTrackerDetailView extends Component {
                                                 }
                                                 selectedErrorEvents={
                                                     this.state
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedErrorEvents' does not exist on t... Remove this comment to see the full error message
                                                         .selectedErrorEvents
                                                 }
                                                 openEventMemberModal={
@@ -534,7 +561,7 @@ class ErrorTrackerDetailView extends Component {
     }
 }
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     // get current error event tracker
     const errorTracker = ownProps.errorTracker;
     // get its list of error tracker issues
@@ -543,12 +570,12 @@ function mapStateToProps(state, ownProps) {
     const { teamMembers } = ownProps;
 
     if (errorTrackerIssues) {
-        errorTrackerIssues.errorTrackerIssues.map(errorTrackerIssue => {
+        errorTrackerIssues.errorTrackerIssues.map((errorTrackerIssue: $TSFixMe) => {
             const issueMembers = errorTrackerIssue.members;
-            const differentialTeamMember = [];
-            teamMembers.forEach(teamMember => {
+            const differentialTeamMember: $TSFixMe = [];
+            teamMembers.forEach((teamMember: $TSFixMe) => {
                 const exist = issueMembers.filter(
-                    issueMember => issueMember.userId._id === teamMember.userId
+                    (issueMember: $TSFixMe) => issueMember.userId._id === teamMember.userId
                 );
                 if (exist.length < 1) {
                     differentialTeamMember.push(teamMember);
@@ -564,6 +591,7 @@ function mapStateToProps(state, ownProps) {
             state.errorTracker.errorTrackerStatus[errorTracker._id],
     };
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorTrackerDetailView.propTypes = {
     errorTrackerIssues: PropTypes.object,
     errorTracker: PropTypes.object,
@@ -579,5 +607,6 @@ ErrorTrackerDetailView.propTypes = {
     teamMembers: PropTypes.array,
     errorTrackerStatus: PropTypes.object,
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorTrackerDetailView.displayName = 'ErrorTrackerDetailView';
 export default connect(mapStateToProps, null)(ErrorTrackerDetailView);

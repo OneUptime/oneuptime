@@ -4,7 +4,7 @@ let backendUrl = window.location.hostname==='localhost'? 'http://localhost:3002'
 
 
 //eslint-disable-next-line
-function loginUrl(extra) {
+function loginUrl(extra: $TSFixMe) {
     if (extra) {
         window.location.href = `${accountsUrl}/login${extra}`;
     }
@@ -13,7 +13,7 @@ function loginUrl(extra) {
     }
 }
 //eslint-disable-next-line
-function registerUrl(params) {
+function registerUrl(params: $TSFixMe) {
     if (params) {
         window.location.href = `${accountsUrl}/register${params}`;
     }

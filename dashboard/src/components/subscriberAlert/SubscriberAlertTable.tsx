@@ -3,9 +3,12 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
+// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
 import AlertDetails from '../modals/AlertDetails';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'coun... Remove this comment to see the full error message
 import countryTelephoneCode from 'country-telephone-code';
 import DataPathHoC from '../DataPathHoC';
 
@@ -21,7 +24,10 @@ function HTD1() {
     );
 }
 
-function HTD2({ name, style }) {
+function HTD2({
+    name,
+    style
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -105,7 +111,9 @@ function HTD6() {
     );
 }
 
-function TD1({ text }) {
+function TD1({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -126,7 +134,9 @@ TD1.propTypes = {
     text: PropTypes.any,
 };
 
-function TD2({ text }) {
+function TD2({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -149,7 +159,9 @@ TD2.propTypes = {
     text: PropTypes.any,
 };
 
-function TD3({ text }) {
+function TD3({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -185,7 +197,9 @@ TD3.propTypes = {
     text: PropTypes.any,
 };
 
-function TD4({ text }) {
+function TD4({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -206,7 +220,9 @@ TD4.propTypes = {
     text: PropTypes.any,
 };
 
-function TD5({ text }) {
+function TD5({
+    text
+}: $TSFixMe) {
     const incidentStatusColor = {
         identified: 'red',
         acknowledged: 'yellow',
@@ -228,9 +244,11 @@ function TD5({ text }) {
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         {isIncidentStatus ? (
                             <div
+                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                 className={`Badge Badge--color--${incidentStatusColor[text]} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                             >
                                 <span
+                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                     className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                 >
                                     {text}
@@ -262,7 +280,9 @@ TD5.propTypes = {
     text: PropTypes.string,
 };
 
-function TD6({ text }) {
+function TD6({
+    text
+}: $TSFixMe) {
     return (
         <td
             aria-hidden="true"
@@ -324,7 +344,7 @@ function SubscriberAlertTableHeader() {
 }
 
 class SubscriberAlertTableRowsClass extends React.Component {
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'Unknown';
         }
@@ -343,13 +363,15 @@ class SubscriberAlertTableRowsClass extends React.Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alerts' does not exist on type 'Readonly... Remove this comment to see the full error message
         const { alerts, monitors } = this.props;
         return alerts.length > 0
-            ? alerts.map((alert, index) => (
+            ? alerts.map((alert: $TSFixMe, index: $TSFixMe) => (
                   <tr
                       key={`alert ${index}`}
                       className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
                       onClick={() =>
+                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                           this.props.openModal({
                               id: uuidv4(),
                               content: DataPathHoC(AlertDetails, {
@@ -400,7 +422,9 @@ class SubscriberAlertTableRowsClass extends React.Component {
             : null;
     }
 }
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubscriberAlertTableRowsClass.displayName = 'SubscriberAlertTableRowsClass';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubscriberAlertTableRowsClass.propTypes = {
     alerts: PropTypes.array.isRequired,
     openModal: PropTypes.func.isRequired,

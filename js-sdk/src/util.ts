@@ -1,8 +1,10 @@
 import { readFile } from 'fs';
 import * as LRUMap from 'lru_map';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'default' does not exist on type 'typeof ... Remove this comment to see the full error message
 const CONTENT_CACHE = new LRUMap.default.LRUMap(100);
 class Util {
-    constructor(options) {
+    options: $TSFixMe;
+    constructor(options: $TSFixMe) {
         this.options = options;
     }
     getErrorType() {
@@ -12,7 +14,7 @@ class Util {
             ERROR: 'error',
         };
     }
-    async _getErrorStackTrace(errorEvent) {
+    async _getErrorStackTrace(errorEvent: $TSFixMe) {
         const frames = [];
         // get error stack trace
         const stack = errorEvent.stack
@@ -72,10 +74,12 @@ class Util {
         const stacktrace = {
             frames,
         };
+        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ frames: { methodName: any; lineNumber: any... Remove this comment to see the full error message
         obj.stacktrace = stacktrace;
 
         // check if  readFile is supported before attempting to read file, this currently works on only NODE
         // check if user opted in for getting code snippet before getting it
+        // @ts-expect-error ts-migrate(2774) FIXME: This condition will always return true since the f... Remove this comment to see the full error message
         if (readFile && this.options.captureCodeSnippet) {
             obj = await this._getErrorCodeSnippet(obj);
         }
@@ -101,12 +105,14 @@ class Util {
                 name: browser.substring(0, browser.indexOf('/')),
                 version: browser.substring(browser.indexOf('/') + 1),
             };
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string[]' is not assignable to type 'null'.
             deviceDetails.device = device;
+            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; version: string; }' is not a... Remove this comment to see the full error message
             deviceDetails.browser = browserDetails;
         }
         return deviceDetails;
     }
-    async _getErrorCodeSnippet(errorObj) {
+    async _getErrorCodeSnippet(errorObj: $TSFixMe) {
         const frames = errorObj.stacktrace ? errorObj.stacktrace.frames : [];
         for (let i = 0; i < frames.length; i++) {
             let fileName = frames[i].fileName;
@@ -129,7 +135,7 @@ class Util {
                 }
             }
         }
-        frames.map(frame => {
+        frames.map((frame: $TSFixMe) => {
             const lines = frame.sourceFile ? frame.sourceFile.split('\n') : [];
             const localFrame = this._addCodeSnippetToFrame(lines, frame);
             frame = localFrame;
@@ -138,7 +144,7 @@ class Util {
         errorObj.stacktrace.frames = frames;
         return errorObj;
     }
-    _readFileFromSource(fileName) {
+    _readFileFromSource(fileName: $TSFixMe) {
         return new Promise(resolve => {
             readFile(fileName, (err, data) => {
                 const content = err ? null : data.toString();
@@ -148,7 +154,7 @@ class Util {
             });
         });
     }
-    _formatFileName(fileName) {
+    _formatFileName(fileName: $TSFixMe) {
         const fileIndicator = 'file://';
         let localFileName = fileName;
         if (fileName.indexOf(fileIndicator) > -1) {
@@ -159,7 +165,7 @@ class Util {
         }
         return localFileName;
     }
-    _addCodeSnippetToFrame(lines, frame, linesOfContext = 5) {
+    _addCodeSnippetToFrame(lines: $TSFixMe, frame: $TSFixMe, linesOfContext = 5) {
         if (lines.length < 1) return;
         const lineNumber = frame.lineNumber || 0;
         const maxLines = lines.length;

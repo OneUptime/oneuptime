@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         // prepare error event model
         const errorEvent = new ErrorEventModel();
 
@@ -10,29 +10,43 @@ export default {
                   frames: data.exception.stackTraceFrame,
               })
             : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
         errorEvent.content = data.exception;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'device' does not exist on type 'Document... Remove this comment to see the full error message
         errorEvent.device = data.deviceDetails;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type 'Document<a... Remove this comment to see the full error message
         errorEvent.tags = data.tags;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
         errorEvent.type = data.type;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sdk' does not exist on type 'Document<an... Remove this comment to see the full error message
         errorEvent.sdk = data.sdk;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprintHash' does not exist on type ... Remove this comment to see the full error message
         errorEvent.fingerprintHash = data.fingerprintHash;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type 'Doc... Remove this comment to see the full error message
         errorEvent.fingerprint = data.fingerprint;
 
         // set error trackerid
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerId' does not exist on type '... Remove this comment to see the full error message
         errorEvent.errorTrackerId = data.errorTrackerId;
 
         // set issueId
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'issueId' does not exist on type 'Documen... Remove this comment to see the full error message
         errorEvent.issueId = data.issueId;
 
         // set timeline
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeline' does not exist on type 'Docume... Remove this comment to see the full error message
         errorEvent.timeline = data.timeline;
 
         const savedErrorEvent = await errorEvent.save();
 
         return savedErrorEvent;
     },
-    async findOneBy({ query, select, populate }) {
+    async findOneBy({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -45,7 +59,13 @@ export default {
         return result;
     },
     // get all error events that matches the specified query
-    async findBy({ query, limit, skip, select, populate }) {
+    async findBy({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -74,7 +94,7 @@ export default {
         return result;
     },
     // get all error events that matches the specified query
-    async findDistinct(query, limit, skip) {
+    async findDistinct(query: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -204,6 +224,7 @@ export default {
             index = index + 1;
         }
         // sort total error events by latest occurence date
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(eventA: { _id: any; name: any; ... Remove this comment to see the full error message
         totalErrorEvents.sort((eventA, eventB) =>
             moment(eventB.latestOccurennce).isAfter(eventA.latestOccurennce)
         );
@@ -242,7 +263,7 @@ export default {
             count: errorTrackerIssues.length,
         };
     },
-    async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
+    async findOneWithPrevAndNext(errorEventId: $TSFixMe, errorTrackerId: $TSFixMe) {
         let previous, next;
         const selectErrorTracker =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt issueId';
@@ -318,6 +339,7 @@ export default {
             };
         }
         if (oldestErrorEvent.length > 0) {
+            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
             previous.oldest = oldestErrorEvent[0]._id;
         }
         if (nextErrorEvent.length > 0) {
@@ -327,6 +349,7 @@ export default {
             };
         }
         if (latestErrorEvent.length > 0) {
+            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
             next.latest = latestErrorEvent[0]._id;
         }
 
@@ -342,7 +365,7 @@ export default {
             totalEvents: totalEvents,
         };
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -351,7 +374,7 @@ export default {
 
         return count;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -375,7 +398,7 @@ export default {
 
         return errorEvent;
     },
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }

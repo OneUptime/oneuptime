@@ -1,4 +1,5 @@
 import express from 'express'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'requ... Remove this comment to see the full error message
 import request from 'request'
 import IntegrationService from '../services/integrationService'
 const getUser = require('../middlewares/user').getUser;
@@ -34,9 +35,12 @@ router.get('/auth/redirect', function(req, res) {
         });
     }
     // hack that gets the user authToken and project ID, not very secure, but sufficient for now
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'split' does not exist on type 'string | ... Remove this comment to see the full error message
     state = state.split(',', 2);
 
+    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
     const projectId = state[0];
+    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
     const userToken = state[1];
 
     const options = {
@@ -47,7 +51,7 @@ router.get('/auth/redirect', function(req, res) {
         },
     };
 
-    request(options, (error, response) => {
+    request(options, (error: $TSFixMe, response: $TSFixMe) => {
         if (error || response.statusCode === 400) {
             return sendErrorResponse(req, res, error);
         } else {
@@ -61,6 +65,7 @@ router.get('/auth/redirect', function(req, res) {
 router.post('/:projectId/link', getUser, isUserAdmin, async function(req, res) {
     const projectId = req.params.projectId;
     const code = req.query.code;
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
     const userId = req.user ? req.user.id : null;
     const slug = req.body.slug;
 
@@ -89,7 +94,7 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function(req, res) {
         method: 'GET',
     };
 
-    request(options, async (error, response, body) => {
+    request(options, async (error: $TSFixMe, response: $TSFixMe, body: $TSFixMe) => {
         const JSONresponse = JSON.parse(body);
         if (!JSONresponse.ok) {
             return sendErrorResponse(req, res, JSONresponse.error);
@@ -131,6 +136,7 @@ router.delete(
     async function(req, res) {
         const projectId = req.params.projectId;
         const teamId = req.params.teamId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
 
         const integrationType = 'slack';

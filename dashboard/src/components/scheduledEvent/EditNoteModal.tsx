@@ -3,8 +3,10 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { ValidateField } from '../../config';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
@@ -26,33 +28,43 @@ class EditNoteModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    validate = values => {
+    validate = (values: $TSFixMe) => {
         const errors = {};
         if (!ValidateField.text(values[`content`])) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
             errors.name = 'Note content is required.';
         }
         if (!ValidateField.text(values[`event_state`])) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
             errors.name = 'Incident State is required.';
         }
         if (
             values[`event_state`] === 'others' &&
             !ValidateField.text(values[`custom_event_state`])
         ) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
             errors.name = 'Custom Incident State is required.';
         }
         return errors;
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { projectId, scheduledEventId, scheduledEventNoteId },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
             modalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateScheduledEventNoteInternal' does n... Remove this comment to see the full error message
             updateScheduledEventNoteInternal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateInternalError' does not exist on t... Remove this comment to see the full error message
             updateInternalError,
         } = this.props;
         const postObj = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type '{}'.
         postObj.content = values[`content`];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type '{}'... Remove this comment to see the full error message
         postObj.event_state =
             values[`event_state`] === 'others'
                 ? values[`custom_event_state`]
@@ -69,7 +81,8 @@ class EditNoteModal extends Component {
         });
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog, data } = this.props;
         if (e.target.localName !== 'textarea' && e.key) {
             switch (e.key) {
@@ -77,6 +90,7 @@ class EditNoteModal extends Component {
                     return closeThisDialog();
                 case 'Enter':
                     if (e.target.localName !== 'textarea') {
+                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                         return document
                             .getElementById(`${data.type}-updateButton`)
                             .click();
@@ -88,25 +102,35 @@ class EditNoteModal extends Component {
         }
     };
 
-    onContentChange = val => {
+    onContentChange = (val: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         this.props.change('content', val);
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Rea... Remove this comment to see the full error message
             event_state,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatingInternalNote' does not exist on ... Remove this comment to see the full error message
             updatingInternalNote,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatingInvestigationNote' does not exis... Remove this comment to see the full error message
             updatingInvestigationNote,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateInternalError' does not exist on t... Remove this comment to see the full error message
             updateInternalError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateInvestigationError' does not exist... Remove this comment to see the full error message
             updateInvestigationError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { type } = this.props.data;
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -292,6 +316,7 @@ class EditNoteModal extends Component {
                                                 className="bs-Button bs-DeprecatedButton btn__modal"
                                                 type="button"
                                                 onClick={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                                     this.props.closeThisDialog
                                                 }
                                                 disabled={updatingInternalNote}
@@ -330,6 +355,7 @@ class EditNoteModal extends Component {
                                                 className="bs-Button bs-DeprecatedButton btn__modal"
                                                 type="button"
                                                 onClick={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                                     this.props.closeThisDialog
                                                 }
                                                 disabled={
@@ -380,18 +406,17 @@ class EditNoteModal extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-            change,
-            updateScheduledEventNoteInternal,
-            updateScheduledEventNoteInvestigation,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+        change,
+        updateScheduledEventNoteInternal,
+        updateScheduledEventNoteInvestigation,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const currentProject = state.project.currentProject;
     const note = state.modal.modals[0].note;
 
@@ -427,6 +452,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EditNoteModal.displayName = 'EditNoteModal';
 
 const EditNoteModalForm = reduxForm({
@@ -435,6 +461,7 @@ const EditNoteModalForm = reduxForm({
     enableReinitialize: true,
 })(EditNoteModal);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EditNoteModal.propTypes = {
     data: PropTypes.object,
     handleSubmit: PropTypes.func,

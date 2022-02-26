@@ -3,10 +3,12 @@ import { connect } from 'react-redux';
 import { User } from '../config';
 import { history } from '../store';
 
-export default function(ComposedComponent) {
+export default function(ComposedComponent: $TSFixMe) {
     class NotAuthentication extends Component {
-        constructor(props) {
+        isAuthenticated: $TSFixMe;
+        constructor(props: $TSFixMe) {
             super(props);
+            // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
             this.props = props;
 
             this.isAuthenticated = User.isLoggedIn();
@@ -33,6 +35,7 @@ export default function(ComposedComponent) {
         return {};
     }
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
     NotAuthentication.displayName = 'NotAuthentication';
 
     return connect(mapStateToProps)(NotAuthentication);

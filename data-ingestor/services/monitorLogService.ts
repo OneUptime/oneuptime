@@ -4,16 +4,19 @@ import MonitorLogByWeekService from '../services/monitorLogByWeekService'
 import MonitorService from '../services/monitorService'
 import ErrorService from '../services/errorService'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorLogCollection = global.db.collection('monitorlogs');
 import { ObjectId } from 'mongodb'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
 import { postApi } from '../utils/api'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
 import { realtimeUrl } from '../utils/config'
 import ProjectService from './projectService'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         try {
             const Log = {};
             let responseBody = '';
@@ -26,37 +29,60 @@ export default {
             } else {
                 responseBody = '';
             }
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
             Log.monitorId = data.monitorId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
             Log.probeId = data.probeId;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type '{}'.
             Log.status = data.status;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseTime' does not exist on type '{}... Remove this comment to see the full error message
             Log.responseTime = data.responseTime;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseStatus' does not exist on type '... Remove this comment to see the full error message
             Log.responseStatus = data.responseStatus;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseBody' does not exist on type '{}... Remove this comment to see the full error message
             Log.responseBody = responseBody;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseHeader' does not exist on type '... Remove this comment to see the full error message
             Log.responseHeader =
                 data.rawResp && data.rawResp.headers
                     ? data.rawResp.headers
                     : {};
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cpuLoad' does not exist on type '{}'.
             Log.cpuLoad = data.cpuLoad;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'avgCpuLoad' does not exist on type '{}'.
             Log.avgCpuLoad = data.avgCpuLoad;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cpuCores' does not exist on type '{}'.
             Log.cpuCores = data.cpuCores;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'memoryUsed' does not exist on type '{}'.
             Log.memoryUsed = data.memoryUsed;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'totalMemory' does not exist on type '{}'... Remove this comment to see the full error message
             Log.totalMemory = data.totalMemory;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'swapUsed' does not exist on type '{}'.
             Log.swapUsed = data.swapUsed;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'storageUsed' does not exist on type '{}'... Remove this comment to see the full error message
             Log.storageUsed = data.storageUsed;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'totalStorage' does not exist on type '{}... Remove this comment to see the full error message
             Log.totalStorage = data.totalStorage;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'storageUsage' does not exist on type '{}... Remove this comment to see the full error message
             Log.storageUsage = data.storageUsage;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'mainTemp' does not exist on type '{}'.
             Log.mainTemp = data.mainTemp;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'maxTemp' does not exist on type '{}'.
             Log.maxTemp = data.maxTemp;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sslCertificate' does not exist on type '... Remove this comment to see the full error message
             Log.sslCertificate = data.sslCertificate;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesLog' does not exist on type '{... Remove this comment to see the full error message
             Log.kubernetesLog = data.kubernetesData || {};
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
             Log.createdAt = new Date(moment().format());
 
             // script log details
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scriptMetadata' does not exist on type '... Remove this comment to see the full error message
             Log.scriptMetadata = data.scriptMetadata;
 
             const result = await monitorLogCollection.insertOne(Log);
             const savedLog = await this.findOneBy({
+                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                 _id: ObjectId(result.insertedId),
             });
 
@@ -71,7 +97,7 @@ export default {
         }
     },
 
-    updateAggregateLogs: async function(data) {
+    updateAggregateLogs: async function(data: $TSFixMe) {
         try {
             const now = new Date();
             const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
@@ -98,6 +124,7 @@ export default {
 
             if (logByHour) {
                 await MonitorLogByHourService.updateOneBy(
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     { _id: ObjectId(logByHour._id) },
                     {
                         ...data,
@@ -132,6 +159,7 @@ export default {
             }
             if (logByDay) {
                 await MonitorLogByDayService.updateOneBy(
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     { _id: ObjectId(logByDay._id) },
                     {
                         ...data,
@@ -166,6 +194,7 @@ export default {
             }
             if (logByWeek) {
                 await MonitorLogByWeekService.updateOneBy(
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     { _id: ObjectId(logByWeek._id) },
                     {
                         ...data,
@@ -204,7 +233,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -222,7 +251,7 @@ export default {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy(query: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -260,20 +289,23 @@ export default {
         }
     },
 
-    async sendMonitorLog(data) {
+    async sendMonitorLog(data: $TSFixMe) {
         try {
             const [monitor, logData] = await Promise.all([
                 MonitorService.findOneBy({
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     query: { _id: ObjectId(data.monitorId) },
                     // select: 'projectId',
                     // populate: [{ path: 'projectId', select: '_id' }],
                 }),
+                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                 this.findOneBy({ _id: ObjectId(data._id) }),
             ]);
 
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
+                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                         _id: ObjectId(
                             monitor.projectId._id || monitor.projectId
                         ),
@@ -296,7 +328,7 @@ export default {
                         projectId: monitor.projectId._id || monitor.projectId,
                     },
                     true
-                ).catch(error => {
+                ).catch((error: $TSFixMe) => {
                     ErrorService.log('monitorLogService.sendMonitorLog', error);
                 });
             }

@@ -6,24 +6,25 @@ const fetchBasicIncidentSettingsVariablesRequest = () => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
 });
 
-const fetchBasicIncidentSettingsVariablesSuccess = payload => ({
+const fetchBasicIncidentSettingsVariablesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
-    payload,
+    payload
 });
 
-const fetchBasicIncidentSettingsVariablesFailure = payload => ({
+const fetchBasicIncidentSettingsVariablesFailure = (payload: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
-    payload,
+    payload
 });
 
 export const fetchBasicIncidentSettingsVariables = () => {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
             function(incidentBasicSettings) {
                 dispatch(
                     fetchBasicIncidentSettingsVariablesSuccess(
+                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         incidentBasicSettings.data
                     )
                 );
@@ -47,7 +48,7 @@ export const fetchBasicIncidentSettingsVariables = () => {
     };
 };
 
-export const setRevealIncidentSettingsVariables = payload => dispatch => {
+export const setRevealIncidentSettingsVariables = (payload: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch({
         type: types.SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS,
         payload,
@@ -59,27 +60,28 @@ export const fetchIncidentTemplatesRequest = () => ({
     type: types.FETCH_INCIDENT_TEMPLATES_REQUEST,
 });
 
-export const fetchIncidentTemplatesSuccess = payload => ({
+export const fetchIncidentTemplatesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_TEMPLATES_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchIncidentTemplatesFailure = error => ({
+export const fetchIncidentTemplatesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchIncidentTemplates = ({
     projectId,
     skip,
-    limit,
-}) => dispatch => {
+    limit
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const url = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
 
     const promise = getApi(url);
     dispatch(fetchIncidentTemplatesRequest());
     promise.then(
         function(incidentBasicSettings) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchIncidentTemplatesSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -105,23 +107,27 @@ export const createIncidentTemplateRequest = () => ({
     type: types.CREATE_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const createIncidentTemplateSuccess = payload => ({
+export const createIncidentTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_INCIDENT_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const createIncidentTemplateFailure = error => ({
+export const createIncidentTemplateFailure = (error: $TSFixMe) => ({
     type: types.CREATE_INCIDENT_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const createIncidentTemplate = ({ projectId, data }) => dispatch => {
+export const createIncidentTemplate = ({
+    projectId,
+    data
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const url = `incidentSettings/${projectId}`;
 
     const promise = postApi(url, data);
     dispatch(createIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(createIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -147,27 +153,28 @@ export const updateIncidentTemplateRequest = () => ({
     type: types.UPDATE_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const updateIncidentTemplateSuccess = payload => ({
+export const updateIncidentTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_INCIDENT_TEMPALTE_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateIncidentTemplateFailure = error => ({
+export const updateIncidentTemplateFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_INCIDENT_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateIncidentTemplate = ({
     projectId,
     templateId,
-    data,
-}) => dispatch => {
+    data
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const url = `incidentSettings/${projectId}/${templateId}`;
 
     const promise = putApi(url, data);
     dispatch(updateIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(updateIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -193,26 +200,28 @@ export const deleteIncidentTemplateRequest = () => ({
     type: types.DELETE_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const deleteIncidentTemplateSuccess = payload => ({
+export const deleteIncidentTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCIDENT_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteIncidentTemplateFailure = error => ({
+export const deleteIncidentTemplateFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCIDENT_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteIncidentTemplate = ({
     projectId,
-    templateId,
-}) => dispatch => {
+    templateId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const url = `incidentSettings/${projectId}/${templateId}`;
 
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(url);
     dispatch(deleteIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(deleteIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -238,23 +247,27 @@ export const setDefaultTemplateRequest = () => ({
     type: types.SET_DEFAULT_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const setDefaultTemplateSuccess = payload => ({
+export const setDefaultTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.SET_DEFAULT_INCIDENT_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const setDefaultTemplateFailure = error => ({
+export const setDefaultTemplateFailure = (error: $TSFixMe) => ({
     type: types.SET_DEFAULT_INCIDENT_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const setDefaultTemplate = ({ projectId, templateId }) => dispatch => {
+export const setDefaultTemplate = ({
+    projectId,
+    templateId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const url = `incidentSettings/${projectId}/${templateId}/setDefault`;
 
     const promise = putApi(url, {});
     dispatch(setDefaultTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -276,9 +289,9 @@ export const setDefaultTemplate = ({ projectId, templateId }) => dispatch => {
 };
 
 // SET ACTIVE TEMPLATE
-export const setActiveTemplate = id => ({
+export const setActiveTemplate = (id: $TSFixMe) => ({
     type: types.SET_ACTIVE_TEMPLATE,
-    payload: id,
+    payload: id
 });
 
 // FETCH DEFAULT INCIDENT TEMPLATE
@@ -286,23 +299,26 @@ export const fetchDefaultTemplateRequest = () => ({
     type: types.FETCH_DEFAULT_TEMPLATE_REQUEST,
 });
 
-export const fetchDefaultTemplateSuccess = payload => ({
+export const fetchDefaultTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_DEFAULT_TEMPLATE_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchDefaultTemplateFailure = error => ({
+export const fetchDefaultTemplateFailure = (error: $TSFixMe) => ({
     type: types.FETCH_DEFAULT_TEMPLATE_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const fetchDefaultTemplate = ({ projectId }) => dispatch => {
+export const fetchDefaultTemplate = ({
+    projectId
+}: $TSFixMe) => (dispatch: $TSFixMe) => {
     const url = `incidentSettings/${projectId}/default`;
 
     const promise = getApi(url);
     dispatch(fetchDefaultTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(fetchDefaultTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {

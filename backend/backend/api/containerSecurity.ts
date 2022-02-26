@@ -1,5 +1,6 @@
 import express from 'express'
 const getUser = require('../middlewares/user').getUser;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -103,18 +104,22 @@ router.put(
             const data = {};
 
             if (name) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
                 data.name = name;
             }
 
             if (dockerCredential) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'dockerCredential' does not exist on type... Remove this comment to see the full error message
                 data.dockerCredential = dockerCredential;
             }
 
             if (imagePath) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'imagePath' does not exist on type '{}'.
                 data.imagePath = imagePath;
             }
 
             if (imageTags) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'imageTags' does not exist on type '{}'.
                 data.imageTags = imageTags;
             }
             let unsetData;
@@ -127,6 +132,7 @@ router.put(
                     }
                 );
                 if (resourceCategoryCount && resourceCategoryCount > 0) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
                     data.resourceCategory = resourceCategory;
                 } else {
                     unsetData = { resourceCategory: '' };
@@ -136,6 +142,7 @@ router.put(
             const containerSecurity = await ContainerSecurityService.updateOneBy(
                 { _id: containerSecurityId, componentId },
                 data,
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ resourceCategory: string; } | ... Remove this comment to see the full error message
                 unsetData
             );
             return sendItemResponse(req, res, containerSecurity);
@@ -370,6 +377,7 @@ router.post(
                 const error = new Error(
                     'Container Security not found or does not exist'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }

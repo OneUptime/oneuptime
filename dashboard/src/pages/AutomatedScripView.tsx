@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
 import getParentRoute from '../utils/getParentRoute';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
@@ -11,16 +13,19 @@ import DataPathHoC from '../components/DataPathHoC';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { openModal } from '../actions/modal';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSingleAutomatedScript } from '../actions/automatedScript';
 import Badge from '../components/common/Badge';
 import ViewScriptLogs from '../components/modals/ViewScriptLogs';
+// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
 import UpdateScript from '../components/automationScript/UpdateScript';
 import RunAutomationScript from '../components/modals/RunAutomationScript';
 import moment from 'moment';
 
-const AutomatedScripView = props => {
+const AutomatedScripView = (props: $TSFixMe) => {
     const { history } = props;
+    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
     const parentRoute = getParentRoute(history.location.pathname);
 
     const [tabIndex, setTabIndex] = useState(0);
@@ -55,10 +60,11 @@ const AutomatedScripView = props => {
         }
     }, [props.activeProject]);
 
-    const tabSelected = index => {
+    const tabSelected = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
 
         setTimeout(() => {
+            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
             tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         });
         setTabIndex(index);
@@ -125,6 +131,7 @@ const AutomatedScripView = props => {
                 name={projectName}
                 projectId={projectId || ''}
                 slug={props.currentProject ? props.currentProject.slug : null}
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                 switchToProjectViewerNav={props.switchToProjectViewerNav}
             />
             <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
@@ -135,7 +142,7 @@ const AutomatedScripView = props => {
             />
             <Tabs
                 selectedTabClassName={'custom-tab-selected'}
-                onSelect={tab => tabSelected(tab)}
+                onSelect={(tab: $TSFixMe) => tabSelected(tab)}
                 selectedIndex={tabIndex}
             >
                 <div className="Flex-flex Flex-direction--columnReverse">
@@ -350,8 +357,8 @@ const AutomatedScripView = props => {
                                                                                             0 &&
                                                                                         scriptLogs.log.map(
                                                                                             (
-                                                                                                log,
-                                                                                                index
+                                                                                                log: $TSFixMe,
+                                                                                                index: $TSFixMe
                                                                                             ) => {
                                                                                                 return (
                                                                                                     <div
@@ -691,17 +698,16 @@ AutomatedScripView.propTypes = {
     subProjects: PropTypes.array,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject,
     activeProject: state.subProject.activeSubProject,
     script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
     switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-    subProjects: state.subProject.subProjects.subProjects,
+    subProjects: state.subProject.subProjects.subProjects
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, fetchSingleAutomatedScript }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchSingleAutomatedScript }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AutomatedScripView);

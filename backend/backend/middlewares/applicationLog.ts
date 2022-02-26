@@ -3,7 +3,7 @@ import ApplicationLogService from '../services/applicationLogService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
-    isApplicationLogValid: async function(req, res, next) {
+    isApplicationLogValid: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const data = req.body;
             const applicationLogId = req.params.applicationLogId;

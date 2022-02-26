@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { SketchPicker } from 'react-color';
 
 function Color({
@@ -10,7 +11,7 @@ function Color({
     handleChange,
     handleClose,
     ...props
-}) {
+}: $TSFixMe) {
     return (
         <div
             className="Box-root Box-root Box-root Flex-flex"

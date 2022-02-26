@@ -1,5 +1,6 @@
 import express from 'express'
 const getUser = require('../middlewares/user').getUser;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -62,6 +63,7 @@ router.post(
                 const error = new Error(
                     'Please specify a name for the incoming request'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -85,6 +87,7 @@ router.post(
                 const error = new Error(
                     'Incoming request with this name already exist'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -117,6 +120,7 @@ router.put(
                 const error = new Error(
                     'Please specify a name for the incoming request'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -144,10 +148,12 @@ router.put(
                 const error = new Error(
                     'Incoming request with this name already exist'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             incomingRequest = await IncomingRequestService.updateOneBy(
                 { requestId, projectId },
                 data
@@ -254,10 +260,12 @@ router.post(
                 const error = new Error(
                     'Incoming request with this name already exist'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             incomingRequest = await IncomingRequestService.updateOneBy(
                 { requestId, projectId },
                 data

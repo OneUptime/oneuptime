@@ -1,9 +1,10 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
 require('should');
-let browser, page;
+let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
@@ -13,10 +14,13 @@ const priorityName = utils.generateRandomString();
 const incidentTitle = utils.generateRandomString();
 const newIncidentTitle = utils.generateRandomString();
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
     beforeAll(async () => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,14 +40,16 @@ describe('Monitor Detail API', () => {
         await init.addIncidentPriority(priorityName, page);
     });
 
-    afterAll(async done => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to details of monitor created with correct details',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -51,6 +57,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
@@ -63,9 +70,10 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to monitor details and create an incident',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -73,13 +81,14 @@ describe('Monitor Detail API', () => {
                 page
             );
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
                 page,
                 `#createIncident_${monitorName}`
             );
-            await init.page$Eval(page, `#createIncident_${monitorName}`, e =>
-                e.click()
+            await init.page$Eval(page, `#createIncident_${monitorName}`, (e: $TSFixMe) => e.click()
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.selectDropdownValue(
@@ -89,22 +98,23 @@ describe('Monitor Detail API', () => {
             );
             await init.pageClick(page, '#title', { clickCount: 3 });
             // await page.keyboard.press('Backspace');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#title', incidentTitle);
-            await init.page$Eval(page, '#createIncident', e => e.click());
+            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => e.click());
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', elem =>
-                elem.click()
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
             );
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#numberOfIncidents');
 
             const selector = await init.page$Eval(
                 page,
                 '#numberOfIncidents',
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(selector).toMatch('1');
 
@@ -116,7 +126,7 @@ describe('Monitor Detail API', () => {
             const rowContent = await init.page$Eval(
                 page,
                 selector1,
-                e => e.textContent
+                (e: $TSFixMe) => e.textContent
             );
             expect(rowContent).toMatch(priorityName);
             done();
@@ -124,9 +134,10 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         "Should navigate to monitor's incident details and edit details",
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -135,8 +146,9 @@ describe('Monitor Detail API', () => {
             );
 
             const selector = `#incident_0`;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, selector);
-            await init.page$Eval(page, selector, e => e.click());
+            await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
             const incidentTitleSelector = '#incidentTitle';
             await init.pageWaitForSelector(page, incidentTitleSelector, {
                 visible: true,
@@ -145,20 +157,23 @@ describe('Monitor Detail API', () => {
             let currentTitle = await init.page$Eval(
                 page,
                 incidentTitleSelector,
-                e => e.textContent
+                (e: $TSFixMe) => e.textContent
             );
             expect(currentTitle).toEqual(incidentTitle);
             // The Edit Button has been removed and replaced with another functions
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#incidentTitle');
             await init.pageClick(page, '#title', { clickCount: 3 });
             await page.keyboard.press('Backspace');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#title', newIncidentTitle);
             await page.keyboard.press('Enter');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, incidentTitleSelector);
             currentTitle = await init.page$Eval(
                 page,
                 incidentTitleSelector,
-                e => e.textContent
+                (e: $TSFixMe) => e.textContent
             );
             expect(currentTitle).toEqual(newIncidentTitle);
             done();
@@ -166,9 +181,10 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to monitor details and open the incident creation pop up',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -177,6 +193,7 @@ describe('Monitor Detail API', () => {
             );
 
             // tab the create incident button over thee monitor view header
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`
@@ -184,9 +201,11 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 `#monitorCreateIncident_${monitorName}`,
-                e => e.click()
+                (e: $TSFixMe) => e.click()
             );
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#incidentTitleLabel');
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#incidentTitleLabel`
@@ -199,9 +218,10 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should navigate to monitor details and get list of incidents and paginate incidents',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -209,6 +229,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const nextSelector = await init.pageWaitForSelector(
                 page,
                 '#btnNext'
@@ -220,10 +241,11 @@ describe('Monitor Detail API', () => {
             let countIncidents = await init.page$Eval(
                 page,
                 incidentRows,
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(countIncidents).toEqual('1');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const prevSelector = await init.pageWaitForSelector(
                 page,
                 '#btnPrev'
@@ -234,7 +256,7 @@ describe('Monitor Detail API', () => {
             countIncidents = await init.page$Eval(
                 page,
                 incidentRows,
-                elem => elem.textContent
+                (elem: $TSFixMe) => elem.textContent
             );
             expect(countIncidents).toEqual('1');
             done();
@@ -242,9 +264,10 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
     test(
         'Should delete an incident and redirect to the monitor page',
-        async done => {
+        async (done: $TSFixMe) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
@@ -252,21 +275,22 @@ describe('Monitor Detail API', () => {
                 page
             );
             const selector = `#incident_0`;
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, selector);
-            await init.page$Eval(page, selector, e => e.click());
+            await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
             // click on advance option tab
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.advanced-tab');
             await init.pageWaitForSelector(page, '#deleteIncidentButton', {
                 visible: true,
                 timeout: 100000,
             });
-            await init.page$Eval(page, '#deleteIncidentButton', e => e.click());
+            await init.page$Eval(page, '#deleteIncidentButton', (e: $TSFixMe) => e.click());
             await init.pageWaitForSelector(page, '#confirmDeleteIncident', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#confirmDeleteIncident', e =>
-                e.click()
+            await init.page$Eval(page, '#confirmDeleteIncident', (e: $TSFixMe) => e.click()
             );
             await init.pageWaitForSelector(page, `#cb${monitorName}`, {
                 visible: true,
@@ -274,8 +298,10 @@ describe('Monitor Detail API', () => {
             });
 
             //click on basic tab
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.basic-tab');
 
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let incidentCountSpanElement = await init.pageWaitForSelector(
                 page,
                 `#numberOfIncidents`

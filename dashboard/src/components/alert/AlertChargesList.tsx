@@ -9,13 +9,16 @@ import { getProjectBalance } from '../../actions/project';
 import { history } from '../../store';
 
 export class AlertChargesList extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {};
     }
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAlertCharges' does not exist on typ... Remove this comment to see the full error message
         const { fetchAlertCharges, getProjectBalance } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         let { projectId } = this.props;
         if (!projectId) {
             projectId = history.location.pathname
@@ -29,26 +32,36 @@ export class AlertChargesList extends Component {
     }
 
     prevClicked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAlertCharges' does not exist on typ... Remove this comment to see the full error message
         const { fetchAlertCharges, projectId, skip } = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) - 5 : 5, 5);
         this.setState({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     nextClicked = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAlertCharges' does not exist on typ... Remove this comment to see the full error message
         const { fetchAlertCharges, projectId, skip } = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) + 5 : 5, 5);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         this.setState({ page: !this.state.page ? 2 : this.state.page + 1 });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertCharges' does not exist on type 'Re... Remove this comment to see the full error message
             alertCharges,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
@@ -136,198 +149,198 @@ export class AlertChargesList extends Component {
                             {!isRequesting &&
                                 alertCharges &&
                                 alertCharges.length > 0 &&
-                                alertCharges.map(alertCharge => (
-                                    <tr
-                                        className="Table-row db-ListViewItem bs-ActionsParent"
-                                        key={
-                                            alertCharge.alertId
-                                                ? alertCharge.alertId._id
-                                                : alertCharge.subscriberAlertId
-                                                      ._id
-                                        }
+                                alertCharges.map((alertCharge: $TSFixMe) => <tr
+                                    className="Table-row db-ListViewItem bs-ActionsParent"
+                                    key={
+                                        alertCharge.alertId
+                                            ? alertCharge.alertId._id
+                                            : alertCharge.subscriberAlertId
+                                                  ._id
+                                    }
+                                >
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink"
+                                        style={{ height: '1px' }}
                                     >
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink"
-                                            style={{ height: '1px' }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
-                                                    <div
-                                                        onClick={() => {
-                                                            history.push(
-                                                                '/dashboard/project/' +
-                                                                    this.props
-                                                                        .slug +
-                                                                    '/component/' +
-                                                                    alertCharge
-                                                                        .monitorId
-                                                                        .componentSlug +
-                                                                    '/monitoring/' +
-                                                                    alertCharge
-                                                                        .monitorId
-                                                                        .slug
-                                                            );
-                                                        }}
-                                                        className="Box-root Margin-right--16"
-                                                    >
-                                                        <span>
-                                                            {
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
+                                                <div
+                                                    onClick={() => {
+                                                        history.push(
+                                                            '/dashboard/project/' +
+                                                                this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                                                    .slug +
+                                                                '/component/' +
                                                                 alertCharge
                                                                     .monitorId
-                                                                    .name
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '180px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
-                                                    <div
-                                                        onClick={() => {
-                                                            history.push(
-                                                                '/dashboard/project/' +
-                                                                    this.props
-                                                                        .slug +
-                                                                    '/component/' +
-                                                                    alertCharge
-                                                                        .monitorId
-                                                                        .componentSlug +
-                                                                    '/incidents/' +
-                                                                    alertCharge
-                                                                        .incidentId
-                                                                        .slug
-                                                            );
+                                                                    .componentSlug +
+                                                                '/monitoring/' +
+                                                                alertCharge
+                                                                    .monitorId
+                                                                    .slug
+                                                        );
+                                                    }}
+                                                    className="Box-root Margin-right--16"
+                                                >
+                                                    <span>
+                                                        {
+                                                            alertCharge
+                                                                .monitorId
+                                                                .name
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord db-ListViewItem--hasLink"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '180px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap Text-color--cyan">
+                                                <div
+                                                    onClick={() => {
+                                                        history.push(
+                                                            '/dashboard/project/' +
+                                                                this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                                                    .slug +
+                                                                '/component/' +
+                                                                alertCharge
+                                                                    .monitorId
+                                                                    .componentSlug +
+                                                                '/incidents/' +
+                                                                alertCharge
+                                                                    .incidentId
+                                                                    .slug
+                                                        );
+                                                    }}
+                                                    className="Box-root Margin-right--16"
+                                                >
+                                                    <span
+                                                        style={{
+                                                            textDecoration:
+                                                                'underline',
                                                         }}
-                                                        className="Box-root Margin-right--16"
                                                     >
-                                                        <span
-                                                            style={{
-                                                                textDecoration:
-                                                                    'underline',
-                                                            }}
-                                                        >
-                                                            <b>
-                                                                {'#'}
-                                                                {
-                                                                    alertCharge
-                                                                        .incidentId
-                                                                        .idNumber
-                                                                }
-                                                            </b>
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '150px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root Margin-right--16">
-                                                        <span>
-                                                            {moment(
-                                                                alertCharge.createdAt
-                                                            ).format('lll')}
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '100px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>
-                                                                {alertCharge.alertId
-                                                                    ? alertCharge
-                                                                          .alertId
-                                                                          .alertVia
-                                                                    : alertCharge
-                                                                          .subscriberAlertId
-                                                                          .alertVia}
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '100px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root Margin-right--16">
-                                                        <span>
-                                                            {alertCharge.sentTo}
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '100px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root Margin-right--16">
-                                                        <span>
+                                                        <b>
+                                                            {'#'}
                                                             {
-                                                                alertCharge.chargeAmount
+                                                                alertCharge
+                                                                    .incidentId
+                                                                    .idNumber
                                                             }
-                                                        </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '100px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <div className="Box-root Margin-right--16">
+                                                        </b>
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '150px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <div className="Box-root Margin-right--16">
+                                                    <span>
+                                                        {moment(
+                                                            alertCharge.createdAt
+                                                        ).format('lll')}
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '100px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                         <span>
-                                                            {Number.parseFloat(
-                                                                alertCharge.closingAccountBalance
-                                                            ).toFixed(2)}
+                                                            {alertCharge.alertId
+                                                                ? alertCharge
+                                                                      .alertId
+                                                                      .alertVia
+                                                                : alertCharge
+                                                                      .subscriberAlertId
+                                                                      .alertVia}
                                                         </span>
-                                                    </div>
-                                                </span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '100px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <div className="Box-root Margin-right--16">
+                                                    <span>
+                                                        {alertCharge.sentTo}
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '100px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <div className="Box-root Margin-right--16">
+                                                    <span>
+                                                        {
+                                                            alertCharge.chargeAmount
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td
+                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                        style={{
+                                            height: '1px',
+                                            minWidth: '100px',
+                                        }}
+                                    >
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <div className="Box-root Margin-right--16">
+                                                    <span>
+                                                        {Number.parseFloat(
+                                                            alertCharge.closingAccountBalance
+                                                        ).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>)}
                         </tbody>
                     </table>
                 </div>
@@ -358,8 +371,10 @@ export class AlertChargesList extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
                                         ? `Page ${
+                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                               !this.state.page
                                                   ? 1
+                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                   : this.state.page
                                           } of ${numberOfPages} (${count} Alert${
                                               count === 1 ? '' : 's'
@@ -419,14 +434,14 @@ export class AlertChargesList extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         { fetchAlertCharges, getProjectBalance },
         dispatch
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
@@ -450,6 +465,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AlertChargesList.propTypes = {
     alertCharges: PropTypes.array,
     isRequesting: PropTypes.bool,
@@ -463,6 +479,7 @@ AlertChargesList.propTypes = {
     getProjectBalance: PropTypes.func,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AlertChargesList.displayName = 'AlertChargesList';
 
 export default connect(mapStateToProps, mapDispatchToProps)(AlertChargesList);

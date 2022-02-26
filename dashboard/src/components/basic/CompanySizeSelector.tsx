@@ -7,7 +7,11 @@ const errorStyle = {
     topMargin: '5px',
 };
 
-const CompanySizeSelector = ({ input, id, meta: { touched, error } }) => (
+const CompanySizeSelector = ({
+    input,
+    id,
+    meta: { touched, error }
+}: $TSFixMe) => (
     <span>
         <select {...input} className="selector" id={id}>
             <option value="">Select Company Size...</option>

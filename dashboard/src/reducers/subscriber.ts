@@ -38,7 +38,7 @@ const initialState = {
     },
 };
 
-export default function subscriber(state = initialState, action) {
+export default function subscriber(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.CREATE_SUBSCRIBER_RESET:
             return Object.assign({}, state, {

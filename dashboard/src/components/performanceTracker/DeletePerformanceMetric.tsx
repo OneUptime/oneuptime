@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import ShouldRender from '../basic/ShouldRender';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
@@ -22,9 +23,10 @@ class DeletePerformanceMetric extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 return this.props.closeModal();
             case 'Enter':
                 return this.handleDelete();
@@ -35,11 +37,17 @@ class DeletePerformanceMetric extends Component {
 
     handleDelete = () => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncomingMetrics' does not exist on... Remove this comment to see the full error message
             deleteIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteOutgoingMetrics' does not exist on... Remove this comment to see the full error message
             deleteOutgoingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncomingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchIncomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchOutgoingMetrics' does not exist on ... Remove this comment to see the full error message
             fetchOutgoingMetrics,
         } = this.props;
 
@@ -92,9 +100,13 @@ class DeletePerformanceMetric extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incomingMetrics' does not exist on type ... Remove this comment to see the full error message
             incomingMetrics,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'outgoingMetrics' does not exist on type ... Remove this comment to see the full error message
             outgoingMetrics,
         } = this.props;
 
@@ -275,19 +287,18 @@ class DeletePerformanceMetric extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            closeModal,
-            deleteIncomingMetrics,
-            deleteOutgoingMetrics,
-            fetchIncomingMetrics,
-            fetchOutgoingMetrics,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        closeModal,
+        deleteIncomingMetrics,
+        deleteOutgoingMetrics,
+        fetchIncomingMetrics,
+        fetchOutgoingMetrics,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         performanceTracker:
             state.performanceTracker.fetchPerformanceTracker &&
@@ -298,6 +309,7 @@ const mapStateToProps = state => {
     };
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DeletePerformanceMetric.propTypes = {
     closeModal: PropTypes.func.isRequired,
     data: PropTypes.object,
@@ -309,6 +321,7 @@ DeletePerformanceMetric.propTypes = {
     fetchOutgoingMetrics: PropTypes.func,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DeletePerformanceMetric.displayName = 'DeletePerformanceMetric';
 
 export default connect(

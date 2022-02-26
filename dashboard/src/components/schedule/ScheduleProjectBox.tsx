@@ -9,11 +9,12 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import sortByName from '../../utils/sortByName';
 
-const ScheduleProjectBox = props => {
-    const handleKeyboard = event => {
+const ScheduleProjectBox = (props: $TSFixMe) => {
+    const handleKeyboard = (event: $TSFixMe) => {
         const { modalList, allScheduleLength } = props;
 
         if (allScheduleLength === 1) {
@@ -23,6 +24,7 @@ const ScheduleProjectBox = props => {
                     case 'n':
                         if (modalList.length === 0) {
                             event.preventDefault();
+                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                             return document
                                 .getElementById(
                                     `btnCreateSchedule_${props.subProjectName}`
@@ -83,6 +85,7 @@ const ScheduleProjectBox = props => {
                             <div className="Box-root">
                                 <RenderIfSubProjectAdmin
                                     subProjectId={props.projectId}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '() => any' is not assignable to type 'Key | ... Remove this comment to see the full error message
                                     key={() => uuidv4()}
                                 >
                                     <button

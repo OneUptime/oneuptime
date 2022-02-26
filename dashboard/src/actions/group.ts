@@ -7,21 +7,22 @@ export const addGroupRequest = () => ({
     type: types.CREATE_GROUP_REQUEST,
 });
 
-export const addGroupSuccess = payload => ({
+export const addGroupSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_GROUP_SUCCESS,
-    payload,
+    payload
 });
 
-export const addGroupFailure = error => ({
+export const addGroupFailure = (error: $TSFixMe) => ({
     type: types.CREATE_GROUP_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const createGroup = (projectId, data) => async dispatch => {
+export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addGroupRequest());
 
     try {
         const response = await postApi(`group/${projectId}`, data);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(addGroupSuccess(response.data));
         dispatch(getGroups());
         return response;
@@ -40,26 +41,27 @@ export const createGroup = (projectId, data) => async dispatch => {
 };
 
 // Edit and update Groups
-export const updateGroupRequest = payload => ({
+export const updateGroupRequest = (payload: $TSFixMe) => ({
     type: types.UPDATE_GROUP_REQUEST,
-    payload,
+    payload
 });
 
-export const updateGroupSuccess = payload => ({
+export const updateGroupSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_GROUP_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateGroupFailure = error => ({
+export const updateGroupFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_GROUP_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const updateGroup = (projectId, groupId, data) => async dispatch => {
+export const updateGroup = (projectId: $TSFixMe, groupId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(updateGroupRequest(groupId));
 
     try {
         const response = await putApi(`group/${projectId}/${groupId}`, data);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(updateGroupSuccess(response.data));
         return response;
     } catch (error) {
@@ -81,21 +83,22 @@ export const getGroupsRequest = () => ({
     type: types.GET_GROUPS_REQUEST,
 });
 
-export const getGroupsSuccess = payload => ({
+export const getGroupsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_GROUPS_SUCCESS,
-    payload,
+    payload
 });
 
-export const getGroupsFailure = error => ({
+export const getGroupsFailure = (error: $TSFixMe) => ({
     type: types.GET_GROUPS_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const getGroups = () => async dispatch => {
+export const getGroups = () => async (dispatch: $TSFixMe) => {
     dispatch(getGroupsRequest());
     const projectId = User.getCurrentProjectId();
     try {
         const response = await getApi(`group/${projectId}/groups`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -115,22 +118,23 @@ export const getProjectGroupsRequest = () => ({
     type: types.GET_PROJECT_GROUPS_REQUEST,
 });
 
-export const getProjectGroupsSuccess = payload => ({
+export const getProjectGroupsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_PROJECT_GROUPS_SUCCESS,
-    payload,
+    payload
 });
 
-export const getProjectGroupsFailure = error => ({
+export const getProjectGroupsFailure = (error: $TSFixMe) => ({
     type: types.GET_PROJECT_GROUPS_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const getProjectGroups = (projectId, skip, limit) => async dispatch => {
+export const getProjectGroups = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getProjectGroupsRequest());
     try {
         const response = await getApi(
             `group/${projectId}?skip=${skip}&limit=${limit}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(getProjectGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -150,21 +154,23 @@ export const deleteGroupRequest = () => ({
     type: types.DELETE_GROUP_REQUEST,
 });
 
-export const deleteGroupSuccess = payload => ({
+export const deleteGroupSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_GROUP_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteGroupFailure = error => ({
+export const deleteGroupFailure = (error: $TSFixMe) => ({
     type: types.DELETE_GROUP_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const deleteGroup = (projectId, groupId) => async dispatch => {
+export const deleteGroup = (projectId: $TSFixMe, groupId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteGroupRequest());
 
     try {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(`group/${projectId}/${groupId}`);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteGroupSuccess(response.data));
         dispatch(getGroups());
         return response;

@@ -4,10 +4,12 @@ import MonitorService from '../services/monitorService'
 import AlertService from '../services/alertService'
 import ErrorService from 'common-server/utils/error'
 import ProjectService from '../services/projectService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'domp... Remove this comment to see the full error message
 import createDOMPurify from 'dompurify'
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import { isEmpty } from 'lodash'
 import IncidentMessageService from '../services/incidentMessageService'
 import IncidentPrioritiesService from '../services/incidentPrioritiesService'
@@ -19,7 +21,11 @@ import handlePopulate from '../utils/populate'
 // import RealTimeService from './realTimeService'
 
 export default {
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -34,7 +40,7 @@ export default {
         return result;
     },
 
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const _this = this;
         if (
             !data.selectAllMonitors &&
@@ -44,6 +50,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to create an incoming request'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -56,14 +63,15 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         if (data.createIncident) {
             // reassign data.monitors with a restructured monitor data
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
+            data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
+                monitorId: monitor
             }));
         }
 
@@ -81,7 +89,7 @@ export default {
         //     data.filterText = DOMPurify.sanitize(data.filterText);
         // }
         if (data.filters && data.filters.length > 0) {
-            data.filters = data.filters.map(filter => {
+            data.filters = data.filters.map((filter: $TSFixMe) => {
                 filter.filterText = DOMPurify.sanitize(filter.filterText);
                 return filter;
             });
@@ -137,10 +145,11 @@ export default {
         return incomingRequest;
     },
 
-    getRequestUrl: async function(projectId, requestId) {
+    getRequestUrl: async function(projectId: $TSFixMe, requestId: $TSFixMe) {
         // create a unique request url
         // update incomingRequest collection with the new url
         const _this = this;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
         const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
         const updatedIncomingRequest = await _this.updateOneBy(
             { requestId, projectId },
@@ -150,7 +159,7 @@ export default {
         return updatedIncomingRequest;
     },
 
-    updateOneBy: async function(query, data, excludeMonitors) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, excludeMonitors: $TSFixMe) {
         const _this = this;
         let unsetData = {};
         if (!query) {
@@ -167,6 +176,7 @@ export default {
                 const error = new Error(
                     'You need at least one monitor to update a scheduled event'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -175,13 +185,14 @@ export default {
                 const error = new Error(
                     'You cannot have multiple selection of a monitor'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
 
             // reassign data.monitors with a restructured monitor data
-            data.monitors = data.monitors.map(monitor => ({
-                monitorId: monitor,
+            data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
+                monitorId: monitor
             }));
         }
 
@@ -269,7 +280,7 @@ export default {
         //     data.filterText = DOMPurify.sanitize(data.filterText);
         // }
         if (data.filters && data.filters.length > 0) {
-            data.filters = data.filters.map(filter => {
+            data.filters = data.filters.map((filter: $TSFixMe) => {
                 filter.filterText = DOMPurify.sanitize(filter.filterText);
                 return filter;
             });
@@ -318,6 +329,7 @@ export default {
             const error = new Error(
                 'Incoming request not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -344,7 +356,7 @@ export default {
         return updatedIncomingRequest;
     },
 
-    updateCustomFieldBy: async function(query, data) {
+    updateCustomFieldBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -353,7 +365,13 @@ export default {
         return incomingRequest;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -384,7 +402,7 @@ export default {
         return result;
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -393,7 +411,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             {
@@ -409,6 +427,7 @@ export default {
             const error = new Error(
                 'Incoming request not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -418,7 +437,7 @@ export default {
         return incomingRequest;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -450,7 +469,7 @@ export default {
         return updateIncomingRequest;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await IncomingRequestModel.deleteMany(query);
         return 'Incoming request(s) removed successfully!';
     },
@@ -461,19 +480,18 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function(monitorId) {
+    removeMonitor: async function(monitorId: $TSFixMe) {
         const allIncomingRequest = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors',
         });
 
         await Promise.all(
-            allIncomingRequest.map(async incomingRequest => {
+            allIncomingRequest.map(async (incomingRequest: $TSFixMe) => {
                 // remove the monitor from incomingRequest monitors list
                 incomingRequest.monitors = incomingRequest.monitors.filter(
-                    monitor =>
-                        String(monitor.monitorId._id || monitor.monitorId) !==
-                        String(monitorId)
+                    (monitor: $TSFixMe) => String(monitor.monitorId._id || monitor.monitorId) !==
+                    String(monitorId)
                 );
 
                 if (incomingRequest.monitors.length > 0) {
@@ -522,7 +540,7 @@ export default {
         );
     },
 
-    handleIncomingRequestAction: async function(data) {
+    handleIncomingRequestAction: async function(data: $TSFixMe) {
         const _this = this;
         const selectIncPriority =
             'projectId name color createdAt deletedAt deleted deletedById';
@@ -579,7 +597,7 @@ export default {
             incomingRequest.enabled
         ) {
             const incidentResponse = [],
-                monitorsWithIncident = [];
+                monitorsWithIncident: $TSFixMe = [];
 
             data.incidentType = incomingRequest.incidentType;
             data.incidentPriority = incomingRequest.incidentPriority;
@@ -604,6 +622,7 @@ export default {
 
             let monitors = [];
             if (incomingRequest.selectAllMonitors) {
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
                 const projectIds = await ProjectService.findBy({
                     query: { parentProjectId: data.projectId },
                     select: '_id',
@@ -619,14 +638,14 @@ export default {
                 });
             } else {
                 monitors = incomingRequest.monitors
-                    .map(monitor => monitor.monitorId)
-                    .filter(monitor => !monitor.deleted);
+                    .map((monitor: $TSFixMe) => monitor.monitorId)
+                    .filter((monitor: $TSFixMe) => !monitor.deleted);
             }
 
             if (filters && filters.length > 0) {
                 // if template variables are used
                 // update the values for filterText
-                const updatedFilters = filters.map(filter => {
+                const updatedFilters = filters.map((filter: $TSFixMe) => {
                     if (filter.filterText) {
                         const dataConfig = {
                             request: data.request,
@@ -638,12 +657,12 @@ export default {
                     }
                     return filter;
                 });
-                const newMonitorList = [];
-                monitors.forEach(monitor => {
+                const newMonitorList: $TSFixMe = [];
+                monitors.forEach((monitor: $TSFixMe) => {
                     let matchedFields = 0;
                     const monitorCustomFields = monitor.customFields || [];
 
-                    updatedFilters.forEach(filter => {
+                    updatedFilters.forEach((filter: $TSFixMe) => {
                         const filterCondition = filter.filterCondition;
                         for (const field of monitorCustomFields) {
                             if (filterCondition === 'equalTo') {
@@ -783,20 +802,22 @@ export default {
                     ).toLowerCase();
                     const priorityObj = {};
                     incidentPriorities.forEach(
-                        priority =>
-                            (priorityObj[priority.name.toLowerCase()] =
-                                priority._id)
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        (priority: $TSFixMe) => priorityObj[priority.name.toLowerCase()] =
+                                priority._id
                     );
                     data.incidentPriority =
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
-                    data.customFields = data.customFields.map(field => ({
+                    data.customFields = data.customFields.map((field: $TSFixMe) => ({
                         ...field,
+
                         fieldValue: analyseVariable(
                             String(field.fieldValue),
                             dataConfig
-                        ),
+                        )
                     }));
 
                     if (!monitorsWithIncident.includes(String(monitor._id))) {
@@ -816,9 +837,9 @@ export default {
                 }
             } else {
                 if (monitors && monitors.length > 0) {
-                    const monitorNames = monitors.map(monitor => monitor.name);
-                    const componentNames = [];
-                    monitors.forEach(monitor => {
+                    const monitorNames = monitors.map((monitor: $TSFixMe) => monitor.name);
+                    const componentNames: $TSFixMe = [];
+                    monitors.forEach((monitor: $TSFixMe) => {
                         if (
                             !componentNames.includes(monitor.componentId.name)
                         ) {
@@ -881,22 +902,24 @@ export default {
                     ).toLowerCase();
                     const priorityObj = {};
                     incidentPriorities.forEach(
-                        priority =>
-                            (priorityObj[priority.name.toLowerCase()] =
-                                priority._id)
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        (priority: $TSFixMe) => priorityObj[priority.name.toLowerCase()] =
+                                priority._id
                     );
                     data.incidentPriority =
+                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
-                    data.customFields = data.customFields.map(field => ({
+                    data.customFields = data.customFields.map((field: $TSFixMe) => ({
                         ...field,
+
                         fieldValue: analyseVariable(
                             String(field.fieldValue),
                             dataConfig
-                        ),
+                        )
                     }));
-                    data.monitors = monitors.map(monitor => monitor._id);
+                    data.monitors = monitors.map((monitor: $TSFixMe) => monitor._id);
                     let incident;
                     if (_incident) {
                         incident = await IncidentService.updateOneBy(
@@ -913,6 +936,7 @@ export default {
             let created_incidents = new Set(
                 incidentResponse.map(response => response.idNumber)
             );
+            // @ts-expect-error ts-migrate(2740) FIXME: Type 'any[]' is missing the following properties f... Remove this comment to see the full error message
             created_incidents = [...created_incidents];
             return {
                 status: 'success',
@@ -927,6 +951,7 @@ export default {
                 incomingRequest.updateInternalNote)
         ) {
             let subProjectIds = [];
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
             const subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -936,12 +961,12 @@ export default {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map(project => project._id);
+                subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
             }
             subProjectIds.push(incomingRequest.projectId);
 
             const noteResponse = [],
-                incidentsWithNote = [];
+                incidentsWithNote: $TSFixMe = [];
 
             data.incident_state = incomingRequest.incidentState;
             data.type = incomingRequest.updateIncidentNote
@@ -950,7 +975,7 @@ export default {
             data.content = incomingRequest.noteContent;
 
             let incidents = [],
-                updatedFilters = [];
+                updatedFilters: $TSFixMe = [];
             const populate = [
                 {
                     path: 'monitors.monitorId',
@@ -985,7 +1010,7 @@ export default {
                     populate,
                 });
             } else {
-                updatedFilters = filters.map(filter => {
+                updatedFilters = filters.map((filter: $TSFixMe) => {
                     if (filter.filterText) {
                         const dataConfig = {
                             request: data.request,
@@ -1248,8 +1273,8 @@ export default {
             }
 
             // only have unique incidents
-            const filtered = [];
-            incidents = incidents.filter(incident => {
+            const filtered: $TSFixMe = [];
+            incidents = incidents.filter((incident: $TSFixMe) => {
                 if (filtered.indexOf(String(incident._id)) < 0) {
                     filtered.push(String(incident._id));
                     return true;
@@ -1258,8 +1283,8 @@ export default {
             });
 
             if (filters || filters.length > 0) {
-                const newIncidentList = [];
-                incidents.forEach(incident => {
+                const newIncidentList: $TSFixMe = [];
+                incidents.forEach((incident: $TSFixMe) => {
                     let matchedFields = 0;
                     const incidentCustomFields = incident.customFields || [];
                     // automatically create incident id custom field
@@ -1269,6 +1294,7 @@ export default {
                         fieldType: 'string',
                     });
 
+                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'filter' implicitly has an 'any' type.
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria = filter.filterCriteria,
@@ -1373,11 +1399,11 @@ export default {
             if (incidents && incidents.length > 0) {
                 for (const incident of incidents) {
                     const monitors = incident.monitors.map(
-                        monitorObj => monitorObj.monitorId
+                        (monitorObj: $TSFixMe) => monitorObj.monitorId
                     );
-                    const monitorNames = monitors.map(monitor => monitor.name);
-                    const componentNames = [];
-                    monitors.forEach(monitor => {
+                    const monitorNames = monitors.map((monitor: $TSFixMe) => monitor.name);
+                    const componentNames: $TSFixMe = [];
+                    monitors.forEach((monitor: $TSFixMe) => {
                         if (
                             !componentNames.includes(monitor.componentId.name)
                         ) {
@@ -1401,7 +1427,7 @@ export default {
                     data.incidentId = incident._id;
                     if (!incidentsWithNote.includes(String(incident._id))) {
                         data.monitors = incident.monitors.map(
-                            monitor => monitor.monitorId
+                            (monitor: $TSFixMe) => monitor.monitorId
                         );
                         await IncidentMessageService.create(data);
                         if (data.post_statuspage) {
@@ -1421,7 +1447,7 @@ export default {
                         incidentsWithNote.push(String(incident._id));
                     } else {
                         data.monitors = incident.monitors.map(
-                            monitor => monitor.monitorId
+                            (monitor: $TSFixMe) => monitor.monitorId
                         );
                         await IncidentMessageService.create(data);
                         if (data.post_statuspage) {
@@ -1455,6 +1481,7 @@ export default {
                 incomingRequest.resolveIncident)
         ) {
             let subProjectIds = [];
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
             const subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -1464,14 +1491,14 @@ export default {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map(project => project._id);
+                subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
             }
             subProjectIds.push(incomingRequest.projectId);
 
             const resolveResponse = [],
                 acknowledgeResponse = [],
-                resolvedIncidents = [],
-                acknowledgedIncidents = [];
+                resolvedIncidents: $TSFixMe = [],
+                acknowledgedIncidents: $TSFixMe = [];
 
             let incidentQuery = {};
             if (incomingRequest.resolveIncident) {
@@ -1484,7 +1511,7 @@ export default {
             }
 
             let incidents = [],
-                updatedFilters = [];
+                updatedFilters: $TSFixMe = [];
             const populate = [
                 {
                     path: 'monitors.monitorId',
@@ -1520,7 +1547,7 @@ export default {
                     populate,
                 });
             } else {
-                updatedFilters = filters.map(filter => {
+                updatedFilters = filters.map((filter: $TSFixMe) => {
                     if (filter.filterText) {
                         const dataConfig = {
                             request: data.request,
@@ -1786,8 +1813,8 @@ export default {
             }
 
             // only have unique incidents
-            const filtered = [];
-            incidents = incidents.filter(incident => {
+            const filtered: $TSFixMe = [];
+            incidents = incidents.filter((incident: $TSFixMe) => {
                 if (filtered.indexOf(String(incident._id)) < 0) {
                     filtered.push(String(incident._id));
                     return true;
@@ -1796,8 +1823,8 @@ export default {
             });
 
             if (filters || filters.length > 0) {
-                const newIncidentList = [];
-                incidents.forEach(incident => {
+                const newIncidentList: $TSFixMe = [];
+                incidents.forEach((incident: $TSFixMe) => {
                     let matchedFields = 0;
                     const incidentCustomFields = incident.customFields || [];
                     // automatically create incident id custom field
@@ -1807,6 +1834,7 @@ export default {
                         fieldType: 'string',
                     });
 
+                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'filter' implicitly has an 'any' type.
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria = filter.filterCriteria,
@@ -2017,7 +2045,7 @@ export default {
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-function isArrayUnique(myArray) {
+function isArrayUnique(myArray: $TSFixMe) {
     return myArray.length === new Set(myArray).size;
 }
 
@@ -2029,7 +2057,7 @@ function isArrayUnique(myArray) {
 
 // if for example request.body.name is passed without the double curly braces,
 // it should work as expected and return the value
-function analyseVariable(variable, data) {
+function analyseVariable(variable: $TSFixMe, data: $TSFixMe) {
     try {
         const matchRegex = /[^{{]+(?=}\})/g;
         const replaceRegex = /\{\{([^}]+)\}\}/g;
@@ -2043,8 +2071,7 @@ function analyseVariable(variable, data) {
         let ctx = Object.create(null); // fix against prototype vulnerability
         ctx = { ...data };
 
-        const processedValues = matched.map(item =>
-            vm.runInNewContext(item, ctx)
+        const processedValues = matched.map((item: $TSFixMe) => vm.runInNewContext(item, ctx)
         );
 
         if (!processedValues || processedValues.length === 0) {
@@ -2054,14 +2081,14 @@ function analyseVariable(variable, data) {
         }
 
         // remove any double currly braces from variable
-        variable = variable.replace(replaceRegex, function(match) {
+        variable = variable.replace(replaceRegex, function(match: $TSFixMe) {
             match = match.slice(2, -2);
             return match;
         });
 
         // replace variable with processedValues
         let currentValue = variable;
-        matched.forEach((item, index) => {
+        matched.forEach((item: $TSFixMe, index: $TSFixMe) => {
             currentValue = currentValue.replace(item, processedValues[index]);
         });
 

@@ -3,11 +3,15 @@ import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const account = await AccountModel.create(data);
         return account;
     },
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -20,7 +24,13 @@ export default {
         const account = await accountQuery;
         return account;
     },
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -45,7 +55,7 @@ export default {
         const accounts = await accountQuery;
         return accounts;
     },
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         if (!query) query = {};
 
@@ -66,18 +76,18 @@ export default {
 
         return account;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         const account = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
         return account;
     },
-    hardDelete: async function(query) {
+    hardDelete: async function(query: $TSFixMe) {
         await AccountModel.deleteMany(query);
         return 'Account store successfully deleted';
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

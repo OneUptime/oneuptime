@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm } from 'redux-form';
 import { PricingPlan, Validate } from '../../config';
 import { FormLoader } from './Loader';
@@ -11,10 +12,11 @@ import { closeModal } from '../../actions/modal';
 
 import RadioInput from '../project/RadioInput';
 
-function validate(values) {
+function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.planId)) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         errors.name = 'Stripe PlanID is required!';
     }
 
@@ -30,36 +32,50 @@ class PricingPlanModal extends Component {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
-    handleKeyboard = e => {
+    handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('confirmPlanUpgrade').click();
             default:
                 break;
         }
     };
 
-    handleFormSubmit = values => {
+    handleFormSubmit = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPlanId' does not exist on type 'R... Remove this comment to see the full error message
             currentPlanId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
             modalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePlan' does not exist on type 'Read... Remove this comment to see the full error message
             changePlan,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
         } = this.props;
         const { _id: id, name } = currentProject;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
             category: oldCategory,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
             type: oldType,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
             details: oldDetails,
         } = PricingPlan.getPlanById(currentPlanId);
         const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
             category: newCategory,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
             type: newType,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
             details: newDetails,
         } = PricingPlan.getPlanById(values.planId);
 
@@ -76,11 +92,17 @@ class PricingPlanModal extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activePlan' does not exist on type 'Read... Remove this comment to see the full error message
             activePlan,
         } = this.props;
 
@@ -237,6 +259,7 @@ class PricingPlanModal extends Component {
                                                 id="enterpriseMail"
                                                 className={`bs-Button bs-Button--blue`}
                                                 href="mailto:sales@oneuptime.com"
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: string; id: string; className: s... Remove this comment to see the full error message
                                                 autoFocus={true}
                                             >
                                                 Contact Sales
@@ -272,8 +295,10 @@ class PricingPlanModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 PricingPlanModal.displayName = 'Pricing Plan Modal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 PricingPlanModal.propTypes = {
     closeThisDialog: PropTypes.func,
     propArr: PropTypes.array,
@@ -288,7 +313,7 @@ PricingPlanModal.propTypes = {
     activePlan: PropTypes.string,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const currentPlanId =
         state.project &&
         state.project.currentProject &&
@@ -311,8 +336,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, changePlan }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, changePlan }, dispatch);
 
 const PricingForm = new reduxForm({
     form: 'PricingForm',

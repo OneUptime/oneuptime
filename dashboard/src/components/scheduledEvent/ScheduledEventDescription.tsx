@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -21,18 +22,18 @@ function ScheduledEventDescription({
     resolveScheduledEvent,
     resolving,
     slug,
-    projectId,
-}) {
-    const handleMonitorListing = (event, monitorState) => {
-        const affectedMonitors = [];
-        const eventMonitors = [];
+    projectId
+}: $TSFixMe) {
+    const handleMonitorListing = (event: $TSFixMe, monitorState: $TSFixMe) => {
+        const affectedMonitors: $TSFixMe = [];
+        const eventMonitors: $TSFixMe = [];
         // populate the ids of the event monitors in an array
-        event.monitors.map(monitor => {
+        event.monitors.map((monitor: $TSFixMe) => {
             eventMonitors.push(String(monitor.monitorId._id));
             return monitor;
         });
 
-        monitorState.map(monitor => {
+        monitorState.map((monitor: $TSFixMe) => {
             if (eventMonitors.includes(String(monitor._id))) {
                 affectedMonitors.push(monitor);
             }
@@ -45,6 +46,7 @@ function ScheduledEventDescription({
         } else {
             return affectedMonitors.length <= 3
                 ? affectedMonitors
+                      // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
                       .map(monitor => capitalize(monitor.name))
                       .join(', ')
                       .replace(/, ([^,]*)$/, ' and $1')
@@ -181,8 +183,8 @@ function ScheduledEventDescription({
                                                                   .split('\n')
                                                                   .map(
                                                                       (
-                                                                          elem,
-                                                                          index
+                                                                          elem: $TSFixMe,
+                                                                          index: $TSFixMe
                                                                       ) => (
                                                                           <Markdown
                                                                               key={`${elem}-${index}`}
@@ -310,6 +312,7 @@ function ScheduledEventDescription({
                                                                 >
                                                                     <label
                                                                         className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
+                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; className: string; type... Remove this comment to see the full error message
                                                                         type="button"
                                                                         onClick={
                                                                             handleResolve
@@ -404,10 +407,9 @@ ScheduledEventDescription.defaultProps = {
     isOngoing: false,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, resolveScheduledEvent }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, resolveScheduledEvent }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         resolving: state.scheduledEvent.resolveScheduledEvent.requesting,
         slug: state.project.currentProject && state.project.currentProject.slug,

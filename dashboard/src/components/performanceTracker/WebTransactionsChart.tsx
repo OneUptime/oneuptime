@@ -5,16 +5,20 @@ import { connect } from 'react-redux';
 import ChartComponent from './ChartComponent';
 
 export class WebTransactionsChart extends Component {
+    handleKeyBoard: $TSFixMe;
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'heading' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { heading, title, subHeading, type } = this.props;
         return (
             <div
                 className="Box-root Card-shadow--medium"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
                 style={{ marginTop: '10px' }}
             >
                 <ChartComponent
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ heading: any; title: any; subHeading: any;... Remove this comment to see the full error message
                     heading={heading}
                     title={title}
                     subHeading={subHeading}
@@ -25,8 +29,10 @@ export class WebTransactionsChart extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 WebTransactionsChart.displayName = 'WebTransactionsChart';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 WebTransactionsChart.propTypes = {
     heading: PropTypes.any,
     subHeading: PropTypes.any,
@@ -34,9 +40,9 @@ WebTransactionsChart.propTypes = {
     type: PropTypes.any,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         currentProject: state.project.currentProject,
     };

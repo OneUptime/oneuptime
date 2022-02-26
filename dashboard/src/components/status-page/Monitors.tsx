@@ -6,6 +6,7 @@ import {
     FieldArray,
     arrayPush,
     formValueSelector,
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 } from 'redux-form';
 import {
     updateStatusPageMonitors,
@@ -16,24 +17,26 @@ import {
 } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
 import { RenderMonitors } from './RenderMonitors';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
 const grid = 8;
 
-const getListStyle = isDraggingOver => ({
+const getListStyle = (isDraggingOver: $TSFixMe) => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
     padding: grid,
     width: '100%',
-    height: '90%',
+    height: '90%'
 });
 
-const validate = values => {
+const validate = (values: $TSFixMe) => {
     const errors = {};
     const { monitors = [] } = values;
     const monitorsArrayErrors = {};
@@ -42,31 +45,41 @@ const validate = values => {
         const monitorErrors = {};
         const monitor = monitors[i];
         if (!monitor.monitor)
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type '{}'.
             monitorErrors.monitor = 'A monitor must be selected.';
         else {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (selectedMonitor[monitor.monitor])
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type '{}'.
                 monitorErrors.monitor = 'This monitor is already selected.';
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             selectedMonitor[monitor.monitor] = true;
         }
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         monitorsArrayErrors[i] = monitorErrors;
     }
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
     errors.monitors = monitorsArrayErrors;
     return errors;
 };
 
 export class Monitors extends Component {
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { status } = this.props.statusPage;
         const { projectId } = status;
         const { monitors } = values;
 
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageMonitors' does not exist... Remove this comment to see the full error message
             .updateStatusPageMonitors(projectId._id || projectId, {
                 _id: status._id,
                 monitors,
             })
             .then(() => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectStatusPage' does not exist o... Remove this comment to see the full error message
                 this.props.fetchProjectStatusPage(
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                     this.props.currentProject._id,
                     true,
                     0,
@@ -75,37 +88,38 @@ export class Monitors extends Component {
             });
     };
 
-    renderAddMonitorButton = subProject => (
-        <ShouldRender
-            if={
-                this.props.monitors.length > 0 &&
-                (IsAdminSubProject(subProject) || IsOwnerSubProject(subProject))
+    renderAddMonitorButton = (subProject: $TSFixMe) => <ShouldRender
+        if={
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+            this.props.monitors.length > 0 &&
+            (IsAdminSubProject(subProject) || IsOwnerSubProject(subProject))
+        }
+    >
+        <button
+            id="addMoreMonitors"
+            className="bs-Button bs-Button--icon bs-Button--new"
+            type="button"
+            onClick={() =>
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushArray' does not exist on type 'Reado... Remove this comment to see the full error message
+                this.props.pushArray('StatuspageMonitors', 'monitors', {
+                    monitor: null,
+                    description: '',
+                    uptime: false,
+                    memory: false,
+                    cpu: false,
+                    storage: false,
+                    responseTime: false,
+                    temperature: false,
+                    runtime: false,
+                })
             }
         >
-            <button
-                id="addMoreMonitors"
-                className="bs-Button bs-Button--icon bs-Button--new"
-                type="button"
-                onClick={() =>
-                    this.props.pushArray('StatuspageMonitors', 'monitors', {
-                        monitor: null,
-                        description: '',
-                        uptime: false,
-                        memory: false,
-                        cpu: false,
-                        storage: false,
-                        responseTime: false,
-                        temperature: false,
-                        runtime: false,
-                    })
-                }
-            >
-                <span>Add Monitor</span>
-            </button>
-        </ShouldRender>
-    );
+            <span>Add Monitor</span>
+        </button>
+    </ShouldRender>;
 
-    onDragEnd = result => {
+    onDragEnd = (result: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageMonitors' does not exist on ty... Remove this comment to see the full error message
         const { statusPageMonitors, change } = this.props;
         const { destination, source } = result;
 
@@ -135,17 +149,21 @@ export class Monitors extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit, subProjects } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { status } = this.props.statusPage;
         const subProject = !status.projectId
             ? null
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             : this.props.currentProject._id === status.projectId._id ||
+              // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
               this.props.currentProject._id === status.projectId
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             ? this.props.currentProject
             : subProjects.filter(
-                  subProject =>
-                      subProject._id === status.projectId._id ||
-                      subProject._id === status.projectId
+                  (subProject: $TSFixMe) => subProject._id === status.projectId._id ||
+                  subProject._id === status.projectId
               )[0];
 
         return (
@@ -176,8 +194,11 @@ export class Monitors extends Component {
                     <form onSubmit={handleSubmit(this.submitForm)}>
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                                 this.props.monitors.length > 0 &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                                 !this.props.monitors.requesting &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInForm' does not exist on type '... Remove this comment to see the full error message
                                 this.props.monitorsInForm
                             }
                         >
@@ -186,7 +207,7 @@ export class Monitors extends Component {
                                     <div>
                                         <div className="bs-Fieldset-wrapper Box-root">
                                             <Droppable droppableId="visible_monitor">
-                                                {(provided, snapshot) => (
+                                                {(provided: $TSFixMe, snapshot: $TSFixMe) => (
                                                     <div
                                                         ref={provided.innerRef}
                                                         style={getListStyle(
@@ -226,8 +247,11 @@ export class Monitors extends Component {
                         </ShouldRender>
                         <ShouldRender
                             if={
+                                // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
                                 (!this.props.monitors.length > 0 &&
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                                     !this.props.monitors.requesting) ||
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInForm' does not exist on type '... Remove this comment to see the full error message
                                 !this.props.monitorsInForm
                             }
                         >
@@ -249,8 +273,10 @@ export class Monitors extends Component {
                                                     marginBottom: '20px',
                                                 }}
                                             >
+                                                // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
                                                 {!this.props.monitors.length >
                                                     0 &&
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                                                 !this.props.monitors
                                                     .requesting ? (
                                                     <>
@@ -260,6 +286,7 @@ export class Monitors extends Component {
                                                             to={
                                                                 '/dashboard/project/' +
                                                                 this.props
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                                                                     .currentProject
                                                                     .slug +
                                                                 '/components'
@@ -270,6 +297,7 @@ export class Monitors extends Component {
                                                         </Link>
                                                     </>
                                                 ) : !this.props
+                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInForm' does not exist on type '... Remove this comment to see the full error message
                                                       .monitorsInForm ? (
                                                     <>
                                                         No monitors are added to
@@ -291,6 +319,7 @@ export class Monitors extends Component {
                                 >
                                     <ShouldRender
                                         if={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.statusPage.monitors.error
                                         }
                                     >
@@ -300,6 +329,7 @@ export class Monitors extends Component {
                                         <div className="Box-root">
                                             <span style={{ color: 'red' }}>
                                                 {
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                     this.props.statusPage
                                                         .monitors.error
                                                 }
@@ -312,6 +342,7 @@ export class Monitors extends Component {
                                 {this.renderAddMonitorButton(subProject)}
                                 <ShouldRender
                                     if={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                                         this.props.monitors.length > 0 &&
                                         (IsAdminSubProject(subProject) ||
                                             IsOwnerSubProject(subProject))
@@ -321,15 +352,18 @@ export class Monitors extends Component {
                                         id="btnAddStatusPageMonitors"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.statusPage.monitors
                                                 .requesting
                                         }
                                         type="submit"
                                     >
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                         {!this.props.statusPage.monitors
                                             .requesting && (
                                             <span>Save Changes </span>
                                         )}
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                         {this.props.statusPage.monitors
                                             .requesting && <FormLoader />}
                                     </button>
@@ -343,8 +377,10 @@ export class Monitors extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Monitors.displayName = 'Monitors';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Monitors.propTypes = {
     updateStatusPageMonitors: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
@@ -369,28 +405,27 @@ const MonitorsForm = reduxForm({
     validate,
 })(Monitors);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            updateStatusPageMonitors,
-            updateStatusPageMonitorsRequest,
-            updateStatusPageMonitorsSuccess,
-            updateStatusPageMonitorsError,
-            fetchProjectStatusPage,
-            pushArray: arrayPush,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        updateStatusPageMonitors,
+        updateStatusPageMonitorsRequest,
+        updateStatusPageMonitorsSuccess,
+        updateStatusPageMonitorsError,
+        fetchProjectStatusPage,
+        pushArray: arrayPush,
+    },
+    dispatch
+);
 
 const selector = formValueSelector('StatuspageMonitors');
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { subProjectId } = ownProps;
     const { currentProject } = state.project;
 
     const monitors = state.monitor.monitorsList.monitors
-        .filter(monitor => String(monitor._id) === String(subProjectId))
-        .map(monitor => monitor.monitors)
+        .filter((monitor: $TSFixMe) => String(monitor._id) === String(subProjectId))
+        .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
     const {
         statusPage,

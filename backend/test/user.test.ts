@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user'
@@ -8,7 +9,9 @@ chai.use(require('chai-http'));
 import queryString from 'query-string'
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import UserModel from '../backend/models/user'
@@ -18,18 +21,21 @@ import AirtableService from '../backend/services/airtableService'
 
 import LoginIPLog from '../backend/models/loginIPLog'
 import VerificationTokenModel from '../backend/models/verificationToken'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/test-utils"' has no exported memb... Remove this comment to see the full error message
 import { fetchIdpSAMLResponse } from './utils/test-utils'
 
-let projectId, userId, token;
+let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
-describe('User API', function() {
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('User API', function(this: $TSFixMe) {
     this.timeout(20000);
 
-    before(function(done) {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    before(function(this: $TSFixMe, done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, data.user, function(err, res) {
+            createUser(request, data.user, function(err: $TSFixMe, res: $TSFixMe) {
                 if (err) {
                     throw err;
                 }
@@ -38,8 +44,8 @@ describe('User API', function() {
                 userId = res.body.id;
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    err,
-                    verificationToken
+                    err: $TSFixMe,
+                    verificationToken: $TSFixMe
                 ) {
                     if (err) {
                         throw err;
@@ -54,7 +60,7 @@ describe('User API', function() {
                                     email: data.user.email,
                                     password: data.user.password,
                                 })
-                                .end(function(err, res) {
+                                .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     if (err) {
                                         throw err;
                                     }
@@ -67,6 +73,7 @@ describe('User API', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -84,100 +91,110 @@ describe('User API', function() {
     });
 
     // 'post /user/signup'
-    it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', function(done) {
-        createUser(request, data.newUser, function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', function(done: $TSFixMe) {
+        createUser(request, data.newUser, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(200);
             expect(res.body.email).to.equal(data.newUser.email);
             done();
         });
     });
 
-    it('should not register when name, email, password, companyName, jobRole, referral, companySize, stripePlanId or stripeToken is null', function(done) {
-        createUser(request, data.nullUser, function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not register when name, email, password, companyName, jobRole, referral, companySize, stripePlanId or stripeToken is null', function(done: $TSFixMe) {
+        createUser(request, data.nullUser, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             done();
         });
     });
 
-    it('should not register with same email', function(done) {
-        createUser(request, data.user, function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not register with same email', function(done: $TSFixMe) {
+        createUser(request, data.user, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             done();
         });
     });
 
-    it('should not register with an invalid email', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not register with an invalid email', function(done: $TSFixMe) {
         const invalidMailUser = Object.assign({}, data.user);
         invalidMailUser.email = 'invalidMail';
-        createUser(request, invalidMailUser, function(err, res) {
+        createUser(request, invalidMailUser, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             done();
         });
     });
 
-    it('should not register with a personal email', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not register with a personal email', function(done: $TSFixMe) {
         const personalMailUser = Object.assign({}, data.user);
         personalMailUser.email = 'personalAccount@gmail.com';
-        createUser(request, personalMailUser, function(err, res) {
+        createUser(request, personalMailUser, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             done();
         });
     });
 
     // post '/user/login'
-    it('should not login when email is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not login when email is null', function(done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: null,
                 password: data.user.password,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
     // post '/user/login'
-    it('should not login when password is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not login when password is null', function(done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: data.user.email,
                 password: null,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not allow to login with invalid email', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not allow to login with invalid email', function(done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: 'invalidEmail',
                 password: data.user.password,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not allow to login with invalid password', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not allow to login with invalid password', function(done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: data.user.email,
                 password: {},
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should track IP and other parameters when login in', async function() {
         const res = await request.post('/user/login').send({
             email: data.user.email,
@@ -192,14 +209,15 @@ describe('User API', function() {
         expect(log.ipLocation.ip).to.be.equal('::ffff:127.0.0.1');
     });
 
-    it('should login with valid credentials', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should login with valid credentials', function(done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).include.keys('tokens');
@@ -207,7 +225,8 @@ describe('User API', function() {
             });
     });
 
-    it('should login with valid credentials, and return sent redirect url', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should login with valid credentials, and return sent redirect url', function(done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
@@ -215,7 +234,7 @@ describe('User API', function() {
                 password: data.newUser.password,
                 redirect: 'http://oneuptime.com',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).have.property('redirect');
@@ -224,71 +243,77 @@ describe('User API', function() {
             });
     });
 
-    it('should not accept `/forgot-password` request when email is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not accept `/forgot-password` request when email is null', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
             .send({
                 email: null,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not accept `/forgot-password` request when email is invalid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not accept `/forgot-password` request when email is invalid', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
             .send({
                 email: '(' + data.user.email + ')',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should accept `/forgot-password` request when email is valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should accept `/forgot-password` request when email is valid', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
             .send({
                 email: data.newUser.email,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
     // post '/user/reset-password'
-    it('should not accept `/user/reset-password` request when token is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not accept `/user/reset-password` request when token is null', function(done: $TSFixMe) {
         request
             .post('/user/reset-password')
             .send({
                 password: data.user.password,
                 token: null,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
     // post '/user/reset-password'
-    it('should not accept `/user/reset-password` request when password is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not accept `/user/reset-password` request when password is null', function(done: $TSFixMe) {
         request
             .post('/user/reset-password')
             .send({
                 password: null,
                 token: 'randomToken',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should accept `/user/reset-password` request when password and token is valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should accept `/user/reset-password` request when password and token is valid', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
             .send({
@@ -296,8 +321,8 @@ describe('User API', function() {
             })
             .end(function() {
                 UserModel.findOne({ email: data.newUser.email }, function(
-                    err,
-                    user
+                    err: $TSFixMe,
+                    user: $TSFixMe
                 ) {
                     request
                         .post('/user/reset-password')
@@ -305,7 +330,7 @@ describe('User API', function() {
                             password: 'newPassword',
                             token: user.resetPasswordToken,
                         })
-                        .end(function(err, res) {
+                        .end(function(err: $TSFixMe, res: $TSFixMe) {
                             expect(res).to.have.status(200);
                             done();
                         });
@@ -313,38 +338,41 @@ describe('User API', function() {
             });
     });
 
-    it('should not accept `/isInvited` request when email is null', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not accept `/isInvited` request when email is null', function(done: $TSFixMe) {
         request
             .post('/user/isInvited')
             .send({
                 email: null,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should return a boolean response for the `/isInvited` request', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should return a boolean response for the `/isInvited` request', function(done: $TSFixMe) {
         request
             .post('/user/isInvited')
             .send({
                 email: data.user.email,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.a('boolean');
                 done();
             });
     });
 
-    it('should update the profile settings of an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should update the profile settings of an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put('/user/profile')
             .set('Authorization', authorization)
             .send(profile)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('_id');
@@ -354,7 +382,8 @@ describe('User API', function() {
             });
     });
 
-    it('should not change a password when the `currentPassword` field is not valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not change a password when the `currentPassword` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put('/user/changePassword')
@@ -364,13 +393,14 @@ describe('User API', function() {
                 newPassword: 'abcdefghi',
                 confirmPassword: 'abcdefghi',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not change a password when the `newPassword` field is not valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not change a password when the `newPassword` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put('/user/changePassword')
@@ -380,13 +410,14 @@ describe('User API', function() {
                 newPassword: null,
                 confirmPassword: 'abcdefghi',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not change a password when the `confirmPassword` field is not valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not change a password when the `confirmPassword` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put('/user/changePassword')
@@ -396,13 +427,14 @@ describe('User API', function() {
                 newPassword: 'abcdefghi',
                 confirmPassword: null,
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should change a password when all fields are valid', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should change a password when all fields are valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put('/user/changePassword')
@@ -412,19 +444,20 @@ describe('User API', function() {
                 newPassword: 'abcdefghi',
                 confirmPassword: 'abcdefghi',
             })
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.id).to.be.equal(userId);
                 done();
             });
     });
 
-    it('should get the profile of an authenticated user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should get the profile of an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get('/user/profile')
             .set('Authorization', authorization)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('name');
@@ -434,13 +467,14 @@ describe('User API', function() {
             });
     });
 
-    it('should not update the unverified alert phone number through profile update API', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not update the unverified alert phone number through profile update API', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put('/user/profile')
             .set('Authorization', authorization)
             .send(profile)
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body._id).to.be.equal(userId);
                 expect(res.body.alertPhoneNumber).not.to.be.equal(
                     profile.alertPhoneNumber
@@ -450,35 +484,38 @@ describe('User API', function() {
             });
     });
 
-    it('should not delete account that belongs to another user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete account that belongs to another user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const anotherUserId = '5ef84e17504ba0deaac459d9';
         request
             .delete(`/user/${anotherUserId}/delete`)
             .set('Authorization', authorization)
-            .end(function(_err, res) {
+            .end(function(_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not delete account without confirmation from the user', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete account without confirmation from the user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
-            .end(function(_err, res) {
+            .end(function(_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should generate backup codes when the user tries to generate a QR code.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should generate backup codes when the user tries to generate a QR code.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/user/totp/token/${userId}`)
             .set('Authorization', authorization)
-            .end(async function(_err, res) {
+            .end(async function(_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 const user = await UserService.findOneBy({
                     query: { _id: userId },
@@ -491,6 +528,7 @@ describe('User API', function() {
             });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should generate new backup codes.', async function() {
         const authorization = `Basic ${token}`;
         const user = await UserService.updateOneBy(
@@ -510,38 +548,41 @@ describe('User API', function() {
         expect(res.body[7].counter).to.eql(15);
     });
 
-    it('should delete user account and cancel all subscriptions', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should delete user account and cancel all subscriptions', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
             .send(deleteAccountConfirmation)
-            .end(function(_err, res) {
+            .end(function(_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.user.deleted).to.equal(true);
                 done();
             });
     });
 
-    it('should not delete account twice', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('should not delete account twice', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
             .send(deleteAccountConfirmation)
-            .end(function(_err, res) {
+            .end(function(_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('Should delete user account and remove user from the project', function(done) {
-        createUser(request, data.anotherUser, function(_err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should delete user account and remove user from the project', function(done: $TSFixMe) {
+        createUser(request, data.anotherUser, function(_err: $TSFixMe, res: $TSFixMe) {
             const project = res.body.project;
             const { id: userId } = res.body;
             VerificationTokenModel.findOne({ userId }, function(
-                _err,
-                verificationToken
+                _err: $TSFixMe,
+                verificationToken: $TSFixMe
             ) {
                 request
                     .get(`/user/confirmation/${verificationToken.token}`)
@@ -553,7 +594,7 @@ describe('User API', function() {
                                 email: data.anotherUser.email,
                                 password: data.anotherUser.password,
                             })
-                            .end(function(_err, res) {
+                            .end(function(_err: $TSFixMe, res: $TSFixMe) {
                                 const accessToken =
                                     res.body.tokens.jwtAccessToken;
                                 const authorization = `Basic ${accessToken}`;
@@ -564,7 +605,7 @@ describe('User API', function() {
                                         emails: data.newUser.email,
                                         role: 'Member',
                                     })
-                                    .end(function(_err, res) {
+                                    .end(function(_err: $TSFixMe, res: $TSFixMe) {
                                         expect(
                                             res.body[0].team.length
                                         ).to.be.equal(2);
@@ -572,7 +613,7 @@ describe('User API', function() {
                                             .delete(`/user/${userId}/delete`)
                                             .set('Authorization', authorization)
                                             .send(deleteAccountConfirmation)
-                                            .end(function(_err, res) {
+                                            .end(function(_err: $TSFixMe, res: $TSFixMe) {
                                                 expect(res).to.have.status(200);
                                                 expect(
                                                     res.body.user.deleted
@@ -587,9 +628,11 @@ describe('User API', function() {
     });
 });
 
-let ssoId;
-describe('SSO authentication', function() {
+let ssoId: $TSFixMe;
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+describe('SSO authentication', function(this: $TSFixMe) {
     this.timeout(20000);
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(async () => {
         await SsoModel.deleteMany({});
         const sso = await SsoModel.create({
@@ -602,6 +645,7 @@ describe('SSO authentication', function() {
         ssoId = sso._id;
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
     after(async () => {
         await SsoModel.deleteOne({ _id: ssoId });
         await UserModel.deleteMany({
@@ -613,39 +657,43 @@ describe('SSO authentication', function() {
     });
 
     // GET /user/sso/login
-    it('Should not accept requests without email as query.', function(done) {
-        request.get('/user/sso/login').end(function(err, res) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should not accept requests without email as query.', function(done: $TSFixMe) {
+        request.get('/user/sso/login').end(function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             done();
         });
     });
 
-    it('Should not accept requests with invalid email.', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should not accept requests with invalid email.', function(done: $TSFixMe) {
         request
             .get('/user/sso/login?email=invalid@email')
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it("Should not accept requests with domains that aren't defined in the ssos collection.", function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it("Should not accept requests with domains that aren't defined in the ssos collection.", function(done: $TSFixMe) {
         request
             .get('/user/sso/login?email=user@inexistant-domain.hackerbay.io')
-            .end(function(err, res) {
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(404);
                 done();
             });
     });
 
-    it('Should not accept requests with domains having SSO disabled', function(done) {
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    it('Should not accept requests with domains having SSO disabled', function(done: $TSFixMe) {
         SsoModel.updateOne(
             { _id: ssoId },
             { $set: { 'saml-enabled': false } }
         ).then(() => {
             request
                 .get('/user/sso/login?email=user@tests.hackerbay.io')
-                .end(function(err, res) {
+                .end(function(err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(401);
                     SsoModel.updateOne(
                         { _id: ssoId },
@@ -657,6 +705,7 @@ describe('SSO authentication', function() {
         });
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('Should create a new user and return the login details if the user login successfully', async function() {
         let userCount = await UserModel.find({
             email: 'user1@tests.hackerbay.io',
@@ -708,6 +757,7 @@ describe('SSO authentication', function() {
         expect(userCount).to.eql(1);
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('Should return the login details if the user exists in the database and login successfully.', async function() {
         UserService.create({ email: 'user2@tests.hackerbay.io', sso: ssoId });
 

@@ -46,31 +46,47 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             data = {};
 
         data = req.body;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScanStatus' does not exist on ... Remove this comment to see the full error message
         data.lighthouseScanStatus =
             resp && resp.lighthouseScanStatus
                 ? resp.lighthouseScanStatus
                 : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type '{}'... Remove this comment to see the full error message
         data.performance = resp && resp.performance ? resp.performance : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type '{... Remove this comment to see the full error message
         data.accessibility =
             resp && resp.accessibility ? resp.accessibility : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type '{... Remove this comment to see the full error message
         data.bestPractices =
             resp && resp.bestPractices ? resp.bestPractices : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type '{}'.
         data.seo = resp && resp.seo ? resp.seo : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pwa' does not exist on type '{}'.
         data.pwa = resp && resp.pwa ? resp.pwa : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
         data.monitorId = req.params.monitorId || monitor._id;
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: {}; select: string; }' ... Remove this comment to see the full error message
         const probeId = await ProbeService.findBy({ query: {}, select: '_id' });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
         data.probeId = probeId ? probeId[0]._id : null;
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScanStatus' does not exist on ... Remove this comment to see the full error message
         if (data.lighthouseScanStatus === 'scanning') {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await MonitorService.updateLighthouseScanStatus(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
                 data.monitorId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScanStatus' does not exist on ... Remove this comment to see the full error message
                 data.lighthouseScanStatus
             );
 
             await LighthouseLogService.updateAllLighthouseLogs(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type '{}'.
                 data.monitor.projectId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
                 data.monitorId,
                 {
                     scanning: true,
@@ -78,34 +94,50 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             );
         } else {
             await MonitorService.updateLighthouseScanStatus(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
                 data.monitorId,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScanStatus' does not exist on ... Remove this comment to see the full error message
                 data.lighthouseScanStatus,
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
                 data.probeId
             );
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
             if (data.lighthouseData) {
                 // The scanned results are published
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scanning' does not exist on type '{}'.
                 data.scanning = false;
                 log = await ProbeService.saveLighthouseLog(data);
 
                 /* For Email Service */
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
                 const project = await ProjectService.findOneBy({
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type '{}'.
                     query: { _id: data.monitor.projectId },
                     select: '_id name users',
                 });
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type '{}'.
                 project.monitor = data.monitor.name;
                 const userIds = project.users
-                    .filter(e => e.role !== 'Viewer')
-                    .map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+                    .filter((e: $TSFixMe) => e.role !== 'Viewer')
+                    .map((e: $TSFixMe) => ({
+                    id: e.userId
+                })); // This cater for projects with multiple registered members
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type '{}'... Remove this comment to see the full error message
                 const performance = data.performance;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type '{... Remove this comment to see the full error message
                 const accessibility = data.accessibility;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type '{... Remove this comment to see the full error message
                 const bestPractices = data.bestPractices;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type '{}'.
                 const seo = data.seo;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pwa' does not exist on type '{}'.
                 const pwa = data.pwa;
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
                 const performanceIssues = data.lighthouseData.issues.performance
                     .slice(0, 10)
-                    .map(desc => {
+                    .map((desc: $TSFixMe) => {
                         const splitDescription = desc.description.split(
                             /\[Learn more\]/i
                         );
@@ -118,9 +150,10 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         return desc;
                     });
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
                 const accessibilityIssues = data.lighthouseData.issues.accessibility
                     .slice(0, 10)
-                    .map(desc => {
+                    .map((desc: $TSFixMe) => {
                         const splitDescription = desc.description.split(
                             /\[Learn more\]/i
                         );
@@ -133,11 +166,12 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         return desc;
                     });
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
                 const bestPracticesIssues = data.lighthouseData.issues[
                     'best-practices'
                 ]
                     .slice(0, 10)
-                    .map(desc => {
+                    .map((desc: $TSFixMe) => {
                         const splitDescription = desc.description.split(
                             /\[Learn more\]/i
                         );
@@ -150,9 +184,10 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         return desc;
                     });
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
                 const seoIssues = data.lighthouseData.issues.seo
                     .slice(0, 10)
-                    .map(desc => {
+                    .map((desc: $TSFixMe) => {
                         const splitDescription = desc.description.split(
                             /\[Learn more\]/i
                         );
@@ -164,9 +199,10 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
 
                         return desc;
                     });
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
                 const pwaIssues = data.lighthouseData.issues.pwa
                     .slice(0, 10)
-                    .map(desc => {
+                    .map((desc: $TSFixMe) => {
                         const splitDescription = desc.description.split(
                             /\[Learn more\]/i
                         );

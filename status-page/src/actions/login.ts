@@ -9,21 +9,21 @@ export const loginRequired = () => {
     };
 };
 
-export const loginRequest = promise => {
+export const loginRequest = (promise: $TSFixMe) => {
     return {
         type: types.LOGIN_REQUEST,
         payload: promise,
     };
 };
 
-export const loginError = error => {
+export const loginError = (error: $TSFixMe) => {
     return {
         type: types.LOGIN_FAILED,
         payload: error,
     };
 };
 
-export const loginSuccess = user => {
+export const loginSuccess = (user: $TSFixMe) => {
     //save user session details.
     User.setUserId(user.id);
     User.setAccessToken(user.tokens.jwtAccessToken);
@@ -41,13 +41,14 @@ export const resetLogin = () => {
 };
 
 // Calls the API to register a user.
-export const loginUser = values => {
-    return function(dispatch) {
+export const loginUser = (values: $TSFixMe) => {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi('user/login', values);
         dispatch(loginRequest(promise));
 
         promise.then(
             function(user) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(loginSuccess(user.data));
             },
             function(error) {

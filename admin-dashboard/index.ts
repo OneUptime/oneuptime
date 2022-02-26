@@ -17,11 +17,12 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
 import express from 'express'
 import path from 'path'
 const app = express();
 
-app.get(['/env.js', '/admin/env.js'], function(req, res) {
+app.get(['/env.js', '/admin/env.js'], function(req: $TSFixMe, res: $TSFixMe) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         REACT_APP_LICENSE_URL: process.env.LICENSE_URL,
@@ -34,7 +35,7 @@ app.get(['/env.js', '/admin/env.js'], function(req, res) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.get(['/admin/status', '/status'], function(req, res) {
+app.get(['/admin/status', '/status'], function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -52,7 +53,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function(req, res) {
+app.get('/*', function(req: $TSFixMe, res: $TSFixMe) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

@@ -17,10 +17,12 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
 import express from 'express'
 const app = express();
 import path from 'path'
 import version from './api/version'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cors... Remove this comment to see the full error message
 import cors from 'cors'
 
 app.use(cors());
@@ -44,7 +46,7 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-app.use(function(req, res, next) {
+app.use(function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -80,7 +82,7 @@ app.use(
 );
 
 // index page
-app.get(['/', '/docs'], function(req, res) {
+app.get(['/', '/docs'], function(req: $TSFixMe, res: $TSFixMe) {
     res.render('pages/index');
 });
 

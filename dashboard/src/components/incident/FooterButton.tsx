@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
-const FooterButton = props => {
+const FooterButton = (props: $TSFixMe) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

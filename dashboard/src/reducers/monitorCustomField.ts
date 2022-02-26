@@ -18,7 +18,7 @@ const initialState = {
     },
 };
 
-export default function monitorCustomField(state = initialState, action) {
+export default function monitorCustomField(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case types.CREATE_CUSTOM_FIELD_REQUEST:
             return {
@@ -66,6 +66,7 @@ export default function monitorCustomField(state = initialState, action) {
 
         case types.DELETE_CUSTOM_FIELD_SUCCESS: {
             const fields = state.monitorCustomFields.fields.filter(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 field => String(field._id) !== String(action.payload._id)
             );
             return {
@@ -144,7 +145,9 @@ export default function monitorCustomField(state = initialState, action) {
 
         case types.UPDATE_CUSTOM_FIELD_SUCCESS: {
             const fields = state.monitorCustomFields.fields.map(field => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                 if (String(field._id) === String(action.payload._id)) {
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
                     field = action.payload;
                 }
 

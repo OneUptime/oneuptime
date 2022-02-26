@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal, openModal } from '../../actions/modal';
@@ -30,20 +32,27 @@ class SubProjectApiKey extends Component {
     }
 
     UNSAFE_componentWillReceiveProps() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subproject' does not exist on type 'Read... Remove this comment to see the full error message
         const oldApiKey = this.props.subproject.apiKey;
         this.setState({ oldApiKey });
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSubProjectKeyReset' does not exist ... Remove this comment to see the full error message
                 this.props.resetSubProjectKeyReset();
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                 if (this.props.data.subProjectResetToken) {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSubProjectKeyReset' does not exist ... Remove this comment to see the full error message
                     this.props.resetSubProjectKeyReset();
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                     return this.props.closeThisDialog();
                 } else {
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     return document.getElementById('removeSubProject').click();
                 }
             default:
@@ -52,17 +61,21 @@ class SubProjectApiKey extends Component {
     };
 
     resetSubProjectToken = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSubProjectToken' does not exist on ... Remove this comment to see the full error message
         const { resetSubProjectToken, data } = this.props;
         resetSubProjectToken(data.subProjectId);
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modals' does not exist on type 'Readonly... Remove this comment to see the full error message
         if (this.props.modals.length === 1) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.closeModal();
         }
     };
 
-    renderAPIKey = hidden => {
+    renderAPIKey = (hidden: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subproject' does not exist on type 'Read... Remove this comment to see the full error message
         const { subproject, subProjectResetToken } = this.props;
         return hidden && !subProjectResetToken.success ? (
             <span id="apiKey" className="value">
@@ -82,11 +95,17 @@ class SubProjectApiKey extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectResetToken' does not exist on ... Remove this comment to see the full error message
             subProjectResetToken,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSubProjectKeyReset' does not exist ... Remove this comment to see the full error message
             resetSubProjectKeyReset,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subproject' does not exist on type 'Read... Remove this comment to see the full error message
             subproject,
         } = this.props;
         const { hidden } = this.state;
@@ -182,6 +201,7 @@ class SubProjectApiKey extends Component {
                                                                 onClick={() =>
                                                                     this.setState(
                                                                         state => ({
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hidden' does not exist on type 'Readonly... Remove this comment to see the full error message
                                                                             hidden: !state.hidden,
                                                                         })
                                                                     )
@@ -294,9 +314,10 @@ class SubProjectApiKey extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubProjectApiKey.displayName = 'SubProjectApiKeyModal';
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     let subproject =
         state.subProject &&
         state.subProject.subProjects &&
@@ -310,7 +331,7 @@ const mapStateToProps = (state, props) => {
         props.data.subProjectId
     ) {
         subproject = subproject.find(
-            obj => obj._id === props.data.subProjectId
+            (obj: $TSFixMe) => obj._id === props.data.subProjectId
         );
     }
 
@@ -321,7 +342,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             closeModal,
@@ -333,6 +354,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubProjectApiKey.propTypes = {
     closeModal: PropTypes.func,
     data: PropTypes.object,

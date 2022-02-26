@@ -1,16 +1,18 @@
 import PerformanceTrackerModel from '../models/performanceTracker'
 import ErrorService from 'common-server/utils/error'
 import ComponentService from './componentService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'nano... Remove this comment to see the full error message
 import generate from 'nanoid/generate'
 import slugify from 'slugify'
 // import RealTimeService from './realTimeService'
 import NotificationService from './notificationService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import uuid from 'uuid'
 import handleSelect from '../utils/select'
 import handlePopulate from '../utils/populate'
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         try {
             const _this = this;
             // check if component exists
@@ -20,6 +22,7 @@ export default {
             // send an error if the component doesnt exist
             if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
                 throw error;
@@ -36,6 +39,7 @@ export default {
                 const error = new Error(
                     'Performance tracker with that name already exists.'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
                 throw error;
@@ -72,7 +76,13 @@ export default {
         }
     },
     //Description: Gets all application logs by component.
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -105,7 +115,11 @@ export default {
         return performanceTracker;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -136,9 +150,9 @@ export default {
     },
 
     getPerformanceTrackerByComponentId: async function(
-        componentId,
-        limit,
-        skip
+        componentId: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
     ) {
         const _this = this;
 
@@ -149,6 +163,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -174,7 +189,7 @@ export default {
         });
         return performanceTracker;
     },
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -202,6 +217,7 @@ export default {
             });
         if (performanceTracker) {
             try {
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
                 NotificationService.create(
                     performanceTracker.componentId.projectId._id ||
                         performanceTracker.componentId.projectId,
@@ -220,7 +236,7 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(query, data, unsetData = null) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -241,6 +257,7 @@ export default {
         );
 
         if (unsetData) {
+            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
             performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -271,11 +288,11 @@ export default {
 
         return performanceTracker;
     },
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await PerformanceTrackerModel.deleteMany(query);
         return 'Performance Tracker removed successfully!';
     },
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

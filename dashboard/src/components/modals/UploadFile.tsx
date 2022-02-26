@@ -1,10 +1,14 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 import Dropzone from 'react-dropzone';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'papa... Remove this comment to see the full error message
 import PapaParse from 'papaparse';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
@@ -16,7 +20,7 @@ import { Spinner } from '../basic/Loader';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
 
 class UploadFile extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             files: [],
@@ -37,7 +41,7 @@ class UploadFile extends Component {
                 header: true,
                 dynamicTyping: true,
                 skipEmptyLines: true,
-                transformHeader: header => header.replace(/\W/g, '_'),
+                transformHeader: (header: $TSFixMe) => header.replace(/\W/g, '_'),
             },
             isFileLoaded: false,
         };
@@ -51,7 +55,7 @@ class UploadFile extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 this.setState({ files: [], isFileLoaded: false });
@@ -62,7 +66,9 @@ class UploadFile extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadSubscriberModalId' does not exist ... Remove this comment to see the full error message
             id: this.props.uploadSubscriberModalId,
         });
     };
@@ -80,7 +86,9 @@ class UploadFile extends Component {
                         className="incident-close-button"
                         onClick={() => {
                             this.setState({ files: [], isFileLoaded: false });
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                             this.props.closeModal({
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadSubscriberModalId' does not exist ... Remove this comment to see the full error message
                                 id: this.props.uploadSubscriberModalId,
                             });
                         }}
@@ -91,14 +99,13 @@ class UploadFile extends Component {
     );
 
     renderFormBody = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'files' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { files, style } = this.state;
         const fileList =
             files.length > 0
-                ? files.map(file => (
-                      <li key={file.name} style={{ fontWeight: 'bold' }}>
-                          {file.name}
-                      </li>
-                  ))
+                ? files.map((file: $TSFixMe) => <li key={file.name} style={{ fontWeight: 'bold' }}>
+                {file.name}
+            </li>)
                 : [];
 
         return (
@@ -110,6 +117,7 @@ class UploadFile extends Component {
                     {({ getRootProps, getInputProps }) => (
                         <section>
                             <div {...getRootProps({ style })} id="dropZone">
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ id: string; refKey?: string | undefined; a... Remove this comment to see the full error message
                                 <input {...getInputProps()} id="fileInput" />
                                 <p>
                                     Drag &#39;n&#39; drop some files here, or
@@ -134,8 +142,10 @@ class UploadFile extends Component {
                     className={`bs-Button bs-DeprecatedButton`}
                     type="button"
                     onClick={() => {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'downloadCsvTemplate' does not exist on t... Remove this comment to see the full error message
                         this.props.downloadCsvTemplate();
                     }}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'csvDownload' does not exist on type 'Rea... Remove this comment to see the full error message
                     disabled={this.props.csvDownload.requesting}
                     autoFocus={true}
                 >
@@ -146,13 +156,17 @@ class UploadFile extends Component {
                     className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
                     type="submit"
                     disabled={
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriber' does not exist on type... Remove this comment to see the full error message
                         this.props.createSubscriber.requesting ||
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isFileLoaded' does not exist on type 'Re... Remove this comment to see the full error message
                         !this.state.isFileLoaded
                     }
                 >
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriber' does not exist on type... Remove this comment to see the full error message
                     <ShouldRender if={this.props.createSubscriber.requesting}>
                         <Spinner />
                     </ShouldRender>
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriber' does not exist on type... Remove this comment to see the full error message
                     <ShouldRender if={!this.props.createSubscriber.requesting}>
                         <span>Save</span>
                         <span className="create-btn__keycode">
@@ -167,6 +181,7 @@ class UploadFile extends Component {
     renderErrors = () => (
         <ShouldRender
             if={
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriber' does not exist on type... Remove this comment to see the full error message
                 this.props.createSubscriber && this.props.createSubscriber.error
             }
         >
@@ -180,6 +195,7 @@ class UploadFile extends Component {
                     </div>
                     <div className="Box-root">
                         <span style={{ color: 'red' }} id="errorMsg">
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriber' does not exist on type... Remove this comment to see the full error message
                             {this.props.createSubscriber.error}
                         </span>
                     </div>
@@ -188,7 +204,7 @@ class UploadFile extends Component {
         </ShouldRender>
     );
 
-    onDrop = acceptedFiles => {
+    onDrop = (acceptedFiles: $TSFixMe) => {
         this.setState(() => {
             const isLoaded = acceptedFiles.length > 0 ? true : false;
             return {
@@ -199,11 +215,16 @@ class UploadFile extends Component {
     };
 
     processCSVFile = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'files' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { files, papaparseOptions } = this.state;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data: { monitorId, subProjectId },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'importSubscribersFromCsvFile' does not e... Remove this comment to see the full error message
             importSubscribersFromCsvFile,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
             fetchMonitorsSubscribers,
         } = this.props;
         const reader = new FileReader();
@@ -229,6 +250,7 @@ class UploadFile extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit } = this.props;
 
         return (
@@ -257,13 +279,14 @@ class UploadFile extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 UploadFile.displayName = 'UploadFile';
 
 const UploadFileForm = reduxForm({
     form: 'UploadFile',
 })(UploadFile);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         uploadSubscriberModalId: state.modal.modals[0].id,
         csvDownload: state.subscriber.csvDownload,
@@ -271,7 +294,7 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             closeModal,
@@ -283,6 +306,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 UploadFile.propTypes = {
     closeModal: PropTypes.func.isRequired,
     downloadCsvTemplate: PropTypes.func,

@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import CreateAnnouncement from '../modals/CreateAnnouncement';
@@ -16,7 +17,8 @@ import HideAnnouncement from '../modals/HideAnnouncement';
 import AnnouncementLog from './AnnouncementLog';
 
 class Announcements extends Component {
-    constructor(props) {
+    deleteAnnouncement: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             createAnnounceentModalId: uuidv4(),
@@ -26,11 +28,13 @@ class Announcements extends Component {
     }
 
     async componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
         const { fetchAnnouncements, projectId, statusPage } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
         fetchAnnouncements(projectId, statusPage._id, 0, this.state.limit);
     }
 
-    handleMonitorList = monitors => {
+    handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'No monitor in this announcement';
         }
@@ -49,8 +53,10 @@ class Announcements extends Component {
         } and ${monitors.length - 2} others`;
     };
 
-    prevClicked = (projectId, skip) => {
+    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
         const { fetchAnnouncements, statusPage } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { limit } = this.state;
         fetchAnnouncements(
             projectId,
@@ -60,8 +66,10 @@ class Announcements extends Component {
         );
     };
 
-    nextClicked = (projectId, skip) => {
+    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
         const { fetchAnnouncements, statusPage } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
         const { limit } = this.state;
         fetchAnnouncements(
             projectId,
@@ -72,12 +80,18 @@ class Announcements extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAnnounceentModalId' does not exist... Remove this comment to see the full error message
         const { createAnnounceentModalId, deleteModalId } = this.state;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             statusPage,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcements' does not exist on type 'R... Remove this comment to see the full error message
             announcements,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'announceError' does not exist on type 'R... Remove this comment to see the full error message
             announceError,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -85,437 +99,442 @@ class Announcements extends Component {
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
-        return (
-            <>
-                <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
-                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                    <span>Announcement Templates</span>
+        return <>
+            <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                <span>Announcement Templates</span>
+                            </span>
+                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <span>
+                                    Announcements shows up on status pages
+                                    and dashboard to let your team or
+                                    customers know of any infomation.
                                 </span>
-                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        Announcements shows up on status pages
-                                        and dashboard to let your team or
-                                        customers know of any infomation.
-                                    </span>
-                                </span>
-                            </div>
-                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                <div className="Box-root">
-                                    <button
-                                        id="addAnnouncementButton"
-                                        onClick={() => {
-                                            this.props.openModal({
-                                                id: createAnnounceentModalId,
-                                                content: DataPathHoC(
-                                                    CreateAnnouncement,
-                                                    {
-                                                        projectId,
-                                                        statusPage,
-                                                    }
-                                                ),
-                                            });
-                                        }}
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        type="button"
-                                    >
-                                        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                            <div className="Box-root Margin-right--8">
-                                                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                            </div>
-                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                <span>
-                                                    New Announcement Template{' '}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
+                            </span>
                         </div>
-                    </div>
-                    <div className="bs-ContentSection-content Box-root">
-                        <div className="bs-ObjectList db-UserList">
-                            <div
-                                style={{
-                                    overflow: 'hidden',
-                                    overflowX: 'auto',
-                                }}
-                            >
-                                <div
-                                    id="announcementList"
-                                    className="bs-ObjectList-rows"
-                                >
-                                    <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                        <div className="bs-ObjectList-cell">
-                                            Announcement
-                                        </div>
-                                        <div className="bs-ObjectList-cell">
-                                            Monitor(s)
-                                        </div>
-                                        <div
-                                            className="bs-ObjectList-cell"
-                                            style={{
-                                                marginRight: '10px',
-                                            }}
-                                        >
-                                            Status
-                                        </div>
-                                        <div
-                                            className="bs-ObjectList-cell"
-                                            style={{
-                                                float: 'right',
-                                                marginRight: '10px',
-                                            }}
-                                        >
-                                            Action
-                                        </div>
-                                    </header>
-
-                                    {announcements &&
-                                        announcements.allAnnouncements &&
-                                        announcements.allAnnouncements.length >
-                                            0 &&
-                                        announcements.allAnnouncements.map(
-                                            announcement => {
-                                                return (
-                                                    <div
-                                                        key={`announcement-${announcement._id}`}
-                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                                        style={{
-                                                            backgroundColor:
-                                                                'white',
-                                                            cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
-                                                            <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
-                                                                {
-                                                                    announcement.name
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                            <div
-                                                                className="bs-ObjectList-cell-row"
-                                                                id={`monitor`}
-                                                            >
-                                                                {announcement.monitors &&
-                                                                    this.handleMonitorList(
-                                                                        announcement.monitors
-                                                                    )}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                            <div className="Box-root">
-                                                                {announcement.hideAnnouncement ? (
-                                                                    <Badge
-                                                                        color={
-                                                                            'red'
-                                                                        }
-                                                                    >
-                                                                        not
-                                                                        visible
-                                                                        on
-                                                                        status
-                                                                        page
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge
-                                                                        color={
-                                                                            'green'
-                                                                        }
-                                                                    >
-                                                                        visible
-                                                                        on
-                                                                        status
-                                                                        page
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            className="bs-ObjectList-cell bs-u-v-middle"
-                                                            style={{
-                                                                display: 'flex',
-                                                                justifyContent:
-                                                                    'flex-end',
-                                                                alignItems:
-                                                                    'center',
-                                                                paddingTop:
-                                                                    '20px',
-                                                            }}
-                                                        >
-                                                            <button
-                                                                id={`hideAnnouncement`}
-                                                                title={
-                                                                    announcement.hideAnnouncement
-                                                                        ? 'show announcement'
-                                                                        : 'hide announcement'
-                                                                }
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                type="button"
-                                                                style={{
-                                                                    float:
-                                                                        'right',
-                                                                    marginLeft: 10,
-                                                                }}
-                                                                onClick={() =>
-                                                                    this.props.openModal(
-                                                                        {
-                                                                            id: deleteModalId,
-                                                                            onClose: () =>
-                                                                                '',
-                                                                            onConfirm: () =>
-                                                                                this.deleteAnnouncement(),
-                                                                            content: DataPathHoC(
-                                                                                HideAnnouncement,
-                                                                                {
-                                                                                    projectId,
-                                                                                    announcement,
-                                                                                }
-                                                                            ),
-                                                                        }
-                                                                    )
-                                                                }
-                                                            >
-                                                                <span>
-                                                                    {announcement.hideAnnouncement
-                                                                        ? 'Show'
-                                                                        : 'Hide'}
-                                                                </span>
-                                                            </button>
-                                                            <button
-                                                                id={`editAnnouncement`}
-                                                                title="edit"
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                type="button"
-                                                                style={{
-                                                                    float:
-                                                                        'right',
-                                                                    marginLeft: 10,
-                                                                }}
-                                                                onClick={() => {
-                                                                    this.props.openModal(
-                                                                        {
-                                                                            id: deleteModalId,
-                                                                            onClose: () =>
-                                                                                '',
-                                                                            onConfirm: () =>
-                                                                                this.deleteAnnouncement(),
-                                                                            content: DataPathHoC(
-                                                                                EditAnnouncement,
-                                                                                {
-                                                                                    projectId,
-                                                                                    announcement,
-                                                                                    statusPage,
-                                                                                }
-                                                                            ),
-                                                                        }
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <span>
-                                                                    Edit
-                                                                </span>
-                                                            </button>
-                                                            <button
-                                                                id={`deleteAnnouncement`}
-                                                                title="delete"
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                type="button"
-                                                                style={{
-                                                                    float:
-                                                                        'right',
-                                                                    marginLeft: 10,
-                                                                }}
-                                                                onClick={() =>
-                                                                    this.props.openModal(
-                                                                        {
-                                                                            id: deleteModalId,
-                                                                            onClose: () =>
-                                                                                '',
-                                                                            onConfirm: () =>
-                                                                                this.deleteAnnouncement(),
-                                                                            content: DataPathHoC(
-                                                                                DeleteAnnouncement,
-                                                                                {
-                                                                                    projectId,
-                                                                                    announcementId:
-                                                                                        announcement._id,
-                                                                                }
-                                                                            ),
-                                                                        }
-                                                                    )
-                                                                }
-                                                            >
-                                                                <span>
-                                                                    Delete
-                                                                </span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
-                                        )}
-                                    <ShouldRender
-                                        if={
-                                            !(
-                                                (!announcements ||
-                                                    (announcements.allAnnouncements &&
-                                                        announcements
-                                                            .allAnnouncements
-                                                            .length) === 0) &&
-                                                !requesting &&
-                                                !announceError
-                                            )
-                                        }
-                                    >
-                                        <div style={footerBorderTopStyle}></div>
-                                    </ShouldRender>
-                                </div>
-                            </div>
-                            <ShouldRender if={requesting}>
-                                <ListLoader />
-                            </ShouldRender>
-                            <ShouldRender
-                                if={
-                                    !requesting &&
-                                    (!announcements ||
-                                        (announcements.allAnnouncements &&
-                                            announcements.allAnnouncements
-                                                .length === 0) ||
-                                        announceError)
-                                }
-                            >
-                                <div
-                                    className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
-                                    style={{
-                                        textAlign: 'center',
-                                        backgroundColor: 'white',
-                                        padding: '20px 10px 10px',
+                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                            <div className="Box-root">
+                                <button
+                                    id="addAnnouncementButton"
+                                    onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+                                        this.props.openModal({
+                                            id: createAnnounceentModalId,
+                                            content: DataPathHoC(
+                                                CreateAnnouncement,
+                                                {
+                                                    projectId,
+                                                    statusPage,
+                                                }
+                                            ),
+                                        });
                                     }}
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    type="button"
                                 >
-                                    <span>
-                                        {(!announcements ||
-                                            (announcements.allAnnouncements &&
-                                                announcements.allAnnouncements
-                                                    .length === 0)) &&
-                                        !requesting &&
-                                        !announceError
-                                            ? 'You have no announcement at this time'
-                                            : null}
-                                        {announceError ? announceError : null}
-                                    </span>
-                                </div>
-                            </ShouldRender>
-                            <div
-                                className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween"
-                                style={{
-                                    backgroundColor: 'white',
-                                    justifyContent: 'space-between',
-                                }}
-                            >
-                                <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                                    <div className="Box-root Flex-flex Flex-alignItems--center">
-                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <div className="Box-root Margin-right--8">
+                                            <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                                        </div>
+                                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
                                             <span>
-                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <ShouldRender
-                                                        if={
-                                                            announcements &&
-                                                            announcements.count
-                                                        }
-                                                    >
-                                                        <span id="numberOfAnnouncements">
-                                                            {
-                                                                announcements.count
-                                                            }
-                                                        </span>{' '}
-                                                        {announcements &&
-                                                        announcements.count > 1
-                                                            ? 'Announcements'
-                                                            : 'Announcement'}
-                                                    </ShouldRender>
-                                                </span>
+                                                New Announcement Template{' '}
                                             </span>
                                         </span>
                                     </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="bs-ContentSection-content Box-root">
+                    <div className="bs-ObjectList db-UserList">
+                        <div
+                            style={{
+                                overflow: 'hidden',
+                                overflowX: 'auto',
+                            }}
+                        >
+                            <div
+                                id="announcementList"
+                                className="bs-ObjectList-rows"
+                            >
+                                <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                    <div className="bs-ObjectList-cell">
+                                        Announcement
+                                    </div>
+                                    <div className="bs-ObjectList-cell">
+                                        Monitor(s)
+                                    </div>
+                                    <div
+                                        className="bs-ObjectList-cell"
+                                        style={{
+                                            marginRight: '10px',
+                                        }}
+                                    >
+                                        Status
+                                    </div>
+                                    <div
+                                        className="bs-ObjectList-cell"
+                                        style={{
+                                            float: 'right',
+                                            marginRight: '10px',
+                                        }}
+                                    >
+                                        Action
+                                    </div>
+                                </header>
+
+                                {announcements &&
+                                    announcements.allAnnouncements &&
+                                    announcements.allAnnouncements.length >
+                                        0 &&
+                                    announcements.allAnnouncements.map(
+                                        (announcement: $TSFixMe) => {
+                                            return (
+                                                <div
+                                                    key={`announcement-${announcement._id}`}
+                                                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                    style={{
+                                                        backgroundColor:
+                                                            'white',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                                            {
+                                                                announcement.name
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                        <div
+                                                            className="bs-ObjectList-cell-row"
+                                                            id={`monitor`}
+                                                        >
+                                                            {announcement.monitors &&
+                                                                this.handleMonitorList(
+                                                                    announcement.monitors
+                                                                )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                        <div className="Box-root">
+                                                            {announcement.hideAnnouncement ? (
+                                                                <Badge
+                                                                    color={
+                                                                        'red'
+                                                                    }
+                                                                >
+                                                                    not
+                                                                    visible
+                                                                    on
+                                                                    status
+                                                                    page
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge
+                                                                    color={
+                                                                        'green'
+                                                                    }
+                                                                >
+                                                                    visible
+                                                                    on
+                                                                    status
+                                                                    page
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className="bs-ObjectList-cell bs-u-v-middle"
+                                                        style={{
+                                                            display: 'flex',
+                                                            justifyContent:
+                                                                'flex-end',
+                                                            alignItems:
+                                                                'center',
+                                                            paddingTop:
+                                                                '20px',
+                                                        }}
+                                                    >
+                                                        <button
+                                                            id={`hideAnnouncement`}
+                                                            title={
+                                                                announcement.hideAnnouncement
+                                                                    ? 'show announcement'
+                                                                    : 'hide announcement'
+                                                            }
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            style={{
+                                                                float:
+                                                                    'right',
+                                                                marginLeft: 10,
+                                                            }}
+                                                            onClick={() =>
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: deleteModalId,
+                                                                        onClose: () =>
+                                                                            '',
+                                                                        onConfirm: () =>
+                                                                            this.deleteAnnouncement(),
+                                                                        content: DataPathHoC(
+                                                                            HideAnnouncement,
+                                                                            {
+                                                                                projectId,
+                                                                                announcement,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>
+                                                                {announcement.hideAnnouncement
+                                                                    ? 'Show'
+                                                                    : 'Hide'}
+                                                            </span>
+                                                        </button>
+                                                        <button
+                                                            id={`editAnnouncement`}
+                                                            title="edit"
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            style={{
+                                                                float:
+                                                                    'right',
+                                                                marginLeft: 10,
+                                                            }}
+                                                            onClick={() => {
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: deleteModalId,
+                                                                        onClose: () =>
+                                                                            '',
+                                                                        onConfirm: () =>
+                                                                            this.deleteAnnouncement(),
+                                                                        content: DataPathHoC(
+                                                                            EditAnnouncement,
+                                                                            {
+                                                                                projectId,
+                                                                                announcement,
+                                                                                statusPage,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                );
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                Edit
+                                                            </span>
+                                                        </button>
+                                                        <button
+                                                            id={`deleteAnnouncement`}
+                                                            title="delete"
+                                                            className="bs-Button bs-DeprecatedButton"
+                                                            type="button"
+                                                            style={{
+                                                                float:
+                                                                    'right',
+                                                                marginLeft: 10,
+                                                            }}
+                                                            onClick={() =>
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+                                                                this.props.openModal(
+                                                                    {
+                                                                        id: deleteModalId,
+                                                                        onClose: () =>
+                                                                            '',
+                                                                        onConfirm: () =>
+                                                                            this.deleteAnnouncement(),
+                                                                        content: DataPathHoC(
+                                                                            DeleteAnnouncement,
+                                                                            {
+                                                                                projectId,
+                                                                                announcementId:
+                                                                                    announcement._id,
+                                                                            }
+                                                                        ),
+                                                                    }
+                                                                )
+                                                            }
+                                                        >
+                                                            <span>
+                                                                Delete
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                    )}
+                                <ShouldRender
+                                    if={
+                                        !(
+                                            (!announcements ||
+                                                (announcements.allAnnouncements &&
+                                                    announcements
+                                                        .allAnnouncements
+                                                        .length) === 0) &&
+                                            !requesting &&
+                                            !announceError
+                                        )
+                                    }
+                                >
+                                    <div style={footerBorderTopStyle}></div>
+                                </ShouldRender>
+                            </div>
+                        </div>
+                        <ShouldRender if={requesting}>
+                            <ListLoader />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                !requesting &&
+                                (!announcements ||
+                                    (announcements.allAnnouncements &&
+                                        announcements.allAnnouncements
+                                            .length === 0) ||
+                                    announceError)
+                            }
+                        >
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--center"
+                                style={{
+                                    textAlign: 'center',
+                                    backgroundColor: 'white',
+                                    padding: '20px 10px 10px',
+                                }}
+                            >
+                                <span>
+                                    {(!announcements ||
+                                        (announcements.allAnnouncements &&
+                                            announcements.allAnnouncements
+                                                .length === 0)) &&
+                                    !requesting &&
+                                    !announceError
+                                        ? 'You have no announcement at this time'
+                                        : null}
+                                    {announceError ? announceError : null}
+                                </span>
+                            </div>
+                        </ShouldRender>
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween"
+                            style={{
+                                backgroundColor: 'white',
+                                justifyContent: 'space-between',
+                            }}
+                        >
+                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Flex-flex Flex-alignItems--center">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                <ShouldRender
+                                                    if={
+                                                        announcements &&
+                                                        announcements.count
+                                                    }
+                                                >
+                                                    <span id="numberOfAnnouncements">
+                                                        {
+                                                            announcements.count
+                                                        }
+                                                    </span>{' '}
+                                                    {announcements &&
+                                                    announcements.count > 1
+                                                        ? 'Announcements'
+                                                        : 'Announcement'}
+                                                </ShouldRender>
+                                            </span>
+                                        </span>
+                                    </span>
                                 </div>
-                                <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                        <div className="Box-root Margin-right--8">
-                                            <button
-                                                id="btnPrevAnnouncement"
-                                                onClick={() =>
-                                                    this.prevClicked(
-                                                        projectId,
-                                                        skip
-                                                    )
-                                                }
-                                                className={
-                                                    'Button bs-ButtonLegacy' +
-                                                    (canPrev
-                                                        ? ''
-                                                        : 'Is--disabled')
-                                                }
-                                                disabled={!canPrev}
-                                                data-db-analytics-name="list_view.pagination.previous"
-                                                type="button"
-                                            >
-                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                        <span>Previous</span>
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        </div>
-                                        <div className="Box-root">
-                                            <button
-                                                id="btnNextAnnouncement"
-                                                onClick={() =>
-                                                    this.nextClicked(
-                                                        projectId,
-                                                        skip
-                                                    )
-                                                }
-                                                className={
-                                                    'Button bs-ButtonLegacy' +
-                                                    (canNext
-                                                        ? ''
-                                                        : 'Is--disabled')
-                                                }
-                                                disabled={!canNext}
-                                                data-db-analytics-name="list_view.pagination.next"
-                                                type="button"
-                                            >
-                                                <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                    <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                        <span>Next</span>
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        </div>
+                            </div>
+                            <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                    <div className="Box-root Margin-right--8">
+                                        <button
+                                            id="btnPrevAnnouncement"
+                                            onClick={() =>
+                                                this.prevClicked(
+                                                    projectId,
+                                                    skip
+                                                )
+                                            }
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canPrev
+                                                    ? ''
+                                                    : 'Is--disabled')
+                                            }
+                                            disabled={!canPrev}
+                                            data-db-analytics-name="list_view.pagination.previous"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span>Previous</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className="Box-root">
+                                        <button
+                                            id="btnNextAnnouncement"
+                                            onClick={() =>
+                                                this.nextClicked(
+                                                    projectId,
+                                                    skip
+                                                )
+                                            }
+                                            className={
+                                                'Button bs-ButtonLegacy' +
+                                                (canNext
+                                                    ? ''
+                                                    : 'Is--disabled')
+                                            }
+                                            disabled={!canNext}
+                                            data-db-analytics-name="list_view.pagination.next"
+                                            type="button"
+                                        >
+                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                    <span>Next</span>
+                                                </span>
+                                            </div>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <AnnouncementLog
-                    projectId={projectId}
-                    statusPage={statusPage}
-                />
-            </>
-        );
+            </div>
+            <AnnouncementLog
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPage: any; }' is not... Remove this comment to see the full error message
+                projectId={projectId}
+                statusPage={statusPage}
+            />
+        </>;
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Announcements.displayName = 'Announcements';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Announcements.propTypes = {
     openModal: PropTypes.func,
     projectId: PropTypes.string,
@@ -526,10 +545,9 @@ Announcements.propTypes = {
     announceError: PropTypes.bool,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         announcements: state.statusPage.announcements.announcementsList,
         requesting: state.statusPage.announcements.requesting,

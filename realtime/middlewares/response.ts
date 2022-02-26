@@ -1,11 +1,11 @@
 export default {
-    sendEmptyResponse(req, res) {
+    sendEmptyResponse(req: $TSFixMe, res: $TSFixMe) {
         //purge request.
         //req = null;
         return res.status(200).send();
     },
 
-    sendErrorResponse: function(req, res, error) {
+    sendErrorResponse: function(req: $TSFixMe, res: $TSFixMe, error: $TSFixMe) {
         //log error to the console.
         // eslint-disable-next-line no-console
         console.error(error);

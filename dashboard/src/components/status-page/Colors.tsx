@@ -8,8 +8,8 @@ function Colors({
     displayColorPicker,
     colors,
     handleChange,
-    handleClose,
-}) {
+    handleClose
+}: $TSFixMe) {
     return (
         <div>
             <div className="bs-Fieldset-row">

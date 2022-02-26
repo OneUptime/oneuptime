@@ -46,7 +46,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case types.ALERT_FETCH_SUCCESS:
             return Object.assign({}, state, {
@@ -98,7 +98,9 @@ export default (state = initialState, action) => {
                     error: null,
                     success: true,
                     data: state.alerts.data.map(alert => {
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                         return alert._id === action.payload.projectId ||
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
                             alert._id === action.payload.projectId._id
                             ? {
                                   _id: action.payload.projectId,
@@ -294,7 +296,7 @@ export default (state = initialState, action) => {
                     error: null,
                     success: true,
                     count: action.payload.count,
-                    data: action.payload.data.map(alertCharge => {
+                    data: action.payload.data.map((alertCharge: $TSFixMe) => {
                         return {
                             ChargeAmount: alertCharge.chargeAmount,
                             ClosingAccountBalance:

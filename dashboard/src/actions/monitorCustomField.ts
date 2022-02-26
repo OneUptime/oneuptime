@@ -5,21 +5,22 @@ export const createCustomFieldRequest = () => ({
     type: types.CREATE_CUSTOM_FIELD_REQUEST,
 });
 
-export const createCustomFieldSuccess = payload => ({
+export const createCustomFieldSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_CUSTOM_FIELD_SUCCESS,
-    payload,
+    payload
 });
 
-export const createCustomFieldFailure = error => ({
+export const createCustomFieldFailure = (error: $TSFixMe) => ({
     type: types.CREATE_CUSTOM_FIELD_FAILURE,
-    payload: error,
+    payload: error
 });
 
-export const createCustomField = (projectId, data) => async dispatch => {
+export const createCustomField = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(createCustomFieldRequest());
 
         const response = await postApi(`monitorCustomField/${projectId}`, data);
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(createCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -38,21 +39,21 @@ export const updateCustomFieldRequest = () => ({
     type: types.UPDATE_CUSTOM_FIELD_REQUEST,
 });
 
-export const updateCustomFieldSuccess = payload => ({
+export const updateCustomFieldSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_CUSTOM_FIELD_SUCCESS,
-    payload,
+    payload
 });
 
-export const updateCustomFieldFailure = error => ({
+export const updateCustomFieldFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_CUSTOM_FIELD_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const updateCustomField = ({
     projectId,
     customFieldId,
-    data,
-}) => async dispatch => {
+    data
+}: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(updateCustomFieldRequest());
 
@@ -60,6 +61,7 @@ export const updateCustomField = ({
             `monitorCustomField/${projectId}/${customFieldId}`,
             data
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(updateCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -78,21 +80,21 @@ export const fetchCustomFieldsRequest = () => ({
     type: types.FETCH_CUSTOM_FIELDS_REQUEST,
 });
 
-export const fetchCustomFieldsSuccess = payload => ({
+export const fetchCustomFieldsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_CUSTOM_FIELDS_SUCCESS,
-    payload,
+    payload
 });
 
-export const fetchCustomFieldsFailure = error => ({
+export const fetchCustomFieldsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_CUSTOM_FIELDS_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const fetchCustomFields = (
-    projectId,
+    projectId: $TSFixMe,
     skip = 0,
     limit = 0
-) => async dispatch => {
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(fetchCustomFieldsRequest());
 
@@ -104,6 +106,7 @@ export const fetchCustomFields = (
                 `monitorCustomField/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(fetchCustomFieldsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -122,26 +125,28 @@ export const deleteCustomFieldRequest = () => ({
     type: types.DELETE_CUSTOM_FIELD_REQUEST,
 });
 
-export const deleteCustomFieldSuccess = payload => ({
+export const deleteCustomFieldSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_CUSTOM_FIELD_SUCCESS,
-    payload,
+    payload
 });
 
-export const deleteCustomFieldFailure = error => ({
+export const deleteCustomFieldFailure = (error: $TSFixMe) => ({
     type: types.DELETE_CUSTOM_FIELD_FAILURE,
-    payload: error,
+    payload: error
 });
 
 export const deleteCustomField = (
-    projectId,
-    customFieldId
-) => async dispatch => {
+    projectId: $TSFixMe,
+    customFieldId: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(deleteCustomFieldRequest());
 
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await deleteApi(
             `monitorCustomField/${projectId}/${customFieldId}`
         );
+        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         dispatch(deleteCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =

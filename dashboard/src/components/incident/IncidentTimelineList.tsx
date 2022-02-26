@@ -8,7 +8,7 @@ import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
-const IncidentTimelineList = props => {
+const IncidentTimelineList = (props: $TSFixMe) => {
     const {
         incident: { timeline },
         prevClicked,
@@ -77,6 +77,7 @@ const IncidentTimelineList = props => {
                             </td>
                             <td
                                 id="overflow"
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
                                 type="action"
                                 className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                 style={{ height: '1px' }}
@@ -89,7 +90,7 @@ const IncidentTimelineList = props => {
                     </thead>
                     <tbody className="Table-body">
                         {timeline && timeline.length > 0 ? (
-                            timeline.map((log, i) => {
+                            timeline.map((log: $TSFixMe, i: $TSFixMe) => {
                                 return (
                                     <tr
                                         id={`incident_timeline_${i}`}
@@ -456,9 +457,9 @@ IncidentTimelineList.propTypes = {
     error: PropTypes.any,
 };
 
-const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
-function mapStateToProps(state) {
+function mapStateToProps(state: $TSFixMe) {
     return {
         count: state.incident.incident.count,
         skip: state.incident.incident.skip,

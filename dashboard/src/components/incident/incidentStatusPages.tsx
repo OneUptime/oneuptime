@@ -14,8 +14,8 @@ const IncidentStatusPages = ({
     incidentId,
     skip,
     count,
-    limit,
-}) => {
+    limit
+}: $TSFixMe) => {
     const [page, setPage] = useState(1);
     const numberOfPages = Math.ceil(parseInt(count) / 10);
     const nextPage = () => {
@@ -80,7 +80,7 @@ const IncidentStatusPages = ({
                             </thead>
                             <tbody id="statusPagesListContainer">
                                 {statusPages &&
-                                    statusPages.map(statusPage => {
+                                    statusPages.map((statusPage: $TSFixMe) => {
                                         const statusPageLink = IS_LOCALHOST
                                             ? `http://${statusPage.slug}.localhost:3006`
                                             : window.location.origin +
@@ -244,7 +244,7 @@ const IncidentStatusPages = ({
 
 IncidentStatusPages.displayName = 'IncidentStatusPage';
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             fetchIncidentStatusPages,
@@ -253,7 +253,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         requesting: state.statusPage.requesting,
         projectId: state.project.currentProject._id,

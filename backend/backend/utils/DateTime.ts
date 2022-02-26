@@ -5,7 +5,7 @@ import differenceInMonths from 'date-fns/differenceInMonths'
 
 const _this = {
     // This function will strip
-    changeDateTimezone: function(date, timezone) {
+    changeDateTimezone: function(date: $TSFixMe, timezone: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -20,7 +20,7 @@ const _this = {
             .toDate();
     },
 
-    compareDate: function(startTime, endTime, currentTime) {
+    compareDate: function(startTime: $TSFixMe, endTime: $TSFixMe, currentTime: $TSFixMe) {
         const isDifferentDay = startTime >= endTime;
         const [startHour, startMin] = startTime.split(':');
         const [endHour, endMin] = endTime.split(':');
@@ -56,7 +56,7 @@ const _this = {
         return false;
     },
 
-    convertToTimezone: function(date, timezone) {
+    convertToTimezone: function(date: $TSFixMe, timezone: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -66,7 +66,7 @@ const _this = {
             .toDate();
     },
 
-    convertToCurrentTimezone: function(date) {
+    convertToCurrentTimezone: function(date: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -76,7 +76,7 @@ const _this = {
             .toDate();
     },
 
-    format: function(date, formatString) {
+    format: function(date: $TSFixMe, formatString: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -92,7 +92,7 @@ const _this = {
         return moment.tz.guess();
     },
 
-    getDifferenceInMonths(date1, date2) {
+    getDifferenceInMonths(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -105,7 +105,7 @@ const _this = {
         return differenceInMonths(date2, date1);
     },
 
-    getDifferenceInDays(date1, date2) {
+    getDifferenceInDays(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -118,7 +118,7 @@ const _this = {
         return differenceInDays(date2, date1);
     },
 
-    getDifferenceInWeeks(date1, date2) {
+    getDifferenceInWeeks(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -131,7 +131,7 @@ const _this = {
         return differenceInWeeks(date2, date1);
     },
 
-    greaterThan(date1, date2) {
+    greaterThan(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -141,7 +141,7 @@ const _this = {
         return date1.getTime() > date2.getTime();
     },
 
-    lessThan(date1, date2) {
+    lessThan(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -151,7 +151,7 @@ const _this = {
         return date1.getTime() < date2.getTime();
     },
 
-    isInBetween(date, startDate, endDate) {
+    isInBetween(date: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -174,7 +174,7 @@ const _this = {
         return false;
     },
 
-    equalTo(date1, date2) {
+    equalTo(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -184,7 +184,7 @@ const _this = {
         return date1.getTime() === date2.getTime();
     },
 
-    notEqualTo(date1, date2) {
+    notEqualTo(date1: $TSFixMe, date2: $TSFixMe) {
         if (typeof date1 === 'string') {
             date1 = new Date(date1);
         }
@@ -196,7 +196,7 @@ const _this = {
     },
 
     //This will change the date to today and will retain the time.
-    moveDateToToday(date) {
+    moveDateToToday(date: $TSFixMe) {
         const today = new Date();
 
         if (typeof date === 'string') {
@@ -212,7 +212,7 @@ const _this = {
             .toDate();
     },
 
-    isOlderThanLastMinute(date) {
+    isOlderThanLastMinute(date: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }

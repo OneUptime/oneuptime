@@ -3,12 +3,13 @@ import ShouldRender from '../basic/ShouldRender';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import DataPathHoC from '../DataPathHoC';
 import TeamMember from '../team/TeamMember';
+// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
 import InviteTeamMemberModal from '../modals/inviteTeamMember.js';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 
-const TeamMemberProjectBox = props => {
-    const handleKeyboard = event => {
+const TeamMemberProjectBox = (props: $TSFixMe) => {
+    const handleKeyboard = (event: $TSFixMe) => {
         const { modalList, allTeamLength } = props;
 
         if (allTeamLength === 1) {
@@ -18,6 +19,7 @@ const TeamMemberProjectBox = props => {
                     case 'n':
                         if (modalList.length === 0) {
                             event.preventDefault();
+                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                             return document
                                 .getElementById(`btn_${props.subProjectName}`)
                                 .click();
@@ -144,7 +146,7 @@ const TeamMemberProjectBox = props => {
                                 </div>
                             </header>
 
-                            {props.teamMembers.teamMembers.map((i, o) => {
+                            {props.teamMembers.teamMembers.map((i: $TSFixMe, o: $TSFixMe) => {
                                 if (
                                     o >=
                                         (props.pages[props.teamMembers._id] ||

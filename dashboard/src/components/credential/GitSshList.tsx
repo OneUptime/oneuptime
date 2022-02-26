@@ -20,11 +20,11 @@ const GitSshList = ({
     deleteError,
     openModal,
     getGitSecurities,
-    modalId,
-}) => {
+    modalId
+}: $TSFixMe) => {
     const [page, setPage] = useState(1);
 
-    const handleDelete = credentialId => {
+    const handleDelete = (credentialId: $TSFixMe) => {
         getGitSecurities({ projectId, credentialId });
 
         openModal({
@@ -52,7 +52,7 @@ const GitSshList = ({
         });
     };
 
-    const handleSshUpdate = credentialId => {
+    const handleSshUpdate = (credentialId: $TSFixMe) => {
         openModal({
             id: projectId,
             content: GitSshModal,
@@ -60,7 +60,7 @@ const GitSshList = ({
         });
     };
 
-    const handleKeyboard = e => {
+    const handleKeyboard = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
@@ -91,7 +91,7 @@ const GitSshList = ({
     };
 
     const { next_page, pre_page, data, count } = paginate(
-        gitSsh.filter(obj => obj.sshTitle),
+        gitSsh.filter((obj: $TSFixMe) => obj.sshTitle),
         page,
         10
     );
@@ -172,7 +172,7 @@ const GitSshList = ({
                         </thead>
 
                         <tbody className="Table-body">
-                            {gitSsh.map((gitSsh, index) => (
+                            {gitSsh.map((gitSsh: $TSFixMe, index: $TSFixMe) => (
                                 <tr
                                     key={gitSsh._id}
                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
@@ -325,6 +325,7 @@ const GitSshList = ({
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${!pre_page &&
                                         'Is--disabled'}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
                                     disabled=""
                                     type="button"
                                     onClick={prev}
@@ -341,6 +342,7 @@ const GitSshList = ({
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${!next_page &&
                                         'Is--disabled'}`}
+                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
                                     disabled=""
                                     type="button"
                                     onClick={next}
@@ -374,13 +376,12 @@ GitSshList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { deleteGitCredential, openModal, getGitSecurities },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { deleteGitCredential, openModal, getGitSecurities },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleteError: state.credential.deleteCredential.error,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

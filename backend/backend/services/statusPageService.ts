@@ -84,7 +84,14 @@ const StatusPageServiceBase = new ServiceBase({
 });
 
 export default {
-    findBy: async function({ query, skip, limit, populate, select, sort }) {
+    findBy: async function({
+        query,
+        skip,
+        limit,
+        populate,
+        select,
+        sort
+    }: $TSFixMe) {
         return await StatusPageServiceBase.findBy({
             query,
             skip,
@@ -95,10 +102,18 @@ export default {
         });
     },
 
-    findOneBy: async function({ query, select, populate, skip, limit, sort }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate,
+        skip,
+        limit,
+        sort
+    }: $TSFixMe) {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; skip: any; limit: ... Remove this comment to see the full error message
             limit,
             populate,
             select,
@@ -106,11 +121,13 @@ export default {
         });
     },
 
-    countBy: async function(query) {
+    countBy: async function(query: $TSFixMe) {
         return await StatusPageServiceBase.countBy({ query });
     },
 
-    create: async function({ data }) {
+    create: async function({
+        data
+    }: $TSFixMe) {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
         data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
@@ -119,6 +136,7 @@ export default {
 
         const statusPage = await StatusPageServiceBase.create({
             data,
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ data: any; checkDuplicatesValu... Remove this comment to see the full error message
             checkDuplicatesValuesIn: ['name'],
             checkDuplicatesValuesInProject: true,
             slugifyField: 'name',
@@ -146,13 +164,13 @@ export default {
     },
 
     createDomain: async function(
-        subDomain,
-        projectId,
-        statusPageId,
-        cert,
-        privateKey,
-        enableHttps,
-        autoProvisioning
+        subDomain: $TSFixMe,
+        projectId: $TSFixMe,
+        statusPageId: $TSFixMe,
+        cert: $TSFixMe,
+        privateKey: $TSFixMe,
+        enableHttps: $TSFixMe,
+        autoProvisioning: $TSFixMe
     ) {
         let createdDomain = {};
 
@@ -191,11 +209,12 @@ export default {
 
         if (statusPage) {
             // attach the domain id to statuspage collection and update it
-            const domain = statusPage.domains.find(domain =>
-                domain.domain === subDomain ? true : false
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            const domain = statusPage.domains.find((domain: $TSFixMe) => domain.domain === subDomain ? true : false
             );
             if (domain) {
                 const error = new Error('Domain already exists');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -213,6 +232,7 @@ export default {
                     select: 'id',
                 });
 
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
                 const greenlock = global.greenlock;
                 if (!certificate && greenlock) {
                     // handle this in the background
@@ -223,7 +243,9 @@ export default {
                 }
             }
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
             statusPage.domains = [
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
                 ...statusPage.domains,
                 {
                     domain: subDomain,
@@ -232,17 +254,21 @@ export default {
                     enableHttps,
                     autoProvisioning,
                     domainVerificationToken:
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                         createdDomain._id || existingBaseDomain._id,
                 },
             ];
             return await this.updateOneBy(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                 { _id: statusPage._id },
                 {
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
                     domains: statusPage.domains,
                 }
             );
         } else {
             const error = new Error('Status page not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -250,7 +276,7 @@ export default {
 
     // update all the occurence of the old domain to the new domain
     // use regex to replace the value
-    updateCustomDomain: async function(domainId, newDomain, oldDomain) {
+    updateCustomDomain: async function(domainId: $TSFixMe, newDomain: $TSFixMe, oldDomain: $TSFixMe) {
         const _this = this;
         const populateStatusPage = [
             {
@@ -269,6 +295,7 @@ export default {
             select: '_id domains',
         });
 
+        // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
         for (const statusPage of statusPages) {
             const statusPageId = statusPage._id;
             const domains = [];
@@ -292,14 +319,14 @@ export default {
     },
 
     updateDomain: async function(
-        projectId,
-        statusPageId,
-        domainId,
-        newDomain,
-        cert,
-        privateKey,
-        enableHttps,
-        autoProvisioning
+        projectId: $TSFixMe,
+        statusPageId: $TSFixMe,
+        domainId: $TSFixMe,
+        newDomain: $TSFixMe,
+        cert: $TSFixMe,
+        privateKey: $TSFixMe,
+        enableHttps: $TSFixMe,
+        autoProvisioning: $TSFixMe
     ) {
         let createdDomain = {};
         const _this = this;
@@ -334,11 +361,13 @@ export default {
 
         if (!statusPage) {
             const error = new Error('Status page not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         let doesDomainExist = false;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
         const domainList = [...statusPage.domains];
         const updatedDomainList = [];
 
@@ -372,6 +401,7 @@ export default {
                         }
                     );
 
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
                     const greenlock = global.greenlock;
                     if (!certificate && greenlock) {
                         // handle this in the background
@@ -382,6 +412,7 @@ export default {
                     }
                 }
                 eachDomain.domainVerificationToken =
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                     createdDomain._id || existingBaseDomain._id;
             }
 
@@ -392,20 +423,24 @@ export default {
             const error = new Error(
                 `This custom domain ${newDomain} already exist`
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
         statusPage.domains = updatedDomainList;
 
         const result = await this.updateOneBy(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
             { _id: statusPage._id },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
             { domains: statusPage.domains }
         );
         return result;
     },
 
-    deleteDomain: async function(statusPageId, domainId) {
+    deleteDomain: async function(statusPageId: $TSFixMe, domainId: $TSFixMe) {
         const populateStatusPage = [
             {
                 path: 'domains.domainVerificationToken',
@@ -420,18 +455,21 @@ export default {
 
         if (!statusPage) {
             const error = new Error('Status page not found or does not exist');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
-        let deletedDomain = null;
-        const remainingDomains = statusPage.domains.filter(domain => {
+        let deletedDomain: $TSFixMe = null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+        const remainingDomains = statusPage.domains.filter((domain: $TSFixMe) => {
             if (String(domain._id) === String(domainId)) {
                 deletedDomain = domain;
             }
             return String(domain._id) !== String(domainId);
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
         const greenlock = global.greenlock;
         // delete any associated certificate (only for auto provisioned ssl)
         // handle this in the background
@@ -447,18 +485,21 @@ export default {
             });
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
         statusPage.domains = remainingDomains;
         return await this.updateOneBy(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
             { _id: statusPage._id },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
             { domains: statusPage.domains }
         );
     },
 
     duplicateStatusPage: async function(
-        statusPageProjectId,
-        statusPageSlug,
-        statusPageName,
-        filterMonitors
+        statusPageProjectId: $TSFixMe,
+        statusPageSlug: $TSFixMe,
+        statusPageName: $TSFixMe,
+        filterMonitors: $TSFixMe
     ) {
         const populate = [
             {
@@ -477,11 +518,15 @@ export default {
         });
 
         const data = { ...statusPage };
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
         data.projectId = statusPageProjectId;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
         data.name = statusPageName;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
         if (filterMonitors && data.monitors) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
             data.monitors = data.monitors
-                .filter(monitorObj => {
+                .filter((monitorObj: $TSFixMe) => {
                     // values.statuspageId is sub project id selected on the dropdown
                     if (
                         String(monitorObj.monitor.projectId._id) ===
@@ -491,14 +536,16 @@ export default {
                     }
                     return false;
                 })
-                .map(monitorObj => {
+                .map((monitorObj: $TSFixMe) => {
                     monitorObj.monitor = monitorObj.monitor._id;
                     return monitorObj;
                 });
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
         if (!filterMonitors && data.monitors) {
             // just filter and use only ids
-            data.monitors = data.monitors.map(monitorObj => {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            data.monitors = data.monitors.map((monitorObj: $TSFixMe) => {
                 monitorObj.monitor =
                     monitorObj.monitor._id || monitorObj.monitor;
                 return monitorObj;
@@ -508,7 +555,7 @@ export default {
         return this.create(data);
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -542,12 +589,14 @@ export default {
             await Promise.all(
                 subscribers.map(async subscriber => {
                     await SubscriberService.deleteBy(
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
                         { _id: subscriber._id },
                         userId
                     );
                 })
             );
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
             const greenlock = global.greenlock;
             // delete all certificate pipeline for the custom domains
             // handle this for autoprovisioned custom domains
@@ -571,7 +620,7 @@ export default {
         return statusPage;
     },
 
-    removeMonitor: async function(monitorId) {
+    removeMonitor: async function(monitorId: $TSFixMe) {
         const populateStatusPage = [
             {
                 path: 'monitors.monitor',
@@ -586,11 +635,11 @@ export default {
             select: selectStatusPage,
             populate: populateStatusPage,
         });
+        // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
         for (const statusPage of statusPages) {
             const monitors = statusPage.monitors.filter(
-                monitorData =>
-                    String(monitorData.monitor._id || monitorData.monitor) !==
-                    String(monitorId)
+                (monitorData: $TSFixMe) => String(monitorData.monitor._id || monitorData.monitor) !==
+                String(monitorId)
             );
 
             if (monitors.length !== statusPage.monitors.length) {
@@ -599,7 +648,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         const existingStatusPage = await this.findBy({
             query: {
                 name: data.name,
@@ -608,15 +657,18 @@ export default {
             },
             select: 'slug',
         });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
         if (existingStatusPage && existingStatusPage.length > 0) {
             const error = new Error(
                 'StatusPage with that name already exists.'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
 
         if (data && data.name) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
             existingStatusPage.slug = getSlug(data.name);
         }
 
@@ -631,8 +683,9 @@ export default {
                 for (const [key, value] of Object.entries(
                     data.groupedMonitors
                 )) {
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                     const monitorIds = value.map(
-                        monitorObj => monitorObj.monitor
+                        (monitorObj: $TSFixMe) => monitorObj.monitor
                     );
                     MonitorService.updateBy(
                         { _id: { $in: monitorIds } },
@@ -681,7 +734,7 @@ export default {
         return updatedStatusPage;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -718,7 +771,7 @@ export default {
         return updatedData;
     },
 
-    getNotes: async function(query, skip, limit) {
+    getNotes: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -743,6 +796,7 @@ export default {
                 },
             ],
         });
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const checkHideResolved = statuspages[0].hideResolvedIncident;
         let option = {};
         if (checkHideResolved) {
@@ -751,12 +805,13 @@ export default {
             };
         }
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
         const withMonitors = statuspages.filter(
-            statusPage => statusPage.monitors.length
+            (statusPage: $TSFixMe) => statusPage.monitors.length
         );
         const statuspage = withMonitors[0];
         const monitorIds = statuspage
-            ? statuspage.monitors.map(m => m.monitor._id)
+            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor._id)
             : [];
         if (monitorIds && monitorIds.length) {
             const populate = [
@@ -803,12 +858,13 @@ export default {
             return { notes, count };
         } else {
             const error = new Error('No monitors on this status page');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
 
-    getIncident: async function(query) {
+    getIncident: async function(query: $TSFixMe) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -840,7 +896,7 @@ export default {
         return incident;
     },
 
-    getIncidentNotes: async function(query, skip, limit) {
+    getIncidentNotes: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -877,7 +933,7 @@ export default {
         return { message, count };
     },
 
-    getNotesByDate: async function(query, skip, limit) {
+    getNotesByDate: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -911,14 +967,14 @@ export default {
             IncidentService.countBy(query),
         ]);
 
-        const investigationNotes = incidents.map(incident => {
+        const investigationNotes = incidents.map((incident: $TSFixMe) => {
             // return all the incident object
             return incident;
         });
         return { investigationNotes, count };
     },
 
-    getEvents: async function(query, skip, limit) {
+    getEvents: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -945,16 +1001,17 @@ export default {
             ],
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
         const withMonitors = statuspages.filter(
-            statusPage => statusPage.monitors.length
+            (statusPage: $TSFixMe) => statusPage.monitors.length
         );
         const statuspage = withMonitors[0];
         const monitorIds = statuspage
-            ? statuspage.monitors.map(m => m.monitor)
+            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
         if (monitorIds && monitorIds.length) {
             const currentDate = moment();
-            const eventIds = [];
+            const eventIds: $TSFixMe = [];
 
             const populate = [
                 { path: 'resolvedBy', select: 'name' },
@@ -973,7 +1030,7 @@ export default {
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             let events = await Promise.all(
-                monitorIds.map(async monitorId => {
+                monitorIds.map(async (monitorId: $TSFixMe) => {
                     const scheduledEvents = await ScheduledEventsService.findBy(
                         {
                             query: {
@@ -989,7 +1046,7 @@ export default {
                             populate,
                         }
                     );
-                    scheduledEvents.map(event => {
+                    scheduledEvents.map((event: $TSFixMe) => {
                         const id = String(event._id);
                         if (!eventIds.includes(id)) {
                             eventIds.push(id);
@@ -1001,9 +1058,12 @@ export default {
                 })
             );
 
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
             events = flattenArray(events);
             // do not repeat the same event two times
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'id' implicitly has an 'any' type.
             events = eventIds.map(id => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return events.find(event => String(event._id) === String(id));
             });
             const count = events.length;
@@ -1011,12 +1071,13 @@ export default {
             return { events, count };
         } else {
             const error = new Error('No monitors on this status page');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
 
-    getFutureEvents: async function(query, skip, limit) {
+    getFutureEvents: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1043,17 +1104,18 @@ export default {
             ],
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
         const withMonitors = statuspages.filter(
-            statusPage => statusPage.monitors.length
+            (statusPage: $TSFixMe) => statusPage.monitors.length
         );
         const statuspage = withMonitors[0];
         let monitorIds = statuspage
-            ? statuspage.monitors.map(m => m.monitor)
+            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
-        monitorIds = monitorIds.map(monitor => monitor._id || monitor);
+        monitorIds = monitorIds.map((monitor: $TSFixMe) => monitor._id || monitor);
         if (monitorIds && monitorIds.length) {
             const currentDate = moment();
-            const eventIds = [];
+            const eventIds: $TSFixMe = [];
             const populate = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
@@ -1071,7 +1133,7 @@ export default {
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             let events = await Promise.all(
-                monitorIds.map(async monitorId => {
+                monitorIds.map(async (monitorId: $TSFixMe) => {
                     const scheduledEvents = await ScheduledEventsService.findBy(
                         {
                             query: {
@@ -1083,7 +1145,7 @@ export default {
                             populate,
                         }
                     );
-                    scheduledEvents.map(event => {
+                    scheduledEvents.map((event: $TSFixMe) => {
                         const id = String(event._id);
                         if (!eventIds.includes(id)) {
                             eventIds.push(id);
@@ -1095,25 +1157,30 @@ export default {
                 })
             );
 
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
             events = flattenArray(events);
             // do not repeat the same event two times
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'id' implicitly has an 'any' type.
             events = eventIds.map(id => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return events.find(event => String(event._id) === String(id));
             });
 
             // // sort in ascending start date
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             events = events.sort((a, b) => b.startDate - a.startDate);
 
             const count = events.length;
             return { events, count };
         } else {
             const error = new Error('No monitors on this status page');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
 
-    getPastEvents: async function(query, skip, limit) {
+    getPastEvents: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1140,16 +1207,17 @@ export default {
             ],
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
         const withMonitors = statuspages.filter(
-            statusPage => statusPage.monitors.length
+            (statusPage: $TSFixMe) => statusPage.monitors.length
         );
         const statuspage = withMonitors[0];
         const monitorIds = statuspage
-            ? statuspage.monitors.map(m => m.monitor)
+            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
         if (monitorIds && monitorIds.length) {
             const currentDate = moment();
-            const eventIds = [];
+            const eventIds: $TSFixMe = [];
             const populate = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
@@ -1167,7 +1235,7 @@ export default {
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             let events = await Promise.all(
-                monitorIds.map(async monitorId => {
+                monitorIds.map(async (monitorId: $TSFixMe) => {
                     const scheduledEvents = await ScheduledEventsService.findBy(
                         {
                             query: {
@@ -1179,7 +1247,7 @@ export default {
                             select,
                         }
                     );
-                    scheduledEvents.map(event => {
+                    scheduledEvents.map((event: $TSFixMe) => {
                         const id = String(event._id);
                         if (!eventIds.includes(id)) {
                             eventIds.push(id);
@@ -1191,25 +1259,30 @@ export default {
                 })
             );
 
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
             events = flattenArray(events);
             // do not repeat the same event two times
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'id' implicitly has an 'any' type.
             events = eventIds.map(id => {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 return events.find(event => String(event._id) === String(id));
             });
 
             // sort in ascending start date
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             events = events.sort((a, b) => a.startDate - b.startDate);
 
             const count = events.length;
             return { events: limitEvents(events, limit, skip), count };
         } else {
             const error = new Error('No monitors on this status page');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
 
-    getEvent: async function(query) {
+    getEvent: async function(query: $TSFixMe) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1234,7 +1307,7 @@ export default {
         return scheduledEvent;
     },
 
-    getEventNotes: async function(query, skip, limit) {
+    getEventNotes: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1274,7 +1347,7 @@ export default {
         return { notes: eventNote, count };
     },
 
-    getEventsByDate: async function(query, skip, limit) {
+    getEventsByDate: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1305,7 +1378,12 @@ export default {
         return { scheduledEvents, count };
     },
 
-    getStatusPage: async function({ query, userId, populate, select }) {
+    getStatusPage: async function({
+        query,
+        userId,
+        populate,
+        select
+    }: $TSFixMe) {
         const thisObj = this;
         if (!query) {
             query = {};
@@ -1333,16 +1411,14 @@ export default {
             const domain = query.domains.$elemMatch.domain;
 
             const verifiedStatusPages = statusPages.filter(
-                page =>
-                    page &&
-                    page.domains.length > 0 &&
-                    page.domains.filter(
-                        domainItem =>
-                            domainItem &&
-                            domainItem.domain === domain &&
-                            domainItem.domainVerificationToken &&
-                            domainItem.domainVerificationToken.verified === true
-                    ).length > 0
+                (page: $TSFixMe) => page &&
+                page.domains.length > 0 &&
+                page.domains.filter(
+                    (domainItem: $TSFixMe) => domainItem &&
+                    domainItem.domain === domain &&
+                    domainItem.domainVerificationToken &&
+                    domainItem.domainVerificationToken.verified === true
+                ).length > 0
             );
             if (verifiedStatusPages.length > 0) {
                 statusPage = verifiedStatusPages[0];
@@ -1359,14 +1435,15 @@ export default {
                 const error = new Error(
                     'You are unauthorized to access the page please login to continue.'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 401;
                 throw error;
             }
 
-            const monitorIds = statusPage.monitors.map(monitorObj =>
-                String(monitorObj.monitor._id || monitorObj.monitor)
+            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) => String(monitorObj.monitor._id || monitorObj.monitor)
             );
             const projectId = statusPage.projectId._id || statusPage.projectId;
+            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ parentProject... Remove this comment to see the full error message
             const subProjects = await ProjectService.findBy({
                 query: {
                     $or: [{ parentProjectId: projectId }, { _id: projectId }],
@@ -1374,7 +1451,7 @@ export default {
                 select: '_id',
             });
             const subProjectIds = subProjects
-                ? subProjects.map(project => project._id)
+                ? subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const monitors = await MonitorService.getMonitorsBySubprojects(
                 subProjectIds,
@@ -1382,18 +1459,20 @@ export default {
                 0
             );
             const filteredMonitorData = monitors.map(subProject => {
-                return subProject.monitors.filter(monitor =>
-                    monitorIds.includes(monitor._id.toString())
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                return subProject.monitors.filter((monitor: $TSFixMe) => monitorIds.includes(monitor._id.toString())
                 );
             });
             statusPage.monitorsData = _.flatten(filteredMonitorData);
         } else {
             if (statusPages.length > 0) {
                 const error = new Error('Domain not verified');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             } else {
                 const error = new Error('Page Not Found');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -1401,7 +1480,7 @@ export default {
         return statusPage;
     },
 
-    getIncidents: async function(query) {
+    getIncidents: async function(query: $TSFixMe) {
         const _this = this;
 
         if (!query) query = {};
@@ -1417,12 +1496,13 @@ export default {
             ],
         });
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
         const withMonitors = statuspages.filter(
-            statusPage => statusPage.monitors.length
+            (statusPage: $TSFixMe) => statusPage.monitors.length
         );
         const statuspage = withMonitors[0];
         const monitorIds =
-            statuspage && statuspage.monitors.map(m => m.monitor._id);
+            statuspage && statuspage.monitors.map((m: $TSFixMe) => m.monitor._id);
         if (monitorIds && monitorIds.length) {
             const populate = [
                 {
@@ -1459,21 +1539,23 @@ export default {
             return { incidents, count };
         } else {
             const error = new Error('No monitors on this status page');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
     },
-    isPermitted: async function(userId, statusPage) {
-        const fn = async resolve => {
+    isPermitted: async function(userId: $TSFixMe, statusPage: $TSFixMe) {
+        const fn = async (resolve: $TSFixMe) => {
             if (statusPage.isPrivate) {
                 if (userId) {
+                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
                     const project = await ProjectService.findOneBy({
                         query: { _id: statusPage.projectId._id },
                         select: '_id users',
                     });
                     if (project && project._id) {
                         if (
-                            project.users.some(user => user.userId === userId)
+                            project.users.some((user: $TSFixMe) => user.userId === userId)
                         ) {
                             resolve(true);
                         } else {
@@ -1495,8 +1577,8 @@ export default {
     getStatusPagesByProjectId: async function({
         projectId,
         skip = 0,
-        limit = 10,
-    }) {
+        limit = 10
+    }: $TSFixMe) {
         const _this = this;
 
         const selectStatusPage = 'slug title name description _id';
@@ -1518,12 +1600,12 @@ export default {
         };
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function(query: $TSFixMe) {
         await StatusPageModel.deleteMany(query);
         return 'Status Page(s) Removed Successfully!';
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function(query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
 
@@ -1551,9 +1633,11 @@ export default {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(
-                statusPage.map(async statusPage => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'map' does not exist on type '{}'.
+                statusPage.map(async (statusPage: $TSFixMe) => {
                     const statusPageId = statusPage._id;
                     statusPage = await _this.updateOneBy(
                         { _id: statusPageId, deleted: true },
@@ -1574,7 +1658,7 @@ export default {
         }
     },
     // get status pages for this incident
-    getStatusPagesForIncident: async (incidentId, skip, limit) => {
+    getStatusPagesForIncident: async (incidentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         // first get the monitor, then scan status page collection containing the monitor
         let { monitors } = await IncidentModel.findById(incidentId).select(
             'monitors.monitorId'
@@ -1584,7 +1668,7 @@ export default {
         let count = 0;
         if (monitors) {
             monitors = monitors.map(
-                monitor => monitor.monitorId._id || monitor.monitorId
+                (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
             );
             count = await StatusPageModel.find({
                 'monitors.monitor': { $in: monitors },
@@ -1604,7 +1688,7 @@ export default {
         return { statusPages: statusPages || [], count };
     },
 
-    getStatusBubble: async (statusPages, probes) => {
+    getStatusBubble: async (statusPages: $TSFixMe, probes: $TSFixMe) => {
         if (statusPages && statusPages[0]) {
             statusPages = statusPages[0];
         }
@@ -1612,12 +1696,11 @@ export default {
         const startDate = moment(Date.now()).subtract(90, 'days');
         const monitorsIds =
             statusPages && statusPages.monitors
-                ? statusPages.monitors.map(m =>
-                      m.monitor && m.monitor._id ? m.monitor._id : null
+                ? statusPages.monitors.map((m: $TSFixMe) => m.monitor && m.monitor._id ? m.monitor._id : null
                   )
                 : [];
         const statuses = await Promise.all(
-            monitorsIds.map(async m => {
+            monitorsIds.map(async (m: $TSFixMe) => {
                 return await MonitorService.getMonitorStatuses(
                     m,
                     startDate,
@@ -1639,7 +1722,7 @@ export default {
         return { bubble, statusMessage };
     },
 
-    doesDomainExist: async function(domain) {
+    doesDomainExist: async function(domain: $TSFixMe) {
         const _this = this;
         const statusPage = await _this.countBy({
             query: {
@@ -1652,19 +1735,25 @@ export default {
         return true;
     },
 
-    createExternalStatusPage: async function(data) {
+    createExternalStatusPage: async function(data: $TSFixMe) {
         const externalStatusPage = new ExternalStatusPageModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type 'Document<an... Remove this comment to see the full error message
         externalStatusPage.url = data.url || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         externalStatusPage.name = data.name || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
         externalStatusPage.description = data.description || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         externalStatusPage.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
         externalStatusPage.statusPageId = data.statusPageId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         externalStatusPage.createdById = data.createdById || null;
         const newExternalStatusPage = await externalStatusPage.save();
 
         return newExternalStatusPage;
     },
-    getExternalStatusPage: async function(query, skip, limit) {
+    getExternalStatusPage: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1685,7 +1774,7 @@ export default {
         const externalStatusPages = await ExternalStatusPageModel.find(query);
         return externalStatusPages;
     },
-    updateExternalStatusPage: async function(projectId, _id, data) {
+    updateExternalStatusPage: async function(projectId: $TSFixMe, _id: $TSFixMe, data: $TSFixMe) {
         const query = { projectId, _id };
 
         const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
@@ -1699,7 +1788,7 @@ export default {
         );
         return externalStatusPages;
     },
-    deleteExternalStatusPage: async function(projectId, _id, userId) {
+    deleteExternalStatusPage: async function(projectId: $TSFixMe, _id: $TSFixMe, userId: $TSFixMe) {
         const query = { projectId, _id };
 
         const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
@@ -1718,10 +1807,10 @@ export default {
         return externalStatusPages;
     },
 
-    createAnnouncement: async function(data) {
+    createAnnouncement: async function(data: $TSFixMe) {
         // reassign data.monitors with a restructured monitor data
-        data.monitors = data.monitors.map(monitor => ({
-            monitorId: monitor,
+        data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
+            monitorId: monitor
         }));
         // slugify announcement name
         if (data && data.name) {
@@ -1729,19 +1818,26 @@ export default {
         }
 
         const announcement = new AnnouncementModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
         announcement.name = data.name || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         announcement.projectId = data.projectId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
         announcement.statusPageId = data.statusPageId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
         announcement.description = data.description || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
         announcement.monitors = data.monitors || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         announcement.createdById = data.createdById || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
         announcement.slug = data.slug || null;
         const newAnnouncement = await announcement.save();
 
         return newAnnouncement;
     },
 
-    getAnnouncements: async function(query, skip, limit) {
+    getAnnouncements: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1769,7 +1865,7 @@ export default {
         return allAnnouncements;
     },
 
-    countAnnouncements: async function(query) {
+    countAnnouncements: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1778,7 +1874,7 @@ export default {
         return count;
     },
 
-    getSingleAnnouncement: async function(query) {
+    getSingleAnnouncement: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1787,7 +1883,7 @@ export default {
         return response;
     },
 
-    updateAnnouncement: async function(query, data) {
+    updateAnnouncement: async function(query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -1829,7 +1925,7 @@ export default {
         return response;
     },
 
-    updateManyAnnouncement: async function(query) {
+    updateManyAnnouncement: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1846,7 +1942,7 @@ export default {
         return response;
     },
 
-    deleteAnnouncement: async function(query, userId) {
+    deleteAnnouncement: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1867,19 +1963,25 @@ export default {
         return response;
     },
 
-    createAnnouncementLog: async function(data) {
+    createAnnouncementLog: async function(data: $TSFixMe) {
         const announcementLog = new AnnouncementLogModel();
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcementId' does not exist on type '... Remove this comment to see the full error message
         announcementLog.announcementId = data.announcementId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
         announcementLog.createdById = data.createdById || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
         announcementLog.statusPageId = data.statusPageId || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Docum... Remove this comment to see the full error message
         announcementLog.startDate = data.startDate || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Documen... Remove this comment to see the full error message
         announcementLog.endDate = data.endDate || null;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'active' does not exist on type 'Document... Remove this comment to see the full error message
         announcementLog.active = data.active || null;
         const newAnnouncementLog = await announcementLog.save();
         return newAnnouncementLog;
     },
 
-    updateAnnouncementLog: async function(query, data) {
+    updateAnnouncementLog: async function(query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1896,7 +1998,7 @@ export default {
         return response;
     },
 
-    getAnnouncementLogs: async function(query, skip, limit) {
+    getAnnouncementLogs: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1927,7 +2029,7 @@ export default {
         return announcementLogs;
     },
 
-    deleteAnnouncementLog: async function(query, userId) {
+    deleteAnnouncementLog: async function(query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1948,7 +2050,7 @@ export default {
         return response;
     },
 
-    countAnnouncementLogs: async function(query) {
+    countAnnouncementLogs: async function(query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1957,7 +2059,7 @@ export default {
         return count;
     },
 
-    fetchTweets: async handle => {
+    fetchTweets: async (handle: $TSFixMe) => {
         const userData = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {
@@ -1988,7 +2090,7 @@ export default {
 };
 
 // handle the unique pagination for scheduled events on status page
-function limitEvents(events, limit, skip) {
+function limitEvents(events: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
     skip = skip * limit;
     if (skip !== 0) {
         limit += limit;
@@ -1996,13 +2098,13 @@ function limitEvents(events, limit, skip) {
     return events.slice(skip, limit);
 }
 
-const filterProbeData = (monitor, probe) => {
+const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe) => {
     const monitorStatuses = monitor && monitor.length > 0 ? monitor : null;
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
-                ? monitorStatuses.filter(probeStatuses => {
+                ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
                       return (
                           probeStatuses._id === null ||
                           probeStatuses._id === probe._id
@@ -2021,7 +2123,7 @@ const filterProbeData = (monitor, probe) => {
     return statuses;
 };
 
-const getServiceStatus = (monitorsData, probes) => {
+const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     const monitorsLength = monitorsData.length;
     const probesLength = probes && probes.length;
 
@@ -2029,8 +2131,8 @@ const getServiceStatus = (monitorsData, probes) => {
     let onlineServices = totalServices;
     let degraded = 0;
 
-    monitorsData.forEach(monitor => {
-        probes.forEach(probe => {
+    monitorsData.forEach((monitor: $TSFixMe) => {
+        probes.forEach((probe: $TSFixMe) => {
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus =
                 statuses && statuses.length > 0
@@ -2064,6 +2166,7 @@ import ErrorService from 'common-server/utils/error'
 import SubscriberService from './subscriberService'
 import ProjectService from './projectService'
 import AlertService from './alertService'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import _ from 'lodash'
 import defaultStatusPageColors from '../config/statusPageColors'
 import DomainVerificationService from './domainVerificationService'
@@ -2071,6 +2174,7 @@ import flattenArray from '../utils/flattenArray'
 import ScheduledEventNoteService from './scheduledEventNoteService'
 import IncidentMessageService from './incidentMessageService'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import uuid from 'uuid'
 import CertificateStoreService from './certificateStoreService'
 import AnnouncementModel from '../models/announcements'

@@ -6,6 +6,7 @@ const {
     sendVerificationSMS,
     test,
 } = require('../services/twilioService');
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -36,6 +37,7 @@ router.get('/voice/status', async (req, res) => {
             query: { _id: incidentId },
             select: 'acknowledged',
         });
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
         const newRedialCount = parseInt(redialCount) + 1;
 
         switch (CallStatus) {
@@ -106,6 +108,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
 ) {
     try {
         const { to } = req.body;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         const projectId = req.query.projectId;
         const validationResult = await SmsCountService.validateResend(userId);
@@ -130,6 +133,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
 router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
         const { to, code } = req.body;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
         const userId = req.user ? req.user.id : null;
         if (!to) {
             sendErrorResponse(req, res, {

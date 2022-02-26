@@ -21,14 +21,14 @@ export function createFeedbackRequest() {
     };
 }
 
-export function createFeedbackError(error) {
+export function createFeedbackError(error: $TSFixMe) {
     return {
         type: types.CREATE_FEEDBACK_FAILED,
         payload: error,
     };
 }
 
-export function createFeedbackSuccess(project) {
+export function createFeedbackSuccess(project: $TSFixMe) {
     return {
         type: types.CREATE_FEEDBACK_SUCCESS,
         payload: project,
@@ -42,8 +42,8 @@ export const resetCreateFeedback = () => {
 };
 
 // Calls the API to register a user.
-export function createFeedback(projectId, feedback, page) {
-    return function(dispatch) {
+export function createFeedback(projectId: $TSFixMe, feedback: $TSFixMe, page: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`feedback/${projectId}`, { feedback, page });
 
         dispatch(createFeedbackRequest());

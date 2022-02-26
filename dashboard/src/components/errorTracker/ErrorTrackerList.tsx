@@ -5,7 +5,7 @@ import ErrorTrackerDetail from './ErrorTrackerDetail';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-export function ErrorTrackerList(props) {
+export function ErrorTrackerList(props: $TSFixMe) {
     const errorTrackers = props.errorTrackers || [];
     let errorTrackerDetails = null;
     const skip = props.skip;
@@ -20,7 +20,7 @@ export function ErrorTrackerList(props) {
         : Math.ceil(parseInt(count) / limit);
 
     if (props.errorTrackers && props.errorTrackers.length > 0) {
-        errorTrackerDetails = props.errorTrackers.map((errorTracker, i) => (
+        errorTrackerDetails = props.errorTrackers.map((errorTracker: $TSFixMe, i: $TSFixMe) => (
             <div id={`errorTracker${i}`} key={errorTracker._id}>
                 <ErrorTrackerDetail
                     componentId={errorTracker.componentId._id}
@@ -37,6 +37,7 @@ export function ErrorTrackerList(props) {
         <div>
             {errorTrackerDetails}
 
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
             <div className="Box-root Card-shadow--medium" tabIndex="0">
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
@@ -161,8 +162,8 @@ ErrorTrackerList.propTypes = {
     showComponentWithIssue: PropTypes.bool,
 };
 
-const mapStateToProps = state => ({
-    currentProject: state.project.currentProject,
+const mapStateToProps = (state: $TSFixMe) => ({
+    currentProject: state.project.currentProject
 });
 
 export default connect(mapStateToProps)(ErrorTrackerList);

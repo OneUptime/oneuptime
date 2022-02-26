@@ -1,14 +1,15 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 
 export class SwitchingModal extends React.Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
     }
 
-    delay = ms => {
+    delay = (ms: $TSFixMe) => {
         return new Promise(resolve => setTimeout(resolve, ms));
     };
 
@@ -58,19 +59,20 @@ export class SwitchingModal extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SwitchingModal.displayName = 'ProjectSwitchingModal';
 
-function mapValueToProps(value) {
+function mapValueToProps(value: $TSFixMe) {
     return function() {
         return { project: value };
     };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: $TSFixMe) {
     return bindActionCreators({}, dispatch);
 }
 
-export default (value, props) => {
+export default (value: $TSFixMe, props: $TSFixMe) => {
     return props.openModal({
         id: uuidv4(),
         content: connect(

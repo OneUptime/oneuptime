@@ -1,23 +1,26 @@
 const postApi = require('./api').postApi;
 
 export default {
-    headers: async (val, type) => {
+    headers: async (val: $TSFixMe, type: $TSFixMe) => {
         const header = {};
         if (type && type.length) {
+            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             header['Content-Type'] = type;
         }
         if (val && val.length) {
-            val.forEach(head => {
+            val.forEach((head: $TSFixMe) => {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 header[head.key] = head.value;
             });
         }
         return header;
     },
 
-    body: async (val, type) => {
+    body: async (val: $TSFixMe, type: $TSFixMe) => {
         let bodyContent = {};
         if (type && type === 'formData' && val && val[0] && val[0].key) {
-            val.forEach(bod => {
+            val.forEach((bod: $TSFixMe) => {
+                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 bodyContent[bod.key] = bod.value;
             });
             bodyContent = JSON.stringify(bodyContent);
@@ -28,10 +31,10 @@ export default {
     },
 
     setMonitorTime: async function(
-        monitorId,
-        responseTime,
-        responseStatus,
-        status
+        monitorId: $TSFixMe,
+        responseTime: $TSFixMe,
+        responseStatus: $TSFixMe,
+        status: $TSFixMe
     ) {
         return await postApi(`probe/setTime/${monitorId}`, {
             responseTime,
@@ -39,22 +42,22 @@ export default {
             status,
         });
     },
-    getMonitorTime: async function(monitorId, date) {
+    getMonitorTime: async function(monitorId: $TSFixMe, date: $TSFixMe) {
         return await postApi(`probe/getTime/${monitorId}`, { date });
     },
-    ping: async function(monitorId, data) {
+    ping: async function(monitorId: $TSFixMe, data: $TSFixMe) {
         return await postApi(`probe/ping/${monitorId}`, data);
     },
-    setScanStatus: async function(monitorIds, status) {
+    setScanStatus: async function(monitorIds: $TSFixMe, status: $TSFixMe) {
         return await postApi('probe/set-scan-status', {
             scanning: status,
             monitorIds,
         });
     },
-    addProbeScan: async function(monitorIds) {
+    addProbeScan: async function(monitorIds: $TSFixMe) {
         return await postApi('probe/add-probe-scan', { monitorIds });
     },
-    removeProbeScan: async function(monitorIds) {
+    removeProbeScan: async function(monitorIds: $TSFixMe) {
         return await postApi('probe/remove-probe-scan', { monitorIds });
     },
 };

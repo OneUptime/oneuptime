@@ -8,7 +8,7 @@ export default {
             const securities = await getApi('container/containerSecurities');
             if (securities && securities.length > 0) {
                 await Promise.all(
-                    securities.map(security => {
+                    securities.map((security: $TSFixMe) => {
                         return ContainerSecurity.scan(security);
                     })
                 );

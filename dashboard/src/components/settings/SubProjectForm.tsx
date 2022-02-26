@@ -1,8 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -23,22 +25,31 @@ export class SubProjectForm extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const { subProjectName } = values;
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editSubProject' does not exist on type '... Remove this comment to see the full error message
             editSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubProject' does not exist on type... Remove this comment to see the full error message
             createSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
             subProjectModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'renameSubProject' does not exist on type... Remove this comment to see the full error message
             renameSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
             subProjectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetRenameSubProject' does not exist on... Remove this comment to see the full error message
             resetRenameSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createNewSubProjectReset' does not exist... Remove this comment to see the full error message
             createNewSubProjectReset,
         } = this.props;
 
         if (!editSubProject) {
-            createSubProject(currentProject._id, subProjectName).then(data => {
+            createSubProject(currentProject._id, subProjectName).then((data: $TSFixMe) => {
                 if (!data.error) {
                     createNewSubProjectReset();
                     return closeModal({
@@ -51,7 +62,7 @@ export class SubProjectForm extends React.Component {
                 currentProject._id,
                 subProjectId,
                 subProjectName
-            ).then(data => {
+            ).then((data: $TSFixMe) => {
                 if (!data.error) {
                     resetRenameSubProject();
                     return closeModal({
@@ -62,10 +73,13 @@ export class SubProjectForm extends React.Component {
         }
     };
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editSubProject' does not exist on type '... Remove this comment to see the full error message
             editSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetRenameSubProject' does not exist on... Remove this comment to see the full error message
             resetRenameSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createNewSubProjectReset' does not exist... Remove this comment to see the full error message
             createNewSubProjectReset,
         } = this.props;
         switch (e.key) {
@@ -77,6 +91,7 @@ export class SubProjectForm extends React.Component {
                 }
                 return this.handleCloseModal();
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document.getElementById('btnAddSubProjects').click();
             default:
                 return false;
@@ -84,20 +99,30 @@ export class SubProjectForm extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
             id: this.props.subProjectModalId,
         });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProject' does not exist on type 'Read... Remove this comment to see the full error message
             subProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editSubProject' does not exist on type '... Remove this comment to see the full error message
             editSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTitle' does not exist on type ... Remove this comment to see the full error message
             subProjectTitle,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
             subProjectModalId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetRenameSubProject' does not exist on... Remove this comment to see the full error message
             resetRenameSubProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createNewSubProjectReset' does not exist... Remove this comment to see the full error message
             createNewSubProjectReset,
         } = this.props;
         const disabled =
@@ -211,6 +236,7 @@ export class SubProjectForm extends React.Component {
                                                 id="btnAddSubProjects"
                                                 className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${disabled &&
                                                     'bs-is-disabled'}`}
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '"save"' is not assignable to type '"reset" |... Remove this comment to see the full error message
                                                 type="save"
                                                 disabled={disabled}
                                             >
@@ -236,6 +262,7 @@ export class SubProjectForm extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SubProjectForm.displayName = 'SubProjectForm';
 
 const CreateSubProjectForm = reduxForm({
@@ -243,7 +270,7 @@ const CreateSubProjectForm = reduxForm({
     enableReinitialize: true,
 })(SubProjectForm);
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const initval = props.data.editSubProject
         ? { subProjectName: props.data.subProjectTitle }
         : {};
@@ -258,7 +285,7 @@ const mapStateToProps = (state, props) => {
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             closeModal,
@@ -271,6 +298,7 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SubProjectForm.propTypes = {
     closeModal: PropTypes.func,
     createNewSubProjectReset: PropTypes.func,

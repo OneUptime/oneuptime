@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { CopyToClipboard } from 'react-copy-to-clipboard';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import {
@@ -11,6 +13,7 @@ import {
 } from '../../actions/statusPage';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm, formValueSelector, change } from 'redux-form';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { API_URL } from '../../config';
@@ -20,7 +23,7 @@ import { openModal, closeModal } from '../../actions/modal';
 
 const selector = formValueSelector('EmbeddedBubble');
 
-const css = colors => `<style>
+const css = (colors: $TSFixMe) => `<style>
     .all {
         width: 20px;
         height: 20px;
@@ -61,7 +64,7 @@ const css = colors => `<style>
       }
     </style>`;
 
-const createScript = (url, css) => {
+const createScript = (url: $TSFixMe, css: $TSFixMe) => {
     return `<div class='bubble-box'>
     <div id="oneuptime-status-bubble"></div>
     <div id='oneuptime-bubble-text'></div>
@@ -103,8 +106,9 @@ const createScript = (url, css) => {
 };
 
 export class EmbeddedBubble extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             showMoreOptions: false,
@@ -113,25 +117,31 @@ export class EmbeddedBubble extends Component {
             resetCssModalId: uuidv4(),
         };
     }
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { status } = this.props.statusPage;
         const { projectId } = status;
         const { embeddedCustomCSS } = values;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageEmbeddedCss' does not ex... Remove this comment to see the full error message
         this.props.updateStatusPageEmbeddedCss(projectId._id || projectId, {
             _id: status._id,
             embeddedCss: embeddedCustomCSS,
         });
     };
-    changecss = (event, css) => {
+    changecss = (event: $TSFixMe, css: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
         const url = `${API_URL}/status-page/statusBubble?statusPageId=${this.props.statusPageId}&statusBubbleId=${this.props.statusBubbleId}`;
         const value = createScript(url, css);
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
         this.props.change('embeddedcode', value);
     };
     resetcss = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { status } = this.props.statusPage;
         const { projectId, colors } = status;
         const customCss = css(colors);
 
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetStatusPageEmbeddedCss' does not exi... Remove this comment to see the full error message
         return this.props.resetStatusPageEmbeddedCss(
             projectId._id || projectId,
             {
@@ -142,21 +152,32 @@ export class EmbeddedBubble extends Component {
     };
     showMoreOptionsToggle = () =>
         this.setState(prevState => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showMoreOptions' does not exist on type ... Remove this comment to see the full error message
             showMoreOptions: !prevState.showMoreOptions,
         }));
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusBubbleId' does not exist on type '... Remove this comment to see the full error message
             statusBubbleId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusBubble' does not exist on type 'Re... Remove this comment to see the full error message
             statusBubble,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetStatusBubbleId' does not exist on t... Remove this comment to see the full error message
             resetStatusBubbleId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
             statusPageId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customCodeValue' does not exist on type ... Remove this comment to see the full error message
             customCodeValue,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetEmbeddedCss' does not exist on type... Remove this comment to see the full error message
             resetEmbeddedCss,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'embeddedCss' does not exist on type 'Rea... Remove this comment to see the full error message
             embeddedCss,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showMoreOptions' does not exist on type ... Remove this comment to see the full error message
         const { showMoreOptions, resetModalId, resetCssModalId } = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -295,6 +316,7 @@ export class EmbeddedBubble extends Component {
                                                                 clipboard
                                                             </span>
                                                         </CopyToClipboard>
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'copied' does not exist on type 'Readonly... Remove this comment to see the full error message
                                                         {this.state.copied ? (
                                                             <span
                                                                 style={{
@@ -371,6 +393,7 @@ export class EmbeddedBubble extends Component {
                                                                 type="button"
                                                                 id="btnreset"
                                                                 onClick={() =>
+                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                     this.props.openModal(
                                                                         {
                                                                             id: resetModalId,
@@ -481,6 +504,7 @@ export class EmbeddedBubble extends Component {
                                     type="button"
                                     id="btnresetcss"
                                     onClick={() => {
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                         this.props.openModal({
                                             id: resetCssModalId,
                                             onConfirm: () => {
@@ -517,8 +541,10 @@ export class EmbeddedBubble extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 EmbeddedBubble.displayName = 'Embedded Bubble';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 EmbeddedBubble.propTypes = {
     change: PropTypes.func,
     customCodeValue: PropTypes.any,
@@ -558,20 +584,19 @@ const EmbeddedBubbleForm = reduxForm({
     enableReinitialize: true,
 })(EmbeddedBubble);
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            resetStatusBubbleId,
-            change,
-            openModal,
-            closeModal,
-            updateStatusPageEmbeddedCss,
-            resetStatusPageEmbeddedCss,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        resetStatusBubbleId,
+        change,
+        openModal,
+        closeModal,
+        updateStatusPageEmbeddedCss,
+        resetStatusPageEmbeddedCss,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const customCodeValue = selector(state, 'embeddedcode');
     const {
         statusBubbleId,

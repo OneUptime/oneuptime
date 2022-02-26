@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader2 } from '../basic/Loader';
 
@@ -13,15 +14,17 @@ class ErrorEventIssueMember extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             default:
                 return false;
         }
     };
-    manageMemberInIssue = member => {
+    manageMemberInIssue = (member: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { updateErrorEventMember, errorTrackerIssue } = this.props.data;
         const memberInIssue = this.isTeamMemberAssigned(member);
         updateErrorEventMember(
@@ -30,19 +33,22 @@ class ErrorEventIssueMember extends Component {
             memberInIssue ? 'unassign' : 'assign'
         );
     };
-    isTeamMemberAssigned = teamMember => {
+    isTeamMemberAssigned = (teamMember: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { errorTrackerIssue } = this.props.data;
         const memberExist = errorTrackerIssue.members.find(
-            member => member.userId._id === teamMember.userId
+            (member: $TSFixMe) => member.userId._id === teamMember.userId
         );
         return memberExist ? true : false;
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data, closeThisDialog, errorTrackerIssueMembers } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -131,8 +137,8 @@ class ErrorEventIssueMember extends Component {
                                                                 .length > 0 ? (
                                                                 data.allTeamMembers.map(
                                                                     (
-                                                                        member,
-                                                                        i
+                                                                        member: $TSFixMe,
+                                                                        i: $TSFixMe
                                                                     ) => {
                                                                         return (
                                                                             <div
@@ -204,6 +210,7 @@ class ErrorEventIssueMember extends Component {
                                                                                                 disabled={
                                                                                                     this
                                                                                                         .props
+                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
                                                                                                         .deleting
                                                                                                 }
                                                                                                 className="bs-Button"
@@ -289,7 +296,7 @@ class ErrorEventIssueMember extends Component {
         );
     }
 }
-const mapStateToProp = (state, ownProps) => {
+const mapStateToProp = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const errorTrackerIssueMembers =
         state.errorTracker.errorTrackerIssueMembers[
             ownProps.data.errorTrackerIssue._id
@@ -298,7 +305,9 @@ const mapStateToProp = (state, ownProps) => {
         errorTrackerIssueMembers,
     };
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorEventIssueMember.displayName = 'ErrorEventIssueMember';
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorEventIssueMember.propTypes = {
     data: PropTypes.object,
     closeThisDialog: PropTypes.func,

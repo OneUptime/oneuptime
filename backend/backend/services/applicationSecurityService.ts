@@ -1,5 +1,6 @@
 import ApplicationSecurityModel from '../models/applicationSecurity'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
 import { decrypt } from '../config/encryptDecrypt'
 import ApplicationSecurityLogService from './applicationSecurityLogService'
 import GitCredentialService from './gitCredentialService'
@@ -10,7 +11,7 @@ import handlePopulate from '../utils/populate'
 import RealTimeService from './realTimeService'
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const [
             applicationNameExist,
             gitRepositoryUrlExist,
@@ -37,6 +38,7 @@ export default {
             const error = new Error(
                 'Application security with this name already exist in this component'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -45,6 +47,7 @@ export default {
             const error = new Error(
                 'Application security with this git repository url already exist in this component'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -53,6 +56,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -66,7 +70,11 @@ export default {
         const applicationSecurity = await ApplicationSecurityModel.create(data);
         return applicationSecurity;
     },
-    findOneBy: async function({ query, populate, select }) {
+    findOneBy: async function({
+        query,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -87,7 +95,13 @@ export default {
         const applicationSecurity = await applicationSecurityQuery;
         return applicationSecurity;
     },
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        populate,
+        select
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -118,7 +132,7 @@ export default {
         const applicationSecurities = await applicationSecuritiesQuery;
         return applicationSecurities;
     },
-    updateOneBy: async function(query, data, unsetData = null) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -134,6 +148,7 @@ export default {
         ).populate('gitCredential');
 
         if (unsetData) {
+            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
             applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -146,6 +161,7 @@ export default {
             const error = new Error(
                 'Application Security not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -170,13 +186,14 @@ export default {
         });
         return applicationSecurity;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         let applicationSecurity = await this.countBy(query);
 
         if (!applicationSecurity) {
             const error = new Error(
                 'Application Security not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -189,6 +206,7 @@ export default {
         // delete log associated with this application security
         if (securityLog) {
             await ApplicationSecurityLogService.deleteBy({
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 _id: securityLog._id,
             });
         }
@@ -218,7 +236,7 @@ export default {
         });
         return applicationSecurity;
     },
-    hardDelete: async function(query) {
+    hardDelete: async function(query: $TSFixMe) {
         await ApplicationSecurityModel.deleteMany(query);
         return 'Application Securities deleted successfully';
     },
@@ -254,7 +272,7 @@ export default {
         });
         return securities;
     },
-    decryptPassword: async function(security) {
+    decryptPassword: async function(security: $TSFixMe) {
         const values = [];
         for (let i = 0; i <= 15; i++) values.push(security.gitCredential.iv[i]);
         const iv = Buffer.from(values);
@@ -264,7 +282,7 @@ export default {
         );
         return security;
     },
-    updateScanTime: async function(query) {
+    updateScanTime: async function(query: $TSFixMe) {
         const newDate = new Date();
         const applicationSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -277,7 +295,7 @@ export default {
         });
         return applicationSecurity;
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

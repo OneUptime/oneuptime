@@ -8,14 +8,14 @@ export function teamLoadingRequest() {
     };
 }
 
-export function teamLoadingSuccess(team) {
+export function teamLoadingSuccess(team: $TSFixMe) {
     return {
         type: types.TEAM_LOADING_SUCCESS,
         payload: team,
     };
 }
 
-export function teamLoadingError(error) {
+export function teamLoadingError(error: $TSFixMe) {
     return {
         type: types.TEAM_LOADING_FAILURE,
         payload: error,
@@ -23,12 +23,13 @@ export function teamLoadingError(error) {
 }
 
 // Calls the API to load team.
-export function teamLoading(projectId) {
-    return function(dispatch) {
+export function teamLoading(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`team/${projectId}`);
         dispatch(teamLoadingRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const team = response.data;
                 dispatch(teamLoadingSuccess(team));
             },
@@ -57,26 +58,27 @@ export function subProjectTeamLoadingRequest() {
     };
 }
 
-export function subProjectTeamLoadingSuccess(team) {
+export function subProjectTeamLoadingSuccess(team: $TSFixMe) {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_SUCCESS,
         payload: team,
     };
 }
 
-export function subProjectTeamLoadingError(error) {
+export function subProjectTeamLoadingError(error: $TSFixMe) {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_FAILURE,
         payload: error,
     };
 }
 // Calls the API to load team.
-export function subProjectTeamLoading(projectId) {
-    return function(dispatch) {
+export function subProjectTeamLoading(projectId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const team = response.data;
                 dispatch(subProjectTeamLoadingSuccess(team));
             },
@@ -106,14 +108,14 @@ export function teamCreateRequest() {
     };
 }
 
-export function teamCreateSuccess(team) {
+export function teamCreateSuccess(team: $TSFixMe) {
     return {
         type: types.TEAM_CREATE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamCreateError(error) {
+export function teamCreateError(error: $TSFixMe) {
     return {
         type: types.TEAM_CREATE_FAILURE,
         payload: error,
@@ -121,13 +123,14 @@ export function teamCreateError(error) {
 }
 
 // Calls the API to create team members.
-export function teamCreate(projectId, values) {
-    return function(dispatch) {
+export function teamCreate(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const team = response.data;
                 dispatch(teamCreateSuccess(team));
             },
@@ -150,21 +153,21 @@ export function teamCreate(projectId, values) {
     };
 }
 
-export function teamDeleteRequest(id) {
+export function teamDeleteRequest(id: $TSFixMe) {
     return {
         type: types.TEAM_DELETE_REQUEST,
         payload: id,
     };
 }
 
-export function teamDeleteSuccess(team) {
+export function teamDeleteSuccess(team: $TSFixMe) {
     return {
         type: types.TEAM_DELETE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamDeleteError(error) {
+export function teamDeleteError(error: $TSFixMe) {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
@@ -178,19 +181,20 @@ export function teamDeleteReset() {
 }
 
 export function resetTeamDelete() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch(teamDeleteReset());
     };
 }
 
 // Calls the API to delete team meber.
-export function teamDelete(projectId, teamMemberId) {
-    return function(dispatch) {
+export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const team = response.data;
                 dispatch(teamDeleteSuccess(team));
                 return { team };
@@ -215,21 +219,21 @@ export function teamDelete(projectId, teamMemberId) {
     };
 }
 
-export function teamMemberRequest(teamMemberId) {
+export function teamMemberRequest(teamMemberId: $TSFixMe) {
     return {
         type: types.TEAM_MEMBER_REQUEST,
         payload: teamMemberId,
     };
 }
 
-export function teamMemberSuccess(teamMember) {
+export function teamMemberSuccess(teamMember: $TSFixMe) {
     return {
         type: types.TEAM_MEMBER_SUCCESS,
         payload: teamMember,
     };
 }
 
-export function teamMemberError(error) {
+export function teamMemberError(error: $TSFixMe) {
     return {
         type: types.TEAM_MEMBER_FAILURE,
         payload: error,
@@ -237,13 +241,14 @@ export function teamMemberError(error) {
 }
 
 // Calls the API to get team member.
-export function getTeamMember(projectId, teamMemberId) {
-    return function(dispatch) {
+export function getTeamMember(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = getApi(`team/${projectId}/${teamMemberId}`);
         dispatch(teamMemberRequest(teamMemberId));
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 dispatch(teamMemberSuccess(response.data));
             },
             function(error) {
@@ -265,21 +270,21 @@ export function getTeamMember(projectId, teamMemberId) {
     };
 }
 
-export function teamUpdateRoleRequest(id) {
+export function teamUpdateRoleRequest(id: $TSFixMe) {
     return {
         type: types.TEAM_UPDATE_ROLE_REQUEST,
         payload: id,
     };
 }
 
-export function teamUpdateRoleSuccess(team) {
+export function teamUpdateRoleSuccess(team: $TSFixMe) {
     return {
         type: types.TEAM_UPDATE_ROLE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamUpdateRoleError(error) {
+export function teamUpdateRoleError(error: $TSFixMe) {
     return {
         type: types.TEAM_UPDATE_ROLE_FAILURE,
         payload: error,
@@ -287,8 +292,8 @@ export function teamUpdateRoleError(error) {
 }
 
 // Calls the API to update team member role.
-export function teamUpdateRole(projectId, values) {
-    return function(dispatch) {
+export function teamUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `team/${projectId}/${values.teamMemberId}/changerole`,
             values
@@ -297,6 +302,7 @@ export function teamUpdateRole(projectId, values) {
 
         promise.then(
             function(response) {
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 const team = response.data;
                 dispatch(teamUpdateRoleSuccess(team));
             },
@@ -320,14 +326,14 @@ export function teamUpdateRole(projectId, values) {
 }
 
 // Implements pagination for Team Members table
-export function paginateNext(Id) {
+export function paginateNext(Id: $TSFixMe) {
     return {
         type: types.PAGINATE_NEXT,
         payload: Id,
     };
 }
 
-export function paginatePrev(Id) {
+export function paginatePrev(Id: $TSFixMe) {
     return {
         type: types.PAGINATE_PREV,
         payload: Id,
@@ -340,8 +346,8 @@ export function paginateReset() {
     };
 }
 
-export function paginate(type, Id) {
-    return function(dispatch) {
+export function paginate(type: $TSFixMe, Id: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext(Id));
         type === 'prev' && dispatch(paginatePrev(Id));
         type === 'reset' && dispatch(paginateReset());

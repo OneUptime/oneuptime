@@ -27,8 +27,11 @@ const ContainerSecurityView = ({
     scanError,
     activeContainerSecurity,
     scannedStatus
-}) => {
-    const handleSubmit = ({ projectId, containerSecurityId }) => {
+}: $TSFixMe) => {
+    const handleSubmit = ({
+        projectId,
+        containerSecurityId
+    }: $TSFixMe) => {
         openModal({
             id: containerSecurityId,
             content: ConfirmScanModal,
@@ -47,8 +50,8 @@ const ContainerSecurityView = ({
         componentId,
         containerSecurityId,
         containerSecuritySlug,
-        componentSlug,
-    }) => {
+        componentSlug
+    }: $TSFixMe) => {
         openModal({
             id: containerSecurityId,
             content: EditContainerSecurity,
@@ -305,15 +308,14 @@ ContainerSecurityView.propTypes = {
     scannedStatus: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        openModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         scanning: state.security.scanContainerSecurity.requesting,
         securityLog: state.security.containerSecurityLog || {},

@@ -12,8 +12,8 @@ const RenderTextArea = ({
     disabled,
     style,
     id,
-    initialValue,
-}) => (
+    initialValue
+}: $TSFixMe) => (
     <span style={{ display: 'block', width: '100%' }}>
         <textarea
             id={id || 'feedback-textarea'}

@@ -1,13 +1,16 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
 import AffectedResources from './basic/AffectedResources';
 
 class Events extends Component {
-    handleNavigation = (statusPageSlug, eventSlug) => {
+    handleNavigation = (statusPageSlug: $TSFixMe, eventSlug: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { history } = this.props;
 
         history.push(
@@ -16,10 +19,13 @@ class Events extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
         const { statusPageSlug } = this.props;
         return (
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'events' does not exist on type 'Readonly... Remove this comment to see the full error message
             <ShouldRender if={this.props.events}>
-                {this.props.events.map((event, i) => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'events' does not exist on type 'Readonly... Remove this comment to see the full error message
+                {this.props.events.map((event: $TSFixMe, i: $TSFixMe) => {
                     if (!event)
                         return (
                             <div>
@@ -42,6 +48,7 @@ class Events extends Component {
                                 style={{
                                     width: '100%',
                                     marginLeft: 0,
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteBackgroundColor' does not exist on t... Remove this comment to see the full error message
                                     ...this.props.noteBackgroundColor,
                                 }}
                             >
@@ -59,6 +66,7 @@ class Events extends Component {
                                         className="feed-title"
                                         id="eventTitle"
                                         style={{
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'secondaryTextColor' does not exist on ty... Remove this comment to see the full error message
                                             ...this.props.secondaryTextColor,
                                             color: 'rgba(76, 76, 76, 0.8)',
                                             fontWeight: 'bold',
@@ -69,6 +77,7 @@ class Events extends Component {
                                     </span>
                                     <span
                                         style={{
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'primaryTextColor' does not exist on type... Remove this comment to see the full error message
                                             ...this.props.primaryTextColor,
                                             color: 'rgba(0, 0, 0, 0.5)',
                                             display: 'block',
@@ -88,6 +97,7 @@ class Events extends Component {
                                 }
                             >
                                 <AffectedResources
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
                                     monitorState={this.props.monitorState}
                                     event={event}
                                     colorStyle="grey"
@@ -104,6 +114,7 @@ class Events extends Component {
                                     className="time"
                                     style={{
                                         marginLeft: 0,
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'secondaryTextColor' does not exist on ty... Remove this comment to see the full error message
                                         ...this.props.secondaryTextColor,
                                         paddingBottom: 10,
                                         color: 'rgba(76, 76, 76, 0.8)',
@@ -127,8 +138,10 @@ class Events extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Events.displayName = 'Events';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Events.propTypes = {
     events: PropTypes.array,
     secondaryTextColor: PropTypes.object,

@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function OnCallTableHeader({ text }) {
+function OnCallTableHeader({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -10,7 +12,9 @@ function OnCallTableHeader({ text }) {
             <div
                 className="db-ListViewItem-cellContent Box-root Padding-all--8"
                 style={{
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '"right" | null' is not assignable to type 'F... Remove this comment to see the full error message
                     float: text === 'Actions' ? 'right' : null,
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'Ma... Remove this comment to see the full error message
                     marginRight: text === 'Actions' ? '24px' : null,
                 }}
             >
@@ -28,7 +32,10 @@ OnCallTableHeader.propTypes = {
     text: PropTypes.string.isRequired,
 };
 
-function OnCallTableBody({ text, type }) {
+function OnCallTableBody({
+    text,
+    type
+}: $TSFixMe) {
     return type !== 'button' ? (
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">

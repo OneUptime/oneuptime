@@ -1,10 +1,12 @@
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
 import puppeteer from 'puppeteer'
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'should' or its corresponding t... Remove this comment to see the full error message
 import should from 'should'
 import utils from '../../test-utils'
 import init from '../../test-init'
 
-let browser, otherBrowser;
-let page, otherPage;
+let browser: $TSFixMe, otherBrowser: $TSFixMe;
+let page: $TSFixMe, otherPage: $TSFixMe;
 
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
@@ -13,8 +15,11 @@ const user = {
     password,
 };
 
+// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Enterprise Registration API', () => {
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
     beforeAll(async () => {
+        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -24,11 +29,13 @@ describe('Enterprise Registration API', () => {
         await otherPage.setUserAgent(utils.agent);
     });
 
+    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
     afterAll(async () => {
         await browser.close();
         await otherBrowser.close();
     });
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it(
         'Should register Initial User with valid details',
         async () => {
@@ -38,6 +45,7 @@ describe('Enterprise Registration API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
+                    // @ts-expect-error ts-migrate(2538) FIXME: Type 'null' cannot be used as an index type.
                     json[key] = localStorage.getItem(key);
                 }
                 return json;
@@ -50,6 +58,7 @@ describe('Enterprise Registration API', () => {
         init.timeout
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it(
         'Should redirect to Login Page and hide Sign Up Link for Subsequent Users',
         async () => {
@@ -71,6 +80,7 @@ describe('Enterprise Registration API', () => {
         init.timeout
     );
 
+    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it(
         'Should login Initial User to Admin Dashboard',
         async () => {
@@ -80,6 +90,7 @@ describe('Enterprise Registration API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
+                    // @ts-expect-error ts-migrate(2538) FIXME: Type 'null' cannot be used as an index type.
                     json[key] = localStorage.getItem(key);
                 }
                 return json;

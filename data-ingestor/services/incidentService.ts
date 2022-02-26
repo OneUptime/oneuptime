@@ -1,14 +1,21 @@
 import ErrorService from './errorService'
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const incidentCollection = global.db.collection('incidents');
 import { ObjectId } from 'mongodb'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
 import { postApi } from '../utils/api'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
 import { realtimeUrl } from '../utils/config'
 import ProjectService from './projectService'
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    findBy: async function({ query, limit, skip }) {
+    findBy: async function({
+        query,
+        limit,
+        skip
+    }: $TSFixMe) {
         try {
             if (!skip) skip = 0;
 
@@ -46,7 +53,9 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function({ query }) {
+    findOneBy: async function({
+        query
+    }: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -66,7 +75,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -80,6 +89,7 @@ export default {
 
             const _this = this;
             const oldIncident = await _this.findOneBy({
+                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                 query: { _id: ObjectId(query._id), deleted: { $ne: null } },
             });
 
@@ -333,6 +343,7 @@ export default {
 
             const project = await ProjectService.findOneBy({
                 query: {
+                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
                     _id: ObjectId(
                         updatedIncident.projectId._id ||
                             updatedIncident.projectId
@@ -353,7 +364,7 @@ export default {
                     projectId,
                 },
                 true
-            ).catch(error => {
+            ).catch((error: $TSFixMe) => {
                 ErrorService.log('incidentService.updateOneBy', error);
             });
 

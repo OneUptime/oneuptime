@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, reduxForm } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import {
     addCallRoutingSchedule,
@@ -16,16 +18,23 @@ import PropTypes from 'prop-types';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class AddScheduleModal extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             currentButton: this.props.initialValues.type || '',
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             currentBackupButton: this.props.initialValues.backup_type || '',
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             showAdvance: this.props.initialValues.showAdvance || false,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             fileName: this.props.initialValues.fileName || '',
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             fileUploaded: this.props.initialValues.fileUploaded || false,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
             backupFileName: this.props.initialValues.backupFileName || '',
             backupFileUploaded:
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
                 this.props.initialValues.backupFileUploaded || false,
         };
     }
@@ -38,12 +47,17 @@ export class AddScheduleModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    submitForm = async values => {
+    submitForm = async (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCallRoutingSchedule' does not exist o... Remove this comment to see the full error message
             addCallRoutingSchedule,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadCallRoutingAudio' does not exist o... Remove this comment to see the full error message
             uploadCallRoutingAudio,
         } = this.props;
         if (values.introAudio && values.introAudio !== 'null') {
@@ -91,31 +105,44 @@ export class AddScheduleModal extends Component {
         }
 
         const postObj = {};
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvance' does not exist on type '{}'... Remove this comment to see the full error message
         postObj.showAdvance = this.state.showAdvance;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
         postObj.type = values.type || '';
         if (values.type && values.type === 'TeamMember') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMemberId' does not exist on type '{}... Remove this comment to see the full error message
             postObj.teamMemberId = values.teamMembers;
         } else if (values.type && values.type === 'Schedule') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type '{}'.
             postObj.scheduleId = values.schedules;
         } else if (values.type && values.type === 'PhoneNumber') {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type '{}'... Remove this comment to see the full error message
             postObj.phoneNumber = values.PhoneNumber;
         }
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvance' does not exist on type 'Rea... Remove this comment to see the full error message
         if (this.state.showAdvance) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callDropText' does not exist on type '{}... Remove this comment to see the full error message
             postObj.callDropText = values.callDropText;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'introtext' does not exist on type '{}'.
             postObj.introtext = values.introtext;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backup_introtext' does not exist on type... Remove this comment to see the full error message
             postObj.backup_introtext = values.backup_introtext;
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backup_type' does not exist on type '{}'... Remove this comment to see the full error message
             postObj.backup_type = values.backup_type;
             if (values.backup_type && values.backup_type === 'TeamMember') {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backup_teamMemberId' does not exist on t... Remove this comment to see the full error message
                 postObj.backup_teamMemberId = values.backup_teamMembers;
             } else if (
                 values.backup_type &&
                 values.backup_type === 'Schedule'
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backup_scheduleId' does not exist on typ... Remove this comment to see the full error message
                 postObj.backup_scheduleId = values.backup_schedules;
             } else if (
                 values.backup_type &&
                 values.backup_type === 'PhoneNumber'
             ) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backup_phoneNumber' does not exist on ty... Remove this comment to see the full error message
                 postObj.backup_phoneNumber = values.backup_PhoneNumber;
             }
         }
@@ -132,14 +159,15 @@ export class AddScheduleModal extends Component {
             }
         );
     };
-    changefile = e => {
+    changefile = (e: $TSFixMe) => {
         e.preventDefault();
         const file = e.target.files[0];
         const fileName = file.name;
         this.setState({ fileName: fileName, fileUploaded: true });
     };
-    removeIntroAudio = backup => {
+    removeIntroAudio = (backup: $TSFixMe) => {
         const _this = this;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, data, removeIntroAudio } = this.props;
         removeIntroAudio(currentProject._id, data.callRoutingId, backup).then(
             function() {
@@ -159,28 +187,31 @@ export class AddScheduleModal extends Component {
             }
         );
     };
-    changeBackupFile = e => {
+    changeBackupFile = (e: $TSFixMe) => {
         e.preventDefault();
         const file = e.target.files[0];
         const fileName = file.name;
         this.setState({ backupFileName: fileName, backupFileUploaded: true });
     };
-    toggleShowAdvance = e => {
+    toggleShowAdvance = (e: $TSFixMe) => {
         this.setState({ showAdvance: e.target.checked });
     };
-    changeButton = (event, value) => {
+    changeButton = (event: $TSFixMe, value: $TSFixMe) => {
         this.setState({ currentButton: value });
     };
-    changeBackupButton = (event, value) => {
+    changeBackupButton = (event: $TSFixMe, value: $TSFixMe) => {
         this.setState({ currentBackupButton: value });
     };
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 this.props.closeThisDialog();
                 return true;
             case 'Enter':
+                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 return document
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                     .getElementById(`btn_modal_${this.props.data.number}`)
                     .click();
             default:
@@ -190,15 +221,25 @@ export class AddScheduleModal extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             closeThisDialog,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCallRoutingSchedules' does not exist ... Remove this comment to see the full error message
             addCallRoutingSchedules,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'Rea... Remove this comment to see the full error message
             teamMembers,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'Reado... Remove this comment to see the full error message
             schedules,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadIntroAudioState' does not exist on... Remove this comment to see the full error message
             uploadIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadBackupIntroAudioState' does not ex... Remove this comment to see the full error message
             uploadBackupIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeIntroAudioState' does not exist on... Remove this comment to see the full error message
             removeIntroAudioState,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeBackupIntroAudioState' does not ex... Remove this comment to see the full error message
             removeBackupIntroAudioState,
         } = this.props;
         const introAudioLoading =
@@ -240,6 +281,7 @@ export class AddScheduleModal extends Component {
         return (
             <div
                 className="ModalLayer-contents"
+                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -282,6 +324,7 @@ export class AddScheduleModal extends Component {
                                                     name="moreOptions"
                                                     id="moreOptions"
                                                     checked={
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvance' does not exist on type 'Rea... Remove this comment to see the full error message
                                                         this.state.showAdvance
                                                     }
                                                 />
@@ -298,6 +341,7 @@ export class AddScheduleModal extends Component {
                                 <div className="bs-Modal-content">
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvance' does not exist on type 'Rea... Remove this comment to see the full error message
                                             if={this.state.showAdvance}
                                         >
                                             <fieldset className="Margin-bottom--16">
@@ -373,6 +417,7 @@ export class AddScheduleModal extends Component {
                                             </fieldset>
                                         </ShouldRender>
                                         <ScheduleComponent
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ teamMembers: any; schedules: any; data: an... Remove this comment to see the full error message
                                             teamMembers={teamMembers}
                                             schedules={schedules}
                                             data={data}
@@ -392,9 +437,11 @@ export class AddScheduleModal extends Component {
                                             }
                                         />
                                         <ShouldRender
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvance' does not exist on type 'Rea... Remove this comment to see the full error message
                                             if={this.state.showAdvance}
                                         >
                                             <ScheduleComponent
+                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ teamMembers: any; schedules: any; data: an... Remove this comment to see the full error message
                                                 teamMembers={teamMembers}
                                                 schedules={schedules}
                                                 data={data}
@@ -479,6 +526,7 @@ export class AddScheduleModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 AddScheduleModal.displayName = 'AddScheduleModal';
 
 const AddScheduleModalForm = reduxForm({
@@ -487,7 +535,7 @@ const AddScheduleModalForm = reduxForm({
     enableReinitialize: true,
 })(AddScheduleModal);
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
         {
             addCallRoutingSchedule,
@@ -500,20 +548,20 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state, props) {
+function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     const callRoutingId = props.data.callRoutingId;
     const teamMembersAndSchedules = state.callRouting.teamMembersAndSchedules;
     let teamMembers = teamMembersAndSchedules.teamMembers;
     teamMembers =
         teamMembers && teamMembers.length
-            ? teamMembers.map(t => {
+            ? teamMembers.map((t: $TSFixMe) => {
                   return { name: t.name, id: t.userId };
               })
             : teamMembers;
     let schedules = teamMembersAndSchedules.schedules;
     schedules =
         schedules && schedules.length
-            ? schedules.map(s => {
+            ? schedules.map((s: $TSFixMe) => {
                   return { name: s.name, id: s._id };
               })
             : schedules;
@@ -525,7 +573,7 @@ function mapStateToProps(state, props) {
             : [];
     const currentNumber =
         allNumbers && allNumbers.length
-            ? allNumbers.find(n => n._id === callRoutingId)
+            ? allNumbers.find((n: $TSFixMe) => n._id === callRoutingId)
             : null;
     const routingSchema =
         currentNumber &&
@@ -631,6 +679,7 @@ function mapStateToProps(state, props) {
     };
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 AddScheduleModal.propTypes = {
     addCallRoutingSchedule: PropTypes.func,
     addCallRoutingSchedules: PropTypes.shape({

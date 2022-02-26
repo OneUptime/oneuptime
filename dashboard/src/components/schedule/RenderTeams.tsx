@@ -1,14 +1,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderMembers } from './RenderMembers';
 
-const RenderTeams = ({ fields, subProjectId, policyIndex, rotateBy }) => {
+const RenderTeams = ({
+    fields,
+    subProjectId,
+    policyIndex,
+    rotateBy
+}: $TSFixMe) => {
     const canAddTeams = !!rotateBy;
     return (
         <ul>
-            {fields.map((team, i) => {
+            {fields.map((team: $TSFixMe, i: $TSFixMe) => {
                 return (
                     <li key={i} className="team">
                         {fields.length > 1 && (

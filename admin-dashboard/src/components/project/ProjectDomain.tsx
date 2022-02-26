@@ -6,6 +6,7 @@ import { bindActionCreators } from 'redux';
 import { openModal } from '../../actions/modal';
 import DeleteDomain from './DeleteDomain';
 import DataPathHoC from '../DataPathHoC';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,7 +15,9 @@ import ProjectUnverifyDomain from './ProjectUnverifyDomain';
 import ProjectResetDomain from './ProjectResetDomain';
 
 class ProjectDomain extends Component {
+    limit: $TSFixMe;
     constructor() {
+        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
         super();
         this.limit = 10;
         this.state = {
@@ -23,22 +26,28 @@ class ProjectDomain extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const projectId = this.props.projectId;
         if (projectId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
             this.props.fetchProjectDomains(this.props.projectId, 0, this.limit);
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         if (prevProps.projectId !== this.props.projectId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             const projectId = this.props.projectId;
             if (projectId) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
                 this.props.fetchProjectDomains(projectId, 0, this.limit);
             }
         }
     }
 
-    prevClicked = (projectId, skip) => {
+    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(
             projectId,
@@ -47,7 +56,8 @@ class ProjectDomain extends Component {
         );
     };
 
-    nextClicked = (projectId, skip) => {
+    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(
             projectId,
@@ -58,13 +68,21 @@ class ProjectDomain extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectDomain' does not exist on type 'R... Remove this comment to see the full error message
             projectDomain: { domains },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             projectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
             openModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
             limit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             skip,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
             count,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
             error,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
             requesting,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -113,7 +131,7 @@ class ProjectDomain extends Component {
                                     </div>
                                 </header>
                                 {domains.length > 0 &&
-                                    domains.map((eachDomain, index) => (
+                                    domains.map((eachDomain: $TSFixMe, index: $TSFixMe) => (
                                         <div
                                             key={eachDomain._id}
                                             className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
@@ -266,6 +284,7 @@ class ProjectDomain extends Component {
                                                                     {
                                                                         removeUserModalId: this
                                                                             .state
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeUserModalId' does not exist on typ... Remove this comment to see the full error message
                                                                             .removeUserModalId,
                                                                         domainId:
                                                                             eachDomain._id,
@@ -335,8 +354,11 @@ class ProjectDomain extends Component {
                                             id="customFieldCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                             {this.props.count
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                 ? this.props.count +
+                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                   (this.props.count > 1
                                                       ? '  Domains'
                                                       : ' Domain')
@@ -405,17 +427,19 @@ class ProjectDomain extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ProjectDomain.displayName = 'ProjectDomain';
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     projectDomain: state.project.projectDomain,
     requesting: state.project.projectDomain.requesting,
     error: state.project.projectDomain.error,
     count: state.project.projectDomain.count,
     limit: state.project.projectDomain.limit,
-    skip: state.project.projectDomain.skip,
+    skip: state.project.projectDomain.skip
 });
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ProjectDomain.propTypes = {
     projectId: PropTypes.string,
     fetchProjectDomains: PropTypes.func,
@@ -431,7 +455,6 @@ ProjectDomain.propTypes = {
     requesting: PropTypes.bool,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDomain);

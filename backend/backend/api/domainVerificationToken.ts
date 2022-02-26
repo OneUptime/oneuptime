@@ -1,10 +1,14 @@
 import express from 'express'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'psl'... Remove this comment to see the full error message
 import psl from 'psl'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
 import { getUser, isUserMasterAdmin } from '../middlewares/user'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 import DomainVerificationService from '../services/domainVerificationService'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/response"' has no exported... Remove this comment to see the full error message
 import { sendListResponse } from '../middlewares/response'
 import StatusPageService from '../services/statusPageService'
 import ProjectService from '../services/projectService'
@@ -48,6 +52,7 @@ router.put(
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId },
                 { verified: true, verifiedAt: Date.now() },
+                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 3.
                 subDomain
             );
             return sendItemResponse(req, res, response);
@@ -130,6 +135,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
 
         if (!domain || !domain.trim()) {
             const error = new Error('Please specify a domain');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -142,6 +148,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
             const error = new Error(
                 'Please specify only domains and not sub-domains'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -153,6 +160,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
         );
         if (doesDomainBelongToProject) {
             const error = new Error('Domain already belong to another project');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -199,6 +207,7 @@ router.put(
 
             if (!domain || !domain.trim()) {
                 const error = new Error('Please specify a domain');
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -211,6 +220,7 @@ router.put(
                 const error = new Error(
                     'Please specify only domains and not sub-domains'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -224,6 +234,7 @@ router.put(
                 const error = new Error(
                     'Domain already belong to another project'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
                 error.code = 400;
                 throw error;
             }
@@ -267,6 +278,7 @@ router.delete(
             const projectArr = await ProjectService.findSubprojectId(projectId);
             const projectIdInArr = await DomainVerificationService.findDomain(
                 domainId,
+                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
                 projectArr
             );
             const response = await DomainVerificationService.deleteBy({

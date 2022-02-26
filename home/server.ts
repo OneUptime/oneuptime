@@ -17,12 +17,17 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
+// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
 import express from 'express'
 const app = express();
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
 import bodyParser from 'body-parser'
 import path from 'path'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'comp... Remove this comment to see the full error message
 import compression from 'compression'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'mini... Remove this comment to see the full error message
 import minify from 'minify'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'try-... Remove this comment to see the full error message
 import tryToCatch from 'try-to-catch'
 import productCompare from './config/product-compare'
 import axios from 'axios'
@@ -46,7 +51,7 @@ app.set('view engine', 'ejs');
  */
 
 //Routes
-app.get('/', function(req, res) {
+app.get('/', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('index', {
         support: false,
         footerCards: true,
@@ -56,7 +61,7 @@ app.get('/', function(req, res) {
     });
 });
 
-app.get('/support', function(req, res) {
+app.get('/support', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('support', {
         support: true,
         footerCards: true,
@@ -66,7 +71,7 @@ app.get('/support', function(req, res) {
     });
 });
 
-app.get('/pricing', function(req, res) {
+app.get('/pricing', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('pricing', {
         support: false,
         footerCards: true,
@@ -76,7 +81,7 @@ app.get('/pricing', function(req, res) {
     });
 });
 
-app.get('/enterprise/demo', function(req, res) {
+app.get('/enterprise/demo', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('demo', {
         support: false,
         footerCards: false,
@@ -86,15 +91,15 @@ app.get('/enterprise/demo', function(req, res) {
     });
 });
 
-app.get('/product/status-page', function(req, res) {
+app.get('/product/status-page', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/status-page', function(req, res) {
+app.get('/status-page', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/product/public-status-page', function(req, res) {
+app.get('/product/public-status-page', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('public-status-page', {
         support: false,
         footerCards: true,
@@ -106,11 +111,11 @@ app.get('/product/public-status-page', function(req, res) {
     });
 });
 
-app.get('/public-status-page', function(req, res) {
+app.get('/public-status-page', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/product/private-status-page', function(req, res) {
+app.get('/product/private-status-page', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('private-status-page', {
         support: false,
         footerCards: true,
@@ -122,15 +127,15 @@ app.get('/product/private-status-page', function(req, res) {
     });
 });
 
-app.get('/private-status-page', function(req, res) {
+app.get('/private-status-page', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/private-status-page');
 });
 
-app.get('/status', function(req, res) {
+app.get('/status', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('https://status.oneuptime.com');
 });
 
-app.get('/product/uptime-monitoring', function(req, res) {
+app.get('/product/uptime-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('uptime-monitoring', {
         support: false,
         footerCards: true,
@@ -140,11 +145,11 @@ app.get('/product/uptime-monitoring', function(req, res) {
     });
 });
 
-app.get('/uptime-monitoring', function(req, res) {
+app.get('/uptime-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/uptime-monitoring');
 });
 
-app.get('/product/logs-management', function(req, res) {
+app.get('/product/logs-management', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('logs-management', {
         support: false,
         footerCards: true,
@@ -154,11 +159,11 @@ app.get('/product/logs-management', function(req, res) {
     });
 });
 
-app.get('/logs-management', function(req, res) {
+app.get('/logs-management', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/logs-management');
 });
 
-app.get('/product/error-tracking', function(req, res) {
+app.get('/product/error-tracking', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('error-tracking', {
         support: false,
         footerCards: true,
@@ -168,11 +173,11 @@ app.get('/product/error-tracking', function(req, res) {
     });
 });
 
-app.get('/error-tracking', function(req, res) {
+app.get('/error-tracking', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/error-tracking');
 });
 
-app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
+app.get('/unsubscribe/:monitorId/:subscriberId', async function(req: $TSFixMe, res: $TSFixMe) {
     const { monitorId, subscriberId } = req.params;
     let apiHost;
     if (process.env.ONEUPTIME_HOST) {
@@ -205,8 +210,8 @@ app.get('/unsubscribe/:monitorId/:subscriberId', async function(req, res) {
     }
 });
 
-app.post('/unsubscribe', async function(req, res) {
-    let apiHost;
+app.post('/unsubscribe', async function(req: $TSFixMe, res: $TSFixMe) {
+    let apiHost: $TSFixMe;
     if (process.env.ONEUPTIME_HOST) {
         apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
     } else {
@@ -232,7 +237,7 @@ app.post('/unsubscribe', async function(req, res) {
                 message: 'No monitor was selected',
             });
         } else {
-            monitors.forEach(async monitorId => {
+            monitors.forEach(async (monitorId: $TSFixMe) => {
                 await axios({
                     method: 'PUT',
                     url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,
@@ -251,7 +256,7 @@ app.post('/unsubscribe', async function(req, res) {
     }
 });
 
-app.get('/product/docker-container-security', function(req, res) {
+app.get('/product/docker-container-security', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('container-security', {
         support: false,
         footerCards: true,
@@ -261,11 +266,11 @@ app.get('/product/docker-container-security', function(req, res) {
     });
 });
 
-app.get('/docker-container-security', function(req, res) {
+app.get('/docker-container-security', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/docker-container-security');
 });
 
-app.get('/product/app-security', function(req, res) {
+app.get('/product/app-security', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('app-security', {
         support: false,
         footerCards: true,
@@ -275,11 +280,11 @@ app.get('/product/app-security', function(req, res) {
     });
 });
 
-app.get('/app-security', function(req, res) {
+app.get('/app-security', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/app-security');
 });
 
-app.get('/product/api-monitoring', function(req, res) {
+app.get('/product/api-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('api-monitoring', {
         support: false,
         footerCards: true,
@@ -291,11 +296,11 @@ app.get('/product/api-monitoring', function(req, res) {
     });
 });
 
-app.get('/api-monitoring', function(req, res) {
+app.get('/api-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/api-monitoring');
 });
 
-app.get('/product/kubernetes-monitoring', function(req, res) {
+app.get('/product/kubernetes-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('kubernetes-monitoring', {
         support: false,
         footerCards: true,
@@ -305,11 +310,11 @@ app.get('/product/kubernetes-monitoring', function(req, res) {
     });
 });
 
-app.get('/kubernetes-monitoring', function(req, res) {
+app.get('/kubernetes-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/kubernetes-monitoring');
 });
 
-app.get('/product/performance-monitoring', function(req, res) {
+app.get('/product/performance-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('performance-monitoring', {
         support: false,
         footerCards: true,
@@ -319,11 +324,11 @@ app.get('/product/performance-monitoring', function(req, res) {
     });
 });
 
-app.get('/performance-monitoring', function(req, res) {
+app.get('/performance-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/performance-monitoring');
 });
 
-app.get('/product/server-monitoring', function(req, res) {
+app.get('/product/server-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('server-monitoring', {
         support: false,
         footerCards: true,
@@ -333,11 +338,11 @@ app.get('/product/server-monitoring', function(req, res) {
     });
 });
 
-app.get('/server-monitoring', function(req, res) {
+app.get('/server-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/server-monitoring');
 });
 
-app.get('/product/website-monitoring', function(req, res) {
+app.get('/product/website-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('website-monitoring', {
         support: false,
         footerCards: true,
@@ -347,11 +352,11 @@ app.get('/product/website-monitoring', function(req, res) {
     });
 });
 
-app.get('/website-monitoring', function(req, res) {
+app.get('/website-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/website-monitoring');
 });
 
-app.get('/product/iot-device-monitoring', function(req, res) {
+app.get('/product/iot-device-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('iot-device-monitoring', {
         support: false,
         footerCards: true,
@@ -361,11 +366,11 @@ app.get('/product/iot-device-monitoring', function(req, res) {
     });
 });
 
-app.get('/iot-device-monitoring', function(req, res) {
+app.get('/iot-device-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/iot-device-monitoring');
 });
 
-app.get('/product/incident-management', function(req, res) {
+app.get('/product/incident-management', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('incident-management', {
         support: false,
         footerCards: true,
@@ -375,11 +380,11 @@ app.get('/product/incident-management', function(req, res) {
     });
 });
 
-app.get('/incident-management', function(req, res) {
+app.get('/incident-management', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/incident-management');
 });
 
-app.get('/product/oncall-management', function(req, res) {
+app.get('/product/oncall-management', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('oncall-management', {
         support: false,
         footerCards: true,
@@ -389,11 +394,11 @@ app.get('/product/oncall-management', function(req, res) {
     });
 });
 
-app.get('/oncall-management', function(req, res) {
+app.get('/oncall-management', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/oncall-management');
 });
 
-app.get('/customers', function(req, res) {
+app.get('/customers', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('customers', {
         support: false,
         footerCards: true,
@@ -403,7 +408,7 @@ app.get('/customers', function(req, res) {
     });
 });
 
-app.get('/enterprise/resources', function(req, res) {
+app.get('/enterprise/resources', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('resources', {
         support: false,
         footerCards: false,
@@ -413,7 +418,7 @@ app.get('/enterprise/resources', function(req, res) {
     });
 });
 
-app.get('/enterprise/overview', function(req, res) {
+app.get('/enterprise/overview', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('enterprise-overview.ejs', {
         support: false,
         footerCards: true,
@@ -423,7 +428,7 @@ app.get('/enterprise/overview', function(req, res) {
     });
 });
 
-app.get('/legal', function(req, res) {
+app.get('/legal', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -434,7 +439,7 @@ app.get('/legal', function(req, res) {
     });
 });
 
-app.get('/legal/terms', function(req, res) {
+app.get('/legal/terms', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -445,7 +450,7 @@ app.get('/legal/terms', function(req, res) {
     });
 });
 
-app.get('/legal/privacy', function(req, res) {
+app.get('/legal/privacy', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -456,7 +461,7 @@ app.get('/legal/privacy', function(req, res) {
     });
 });
 
-app.get('/legal/contact', function(req, res) {
+app.get('/legal/contact', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -467,7 +472,7 @@ app.get('/legal/contact', function(req, res) {
     });
 });
 
-app.get('/legal/subprocessors', function(req, res) {
+app.get('/legal/subprocessors', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -478,7 +483,7 @@ app.get('/legal/subprocessors', function(req, res) {
     });
 });
 
-app.get('/legal/ccpa', function(req, res) {
+app.get('/legal/ccpa', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -489,7 +494,7 @@ app.get('/legal/ccpa', function(req, res) {
     });
 });
 
-app.get('/legal/hipaa', function(req, res) {
+app.get('/legal/hipaa', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -500,7 +505,7 @@ app.get('/legal/hipaa', function(req, res) {
     });
 });
 
-app.get('/legal/dmca', function(req, res) {
+app.get('/legal/dmca', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -511,7 +516,7 @@ app.get('/legal/dmca', function(req, res) {
     });
 });
 
-app.get('/legal/pci', function(req, res) {
+app.get('/legal/pci', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -522,7 +527,7 @@ app.get('/legal/pci', function(req, res) {
     });
 });
 
-app.get('/legal/iso-27001', function(req, res) {
+app.get('/legal/iso-27001', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -533,7 +538,7 @@ app.get('/legal/iso-27001', function(req, res) {
     });
 });
 
-app.get('/legal/iso-27017', function(req, res) {
+app.get('/legal/iso-27017', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -544,7 +549,7 @@ app.get('/legal/iso-27017', function(req, res) {
     });
 });
 
-app.get('/legal/iso-27018', function(req, res) {
+app.get('/legal/iso-27018', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -555,7 +560,7 @@ app.get('/legal/iso-27018', function(req, res) {
     });
 });
 
-app.get('/legal/iso-27017', function(req, res) {
+app.get('/legal/iso-27017', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -566,7 +571,7 @@ app.get('/legal/iso-27017', function(req, res) {
     });
 });
 
-app.get('/legal/iso-27018', function(req, res) {
+app.get('/legal/iso-27018', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -577,7 +582,7 @@ app.get('/legal/iso-27018', function(req, res) {
     });
 });
 
-app.get('/legal/soc-2', function(req, res) {
+app.get('/legal/soc-2', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -588,7 +593,7 @@ app.get('/legal/soc-2', function(req, res) {
     });
 });
 
-app.get('/legal/soc-3', function(req, res) {
+app.get('/legal/soc-3', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -599,7 +604,7 @@ app.get('/legal/soc-3', function(req, res) {
     });
 });
 
-app.get('/legal/data-residency', function(req, res) {
+app.get('/legal/data-residency', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -610,7 +615,7 @@ app.get('/legal/data-residency', function(req, res) {
     });
 });
 
-app.get('/legal/gdpr', function(req, res) {
+app.get('/legal/gdpr', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -621,7 +626,7 @@ app.get('/legal/gdpr', function(req, res) {
     });
 });
 
-app.get('/legal/sla', function(req, res) {
+app.get('/legal/sla', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -632,7 +637,7 @@ app.get('/legal/sla', function(req, res) {
     });
 });
 
-app.get('/enterprise/download-resource/:resourceName', function(req, res) {
+app.get('/enterprise/download-resource/:resourceName', function(req: $TSFixMe, res: $TSFixMe) {
     res.render('download-resource.ejs', {
         footerCards: false,
         support: false,
@@ -642,7 +647,7 @@ app.get('/enterprise/download-resource/:resourceName', function(req, res) {
     });
 });
 
-app.get('/table/:product', function(req, res) {
+app.get('/table/:product', function(req: $TSFixMe, res: $TSFixMe) {
     const productConfig = productCompare(req.params.product);
 
     if (!productConfig) {
@@ -667,7 +672,7 @@ app.get('/table/:product', function(req, res) {
     }
 });
 
-app.get('/compare/:product', function(req, res) {
+app.get('/compare/:product', function(req: $TSFixMe, res: $TSFixMe) {
     const productConfig = productCompare(req.params.product);
 
     if (!productConfig) {
@@ -693,7 +698,7 @@ app.get('/compare/:product', function(req, res) {
 });
 
 // minify default.js
-app.get('/js/default.js', async function(req, res) {
+app.get('/js/default.js', async function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'text/javascript');
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/js/default.js');
@@ -701,7 +706,7 @@ app.get('/js/default.js', async function(req, res) {
 });
 
 // minify
-app.get('/css/home.css', async function(req, res) {
+app.get('/css/home.css', async function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'text/css');
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/css/home.css');
@@ -709,7 +714,7 @@ app.get('/css/home.css', async function(req, res) {
 });
 
 // minify
-app.get('/css/comparision.css', async function(req, res) {
+app.get('/css/comparision.css', async function(req: $TSFixMe, res: $TSFixMe) {
     res.setHeader('Content-Type', 'text/css');
     //eslint-disable-next-line
     const [error, data] = await tryToCatch(
@@ -720,7 +725,7 @@ app.get('/css/comparision.css', async function(req, res) {
 });
 
 // generate sitemap
-app.get('/sitemap.xml', async (req, res) => {
+app.get('/sitemap.xml', async (req: $TSFixMe, res: $TSFixMe) => {
     const siteUrls = [
         'https://oneuptime.com/',
         'https://oneuptime.com/pricing',
@@ -814,13 +819,13 @@ app.get('/sitemap.xml', async (req, res) => {
 // loads up the site faster
 app.use(
     express.static(path.join(__dirname, 'public'), {
-        setHeaders(res) {
+        setHeaders(res: $TSFixMe) {
             res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
         },
     })
 );
 
-app.get('/*', function(req, res) {
+app.get('/*', function(req: $TSFixMe, res: $TSFixMe) {
     res.status(404);
     res.render('notFound.ejs', {
         footerCards: false,

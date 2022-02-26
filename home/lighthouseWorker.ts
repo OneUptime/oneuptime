@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'ligh... Remove this comment to see the full error message
 import lighthouse from 'lighthouse'
 import chromeLauncher from 'chrome-launcher'
 import ora from 'ora'
@@ -34,10 +35,11 @@ const config = {
     },
 };
 
-function launchChromeAndRunLighthouse(url, flags = {}, config = null) {
+function launchChromeAndRunLighthouse(url: $TSFixMe, flags = {}, config = null) {
     return chromeLauncher.launch(flags).then(chrome => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'port' does not exist on type '{}'.
         flags.port = chrome.port;
-        return lighthouse(url, flags, config).then(results => {
+        return lighthouse(url, flags, config).then((results: $TSFixMe) => {
             return chrome.kill().then(() => results);
         });
     });
@@ -53,6 +55,7 @@ process.on('message', function(data) {
     const scores = {};
     const spinner = ora(`Running lighthouse on ${data.url}`).start();
     spinner.color = 'green';
+    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ extends: string; settings: { m... Remove this comment to see the full error message
     launchChromeAndRunLighthouse(data.url, flags, config)
         .then(results => {
             results.artifacts = 'ignore';
@@ -71,26 +74,35 @@ process.on('message', function(data) {
             results.lhr.audits = 'ignore';
             results.lhr.categoryGroups = 'ignore';
 
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type '{}'... Remove this comment to see the full error message
             scores.performance = Math.ceil(
                 results.lhr.categories.performance.score * 100
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type '{... Remove this comment to see the full error message
             scores.accessibility = Math.ceil(
                 results.lhr.categories.accessibility.score * 100
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type '{... Remove this comment to see the full error message
             scores.bestPractices = Math.ceil(
                 results.lhr.categories['best-practices'].score * 100
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type '{}'.
             scores.seo = Math.ceil(results.lhr.categories.seo.score * 100);
             if (
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type '{}'... Remove this comment to see the full error message
                 scores.performance < 50 ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type '{... Remove this comment to see the full error message
                 scores.accessibility < 70 ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type '{... Remove this comment to see the full error message
                 scores.bestPractices < 70 ||
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type '{}'.
                 scores.seo < 80
             ) {
                 spinner.fail();
             } else {
                 spinner.succeed();
             }
+            // @ts-expect-error ts-migrate(2722) FIXME: Cannot invoke an object which is possibly 'undefin... Remove this comment to see the full error message
             process.send(scores);
             return scores;
         })

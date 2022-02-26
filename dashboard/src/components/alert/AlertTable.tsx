@@ -103,6 +103,7 @@ function HTD7() {
     return (
         <td
             id="overflow"
+            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
             type="action"
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
@@ -144,7 +145,10 @@ function HTD8() {
     );
 }
 
-function TD1({ text, alertId }) {
+function TD1({
+    text,
+    alertId
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -192,7 +196,9 @@ TD1.propTypes = {
     alertId: PropTypes.any,
 };
 
-function TD2({ text }) {
+function TD2({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -235,7 +241,9 @@ function TD3() {
         </td>
     );
 }
-function TD4({ text }) {
+function TD4({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -292,7 +300,9 @@ function TD5() {
     );
 }
 
-function TD6({ text }) {
+function TD6({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -313,7 +323,9 @@ TD6.propTypes = {
     text: PropTypes.any,
 };
 
-function TD7({ text }) {
+function TD7({
+    text
+}: $TSFixMe) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -361,7 +373,9 @@ TD7.propTypes = {
     text: PropTypes.any,
 };
 
-function TD8({ text }) {
+function TD8({
+    text
+}: $TSFixMe) {
     const incidentStatusColor = {
         identified: 'red',
         acknowledged: 'yellow',
@@ -382,9 +396,11 @@ function TD8({ text }) {
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         {isIncidentStatus ? (
                             <div
+                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                 className={`Badge Badge--color--${incidentStatusColor[text]} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                             >
                                 <span
+                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                     className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                 >
                                     {text}
@@ -421,9 +437,11 @@ function AlertTableHeader() {
     );
 }
 
-function AlertTableRows({ alerts }) {
+function AlertTableRows({
+    alerts
+}: $TSFixMe) {
     return alerts.length > 0
-        ? alerts.map((alert, index) => (
+        ? alerts.map((alert: $TSFixMe, index: $TSFixMe) => (
               <tr
                   key={`alert ${index}`}
                   className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"

@@ -8,7 +8,7 @@ export default {
     // Params:
     // Param 1: req.headers -> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    isAuthorized: function(req, res, next) {
+    isAuthorized: function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         const projectId = apiMiddleware.getProjectId(req);
 
         if (projectId) {

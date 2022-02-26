@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
@@ -10,11 +12,13 @@ import getParentRoute from '../utils/getParentRoute';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import IncomingRequestBox from '../components/webHooks/IncomingRequestBox';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
 class Integrations extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             tabIndex: 0,
@@ -24,8 +28,9 @@ class Integrations extends Component {
         resetIdCounter();
     }
 
-    tabSelected = index => {
+    tabSelected = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
+        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
             tabIndex: index,
@@ -33,8 +38,11 @@ class Integrations extends Component {
     };
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
@@ -46,16 +54,19 @@ class Integrations extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
+                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
                     route={getParentRoute(pathname)}
                     name="Project Settings"
                 />
                 <BreadCrumbItem route={pathname} name="Integrations" />
                 <Tabs
                     selectedTabClassName={'custom-tab-selected'}
-                    onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    onSelect={(tabIndex: $TSFixMe) => this.tabSelected(tabIndex)}
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'tabIndex' does not exist on type 'Readon... Remove this comment to see the full error message
                     selectedIndex={this.state.tabIndex}
                 >
                     <div className="Flex-flex Flex-direction--columnReverse">
@@ -110,6 +121,7 @@ class Integrations extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 Integrations.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
@@ -118,9 +130,10 @@ Integrations.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 Integrations.displayName = 'Integrations';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

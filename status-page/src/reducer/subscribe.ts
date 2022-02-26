@@ -28,7 +28,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action) => {
+export default (state = INITIAL_STATE, action: $TSFixMe) => {
     switch (action.type) {
         case OPEN_SUBSCRIBE_MENU:
             return Object.assign({}, state, {

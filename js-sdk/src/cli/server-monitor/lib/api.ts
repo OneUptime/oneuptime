@@ -12,8 +12,10 @@ import dotenv from 'dotenv'
 dotenv.config();
 
 import Promise from 'promise'
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cron... Remove this comment to see the full error message
 import cron from 'cron'
 import si from 'systeminformation'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"./helpers"' has no exported member 'get'.... Remove this comment to see the full error message
 import { get, post } from './helpers'
 import logger from './logger'
 const {
@@ -32,13 +34,13 @@ const {
  * @return {Object} The ping server cron job.
  */
 const ping = (
-    projectId,
-    monitorId,
-    apiUrl,
-    apiKey,
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    apiUrl: $TSFixMe,
+    apiKey: $TSFixMe,
     interval = '* * * * *',
-    simulate,
-    simulateData
+    simulate: $TSFixMe,
+    simulateData: $TSFixMe
 ) => {
     return new cron.CronJob(
         interval,
@@ -52,7 +54,7 @@ const ping = (
                             `monitor/${projectId}/log/${monitorId}`,
                             simulateData || onlineTestData,
                             apiKey,
-                            log => {
+                            (log: $TSFixMe) => {
                                 logger.debug(log.data);
                                 logger.info(
                                     `${monitorId} - System Information uploaded`
@@ -70,7 +72,7 @@ const ping = (
                             `monitor/${projectId}/log/${monitorId}`,
                             simulateData || degradedTestData,
                             apiKey,
-                            log => {
+                            (log: $TSFixMe) => {
                                 logger.debug(log.data);
                                 logger.info(
                                     `${monitorId} - System Information uploaded`
@@ -88,7 +90,7 @@ const ping = (
                             `monitor/${projectId}/log/${monitorId}`,
                             simulateData || offlineTestData,
                             apiKey,
-                            log => {
+                            (log: $TSFixMe) => {
                                 logger.debug(log.data);
                                 logger.info(
                                     `${monitorId} - System Information uploaded`
@@ -130,10 +132,12 @@ const ping = (
                                                   (used, partitionUsed) =>
                                                       used + partitionUsed
                                               )
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'used' does not exist on type 'FsSizeData... Remove this comment to see the full error message
                                         : storage.used,
                                 totalStorage:
                                     storage && storage.length > 0
                                         ? storage[0].size
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'size' does not exist on type 'FsSizeData... Remove this comment to see the full error message
                                         : storage.size,
                                 storageUsage:
                                     storage && storage.length > 0
@@ -143,6 +147,7 @@ const ping = (
                                                   (use, partitionUse) =>
                                                       use + partitionUse
                                               )
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'use' does not exist on type 'FsSizeData[... Remove this comment to see the full error message
                                         : storage.use,
                                 mainTemp: data[3].main,
                                 maxTemp: data[3].max,
@@ -154,13 +159,13 @@ const ping = (
                                 `monitor/${projectId}/log/${monitorId}`,
                                 data,
                                 apiKey,
-                                log => {
+                                (log: $TSFixMe) => {
                                     logger.debug(log.data);
                                     logger.info(
                                         `${monitorId} - System Information uploaded`
                                     );
                                 },
-                                error => logger.error(error)
+                                (error: $TSFixMe) => logger.error(error)
                             );
                         })
                         .catch(error => {
@@ -182,13 +187,13 @@ const ping = (
  * @return {Object} The server monitor handlers.
  */
 
-export default function(config, apiUrl, apiKey, monitorId) {
-    let pingServer,
+export default function(config: $TSFixMe, apiUrl: $TSFixMe, apiKey: $TSFixMe, monitorId: $TSFixMe) {
+    let pingServer: $TSFixMe,
         projectId = config,
-        interval,
-        timeout,
-        simulate,
-        simulateData;
+        interval: $TSFixMe,
+        timeout: $TSFixMe,
+        simulate: $TSFixMe,
+        simulateData: $TSFixMe;
 
     if (typeof config === 'object') {
         projectId = config.projectId;
@@ -212,7 +217,7 @@ export default function(config, apiUrl, apiKey, monitorId) {
                 id && typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;
 
-            return get(apiUrl, url, apiKey, response => {
+            return get(apiUrl, url, apiKey, (response: $TSFixMe) => {
                 return new Promise((resolve, reject) => {
                     const data = response.data;
 
@@ -247,7 +252,7 @@ export default function(config, apiUrl, apiKey, monitorId) {
                     }
                 });
             })
-                .then(monitorId => {
+                .then((monitorId: $TSFixMe) => {
                     return new Promise((resolve, reject) => {
                         if (monitorId) {
                             logger.info('Starting Server Monitor...');
@@ -276,7 +281,7 @@ export default function(config, apiUrl, apiKey, monitorId) {
                         }
                     });
                 })
-                .catch(error => {
+                .catch((error: $TSFixMe) => {
                     if (typeof error !== 'number') logger.error(error);
 
                     const errorCode = typeof error === 'number' ? error : 1;

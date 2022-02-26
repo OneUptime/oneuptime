@@ -2,17 +2,18 @@ import React, { Component } from 'react';
 import Button from '../basic/Button';
 import PropTypes from 'prop-types';
 export default class TableActionButtons extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'actionButtons' does not exist on type 'R... Remove this comment to see the full error message
         const { actionButtons, item } = this.props;
 
         return (
             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord">
                 {actionButtons &&
-                    actionButtons.map((actionButton, i) => {
+                    actionButtons.map((actionButton: $TSFixMe, i: $TSFixMe) => {
                         return (
                             <div
                                 key={i}
@@ -28,6 +29,7 @@ export default class TableActionButtons extends Component {
                                         style={{ marginRight: '4px' }}
                                     >
                                         <Button
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ title: any; id: any; onClick: () => any; d... Remove this comment to see the full error message
                                             title={actionButton.title}
                                             id={actionButton.id}
                                             onClick={() =>
@@ -46,6 +48,7 @@ export default class TableActionButtons extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TableActionButtons.propTypes = {
     item: PropTypes.object.isRequired,
     actionButtons: PropTypes.array,

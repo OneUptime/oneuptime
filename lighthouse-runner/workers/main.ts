@@ -8,7 +8,7 @@ export default {
             let monitors = await getApi('lighthouse/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
-                monitors.map(monitor => {
+                monitors.map((monitor: $TSFixMe) => {
                     if (monitor.type === 'url') {
                         if (monitor.pollTime && monitor.pollTime.length > 0) {
                             // This checks that the ssl result has already been published i.e probe is runnning.

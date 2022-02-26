@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { resetTeamDelete } from '../../actions/team';
@@ -17,7 +18,8 @@ class RemoveTeamUserModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data, resetTeamDelete } = this.props;
         switch (e.key) {
             case 'Escape':
@@ -31,17 +33,24 @@ class RemoveTeamUserModal extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             id: this.props.data.removeUserModalId,
         });
     };
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamUserDelete' does not exist on type '... Remove this comment to see the full error message
             teamUserDelete,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             data,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetTeamDelete' does not exist on type ... Remove this comment to see the full error message
             resetTeamDelete,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
             deleting,
         } = this.props;
         return (
@@ -130,23 +139,25 @@ class RemoveTeamUserModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 RemoveTeamUserModal.displayName = 'RemoveTeamUserModal';
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const userId =
         props.data && props.data.values && props.data.values.userId
             ? props.data.values.userId
             : null;
     return {
         teamUserDelete: state.team.teamdelete,
-        deleting: state.team.teamdelete.deleting.some(id => id === userId),
+        deleting: state.team.teamdelete.deleting.some((id: $TSFixMe) => id === userId),
     };
 };
 
-const mapDispatchToProps = dispatch => {
+const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ closeModal, resetTeamDelete }, dispatch);
 };
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 RemoveTeamUserModal.propTypes = {
     closeModal: PropTypes.func,
     data: PropTypes.object,

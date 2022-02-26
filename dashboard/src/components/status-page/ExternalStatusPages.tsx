@@ -5,24 +5,30 @@ import { fetchExternalStatusPages } from '../../actions/statusPage';
 import ExternalStatusPagesTable from '../basic/ExternalStatusPagesTable';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import AddExternalStatusPagesModal from '../modals/AddExternalStatusPagesModal';
 import { openModal } from '../../actions/modal';
 
 export class ExternalStatusPages extends Component {
+    handleKeyBoard: $TSFixMe;
     state = {
         externalStatusPageModalId: uuidv4(),
     };
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchExternalStatusPages' does not exist... Remove this comment to see the full error message
         this.props.fetchExternalStatusPages(
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.subProjectId,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
             this.props.statusPageId
         );
     }
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { statusPage, openModal } = this.props;
         const { externalStatusPageModalId } = this.state;
         return (
@@ -82,6 +88,7 @@ export class ExternalStatusPages extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root">
                                     <fieldset className="Box-background--white">
                                         <ExternalStatusPagesTable
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ statusPage: any; }' is not assignable to t... Remove this comment to see the full error message
                                             statusPage={statusPage}
                                         />
                                         <ShouldRender
@@ -148,8 +155,10 @@ export class ExternalStatusPages extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ExternalStatusPages.displayName = 'ExternalStatusPages';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ExternalStatusPages.propTypes = {
     openModal: PropTypes.func,
     statusPage: PropTypes.object.isRequired,
@@ -158,16 +167,15 @@ ExternalStatusPages.propTypes = {
     statusPageId: PropTypes.string,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            fetchExternalStatusPages,
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        fetchExternalStatusPages,
+        openModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         statusPage: state.statusPage,
     };

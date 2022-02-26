@@ -7,7 +7,7 @@ const initialState = {
     },
 };
 
-export default function dateTime(state = initialState, action) {
+export default function dateTime(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case 'SET_START_DATE':
             return Object.assign({}, state, {

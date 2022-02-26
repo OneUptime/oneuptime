@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
 import { PropTypes } from 'prop-types';
 
 const DropDownMenu = ({
@@ -6,12 +7,13 @@ const DropDownMenu = ({
     value,
     updateState,
     ready,
-    showMainProject,
-}) => {
+    showMainProject
+}: $TSFixMe) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
-    const handleClickOutside = event => {
+    const handleClickOutside = (event: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
         }
@@ -26,7 +28,7 @@ const DropDownMenu = ({
         };
     });
 
-    const onClick = val => {
+    const onClick = (val: $TSFixMe) => {
         setOpen(false);
         updateState(val);
     };
@@ -80,7 +82,7 @@ const DropDownMenu = ({
                         {options && options.length > 1 && (
                             <section>
                                 <span style={sectionStyle}>Sub Projects</span>
-                                {options.map((data, index) =>
+                                {options.map((data: $TSFixMe, index: $TSFixMe) =>
                                     index === 0 ? null : (
                                         <span
                                             key={data.value}

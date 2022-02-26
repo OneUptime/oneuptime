@@ -56,11 +56,14 @@ router.get('/', async (req, res) => {
 
         // handle redis related operation to test the health
         try {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'redisClient' does not exist on type 'Glo... Remove this comment to see the full error message
             if (global.redisClient) {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'redisClient' does not exist on type 'Glo... Remove this comment to see the full error message
                 await global.redisClient.set(
                     'status',
                     'Redis status is online'
                 );
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'redisClient' does not exist on type 'Glo... Remove this comment to see the full error message
                 const value = await global.redisClient.get('status');
 
                 if (!value) {

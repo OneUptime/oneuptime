@@ -1,16 +1,26 @@
 import chai from 'chai'
 chai.use(require('chai-http'));
 const expect = require('chai').expect;
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'urld... Remove this comment to see the full error message
 import decode from 'urldecode'
 
 const methods = {
-    getAuthorizationHeader: ({ jwtToken }) => `Basic ${jwtToken}`,
-    login: async ({ request, email, password }) =>
+    getAuthorizationHeader: ({
+        jwtToken
+    }: $TSFixMe) => `Basic ${jwtToken}`,
+    login: async ({
+        request,
+        email,
+        password
+    }: $TSFixMe) =>
         await request.post('/user/login').send({
             email,
             password,
         }),
-    ssoLogin: async ({ request, email }) =>
+    ssoLogin: async ({
+        request,
+        email
+    }: $TSFixMe) =>
         await request.get(`/api/user/sso/login?email=${email}`),
     /**
    * Example of payload:
@@ -21,7 +31,12 @@ const methods = {
         data: {},
       }
    */
-    createComponent: async ({ request, authorization, projectId, payload }) => {
+    createComponent: async ({
+        request,
+        authorization,
+        projectId,
+        payload
+    }: $TSFixMe) => {
         return await request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
@@ -39,7 +54,12 @@ const methods = {
         criteria: {},
       }
    */
-    createMonitor: async ({ request, authorization, projectId, payload }) => {
+    createMonitor: async ({
+        request,
+        authorization,
+        projectId,
+        payload
+    }: $TSFixMe) => {
         return await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -62,8 +82,8 @@ const methods = {
         authorization,
         projectId,
         monitorId,
-        payload,
-    }) => {
+        payload
+    }: $TSFixMe) => {
         return await request
             .post(`/subscriber/${projectId}/subscribe/${monitorId}`)
             .set('Authorization', authorization)
@@ -73,14 +93,19 @@ const methods = {
         request,
         authorization,
         projectId,
-        rechargeBalanceAmount,
-    }) => {
+        rechargeBalanceAmount
+    }: $TSFixMe) => {
         return await request
             .post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({ rechargeBalanceAmount });
     },
-    createSchedule: async ({ request, authorization, projectId, name }) => {
+    createSchedule: async ({
+        request,
+        authorization,
+        projectId,
+        name
+    }: $TSFixMe) => {
         return await request
             .post(`/schedule/${projectId}`)
             .set('Authorization', authorization)
@@ -95,8 +120,8 @@ const methods = {
         authorization,
         projectId,
         scheduleId,
-        payload,
-    }) => {
+        payload
+    }: $TSFixMe) => {
         return await request
             .put(`/schedule/${projectId}/${scheduleId}`)
             .set('Authorization', authorization)
@@ -132,8 +157,8 @@ const methods = {
         authorization,
         projectId,
         scheduleId,
-        payload,
-    }) => {
+        payload
+    }: $TSFixMe) => {
         return await request
             .post(`/schedule/${projectId}/${scheduleId}/addescalation`)
             .set('Authorization', authorization)
@@ -145,8 +170,8 @@ const methods = {
         projectId,
         incidentId,
         skip = 0,
-        limit = 999,
-    }) => {
+        limit = 999
+    }: $TSFixMe) => {
         return await request
             .get(
                 `/subscriberAlert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`
@@ -158,8 +183,8 @@ const methods = {
         authorization,
         projectId,
         skip = 0,
-        limit = 999,
-    }) => {
+        limit = 999
+    }: $TSFixMe) => {
         return await request
             .get(
                 `/alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`
@@ -172,15 +197,18 @@ const methods = {
         projectId,
         incidentId,
         skip = 0,
-        limit = 999,
-    }) => {
+        limit = 999
+    }: $TSFixMe) => {
         return await request
             .get(
                 `/alert/${projectId}/incident/${incidentId}?skip=${skip}&limit=${limit}`
             )
             .set('Authorization', authorization);
     },
-    verifyToken: async ({ request, token }) => {
+    verifyToken: async ({
+        request,
+        token
+    }: $TSFixMe) => {
         return await request.get(`/user/confirmation/${token}`).redirects(0);
     },
     /**
@@ -193,7 +221,12 @@ const methods = {
         description: 'Incident description',
       };
    */
-    createIncident: async ({ request, authorization, projectId, payload }) => {
+    createIncident: async ({
+        request,
+        authorization,
+        projectId,
+        payload
+    }: $TSFixMe) => {
         return await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
@@ -203,8 +236,8 @@ const methods = {
         request,
         authorization,
         projectId,
-        incidentId,
-    }) => {
+        incidentId
+    }: $TSFixMe) => {
         return await request
             .post(`/incident/${projectId}/acknowledge/${incidentId}`)
             .set('Authorization', authorization);
@@ -213,8 +246,8 @@ const methods = {
         request,
         authorization,
         subProjectId,
-        incidentId,
-    }) => {
+        incidentId
+    }: $TSFixMe) => {
         return await request
             .post(`/incident/${subProjectId}/acknowledge/${incidentId}`)
             .set('Authorization', authorization);
@@ -223,8 +256,8 @@ const methods = {
         request,
         authorization,
         projectId,
-        incidentId,
-    }) => {
+        incidentId
+    }: $TSFixMe) => {
         return await request
             .post(`/incident/${projectId}/resolve/${incidentId}`)
             .set('Authorization', authorization);
@@ -233,8 +266,8 @@ const methods = {
         request,
         authorization,
         subProjectId,
-        incidentId,
-    }) => {
+        incidentId
+    }: $TSFixMe) => {
         return await request
             .post(`/incident/${subProjectId}/resolve/${incidentId}`)
             .set('Authorization', authorization);
@@ -245,16 +278,28 @@ const methods = {
      *  projectName: 'PROJECT_NAME'
      * }
      */
-    createProject: async ({ request, authorization, payload }) =>
+    createProject: async ({
+        request,
+        authorization,
+        payload
+    }: $TSFixMe) =>
         await request
             .post(`/api/project/create`)
             .set('Authorization', authorization)
             .send(payload),
-    fetchProject: async ({ request, authorization, projectId }) =>
+    fetchProject: async ({
+        request,
+        authorization,
+        projectId
+    }: $TSFixMe) =>
         await request
             .get(`/api/project/projects/${projectId}`)
             .set('Authorization', authorization),
-    deleteProject: async ({ request, authorization, id }) =>
+    deleteProject: async ({
+        request,
+        authorization,
+        id
+    }: $TSFixMe) =>
         await request
             .delete(`/api/project/${id}/deleteProject`)
             .set('Authorization', authorization),
@@ -270,12 +315,20 @@ const methods = {
      *          'http://localhost:9876/logout',
      *  }
      */
-    createSso: async ({ request, authorization, payload }) =>
+    createSso: async ({
+        request,
+        authorization,
+        payload
+    }: $TSFixMe) =>
         await request
             .post(`/api/sso/`)
             .set('Authorization', authorization)
             .send(payload),
-    deleteSso: async ({ request, authorization, id }) =>
+    deleteSso: async ({
+        request,
+        authorization,
+        id
+    }: $TSFixMe) =>
         await request
             .delete(`/api/sso/${id}`)
             .set('Authorization', authorization),
@@ -286,32 +339,57 @@ const methods = {
      *      role: "Viewer",
      *  }
      */
-    createSsoDefaultRole: async ({ request, authorization, payload }) =>
+    createSsoDefaultRole: async ({
+        request,
+        authorization,
+        payload
+    }: $TSFixMe) =>
         await request
             .post(`/api/ssoDefaultRoles/`)
             .set('Authorization', authorization)
             .send(payload),
-    updateSsoDefaultRole: async ({ request, authorization, id, payload }) =>
+    updateSsoDefaultRole: async ({
+        request,
+        authorization,
+        id,
+        payload
+    }: $TSFixMe) =>
         await request
             .put(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization)
             .send(payload),
-    fetchSsoDefaultRoles: async ({ request, authorization }) =>
+    fetchSsoDefaultRoles: async ({
+        request,
+        authorization
+    }: $TSFixMe) =>
         await request
             .get(`/api/ssoDefaultRoles/`)
             .set('Authorization', authorization),
-    fetchSsoDefaultRole: async ({ request, authorization, id }) =>
+    fetchSsoDefaultRole: async ({
+        request,
+        authorization,
+        id
+    }: $TSFixMe) =>
         await request
             .get(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
-    deleteSsoDefaultRole: async ({ request, authorization, id }) =>
+    deleteSsoDefaultRole: async ({
+        request,
+        authorization,
+        id
+    }: $TSFixMe) =>
         await request
             .delete(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
-    fetchIdpSAMLResponse: async ({ SAMLRequest, username, password }) => {
+    fetchIdpSAMLResponse: async ({
+        SAMLRequest,
+        username,
+        password
+    }: $TSFixMe) => {
         let firstIdpResponse;
         try {
             const response = await chai
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
                 .request(SAMLRequest)
                 .get('')
                 .redirects(0);
@@ -328,6 +406,7 @@ const methods = {
         const [postSubmissionUrl, AuthState] = location.split('AuthState=');
 
         const samlResponsePage = await chai
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
             .request(postSubmissionUrl)
             .post('')
             .set('Referer', SAMLRequest)
@@ -342,6 +421,7 @@ const methods = {
         const {
             res: { text: html },
         } = samlResponsePage;
+        // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
         import { parse } from 'node-html-parser'
         const root = parse(html);
         const input = root.querySelectorAll('input')[1];
@@ -352,17 +432,22 @@ const methods = {
 };
 
 const proxy = new Proxy(methods, {
+    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ shared: {}; setShared: (args: ... Remove this comment to see the full error message
     shared: {},
-    setShared: function(args) {
+    setShared: function(args: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shared' does not exist on type 'ProxyHan... Remove this comment to see the full error message
         this.shared = { ...this.shared, ...args };
         return this.shared;
     },
-    unsetShared: function(attribute) {
+    unsetShared: function(attribute: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shared' does not exist on type 'ProxyHan... Remove this comment to see the full error message
         if (this.shared[attribute]) delete this.shared[attribute];
         return this.shared;
     },
     get: function(target, prop) {
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (this[prop]) return (args = {}) => this[prop](args);
+        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return (args = {}) => target[prop]({ ...this.shared, ...args });
     },
 });

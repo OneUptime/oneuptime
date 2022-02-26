@@ -1,5 +1,6 @@
 import ContainerSecurityModel from '../models/containerSecurity'
 import moment from 'moment'
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
 import { decrypt } from '../config/encryptDecrypt'
 import ContainerSecurityLogService from './containerSecurityLogService'
 import DockerCredentialService from './dockerCredentialService'
@@ -10,7 +11,7 @@ import handlePopulate from '../utils/populate'
 import RealTimeService from './realTimeService'
 
 export default {
-    create: async function(data) {
+    create: async function(data: $TSFixMe) {
         const [
             containerNameExist,
             imagePathExist,
@@ -37,6 +38,7 @@ export default {
             const error = new Error(
                 'Container security with this name already exist in this component'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -45,6 +47,7 @@ export default {
             const error = new Error(
                 'Container security with this image path already exist in this component'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -53,6 +56,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -66,7 +70,11 @@ export default {
         const containerSecurity = await ContainerSecurityModel.create(data);
         return containerSecurity;
     },
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function({
+        query,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -82,7 +90,13 @@ export default {
         const containerSecurity = await containerSecurityQuery;
         return containerSecurity;
     },
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function({
+        query,
+        limit,
+        skip,
+        select,
+        populate
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -109,7 +123,7 @@ export default {
         const containerSecurities = await containerSecurityQuery;
         return containerSecurities;
     },
-    updateOneBy: async function(query, data, unsetData = null) {
+    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -128,6 +142,7 @@ export default {
         );
 
         if (unsetData) {
+            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
             containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -141,6 +156,7 @@ export default {
             const error = new Error(
                 'Container Security not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -163,7 +179,7 @@ export default {
         });
         return containerSecurity;
     },
-    deleteBy: async function(query) {
+    deleteBy: async function(query: $TSFixMe) {
         let containerSecurity = await this.findOneBy({
             query,
             select: '_id',
@@ -173,6 +189,7 @@ export default {
             const error = new Error(
                 'Container Security not found or does not exist'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             throw error;
         }
@@ -184,6 +201,7 @@ export default {
 
         if (securityLog) {
             await ContainerSecurityLogService.deleteBy({
+                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 _id: securityLog._id,
             });
         }
@@ -199,7 +217,7 @@ export default {
         });
         return containerSecurity;
     },
-    hardDelete: async function(query) {
+    hardDelete: async function(query: $TSFixMe) {
         await ContainerSecurityModel.deleteMany(query);
         return 'Container Securities deleted successfully';
     },
@@ -228,7 +246,7 @@ export default {
         });
         return securities;
     },
-    decryptPassword: async function(security) {
+    decryptPassword: async function(security: $TSFixMe) {
         const values = [];
         for (let i = 0; i <= 15; i++)
             values.push(security.dockerCredential.iv[i]);
@@ -239,7 +257,7 @@ export default {
         );
         return security;
     },
-    updateScanTime: async function(query) {
+    updateScanTime: async function(query: $TSFixMe) {
         const newDate = new Date();
         const containerSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -250,7 +268,7 @@ export default {
         RealTimeService.handleScanning({ security: containerSecurity });
         return containerSecurity;
     },
-    async countBy(query) {
+    async countBy(query: $TSFixMe) {
         if (!query) {
             query = {};
         }

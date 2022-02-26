@@ -18,7 +18,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action) => {
+export default (state = initialState, action: $TSFixMe) => {
     switch (action.type) {
         case GET_VERSION_FAILED:
             return Object.assign({}, state, {

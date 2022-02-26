@@ -11,7 +11,7 @@ const initialState = {
     success: false,
 };
 
-export default function register(state = initialState, action) {
+export default function register(state = initialState, action: $TSFixMe) {
     switch (action.type) {
         case RESENDTOKEN_REQUEST:
             return Object.assign({}, state, {

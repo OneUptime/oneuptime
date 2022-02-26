@@ -1,5 +1,6 @@
 import express from 'express'
 const getUser = require('../middlewares/user').getUser;
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
 import { isAuthorized } from '../middlewares/authorization'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -45,24 +46,28 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!name || !name.trim()) {
             const error = new Error('SLA name is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!monitorUptime || !monitorUptime.trim()) {
             const error = new Error('Monitor uptime is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (frequency && isNaN(frequency)) {
             const error = new Error('Please use numeric values for frequency');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (frequency && Number(frequency) < 1) {
             const error = new Error('At lease a single day is needed');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -71,6 +76,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Please use numeric values for monitor uptime'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -79,6 +85,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Monitor Uptime less than 1 is not allowed'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -87,6 +94,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Monitor Uptime greater than 100 is not allowed'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -110,24 +118,28 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
 
         if (!handleDefault && (!name || !name.trim())) {
             const error = new Error('SLA name is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && (!monitorUptime || !monitorUptime.trim())) {
             const error = new Error('Monitor uptime is required');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && frequency && isNaN(frequency)) {
             const error = new Error('Please use numeric values for frequency');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && frequency && Number(frequency) < 1) {
             const error = new Error('At lease a single day is needed');
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -136,6 +148,7 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Please use numeric values for monitor uptime'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -144,6 +157,7 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Monitor Uptime less than 1 is not allowed'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -152,6 +166,7 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Monitor Uptime greater than 100 is not allowed'
             );
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }

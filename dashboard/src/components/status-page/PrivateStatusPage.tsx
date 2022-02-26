@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { Field, FieldArray, reduxForm } from 'redux-form';
 import {
     updatePrivateStatusPage,
@@ -12,6 +13,7 @@ import {
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
@@ -20,8 +22,9 @@ import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
 export class PrivateStatusPage extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
+        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
         this.props = props;
         this.state = {
             subscriberAdvanceOptionModalId: uuidv4(),
@@ -29,18 +32,20 @@ export class PrivateStatusPage extends Component {
         };
     }
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
         const { status } = this.props.statusPage;
         const { projectId } = status;
 
         if (values.ipWhitelist && values.ipWhitelist.length > 0) {
             const ipWhitelist = values.ipWhitelist.filter(
-                ip => typeof ip === 'string'
+                (ip: $TSFixMe) => typeof ip === 'string'
             );
             values.ipWhitelist = ipWhitelist;
         }
 
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatePrivateStatusPage' does not exist ... Remove this comment to see the full error message
             .updatePrivateStatusPage(projectId._id || projectId, {
                 _id: status._id,
                 isPrivate: values.isPrivate,
@@ -61,6 +66,7 @@ export class PrivateStatusPage extends Component {
                 twitterHandle: values.twitterHandle,
             })
             .then(() => {
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectStatusPage' does not exist o... Remove this comment to see the full error message
                 this.props.fetchProjectStatusPage(
                     projectId._id || projectId,
                     true
@@ -70,81 +76,85 @@ export class PrivateStatusPage extends Component {
 
     showMoreOptionsToggle = () => {
         this.setState(prevState => ({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showMoreOptions' does not exist on type ... Remove this comment to see the full error message
             showMoreOptions: !prevState.showMoreOptions,
         }));
     };
 
-    renderIpWhitelist = ({ fields }) => {
+    renderIpWhitelist = ({
+        fields
+    }: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
         const { formValues } = this.props;
-        return (
-            <>
-                {formValues && formValues.showIpWhitelistInput && (
-                    <div
-                        style={{
-                            width: '100%',
+        return <>
+            {formValues && formValues.showIpWhitelistInput && (
+                <div
+                    style={{
+                        width: '100%',
+                    }}
+                >
+                    <button
+                        id="addIpList"
+                        className="Button bs-ButtonLegacy ActionIconParent"
+                        type="button"
+                        onClick={() => {
+                            fields.push();
                         }}
                     >
-                        <button
-                            id="addIpList"
-                            className="Button bs-ButtonLegacy ActionIconParent"
-                            type="button"
-                            onClick={() => {
-                                fields.push();
-                            }}
-                        >
-                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                <span>Add IP</span>
-                            </span>
-                        </button>
-                        {fields.map((field, index) => {
-                            return (
-                                <div
+                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                            <span>Add IP</span>
+                        </span>
+                    </button>
+                    {fields.map((field: $TSFixMe, index: $TSFixMe) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '65%',
+                                    marginBottom: 10,
+                                    marginTop: 10,
+                                }}
+                                key={index}
+                            >
+                                <Field
+                                    component={RenderField}
+                                    name={field}
+                                    id={`ipWhitelist_${index}`}
+                                    placeholder="118.127.63.27"
+                                    className="bs-TextInput"
                                     style={{
-                                        width: '65%',
-                                        marginBottom: 10,
+                                        width: '100%',
+                                        padding: '3px 5px',
+                                    }}
+                                />
+                                <button
+                                    id="removeIp"
+                                    className="Button bs-ButtonLegacy ActionIconParent"
+                                    style={{
                                         marginTop: 10,
                                     }}
-                                    key={index}
+                                    type="button"
+                                    onClick={() => {
+                                        fields.remove(index);
+                                    }}
                                 >
-                                    <Field
-                                        component={RenderField}
-                                        name={field}
-                                        id={`ipWhitelist_${index}`}
-                                        placeholder="118.127.63.27"
-                                        className="bs-TextInput"
-                                        style={{
-                                            width: '100%',
-                                            padding: '3px 5px',
-                                        }}
-                                    />
-                                    <button
-                                        id="removeIp"
-                                        className="Button bs-ButtonLegacy ActionIconParent"
-                                        style={{
-                                            marginTop: 10,
-                                        }}
-                                        type="button"
-                                        onClick={() => {
-                                            fields.remove(index);
-                                        }}
-                                    >
-                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                            <span>Remove IP</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </>
-        );
+                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                        <span>Remove IP</span>
+                                    </span>
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </>;
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit, formValues } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriberAdvanceOptionModalId' does not... Remove this comment to see the full error message
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
-        const historyLimit = value => {
+        const historyLimit = (value: $TSFixMe) => {
             if (value < 1) {
                 return 1;
             } else if (value > 30) {
@@ -473,6 +483,7 @@ export class PrivateStatusPage extends Component {
                                                                     'pointer',
                                                             }}
                                                             onClick={() => {
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
                                                                 this.props.openModal(
                                                                     {
                                                                         id: subscriberAdvanceOptionModalId,
@@ -1427,6 +1438,7 @@ export class PrivateStatusPage extends Component {
                                 >
                                     <ShouldRender
                                         if={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.statusPage
                                                 .privateStatusPage.error
                                         }
@@ -1437,6 +1449,7 @@ export class PrivateStatusPage extends Component {
                                         <div className="Box-root">
                                             <span style={{ color: 'red' }}>
                                                 {
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                     this.props.statusPage
                                                         .privateStatusPage.error
                                                 }
@@ -1449,14 +1462,17 @@ export class PrivateStatusPage extends Component {
                                 <button
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                         this.props.statusPage.privateStatusPage
                                             .requesting
                                     }
                                     type="submit"
                                     id="saveAdvancedOptions"
                                 >
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                     {!this.props.statusPage.privateStatusPage
                                         .requesting && <span>Save </span>}
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                     {this.props.statusPage.privateStatusPage
                                         .requesting && <FormLoader />}
                                 </button>
@@ -1469,6 +1485,7 @@ export class PrivateStatusPage extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 PrivateStatusPage.displayName = 'PrivateStatusPage';
 
 const PrivateStatusPageForm = reduxForm({
@@ -1476,6 +1493,7 @@ const PrivateStatusPageForm = reduxForm({
     enableReinitialize: true,
 })(PrivateStatusPage);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 PrivateStatusPage.propTypes = {
     updatePrivateStatusPage: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
@@ -1485,20 +1503,19 @@ PrivateStatusPage.propTypes = {
     formValues: PropTypes.object,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            updatePrivateStatusPage,
-            updatePrivateStatusPageRequest,
-            updatePrivateStatusPageSuccess,
-            updatePrivateStatusPageError,
-            fetchProjectStatusPage,
-            openModal,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        updatePrivateStatusPage,
+        updatePrivateStatusPageRequest,
+        updatePrivateStatusPageSuccess,
+        updatePrivateStatusPageError,
+        fetchProjectStatusPage,
+        openModal,
+    },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     const initialValues = {};
     const { currentProject } = state.project;
     const {
@@ -1507,24 +1524,41 @@ const mapStateToProps = state => {
     } = state;
 
     if (status) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPrivate' does not exist on type '{}'.
         initialValues.isPrivate = status.isPrivate;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isSubscriberEnabled' does not exist on t... Remove this comment to see the full error message
         initialValues.isSubscriberEnabled = status.isSubscriberEnabled;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isGroupedByMonitorCategory' does not exi... Remove this comment to see the full error message
         initialValues.isGroupedByMonitorCategory =
             status.isGroupedByMonitorCategory;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showScheduledEvents' does not exist on t... Remove this comment to see the full error message
         initialValues.showScheduledEvents = status.showScheduledEvents;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableIpWhitelist' does not exist on typ... Remove this comment to see the full error message
         initialValues.enableIpWhitelist = status.enableIpWhitelist;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
         initialValues.ipWhitelist = status.ipWhitelist;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProbeBar' does not exist on type '{}... Remove this comment to see the full error message
         initialValues.hideProbeBar = status.hideProbeBar;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideUptime' does not exist on type '{}'.
         initialValues.hideUptime = status.hideUptime;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideResolvedIncident' does not exist on ... Remove this comment to see the full error message
         initialValues.hideResolvedIncident = status.hideResolvedIncident;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentHistoryDays' does not exist on t... Remove this comment to see the full error message
         initialValues.incidentHistoryDays = status.incidentHistoryDays;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleHistoryDays' does not exist on t... Remove this comment to see the full error message
         initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcementLogsHistory' does not exist ... Remove this comment to see the full error message
         initialValues.announcementLogsHistory = status.announcementLogsHistory;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onlineText' does not exist on type '{}'.
         initialValues.onlineText = status.onlineText || 'Operational';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'offlineText' does not exist on type '{}'... Remove this comment to see the full error message
         initialValues.offlineText = status.offlineText || 'Offline';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'degradedText' does not exist on type '{}... Remove this comment to see the full error message
         initialValues.degradedText = status.degradedText || 'Degraded';
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'twitterHandle' does not exist on type '{... Remove this comment to see the full error message
         initialValues.twitterHandle = status.twitterHandle;
     }
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'showIpWhitelistInput' does not exist on ... Remove this comment to see the full error message
     initialValues.showIpWhitelistInput = true;
 
     return {

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { openModal, closeModal } from '../../actions/modal';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import PropTypes from 'prop-types';
@@ -11,13 +12,15 @@ import { history } from '../../store';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 
 class ErrorTrackerViewDeleteBox extends Component {
-    constructor(props) {
+    handleKeyBoard: $TSFixMe;
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             deleteModalId: uuidv4(),
         };
     }
     deleteErrorTracker = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
         const { currentProject, errorTracker, deleteErrorTracker } = this.props;
         const componentId = errorTracker.componentId._id;
         const promise = deleteErrorTracker(
@@ -27,13 +30,16 @@ class ErrorTrackerViewDeleteBox extends Component {
         );
         history.push(
             `/dashboard/project/${currentProject.slug}/component/${this.props
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
                 .component && this.props.component.slug}/error-tracker`
         );
 
         return promise;
     };
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { deleteModalId } = this.state;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, errorTracker } = this.props;
         return (
             <div
@@ -86,14 +92,13 @@ class ErrorTrackerViewDeleteBox extends Component {
     }
 }
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
 
-const mapStateToProps = (state, props) => {
+const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const componentId = props.errorTracker.componentId._id;
     let component;
-    state.component.componentList.components.forEach(item => {
-        item.components.forEach(c => {
+    state.component.componentList.components.forEach((item: $TSFixMe) => {
+        item.components.forEach((c: $TSFixMe) => {
             if (String(c._id) === String(componentId)) {
                 component = c;
             }
@@ -104,6 +109,7 @@ const mapStateToProps = (state, props) => {
         component,
     };
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ErrorTrackerViewDeleteBox.propTypes = {
     errorTracker: PropTypes.object,
     openModal: PropTypes.func,
@@ -111,6 +117,7 @@ ErrorTrackerViewDeleteBox.propTypes = {
     deleteErrorTracker: PropTypes.func,
     component: PropTypes.object,
 };
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ErrorTrackerViewDeleteBox.displayName = 'ErrorTrackerViewDeleteBox';
 export default connect(
     mapStateToProps,

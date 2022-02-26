@@ -1,5 +1,5 @@
 export default {
-    generateRandomString: function(length) {
+    generateRandomString: function(length: $TSFixMe) {
         if (!length) {
             length = 10;
         }

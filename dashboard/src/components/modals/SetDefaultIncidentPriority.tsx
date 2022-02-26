@@ -2,9 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+// @ts-expect-error ts-migrate(2305) FIXME: Module '"../../actions/incidentBasicsSettings"' ha... Remove this comment to see the full error message
 import { updateDefaultIncidentSettings } from '../../actions/incidentBasicsSettings';
 
 class SetDefaultIncidentPriority extends Component {
@@ -17,19 +19,24 @@ class SetDefaultIncidentPriority extends Component {
     }
 
     handleSubmit() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
         const { data } = this.props;
         const incidentPriorityId = data.incidentPriorityId;
         this.props
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateDefaultIncidentSettings' does not ... Remove this comment to see the full error message
             .updateDefaultIncidentSettings(
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
                 this.props.currentProject._id,
                 incidentPriorityId
             )
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
             .then(() => this.props.closeThisDialog());
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleSubmit();
@@ -39,6 +46,7 @@ class SetDefaultIncidentPriority extends Component {
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
         const { closeThisDialog, data } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -72,6 +80,7 @@ class SetDefaultIncidentPriority extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -92,6 +101,7 @@ class SetDefaultIncidentPriority extends Component {
                                             </span>
                                             <ShouldRender
                                                 if={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatedIncident' does not exist on type ... Remove this comment to see the full error message
                                                     this.props.updatedIncident
                                                         .requesting
                                                 }
@@ -110,8 +120,10 @@ class SetDefaultIncidentPriority extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SetDefaultIncidentPriority.displayName = 'SetDefaultIncidentPriorityFormModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 SetDefaultIncidentPriority.propTypes = {
     updateDefaultIncidentSettings: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
@@ -120,7 +132,7 @@ SetDefaultIncidentPriority.propTypes = {
     data: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         updatedIncident:
             state.incidentBasicSettings.updateIncidentBasicSettings,
@@ -128,13 +140,12 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            updateDefaultIncidentSettings,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        updateDefaultIncidentSettings,
+    },
+    dispatch
+);
 
 export default connect(
     mapStateToProps,

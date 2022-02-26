@@ -1,11 +1,14 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'sane... Remove this comment to see the full error message
 import isEmail from 'sane-email-validation';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
 import validUrl from 'valid-url';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
-export function env(value) {
+export function env(value: $TSFixMe) {
+    // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -58,11 +61,11 @@ export const User = {
         return localStorage.getItem('access_token');
     },
 
-    setAccessToken(token) {
+    setAccessToken(token: $TSFixMe) {
         localStorage.setItem('access_token', token);
     },
 
-    setUserId(id) {
+    setUserId(id: $TSFixMe) {
         localStorage.setItem('id', id);
     },
 
@@ -89,15 +92,15 @@ export const User = {
 
 // Data validation Util goes in here.
 export const Validate = {
-    isDomain(domain) {
+    isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
 
-    url(url) {
+    url(url: $TSFixMe) {
         return validUrl.isUri(url);
     },
 
-    text(text) {
+    text(text: $TSFixMe) {
         if (!text || text.trim() === '') {
             return false;
         }
@@ -105,18 +108,18 @@ export const Validate = {
         return true;
     },
 
-    email(email) {
+    email(email: $TSFixMe) {
         if (this.text(email)) return isEmail(email);
 
         return false;
     },
 
-    compare(text1, text2) {
+    compare(text1: $TSFixMe, text2: $TSFixMe) {
         return text1 === text2;
     },
 };
 
-export function getQueryVar(variable, url) {
+export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
     if (!url) url = window.location.href;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -126,16 +129,16 @@ export function getQueryVar(variable, url) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export const bindRaf = fn => {
-    let isRunning = null;
-    let args = null;
+export const bindRaf = (fn: $TSFixMe) => {
+    let isRunning: $TSFixMe = null;
+    let args: $TSFixMe = null;
 
     const run = () => {
         isRunning = false;
         fn(...args);
     };
 
-    return function(...invokingArguments) {
+    return function(...invokingArguments: $TSFixMe[]) {
         args = invokingArguments;
 
         if (isRunning) {
@@ -147,13 +150,13 @@ export const bindRaf = fn => {
     };
 };
 
-export const filterProbeData = (monitor, probe, backupStatus) => {
+export const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, backupStatus: $TSFixMe) => {
     const monitorStatuses = monitor.statuses || backupStatus;
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
-                ? monitorStatuses.filter(probeStatuses => {
+                ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
                       return (
                           probeStatuses._id === null ||
                           String(probeStatuses._id) === String(probe._id)
@@ -172,10 +175,9 @@ export const filterProbeData = (monitor, probe, backupStatus) => {
     return statuses;
 };
 
-export const getMonitorStatus = statuses =>
-    statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
+export const getMonitorStatus = (statuses: $TSFixMe) => statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
-export function getServiceStatus(monitorsData, probes) {
+export function getServiceStatus(monitorsData: $TSFixMe, probes: $TSFixMe) {
     const monitorsLength = monitorsData.length;
     const probesLength = probes && probes.length;
 
@@ -183,8 +185,9 @@ export function getServiceStatus(monitorsData, probes) {
     let onlineServices = totalServices;
     let degraded = 0;
 
-    monitorsData.forEach(monitor => {
-        probes.forEach(probe => {
+    monitorsData.forEach((monitor: $TSFixMe) => {
+        probes.forEach((probe: $TSFixMe) => {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus = monitor.status
                 ? monitor.status
@@ -208,7 +211,7 @@ export function getServiceStatus(monitorsData, probes) {
     }
 }
 
-export const formatDecimal = (value, decimalPlaces) => {
+export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe) => {
     return Number(
         Math.round(parseFloat(value + 'e' + decimalPlaces)) +
             'e-' +
@@ -216,7 +219,7 @@ export const formatDecimal = (value, decimalPlaces) => {
     ).toFixed(decimalPlaces);
 };
 
-export const formatBytes = (a, b, c, d, e) => {
+export const formatBytes = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe) => {
     return (
         formatDecimal(
             ((b = Math),
@@ -231,37 +234,37 @@ export const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-export const capitalize = words => {
+export const capitalize = (words: $TSFixMe) => {
     if (!words || !words.trim()) return '';
 
     words = words.split(' ');
     words = words.map(
-        word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        (word: $TSFixMe) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     );
 
     return words.join(' ').trim();
 };
 
-export const handleResources = (monitorState, announcement) => {
-    const affectedMonitors = [];
+export const handleResources = (monitorState: $TSFixMe, announcement: $TSFixMe) => {
+    const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
 
     if (announcement.monitors.length <= 0) {
         return 'No resource is affected';
     }
 
-    const announcementMonitors = [];
+    const announcementMonitors: $TSFixMe = [];
     // populate the ids of the announcement monitors in an array
     announcement &&
         announcement.monitors &&
-        announcement.monitors.map(monitor => {
+        announcement.monitors.map((monitor: $TSFixMe) => {
             announcementMonitors.push(
                 String(monitor.monitorId._id || monitor.monitorId)
             );
             return monitor;
         });
 
-    monitorState.map(monitor => {
+    monitorState.map((monitor: $TSFixMe) => {
         if (announcementMonitors.includes(String(monitor._id))) {
             affectedMonitors.push(monitor);
             monitorCount += 1;
@@ -274,6 +277,7 @@ export const handleResources = (monitorState, announcement) => {
         return 'All resources are affected';
     } else {
         const result = affectedMonitors
+            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
             .map(monitor => capitalize(monitor.name))
             .join(', ')
             .replace(/, ([^,]*)$/, ' and $1');
@@ -282,11 +286,13 @@ export const handleResources = (monitorState, announcement) => {
 };
 
 export const cacheProvider = {
-    get: (language, key) =>
+    get: (language: $TSFixMe, key: $TSFixMe) =>
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | null' is not assignable... Remove this comment to see the full error message
         ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
             language
         ],
-    set: (language, key, value) => {
+    set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | null' is not assignable... Remove this comment to see the full error message
         const existing = JSON.parse(localStorage.getItem('translations')) || {
             [key]: {},
         };

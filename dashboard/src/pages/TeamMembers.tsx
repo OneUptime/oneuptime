@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import Fade from 'react-reveal/Fade';
 import {
     subProjectTeamLoading,
@@ -9,6 +10,7 @@ import {
 } from '../actions/team';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
@@ -60,7 +62,7 @@ const LoadingState = () => (
 
 LoadingState.displayName = 'LoadingState';
 
-const LoadedTeam = props => {
+const LoadedTeam = (props: $TSFixMe) => {
     const {
         pages,
         inviteModalId,
@@ -73,18 +75,19 @@ const LoadedTeam = props => {
 
     // Add Project TeamMembers to All TeamMembers List
     let projectTeamMembers = team.subProjectTeamMembers.find(
-        subProjectTeamMember => subProjectTeamMember._id === currentProjectId
+        (subProjectTeamMember: $TSFixMe) => subProjectTeamMember._id === currentProjectId
     );
     const projectMembers = Object.assign({}, projectTeamMembers);
     const subProjectName =
         (props.subProjects &&
-            props.subProjects.find(obj => obj._id === currentProjectId)
+            props.subProjects.find((obj: $TSFixMe) => obj._id === currentProjectId)
                 ?.name) ||
         props.currentProject?.name;
     projectTeamMembers =
         projectTeamMembers && projectTeamMembers.teamMembers ? (
             <RenderIfUserInSubProject
                 subProjectId={currentProjectId}
+                // @ts-expect-error ts-migrate(2322) FIXME: Type '() => any' is not assignable to type 'Key | ... Remove this comment to see the full error message
                 key={() => uuidv4()}
             >
                 <div className="bs-BIM">
@@ -118,6 +121,7 @@ const LoadedTeam = props => {
                                 openModal={props.openModal}
                                 pages={pages}
                                 membersPerPage={membersPerPage}
+                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ paginate: any; canPaginateBackward: boolea... Remove this comment to see the full error message
                                 subProjects={subProjects}
                                 allTeamLength={
                                     team.subProjectTeamMembers.length
@@ -150,7 +154,7 @@ LoadedTeam.propTypes = {
 };
 
 class TeamApp extends Component {
-    constructor(props) {
+    constructor(props: $TSFixMe) {
         super(props);
         this.state = { inviteModalId: uuidv4() };
     }
@@ -170,24 +174,30 @@ class TeamApp extends Component {
     }
 
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
         if (this.props.activeProjectId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
             this.props.subProjectTeamLoading(this.props.activeProjectId);
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
         if (prevProps.activeProjectId !== this.props.activeProjectId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
             this.props.subProjectTeamLoading(this.props.activeProjectId);
         }
     }
 
     componentWillUnmount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
         this.props.paginate('reset');
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.closeModal({ id: this.state.inviteModalId });
                 return true;
             default:
@@ -197,11 +207,16 @@ class TeamApp extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'team' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             team: { teamLoading, teamMembers, pages },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
             location: { pathname },
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             currentProject,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
             switchToProjectViewerNav,
         } = this.props;
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'inviteModalId' does not exist on type 'R... Remove this comment to see the full error message
         const { inviteModalId } = this.state;
         const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
@@ -213,6 +228,7 @@ class TeamApp extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem route={pathname} name="Team Members" />
@@ -239,12 +255,17 @@ class TeamApp extends Component {
                                             header={this.getTableHeaders()}
                                             {...this.props}
                                             pages={pages}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
                                             paginate={this.props.paginate}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                                             subProjects={this.props.subProjects}
+                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ pages: any; paginate: any; subProjects: an... Remove this comment to see the full error message
                                             currentProjectId={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
                                                 this.props.activeProjectId
                                             }
                                             parent={pathname}
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalList' does not exist on type 'Reado... Remove this comment to see the full error message
                                             modalList={this.props.modalList}
                                         />
                                     )}
@@ -258,6 +279,7 @@ class TeamApp extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 TeamApp.propTypes = {
     team: PropTypes.object.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,
@@ -273,17 +295,16 @@ TeamApp.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
     const subProjectNames =
-        subProjects && subProjects.map(subProject => subProject.name);
+        subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =
         subProjectNames &&
-        subProjectNames.map(name =>
-            subProjects.find(subProject => subProject.name === name)
+        subProjectNames.map((name: $TSFixMe) => subProjects.find((subProject: $TSFixMe) => subProject.name === name)
         );
     return {
         team: state.team,
@@ -295,20 +316,20 @@ const mapStateToProps = state => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        {
-            subProjectTeamLoading,
-            subProjectTeamLoadingRequest,
-            subProjectTeamLoadingSuccess,
-            subProjectTeamLoadingError,
-            openModal,
-            closeModal,
-            paginate,
-        },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    {
+        subProjectTeamLoading,
+        subProjectTeamLoadingRequest,
+        subProjectTeamLoadingSuccess,
+        subProjectTeamLoadingError,
+        openModal,
+        closeModal,
+        paginate,
+    },
+    dispatch
+);
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 TeamApp.displayName = 'TeamMembers';
 
 export default connect(mapStateToProps, mapDispatchToProps)(TeamApp);

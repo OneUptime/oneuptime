@@ -2,21 +2,21 @@ import { postApi } from '../api';
 import * as types from '../constants/resendToken';
 import errors from '../errors';
 
-export function resendTokenRequest(promise) {
+export function resendTokenRequest(promise: $TSFixMe) {
     return {
         type: types.RESENDTOKEN_REQUEST,
         payload: promise,
     };
 }
 
-export function resendTokenError(error) {
+export function resendTokenError(error: $TSFixMe) {
     return {
         type: types.RESENDTOKEN_FAILED,
         payload: error,
     };
 }
 
-export function resendTokenSuccess(data) {
+export function resendTokenSuccess(data: $TSFixMe) {
     return {
         type: types.RESENDTOKEN_SUCCESS,
         payload: data,
@@ -24,15 +24,15 @@ export function resendTokenSuccess(data) {
 }
 
 export function resendTokenReset() {
-    return function(dispatch) {
+    return function(dispatch: $TSFixMe) {
         dispatch({
             type: types.RESENDTOKEN_RESET,
         });
     };
 }
 
-export function resendToken(values) {
-    return function(dispatch) {
+export function resendToken(values: $TSFixMe) {
+    return function(dispatch: $TSFixMe) {
         const promise = postApi('user/resend', values);
         dispatch(resendTokenRequest(promise));
 

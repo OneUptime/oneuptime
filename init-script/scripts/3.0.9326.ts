@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
 import { find, update } from '../util/db'
 
 const projectCollection = 'projects';
@@ -18,10 +19,10 @@ async function run() {
 
     for (const project of projects) {
         let projectUsers = project.users;
-        let mainUserIds = projectUsers.map(user => user.userId);
+        let mainUserIds = projectUsers.map((user: $TSFixMe) => user.userId);
         if (adminUserId) {
             if (mainUserIds.includes(adminUserId.toString())) {
-                projectUsers = project.users?.map(user => {
+                projectUsers = project.users?.map((user: $TSFixMe) => {
                     if (
                         user.userId !== adminUserId.toString() ||
                         (user.userId === adminUserId.toString() &&
@@ -37,9 +38,9 @@ async function run() {
                 });
             } else {
                 projectUsers =
-                    project.users?.map(user => ({
+                    project.users?.map((user: $TSFixMe) => ({
                         ...user,
-                        show: true,
+                        show: true
                     })) || [];
                 projectUsers.push({
                     show: false,
@@ -49,13 +50,13 @@ async function run() {
             }
         } else {
             projectUsers =
-                project.users?.map(users => ({
+                project.users?.map((users: $TSFixMe) => ({
                     ...users,
-                    show: true,
+                    show: true
                 })) || [];
         }
 
-        mainUserIds = projectUsers.map(user => user.userId);
+        mainUserIds = projectUsers.map((user: $TSFixMe) => user.userId);
 
         // all subProjects
         const subProjects = await find(projectCollection, {
@@ -64,14 +65,14 @@ async function run() {
 
         for (const subProject of subProjects) {
             const subProjectUsers =
-                subProject.users?.map(user => {
+                subProject.users?.map((user: $TSFixMe) => {
                     if (mainUserIds.includes(user.userId.toString())) {
                         user.show = false;
                     }
                     return user;
                 }) || [];
 
-            const subProjectUserIds = subProjectUsers.map(user => user.userId);
+            const subProjectUserIds = subProjectUsers.map((user: $TSFixMe) => user.userId);
 
             if (
                 adminUserId &&

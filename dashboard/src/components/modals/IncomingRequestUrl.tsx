@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import copyToClipboard from '../../utils/copyToClipboard';
@@ -19,7 +20,7 @@ export class IncomingRequestUrl extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
@@ -30,17 +31,20 @@ export class IncomingRequestUrl extends React.Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             id: this.props.currentProject._id,
         });
     };
 
-    copyHandler = text => {
+    copyHandler = (text: $TSFixMe) => {
         copyToClipboard(text);
         this.setState({ copied: true });
     };
 
     render() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         const { closeModal, currentProject, incomingRequest } = this.props;
 
         return (
@@ -136,21 +140,23 @@ export class IncomingRequestUrl extends React.Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 IncomingRequestUrl.displayName = 'IncomingRequestUrl';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 IncomingRequestUrl.propTypes = {
     closeModal: PropTypes.func,
     incomingRequest: PropTypes.object,
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject,
+
     incomingRequest:
-        state.incomingRequest.createIncomingRequest.incomingRequest,
+        state.incomingRequest.createIncomingRequest.incomingRequest
 });
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncomingRequestUrl);

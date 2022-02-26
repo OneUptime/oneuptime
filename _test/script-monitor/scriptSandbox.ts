@@ -9,7 +9,8 @@ const runConfig = {
 };
 
 class ScriptMonitorError extends Error {
-    constructor(errors, message = "Script monitor resource error") {
+    errors: $TSFixMe;
+    constructor(errors: $TSFixMe, message = "Script monitor resource error") {
         super();
         this.message = message;
         this.errors = Array.isArray(errors)
@@ -27,7 +28,7 @@ const {
     maxSyncStatementDuration,
 } = runConfig;
 
-const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, maxSyncStatementDuration }) => {
+const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = { maxScriptRunTime, maxSyncStatementDuration }) => {
     const {
         isMainThread,
         Worker,
@@ -49,10 +50,13 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                 ], // handle promise rejection warnings
             });
 
-            const consoleLogs = [];
-            let lastMessage = null;
+            const consoleLogs: $TSFixMe = [];
+            let lastMessage: $TSFixMe = null;
 
-            worker.on('message', ({type, payload}) => {
+            worker.on('message', ({
+                type,
+                payload
+            }: $TSFixMe) => {
                 switch (type) {
                     case 'ping': {
                         lastMessage = Date.now();
@@ -79,7 +83,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
             worker.on('online', () => {
                 lastMessage = Date.now();
             });
-            worker.on('exit', exitCode => {
+            worker.on('exit', (exitCode: $TSFixMe) => {
                 switch (exitCode) {
                     case 0:
                         resolve({
@@ -117,7 +121,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
 
                 clearInterval(checker);
             });
-            worker.on('error', err => {
+            worker.on('error', (err: $TSFixMe) => {
                 if (err.errors) {
                     resolve({
                         success: false,
@@ -169,6 +173,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
         });
     } else {
         // worker_threads code
+        // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
         import { NodeVM } from 'vm2'
         const vm = new NodeVM({
             eval: false,
@@ -181,19 +186,19 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
             console: 'redirect',
         });
 
-        vm.on('console.log', (log) => {
+        vm.on('console.log', (log: $TSFixMe) => {
             parentPort.postMessage({type: 'log', payload: `[log]: ${log}`});
         });
 
-        vm.on('console.error', (error) => {
+        vm.on('console.error', (error: $TSFixMe) => {
             parentPort.postMessage({type: 'log', payload: `[error]: ${error}`});
         });
 
-        vm.on('console.warn', (error) => {
+        vm.on('console.warn', (error: $TSFixMe) => {
             parentPort.postMessage({type: 'log', payload: `[warn]: ${error}`});
         });
 
-        const scriptCompletedCallback = err => {
+        const scriptCompletedCallback = (err: $TSFixMe) => {
             if (err) {
                 throw new ScriptMonitorError(err);
             }
@@ -211,5 +216,6 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
     }
 };
 
+// @ts-expect-error ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 0.
 export default runScript();
 module.exports.runScript = runScript;

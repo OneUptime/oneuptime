@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, reset } from 'redux-form';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
@@ -16,13 +17,16 @@ import GitSshModal from '../credential/GitSshModal';
 
 class ApplicationSecurityForm extends Component {
     componentDidMount() {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, getGitCredentials } = this.props;
         if (projectId) {
             getGitCredentials({ projectId });
         }
     }
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         if (prevProps.projectId !== this.props.projectId) {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             const { projectId, getGitCredentials } = this.props;
             if (projectId) {
                 getGitCredentials({ projectId });
@@ -30,7 +34,8 @@ class ApplicationSecurityForm extends Component {
         }
     }
 
-    submitForm = (values, dispatch) => {
+    submitForm = (values: $TSFixMe, dispatch: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
         const { projectId, componentId, addApplicationSecurity } = this.props;
         if (!values) return;
 
@@ -39,6 +44,7 @@ class ApplicationSecurityForm extends Component {
     };
 
     handleGitCredential = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, projectId } = this.props;
 
         openModal({
@@ -48,6 +54,7 @@ class ApplicationSecurityForm extends Component {
         });
     };
     handleGitSSH = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
         const { openModal, projectId } = this.props;
         openModal({
             id: projectId,
@@ -58,12 +65,19 @@ class ApplicationSecurityForm extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addApplicationError' does not exist on t... Remove this comment to see the full error message
             addApplicationError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingGitCredentials' does not exist... Remove this comment to see the full error message
             requestingGitCredentials,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'gitCredentials' does not exist on type '... Remove this comment to see the full error message
             gitCredentials,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategoryList' does not exist on ... Remove this comment to see the full error message
             resourceCategoryList,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
             formValues,
         } = this.props;
         return (
@@ -154,11 +168,12 @@ class ApplicationSecurityForm extends Component {
                                                                     resourceCategoryList.length >
                                                                         0
                                                                         ? resourceCategoryList.map(
-                                                                              category => ({
+                                                                              (category: $TSFixMe) => ({
                                                                                   value:
                                                                                       category._id,
+
                                                                                   label:
-                                                                                      category.name,
+                                                                                      category.name
                                                                               })
                                                                           )
                                                                         : []),
@@ -288,15 +303,15 @@ class ApplicationSecurityForm extends Component {
                                                                             0
                                                                             ? gitCredentials
                                                                                   .filter(
-                                                                                      obj =>
-                                                                                          obj.gitUsername
+                                                                                      (obj: $TSFixMe) => obj.gitUsername
                                                                                   )
                                                                                   .map(
-                                                                                      gitCredential => ({
+                                                                                      (gitCredential: $TSFixMe) => ({
                                                                                           value:
                                                                                               gitCredential._id,
+
                                                                                           label:
-                                                                                              gitCredential.gitUsername,
+                                                                                              gitCredential.gitUsername
                                                                                       })
                                                                                   )
                                                                             : []),
@@ -362,15 +377,15 @@ class ApplicationSecurityForm extends Component {
                                                                             0
                                                                             ? gitCredentials
                                                                                   .filter(
-                                                                                      obj =>
-                                                                                          obj.sshTitle
+                                                                                      (obj: $TSFixMe) => obj.sshTitle
                                                                                   )
                                                                                   .map(
-                                                                                      gitCredential => ({
+                                                                                      (gitCredential: $TSFixMe) => ({
                                                                                           value:
                                                                                               gitCredential._id,
+
                                                                                           label:
-                                                                                              gitCredential.sshTitle,
+                                                                                              gitCredential.sshTitle
                                                                                       })
                                                                                   )
                                                                             : []),
@@ -429,7 +444,9 @@ class ApplicationSecurityForm extends Component {
                                 <div>
                                     <ShouldRender
                                         if={
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCancelBtn' does not exist on type 'R... Remove this comment to see the full error message
                                             this.props.showCancelBtn &&
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
                                             this.props.toggleForm
                                         }
                                     >
@@ -439,6 +456,7 @@ class ApplicationSecurityForm extends Component {
                                                 isRequesting ||
                                                 requestingGitCredentials
                                             }
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
                                             onClick={this.props.toggleForm}
                                             type="button"
                                         >
@@ -472,8 +490,10 @@ class ApplicationSecurityForm extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 ApplicationSecurityForm.displayName = 'Application Security Form';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 ApplicationSecurityForm.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
@@ -488,16 +508,16 @@ ApplicationSecurityForm.propTypes = {
     resourceCategoryList: PropTypes.array,
     toggleForm: PropTypes.func,
     showCancelBtn: PropTypes.bool,
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'obj' does not exist on type 'typeof impo... Remove this comment to see the full error message
     formValues: PropTypes.obj,
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { addApplicationSecurity, getGitCredentials, openModal },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { addApplicationSecurity, getGitCredentials, openModal },
+    dispatch
+);
 
-const mapStateToProps = state => {
+const mapStateToProps = (state: $TSFixMe) => {
     return {
         isRequesting: state.security.addApplication.requesting,
         addApplicationError: state.security.addApplication.error,

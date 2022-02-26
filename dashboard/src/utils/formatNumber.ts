@@ -1,6 +1,7 @@
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
 import { isNumber } from 'lodash';
 
-const format = number => {
+const format = (number: $TSFixMe) => {
     if (!isNumber(number)) return null;
     let formattedValue = '';
     let index = 0;
@@ -20,6 +21,7 @@ const format = number => {
 
         let val = (number / currentFormat.value).toFixed(2);
         const remainder = number % currentFormat.value;
+        // @ts-expect-error ts-migrate(2365) FIXME: Operator '<' cannot be applied to types 'string' a... Remove this comment to see the full error message
         const isValueLessThanOne = val < 1;
         let formattedRemainder = '';
 
@@ -42,6 +44,7 @@ const format = number => {
                 }
             }
             // parse value to integer to get whole number
+            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
             val = parseInt(number / currentFormat.value);
 
             // prepare the final value with the whole number, remainder and indicator
@@ -57,7 +60,7 @@ const format = number => {
 };
 
 // return the provided number in a particular decimal place
-export function numDecimal(num, decimalPlace = 2) {
+export function numDecimal(num: $TSFixMe, decimalPlace = 2) {
     decimalPlace = Number(decimalPlace);
     return Number.parseFloat(num).toFixed(decimalPlace);
 }

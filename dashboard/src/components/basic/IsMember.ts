@@ -4,7 +4,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-export default function(currentProject) {
+export default function(currentProject: $TSFixMe) {
     const userId = User.getUserId();
     if (
         userId &&
@@ -12,9 +12,8 @@ export default function(currentProject) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            user =>
-                user.userId === userId &&
-                (user.role !== 'Administrator' || user.role !== 'Owner')
+            (user: $TSFixMe) => user.userId === userId &&
+            (user.role !== 'Administrator' || user.role !== 'Owner')
         ).length > 0
     ) {
         return true;

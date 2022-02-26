@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field } from 'redux-form';
+// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -23,13 +25,19 @@ class DockerCredentialModal extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: $TSFixMe) {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCredentialError' does not exist on ty... Remove this comment to see the full error message
             addCredentialError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatingCredential' does not exist on ty... Remove this comment to see the full error message
             updatingCredential,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCredentialError' does not exist on... Remove this comment to see the full error message
             updateCredentialError,
         } = this.props;
         const { projectId } = propArr[0];
@@ -47,7 +55,8 @@ class DockerCredentialModal extends Component {
         }
     }
 
-    handleKeyBoard = e => {
+    handleKeyBoard = (e: $TSFixMe) => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { propArr } = this.props;
         const { credentialId } = propArr[0];
 
@@ -56,9 +65,11 @@ class DockerCredentialModal extends Component {
                 return this.handleCloseModal();
             case 'Enter':
                 return credentialId
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     ? document
                           .getElementById('updateCredentialModalBtn')
                           .click()
+                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                     : document.getElementById('addCredentialModalBtn').click();
             default:
                 return false;
@@ -66,17 +77,22 @@ class DockerCredentialModal extends Component {
     };
 
     handleCloseModal = () => {
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         const { closeModal, propArr } = this.props;
         const { projectId } = propArr[0];
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
         this.props.closeModal({
             id: closeModal({ id: projectId }),
         });
     };
 
-    submitForm = values => {
+    submitForm = (values: $TSFixMe) => {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addDockerCredential' does not exist on t... Remove this comment to see the full error message
             addDockerCredential,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateDockerCredential' does not exist o... Remove this comment to see the full error message
             updateDockerCredential,
         } = this.props;
         const { projectId, credentialId } = propArr[0];
@@ -90,12 +106,19 @@ class DockerCredentialModal extends Component {
 
     render() {
         const {
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
             isRequesting,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
             closeModal,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCredentialError' does not exist on ty... Remove this comment to see the full error message
             addCredentialError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
             handleSubmit,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
             propArr,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCredentialError' does not exist on... Remove this comment to see the full error message
             updateCredentialError,
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatingCredential' does not exist on ty... Remove this comment to see the full error message
             updatingCredential,
         } = this.props;
         const { projectId, credentialId } = propArr[0];
@@ -415,8 +438,10 @@ class DockerCredentialModal extends Component {
     }
 }
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 DockerCredentialModal.displayName = 'DockerCredentialModal';
 
+// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
 DockerCredentialModal.propTypes = {
     isRequesting: PropTypes.bool,
     addCredentialError: PropTypes.string,
@@ -430,13 +455,12 @@ DockerCredentialModal.propTypes = {
     updatingCredential: PropTypes.bool,
 };
 
-const mapStateToProps = (state, ownProps) => {
+const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialId } = propArr[0];
     const dockerCredential = credentialId
         ? state.credential.dockerCredentials.filter(
-              dockerCredential =>
-                  String(dockerCredential._id) === String(credentialId)
+              (dockerCredential: $TSFixMe) => String(dockerCredential._id) === String(credentialId)
           )[0]
         : {};
     return {
@@ -451,11 +475,10 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
-const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { closeModal, addDockerCredential, updateDockerCredential },
-        dispatch
-    );
+const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+    { closeModal, addDockerCredential, updateDockerCredential },
+    dispatch
+);
 
 const DockerCredentialForm = reduxForm({
     form: 'DockerCredentialForm',

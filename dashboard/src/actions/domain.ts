@@ -13,22 +13,26 @@ export function verifyDomainRequest() {
     };
 }
 
-export function verifyDomainSuccess(payload) {
+export function verifyDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.VERIFY_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function verifyDomainFailure(error) {
+export function verifyDomainFailure(error: $TSFixMe) {
     return {
         type: types.VERIFY_DOMAIN_FAILURE,
         payload: error,
     };
 }
 
-export function verifyDomain({ projectId, domainId, payload }) {
-    return async function(dispatch) {
+export function verifyDomain({
+    projectId,
+    domainId,
+    payload
+}: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(verifyDomainRequest());
 
         try {
@@ -36,6 +40,7 @@ export function verifyDomain({ projectId, domainId, payload }) {
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 payload
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(verifyDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -57,14 +62,14 @@ export function createDomainRequest() {
     };
 }
 
-export function createDomainSuccess(payload) {
+export function createDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.CREATE_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function createDomainFailure(payload) {
+export function createDomainFailure(payload: $TSFixMe) {
     return {
         type: types.CREATE_DOMAIN_FAILURE,
         payload,
@@ -78,9 +83,9 @@ export function createDomain({
     cert,
     privateKey,
     autoProvisioning,
-    enableHttps,
-}) {
-    return async function(dispatch) {
+    enableHttps
+}: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(createDomainRequest());
 
         try {
@@ -88,6 +93,7 @@ export function createDomain({
                 `status-page/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(createDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -109,27 +115,33 @@ export function deleteDomainRequest() {
     };
 }
 
-export function deleteDomainSuccess(payload) {
+export function deleteDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.DELETE_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function deleteDomainFailure(payload) {
+export function deleteDomainFailure(payload: $TSFixMe) {
     return {
         type: types.DELETE_DOMAIN_FAILURE,
         payload,
     };
 }
 
-export function deleteDomain({ projectId, statusPageId, domainId }) {
-    return async function(dispatch) {
+export function deleteDomain({
+    projectId,
+    statusPageId,
+    domainId
+}: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(deleteDomainRequest());
         try {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
             const response = await deleteApi(
                 `status-page/${projectId}/${statusPageId}/${domainId}`
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -151,14 +163,14 @@ export function updateDomainRequest() {
     };
 }
 
-export function updateDomainSuccess(payload) {
+export function updateDomainSuccess(payload: $TSFixMe) {
     return {
         type: types.UPDATE_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function updateDomainFailure(payload) {
+export function updateDomainFailure(payload: $TSFixMe) {
     return {
         type: types.UPDATE_DOMAIN_FAILURE,
         payload,
@@ -173,15 +185,16 @@ export function updateDomain({
     cert,
     privateKey,
     enableHttps,
-    autoProvisioning,
-}) {
-    return async function(dispatch) {
+    autoProvisioning
+}: $TSFixMe) {
+    return async function(dispatch: $TSFixMe) {
         dispatch(updateDomainRequest());
         try {
             const response = await putApi(
                 `status-page/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
+            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =

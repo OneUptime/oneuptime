@@ -4,5 +4,5 @@ const NumberFormatter = new Intl.NumberFormat('en-US', {
 });
 
 export default {
-    formatBalance: number => parseFloat(NumberFormatter.format(number)),
+    formatBalance: (number: $TSFixMe) => parseFloat(NumberFormatter.format(number)),
 };
