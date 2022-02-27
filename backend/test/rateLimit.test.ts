@@ -1,5 +1,5 @@
 const expect = require('chai').expect;
-import chai from 'chai'
+import chai from 'chai';
 chai.use(require('chai-http'));
 require('dotenv').config();
 const requests: $TSFixMe = [];
@@ -11,7 +11,7 @@ describe('API limit rate', function(this: $TSFixMe) {
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(function(done: $TSFixMe) {
         // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
-        import sinon from 'sinon'
+        import sinon from 'sinon';
         sandbox = sinon.createSandbox();
         sandbox
             .stub(process.env, 'RATE_LIMITTER_TIME_PERIOD_IN_MS')

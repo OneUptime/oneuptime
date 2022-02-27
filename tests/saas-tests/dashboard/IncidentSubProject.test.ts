@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 // parent user credentials
 const user = {
@@ -113,7 +113,8 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
+                elem.click()
             );
 
             await init.pageWaitForSelector(
@@ -183,7 +184,10 @@ describe('Incident API With SubProjects', () => {
                 }
             );
             if (closeModal) {
-                await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
+                await init.page$Eval(
+                    page,
+                    '#closeIncident_0',
+                    (elem: $TSFixMe) => elem.click()
                 );
             }
 
@@ -220,7 +224,8 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
+                elem.click()
             );
 
             await init.pageWaitForSelector(
@@ -358,7 +363,9 @@ describe('Incident API With SubProjects', () => {
             // fill internal message thread form
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
                 page,

@@ -24,7 +24,9 @@ export default {
                 });
                 projectMembers = projectMembers.concat(parentProject.users);
             }
-            const projectUsers = projects.map((project: $TSFixMe) => project.users);
+            const projectUsers = projects.map(
+                (project: $TSFixMe) => project.users
+            );
             projectUsers.forEach((users: $TSFixMe) => {
                 projectMembers = projectMembers.concat(users);
             });
@@ -65,7 +67,10 @@ export default {
         return response;
     },
 
-    getTeamMemberBy: async function(projectId: $TSFixMe, teamMemberUserId: $TSFixMe) {
+    getTeamMemberBy: async function(
+        projectId: $TSFixMe,
+        teamMemberUserId: $TSFixMe
+    ) {
         let index;
         let subProject = null;
 
@@ -147,7 +152,12 @@ export default {
     //Param 2: emails: Emails of new user added by Admin.
     //Param 3: role: Role set by Admin.
     //Returns: promise
-    inviteTeamMembers: async function(addedByUserId: $TSFixMe, projectId: $TSFixMe, emails: $TSFixMe, role: $TSFixMe) {
+    inviteTeamMembers: async function(
+        addedByUserId: $TSFixMe,
+        projectId: $TSFixMe,
+        emails: $TSFixMe,
+        role: $TSFixMe
+    ) {
         const addedBy = await UserService.findOneBy({
             query: { _id: addedByUserId },
             select: 'name _id',
@@ -208,15 +218,17 @@ export default {
 
                 if (adminUser && emails.includes(adminUser.email)) {
                     const isAdminInProject = adminUser.projects.filter(
-                        (proj: $TSFixMe) => proj._id.toString() === projectId.toString()
+                        (proj: $TSFixMe) =>
+                            proj._id.toString() === projectId.toString()
                     );
                     let isHiddenAdminUser = false;
 
                     if (isAdminInProject) {
                         isHiddenAdminUser = isAdminInProject[0]?.users.filter(
-                            (user: $TSFixMe) => user.show === false &&
-                            user.role === 'Administrator' &&
-                            user.userId === adminUser._id.toString()
+                            (user: $TSFixMe) =>
+                                user.show === false &&
+                                user.role === 'Administrator' &&
+                                user.userId === adminUser._id.toString()
                         );
                     }
 
@@ -299,7 +311,9 @@ export default {
 
         for (let i = 0; i < teamMembersEmail.length; i++) {
             if (
-                emails.filter((email: $TSFixMe) => email === teamMembersEmail[i]).length > 0
+                emails.filter(
+                    (email: $TSFixMe) => email === teamMembersEmail[i]
+                ).length > 0
             ) {
                 return true;
             }
@@ -573,7 +587,11 @@ export default {
     //Param 2: userId: User id of admin.
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
-    removeTeamMember: async function(projectId: $TSFixMe, userId: $TSFixMe, teamMemberUserId: $TSFixMe) {
+    removeTeamMember: async function(
+        projectId: $TSFixMe,
+        userId: $TSFixMe,
+        teamMemberUserId: $TSFixMe
+    ) {
         const _this = this;
         let index;
         let subProject = null;
@@ -801,7 +819,9 @@ export default {
             query: { parentProjectId: project._id },
             select: 'users _id',
         });
-        const prevTeams = subProjects.concat(project).map((res: $TSFixMe) => res.users);
+        const prevTeams = subProjects
+            .concat(project)
+            .map((res: $TSFixMe) => res.users);
         const prevFlatTeams = flatten(prevTeams);
         const prevTeamArr = prevFlatTeams.filter(
             user => String(user.userId) === String(teamMemberUserId)
@@ -850,7 +870,8 @@ export default {
                     await Promise.all(
                         subProjects.map(async (subProject: $TSFixMe) => {
                             index = subProject.users.findIndex(
-                                (user: $TSFixMe) => user.userId === teamMemberUserId
+                                (user: $TSFixMe) =>
+                                    user.userId === teamMemberUserId
                             );
                             if (index !== -1) {
                                 subProject.users[index].role = nextRole;
@@ -963,18 +984,18 @@ export default {
     },
 };
 
-import ProjectService from '../services/projectService'
-import UserService from '../services/userService'
-import MailService from '../services/mailService'
-import PaymentService from '../services/paymentService'
-import NotificationService from '../services/notificationService'
-import RealTimeService from '../services/realTimeService'
-import ErrorService from 'common-server/utils/error'
-import domains from '../config/domains'
-import VerificationTokenModel from '../models/verificationToken'
-import crypto from 'crypto'
+import ProjectService from '../services/projectService';
+import UserService from '../services/userService';
+import MailService from '../services/mailService';
+import PaymentService from '../services/paymentService';
+import NotificationService from '../services/notificationService';
+import RealTimeService from '../services/realTimeService';
+import ErrorService from 'common-server/utils/error';
+import domains from '../config/domains';
+import VerificationTokenModel from '../models/verificationToken';
+import crypto from 'crypto';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
+import { IS_SAAS_SERVICE } from '../config/server';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/emaildomains"' has no exported ... Remove this comment to see the full error message
-import { emaildomains } from '../config/emaildomains'
-import flatten from '../utils/flattenArray'
+import { emaildomains } from '../config/emaildomains';
+import flatten from '../utils/flattenArray';

@@ -1,4 +1,4 @@
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 export default (select: $TSFixMe, query: $TSFixMe) => {
     /**
      * select is an array of column(s) to show

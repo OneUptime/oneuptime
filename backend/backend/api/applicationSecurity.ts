@@ -1,14 +1,14 @@
-import express from 'express'
+import express from 'express';
 const getUser = require('../middlewares/user').getUser;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-import ApplicationSecurityService from '../services/applicationSecurityService'
-import RealTimeService from '../services/realTimeService'
-import ResourceCategoryService from '../services/resourceCategoryService'
-import ErrorService from 'common-server/utils/error'
+import ApplicationSecurityService from '../services/applicationSecurityService';
+import RealTimeService from '../services/realTimeService';
+import ResourceCategoryService from '../services/resourceCategoryService';
+import ErrorService from 'common-server/utils/error';
 
 const router = express.Router();
 

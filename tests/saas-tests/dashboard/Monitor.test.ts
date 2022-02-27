@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
@@ -245,8 +245,8 @@ describe('Monitor API', () => {
 
         // add degraded criterion
         expect(
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             (
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.page$$(
                     page,
                     '[data-testId^=single_criterion_degraded]'
@@ -264,8 +264,8 @@ describe('Monitor API', () => {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await init.pageClick(page, '[data-testId=add_criteria_degraded]');
         expect(
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             (
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.page$$(
                     page,
                     '[data-testId^=single_criterion_degraded]'
@@ -331,8 +331,8 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_degraded]'
         );
         expect(
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             (
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.page$$(
                     page,
                     '[data-testId^=single_criterion_degraded]'

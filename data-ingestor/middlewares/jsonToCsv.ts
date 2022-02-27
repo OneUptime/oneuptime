@@ -1,4 +1,5 @@
-const replacer = (key: $TSFixMe, value: $TSFixMe) => (value === null ? '' : value); // specify how you want to handle null values here
+const replacer = (key: $TSFixMe, value: $TSFixMe) =>
+    value === null ? '' : value; // specify how you want to handle null values here
 
 export default {
     ToCsv: (json: $TSFixMe) => {
@@ -6,11 +7,12 @@ export default {
             try {
                 if (json.length > 0) {
                     const header = Object.keys(json[0]);
-                    let csv = json.map((row: $TSFixMe) => header
-                        .map(fieldName =>
-                            JSON.stringify(row[fieldName], replacer)
-                        )
-                        .join(',')
+                    let csv = json.map((row: $TSFixMe) =>
+                        header
+                            .map(fieldName =>
+                                JSON.stringify(row[fieldName], replacer)
+                            )
+                            .join(',')
                     );
                     csv.unshift(header.join(','));
                     csv = csv.join('\r\n');

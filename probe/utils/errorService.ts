@@ -1,4 +1,4 @@
-import winston from 'winston'
+import winston from 'winston';
 
 export default {
     log: (functionName: $TSFixMe, error: $TSFixMe) => {

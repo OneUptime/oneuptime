@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios from 'axios';
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 
 export default {

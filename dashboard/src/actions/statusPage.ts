@@ -220,7 +220,10 @@ export function updateStatusPageMonitorsError(error: $TSFixMe) {
 }
 
 // Calls the API to update monitors.
-export function updateStatusPageMonitors(projectId: $TSFixMe, values: $TSFixMe) {
+export function updateStatusPageMonitors(
+    projectId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageMonitorsRequest());
@@ -323,7 +326,10 @@ export function updateSubscriberOptionError(error: $TSFixMe) {
 }
 
 // update status page multi language
-export function updateStatusPageLanguage(projectId: $TSFixMe, values: $TSFixMe) {
+export function updateStatusPageLanguage(
+    projectId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLanguageRequest());
@@ -473,7 +479,10 @@ export function updateStatusPageThemeError(error: $TSFixMe) {
 }
 
 // Calls the API to update branding.
-export function updateStatusPageBranding(projectId: $TSFixMe, values: $TSFixMe) {
+export function updateStatusPageBranding(
+    projectId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const data = new FormData();
         if (values.favicon && values.favicon[0]) {
@@ -661,7 +670,10 @@ export function updateStatusPageCustomHTMLError(error: $TSFixMe) {
 }
 
 // Calls the API to update links.
-export function updateStatusPageCustomHTML(projectId: $TSFixMe, values: $TSFixMe) {
+export function updateStatusPageCustomHTML(
+    projectId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageCustomHTMLRequest());
@@ -719,7 +731,12 @@ export function fetchProjectStatusPageError(error: $TSFixMe) {
 }
 
 // Gets list of statuspages in a project.
-export function fetchProjectStatusPage(projectId: $TSFixMe, refresh: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchProjectStatusPage(
+    projectId: $TSFixMe,
+    refresh: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/statuspage?skip=${skip}&limit=${limit}`
@@ -780,7 +797,10 @@ export function fetchSubProjectStatusPagesError(error: $TSFixMe) {
 }
 
 // Gets status pages by subProjectId.
-export function fetchSubProjectStatusPages(projectId: $TSFixMe, refresh: $TSFixMe) {
+export function fetchSubProjectStatusPages(
+    projectId: $TSFixMe,
+    refresh: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(`status-page/${projectId}/status-pages`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
@@ -837,7 +857,12 @@ export function fetchIncidentStatusPagesError(error: $TSFixMe) {
 }
 
 // Gets status pages pointing to the incident
-export function fetchIncidentStatusPages(projectId: $TSFixMe, incidentSlug: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchIncidentStatusPages(
+    projectId: $TSFixMe,
+    incidentSlug: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `incident/${projectId}/${incidentSlug}/statuspages?skip=${skip}&limit=${limit}`
@@ -888,7 +913,10 @@ export function resetStatusBubbleIdError(error: $TSFixMe) {
 }
 
 // Calls the API to update setting.
-export function resetStatusBubbleId(projectId: $TSFixMe, statusPageId: $TSFixMe) {
+export function resetStatusBubbleId(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `status-page/${projectId}/${statusPageId}/resetBubbleId`,
@@ -947,7 +975,10 @@ export function deleteStatusPageError(error: $TSFixMe) {
 }
 
 // Calls the API to get status page.
-export function deleteStatusPage(projectId: $TSFixMe, statusPageSlug: $TSFixMe) {
+export function deleteStatusPage(
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `status-page/${projectId}/${statusPageSlug}`,
@@ -1124,7 +1155,10 @@ export function updateStatusPageEmbeddedCssError(error: $TSFixMe) {
 }
 
 // Calls the API to update setting.
-export function updateStatusPageEmbeddedCss(projectId: $TSFixMe, data: $TSFixMe) {
+export function updateStatusPageEmbeddedCss(
+    projectId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
@@ -1178,7 +1212,10 @@ export function resetBrandingColorsError(error: $TSFixMe) {
 }
 
 // Calls the API to reset colors.
-export function resetBrandingColors(projectId: $TSFixMe, statusPageId: $TSFixMe) {
+export function resetBrandingColors(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = putApi(
@@ -1233,7 +1270,10 @@ export function resetStatusPageEmbeddedCssError(error: $TSFixMe) {
 }
 
 // Calls the API to update setting.
-export function resetStatusPageEmbeddedCss(projectId: $TSFixMe, data: $TSFixMe) {
+export function resetStatusPageEmbeddedCss(
+    projectId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
@@ -1390,7 +1430,11 @@ export function createExternalStatusPageFailure(error: $TSFixMe) {
     };
 }
 
-export function createExternalStatusPage(projectId: $TSFixMe, statusPageId: $TSFixMe, data: $TSFixMe) {
+export function createExternalStatusPage(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/createExternalstatus-page/${statusPageId}`,
@@ -1502,7 +1546,10 @@ export function fetchExternalStatusPagesFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchExternalStatusPages(projectId: $TSFixMe, statusPageId: $TSFixMe) {
+export function fetchExternalStatusPages(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
@@ -1555,7 +1602,10 @@ export function deleteExternalStatusPageFailure(error: $TSFixMe) {
     };
 }
 
-export function deleteExternalStatusPage(projectId: $TSFixMe, externalStatusPageId: $TSFixMe) {
+export function deleteExternalStatusPage(
+    projectId: $TSFixMe,
+    externalStatusPageId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = postApi(
@@ -1609,7 +1659,11 @@ export function createAnnouncementFailure(error: $TSFixMe) {
     };
 }
 
-export function createAnnouncement(projectId: $TSFixMe, statusPageId: $TSFixMe, data: $TSFixMe) {
+export function createAnnouncement(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/announcement/${statusPageId}`,
@@ -1702,7 +1756,12 @@ export function fetchAnnouncementFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchAnnouncements(projectId: $TSFixMe, statusPageId: $TSFixMe, skip = 0, limit: $TSFixMe) {
+export function fetchAnnouncements(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe,
+    skip = 0,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
@@ -1877,7 +1936,10 @@ export function deleteAnnouncementFailure(error: $TSFixMe) {
     };
 }
 
-export function deleteAnnouncement(projectId: $TSFixMe, announcementId: $TSFixMe) {
+export function deleteAnnouncement(
+    projectId: $TSFixMe,
+    announcementId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(
@@ -1907,7 +1969,10 @@ export function deleteAnnouncement(projectId: $TSFixMe, announcementId: $TSFixMe
     };
 }
 
-export function deleteAnnouncementLog(projectId: $TSFixMe, announcementLogId: $TSFixMe) {
+export function deleteAnnouncementLog(
+    projectId: $TSFixMe,
+    announcementLogId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(

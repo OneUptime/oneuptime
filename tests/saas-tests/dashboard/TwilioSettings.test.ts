@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
 
@@ -160,11 +160,14 @@ describe('Custom Twilio Settings', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#closeIncident_0');
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
+                elem.click()
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#incident_0');
 
@@ -207,10 +210,14 @@ describe('Custom Twilio Settings', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -221,7 +228,9 @@ describe('Custom Twilio Settings', () => {
                 monitorName,
                 page
             );
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
+                elem.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.alert-tab');
@@ -263,10 +272,14 @@ describe('Custom Twilio Settings', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnResolve_0');
-            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -276,7 +289,9 @@ describe('Custom Twilio Settings', () => {
                 monitorName,
                 page
             );
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
+                elem.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '.alert-tab');

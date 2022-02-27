@@ -23,7 +23,9 @@ export const fetchAuditLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchAuditLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchAuditLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
 
@@ -75,7 +77,11 @@ export const searchAuditLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchAuditLogs = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const searchAuditLogs = (
+    filter: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -243,7 +249,9 @@ export const resetConfirmAuditLogStatus = () => {
 };
 
 // Calls the API to change auditLogStatus
-export const auditLogStatusChange = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const auditLogStatusChange = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
     dispatch(changeAuditLogStatusRequest());
 

@@ -1,8 +1,8 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer';
 
-import utils from '../../test-utils'
-import init from '../../test-init'
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
 const operationTimeOut = init.timeout;
@@ -142,7 +142,8 @@ describe('SSO login', () => {
             await Promise.all([
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 init.pageClick(page, 'button[type=submit]'),
-                page.waitForResponse((response: $TSFixMe) => response.url().includes('/login')
+                page.waitForResponse((response: $TSFixMe) =>
+                    response.url().includes('/login')
                 ),
             ]);
             const html = await init.page$Eval(
@@ -179,7 +180,8 @@ describe('SSO login', () => {
             await Promise.all([
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 init.pageClick(page, 'button[type=submit]'),
-                page.waitForResponse((response: $TSFixMe) => response.url().includes('/login')
+                page.waitForResponse((response: $TSFixMe) =>
+                    response.url().includes('/login')
                 ),
             ]);
             const html = await init.page$Eval(

@@ -87,8 +87,8 @@ export default {
                 // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 plan.category === 'Startup'
                     ? 5
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                    : plan.category === 'Growth'
+                    : // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    plan.category === 'Growth'
                     ? 10
                     : 0;
             if (
@@ -262,7 +262,10 @@ export default {
         );
     },
 
-    unsetColumnsOfManyMonitors: async function(monitorIds: $TSFixMe, columns: $TSFixMe) {
+    unsetColumnsOfManyMonitors: async function(
+        monitorIds: $TSFixMe,
+        columns: $TSFixMe
+    ) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -289,7 +292,10 @@ export default {
         );
     },
 
-    updateManyMonitorSla: async function(monitorIds: $TSFixMe, monitorSlaId: $TSFixMe) {
+    updateManyMonitorSla: async function(
+        monitorIds: $TSFixMe,
+        monitorSlaId: $TSFixMe
+    ) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -300,7 +306,10 @@ export default {
         );
     },
 
-    updateCriterion: async function(_id: $TSFixMe, lastMatchedCriterion: $TSFixMe) {
+    updateCriterion: async function(
+        _id: $TSFixMe,
+        lastMatchedCriterion: $TSFixMe
+    ) {
         await MonitorModel.updateOne(
             { _id },
             { $set: { lastMatchedCriterion } },
@@ -359,7 +368,10 @@ export default {
         return monitor;
     },
 
-    disableMonitor: async function(_id: $TSFixMe, isDisabledOrEnable: $TSFixMe) {
+    disableMonitor: async function(
+        _id: $TSFixMe,
+        isDisabledOrEnable: $TSFixMe
+    ) {
         await MonitorModel.updateOne(
             { _id },
             {
@@ -370,7 +382,11 @@ export default {
         );
     },
 
-    updateScriptStatus: async function(_id: $TSFixMe, scriptRunStatus: $TSFixMe, scriptRunBy: $TSFixMe) {
+    updateScriptStatus: async function(
+        _id: $TSFixMe,
+        scriptRunStatus: $TSFixMe,
+        scriptRunBy: $TSFixMe
+    ) {
         await MonitorModel.updateOne(
             { _id },
             {
@@ -385,7 +401,11 @@ export default {
         );
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData: $TSFixMe) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData: $TSFixMe
+    ) {
         const _this = this;
 
         if (!query) {
@@ -517,13 +537,7 @@ export default {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    async findBy({
-        query,
-        limit,
-        skip,
-        populate = null,
-        select
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, populate = null, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -555,11 +569,7 @@ export default {
         return monitors;
     },
 
-    async findOneBy({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findOneBy({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -628,7 +638,9 @@ export default {
                     select: '_id',
                 });
                 if (subProjects && subProjects.length > 0) {
-                    subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
+                    subProjectIds = subProjects.map(
+                        (project: $TSFixMe) => project._id
+                    );
                 }
                 subProjectIds.push(project._id);
                 const [monitorsCount, projectUsers] = await Promise.all([
@@ -705,7 +717,11 @@ export default {
         }
     },
 
-    async getMonitorsBySubprojects(subProjectIds: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async getMonitorsBySubprojects(
+        subProjectIds: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
+    ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         const _this = this;
@@ -1064,12 +1080,9 @@ export default {
         }
     },
 
-    async getScriptMonitors({
-        limit,
-        skip
-    }: $TSFixMe) {
+    async getScriptMonitors({ limit, skip }: $TSFixMe) {
         // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
-        import moment from 'moment'
+        import moment from 'moment';
         const monitors = await MonitorModel.find({
             $and: [
                 {
@@ -1187,7 +1200,11 @@ export default {
         }
     },
 
-    async getMonitorLogs(monitorId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+    async getMonitorLogs(
+        monitorId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) {
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
         const intervalInDays = moment(endDate).diff(moment(startDate), 'days');
@@ -1283,7 +1300,12 @@ export default {
         return probeLogs;
     },
 
-    async getMonitorLogsByDay(monitorId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, filter: $TSFixMe) {
+    async getMonitorLogsByDay(
+        monitorId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        filter: $TSFixMe
+    ) {
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
         const monitor = await this.findOneBy({
@@ -1331,7 +1353,11 @@ export default {
         return probeLogs;
     },
 
-    async getMonitorStatuses(monitorId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+    async getMonitorStatuses(
+        monitorId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) {
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
         const monitor = await this.findOneBy({
@@ -1530,18 +1556,19 @@ export default {
                     if (creatediff > -1 && resolveddiff < 1) return true;
                     else return false;
                 });
-                status = incidents.some((inc: $TSFixMe) => inc.resolvedAt
-                    ? moment(inc.resolvedAt)
-                          .utc()
-                          .startOf('day')
-                          .diff(
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
-                              moment(temp.date)
-                                  .utc()
-                                  .startOf('day'),
-                              'days'
-                          ) > 0
-                    : true
+                status = incidents.some((inc: $TSFixMe) =>
+                    inc.resolvedAt
+                        ? moment(inc.resolvedAt)
+                              .utc()
+                              .startOf('day')
+                              .diff(
+                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
+                                  moment(temp.date)
+                                      .utc()
+                                      .startOf('day'),
+                                  'days'
+                              ) > 0
+                        : true
                 )
                     ? 'offline'
                     : 'online';
@@ -1558,8 +1585,8 @@ export default {
                             'days'
                         );
                     const resolveddiff = inc.resolvedAt
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
-                        ? moment(temp.date)
+                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
+                          moment(temp.date)
                               .utc()
                               .startOf('day')
                               .diff(
@@ -1568,8 +1595,8 @@ export default {
                                       .startOf('day'),
                                   'days'
                               )
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
-                        : moment(temp.date)
+                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
+                          moment(temp.date)
                               .utc()
                               .startOf('day')
                               .diff(
@@ -1602,7 +1629,9 @@ export default {
                 });
             }
             if (incidents.length) {
-                const reduced = incidents.reduce((inc: $TSFixMe, val: $TSFixMe) => inc + val);
+                const reduced = incidents.reduce(
+                    (inc: $TSFixMe, val: $TSFixMe) => inc + val
+                );
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'downTime' does not exist on type '{}'.
                 temp.downTime = reduced < 1440 ? reduced : 1440;
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'upTime' does not exist on type '{}'.
@@ -1747,7 +1776,11 @@ export default {
         }
     },
 
-    calculateTime: function(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
+    calculateTime: function(
+        statuses: $TSFixMe,
+        start: $TSFixMe,
+        range: $TSFixMe
+    ) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1953,7 +1986,11 @@ export default {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(projectId: $TSFixMe, monitorId: $TSFixMe, userId: $TSFixMe) {
+    closeBreachedMonitorSla: async function(
+        projectId: $TSFixMe,
+        monitorId: $TSFixMe,
+        userId: $TSFixMe
+    ) {
         const monitor = await MonitorModel.findOneAndUpdate(
             {
                 _id: monitorId,
@@ -1970,7 +2007,11 @@ export default {
         return monitor;
     },
 
-    changeMonitorComponent: async function(projectId: $TSFixMe, monitorId: $TSFixMe, componentId: $TSFixMe) {
+    changeMonitorComponent: async function(
+        projectId: $TSFixMe,
+        monitorId: $TSFixMe,
+        componentId: $TSFixMe
+    ) {
         const [monitor, component] = await Promise.all([
             this.findOneBy({
                 query: { _id: monitorId },
@@ -2042,56 +2083,60 @@ export default {
              */
             //First step
             let incidentsHappenedDuringTheDay: $TSFixMe = [];
-            reversedStatuses.forEach((monitor: $TSFixMe, index: $TSFixMe, array: $TSFixMe) => {
-                const monitorStatus = Object.assign({}, monitor);
-                if (
-                    monitorStatus.endTime === null &&
-                    index === array.length - 1
-                ) {
-                    // only set this for the last item in the array (current monitor status)
-                    monitorStatus.endTime = new Date().toISOString();
-                }
-
-                if (
-                    moment(monitorStatus.startTime).isBefore(dayEnd) &&
-                    moment(monitorStatus.endTime).isAfter(dayStartIn)
-                ) {
+            reversedStatuses.forEach(
+                (monitor: $TSFixMe, index: $TSFixMe, array: $TSFixMe) => {
+                    const monitorStatus = Object.assign({}, monitor);
                     if (
-                        monitor.endTime === null &&
-                        (monitor.status === 'offline' ||
-                            (monitorStatus.status === 'degraded' &&
-                                timeObj.status !== 'offline') ||
-                            timeObj.status === null)
+                        monitorStatus.endTime === null &&
+                        index === array.length - 1
                     ) {
-                        timeObj.status = monitorStatus.status;
+                        // only set this for the last item in the array (current monitor status)
+                        monitorStatus.endTime = new Date().toISOString();
                     }
 
                     if (
-                        monitor.endTime === null &&
-                        monitor.status === 'disabled'
+                        moment(monitorStatus.startTime).isBefore(dayEnd) &&
+                        moment(monitorStatus.endTime).isAfter(dayStartIn)
                     ) {
-                        timeObj.status = monitor.status;
+                        if (
+                            monitor.endTime === null &&
+                            (monitor.status === 'offline' ||
+                                (monitorStatus.status === 'degraded' &&
+                                    timeObj.status !== 'offline') ||
+                                timeObj.status === null)
+                        ) {
+                            timeObj.status = monitorStatus.status;
+                        }
+
+                        if (
+                            monitor.endTime === null &&
+                            monitor.status === 'disabled'
+                        ) {
+                            timeObj.status = monitor.status;
+                        }
+                        const start = moment(monitorStatus.startTime).isBefore(
+                            dayStartIn
+                        )
+                            ? dayStartIn
+                            : moment(monitorStatus.startTime);
+                        const end = moment(monitorStatus.endTime).isAfter(
+                            dayEnd
+                        )
+                            ? dayEnd
+                            : moment(monitorStatus.endTime);
+
+                        incidentsHappenedDuringTheDay.push({
+                            start,
+                            end,
+                            status: monitorStatus.status,
+                        });
+
+                        timeObj.date = end.toISOString();
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'null' is not assignable to type 'string'.
+                        timeObj.emptytime = null;
                     }
-                    const start = moment(monitorStatus.startTime).isBefore(
-                        dayStartIn
-                    )
-                        ? dayStartIn
-                        : moment(monitorStatus.startTime);
-                    const end = moment(monitorStatus.endTime).isAfter(dayEnd)
-                        ? dayEnd
-                        : moment(monitorStatus.endTime);
-
-                    incidentsHappenedDuringTheDay.push({
-                        start,
-                        end,
-                        status: monitorStatus.status,
-                    });
-
-                    timeObj.date = end.toISOString();
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'null' is not assignable to type 'string'.
-                    timeObj.emptytime = null;
                 }
-            });
+            );
             //Second step
             // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'a' implicitly has an 'any' type.
             incidentsHappenedDuringTheDay.sort((a, b) =>
@@ -2254,36 +2299,36 @@ export default {
     },
 };
 
-import MonitorModel from '../models/monitor'
-import ProbeService from './probeService'
-import MonitorStatusService from './monitorStatusService'
-import MonitorLogService from './monitorLogService'
-import MonitorLogByHourService from './monitorLogByHourService'
-import MonitorLogByDayService from './monitorLogByDayService'
-import MonitorLogByWeekService from './monitorLogByWeekService'
-import ResourceCategoryService from './resourceCategoryService'
-import MonitorCriteriaService from './monitorCriteriaService'
-import Plans from './../config/plans'
-import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
-import ProjectService from './projectService'
-import PaymentService from './paymentService'
-import IncidentService from './incidentService'
-import AlertService from './alertService'
-import StatusPageService from './statusPageService'
-import ScheduleService from './scheduleService'
-import IntegrationService from './integrationService'
-import TeamService from './teamService'
-import ErrorService from 'common-server/utils/error'
-import moment from 'moment'
+import MonitorModel from '../models/monitor';
+import ProbeService from './probeService';
+import MonitorStatusService from './monitorStatusService';
+import MonitorLogService from './monitorLogService';
+import MonitorLogByHourService from './monitorLogByHourService';
+import MonitorLogByDayService from './monitorLogByDayService';
+import MonitorLogByWeekService from './monitorLogByWeekService';
+import ResourceCategoryService from './resourceCategoryService';
+import MonitorCriteriaService from './monitorCriteriaService';
+import Plans from './../config/plans';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import ProjectService from './projectService';
+import PaymentService from './paymentService';
+import IncidentService from './incidentService';
+import AlertService from './alertService';
+import StatusPageService from './statusPageService';
+import ScheduleService from './scheduleService';
+import IntegrationService from './integrationService';
+import TeamService from './teamService';
+import ErrorService from 'common-server/utils/error';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import _ from 'lodash'
+import _ from 'lodash';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
-import ScheduledEventService from './scheduledEventService'
-import MonitorSlaService from './monitorSlaService'
-import IncomingRequestService from './incomingRequestService'
-import componentService from './componentService'
-import getSlug from '../utils/getSlug'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import { IS_SAAS_SERVICE } from '../config/server';
+import ScheduledEventService from './scheduledEventService';
+import MonitorSlaService from './monitorSlaService';
+import IncomingRequestService from './incomingRequestService';
+import componentService from './componentService';
+import getSlug from '../utils/getSlug';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';

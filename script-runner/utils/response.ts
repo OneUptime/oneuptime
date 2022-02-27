@@ -1,5 +1,9 @@
 export default {
-    sendSuccessResponse: function(req: $TSFixMe, res: $TSFixMe, data: $TSFixMe) {
+    sendSuccessResponse: function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        data: $TSFixMe
+    ) {
         return res.status(200).send(data);
     },
     sendErrorResponse: function(req: $TSFixMe, res: $TSFixMe, error: $TSFixMe) {

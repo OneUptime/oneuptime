@@ -1,7 +1,7 @@
-import UrlService from '../utils/urlService'
-import ErrorService from '../utils/errorService'
-import { fork } from 'child_process'
-import moment from 'moment'
+import UrlService from '../utils/urlService';
+import ErrorService from '../utils/errorService';
+import { fork } from 'child_process';
+import moment from 'moment';
 
 // This runs the lighthouse of URL Monitors
 

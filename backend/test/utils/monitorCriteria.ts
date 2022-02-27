@@ -1,5 +1,8 @@
 export default {
-    addSchedulesToMonitorCriterion: (scheduleIds: $TSFixMe, monitorStatus: $TSFixMe) => {
+    addSchedulesToMonitorCriterion: (
+        scheduleIds: $TSFixMe,
+        monitorStatus: $TSFixMe
+    ) => {
         switch (monitorStatus) {
             case 'up':
         }

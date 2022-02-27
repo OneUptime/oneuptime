@@ -16,8 +16,9 @@ export function RenderIfAdmin(props: $TSFixMe) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            (user: $TSFixMe) => user.userId === userId &&
-            (user.role === 'Administrator' || user.role === 'Owner')
+            (user: $TSFixMe) =>
+                user.userId === userId &&
+                (user.role === 'Administrator' || user.role === 'Owner')
         ).length > 0
     ) {
         renderItems = children;

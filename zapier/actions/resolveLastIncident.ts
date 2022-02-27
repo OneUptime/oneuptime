@@ -8,7 +8,9 @@ const resolveLastIncident = (z: $TSFixMe, bundle: $TSFixMe) => {
         url: `h${bundle.authData.serverUrl}/zapier/incident/resolveLastIncident`,
         body: data,
     });
-    return responsePromise.then((response: $TSFixMe) => JSON.parse(response.content));
+    return responsePromise.then((response: $TSFixMe) =>
+        JSON.parse(response.content)
+    );
 };
 
 export default {

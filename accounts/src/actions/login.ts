@@ -139,7 +139,9 @@ export function loginUser(values: $TSFixMe) {
     };
 }
 
-export const loginUserSso = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const loginUserSso = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     try {
         const response = await getApi(`user/sso/login?email=${values.email}`);
         // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.

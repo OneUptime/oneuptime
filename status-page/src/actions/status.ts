@@ -66,7 +66,11 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: $TSFixMe) => {
 };
 
 // Calls the API to get all status page resources
-export const getAllStatusPageResource = (statusPageSlug: $TSFixMe, url: $TSFixMe, range: $TSFixMe) => {
+export const getAllStatusPageResource = (
+    statusPageSlug: $TSFixMe,
+    url: $TSFixMe,
+    range: $TSFixMe
+) => {
     return function(dispatch: $TSFixMe) {
         const promises = [];
 
@@ -259,7 +263,7 @@ export const showIncidentCard = (payload: $TSFixMe) => ({
     // payload => true or false
     type: types.SHOW_INCIDENT_CARD,
 
-    payload
+    payload,
 });
 
 export const individualNoteEnable = (message: $TSFixMe) => {
@@ -500,15 +504,21 @@ export const individualEventsRequest = () => ({
 
 export const individualEventsSuccess = (payload: $TSFixMe) => ({
     type: types.INDIVIDUAL_EVENTS_SUCCESS,
-    payload
+    payload,
 });
 
 export const individualEventsFailure = (error: $TSFixMe) => ({
     type: types.INDIVIDUAL_EVENTS_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const getIndividualEvent = (projectId: $TSFixMe, monitorId: $TSFixMe, date: $TSFixMe, name: $TSFixMe, theme: $TSFixMe) => {
+export const getIndividualEvent = (
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    date: $TSFixMe,
+    name: $TSFixMe,
+    theme: $TSFixMe
+) => {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
@@ -551,12 +561,12 @@ export const futureEventsRequest = () => ({
 
 export const futureEventsSuccess = (payload: $TSFixMe) => ({
     type: types.FUTURE_EVENTS_SUCCESS,
-    payload
+    payload,
 });
 
 export const futureEventsFailure = (error: $TSFixMe) => ({
     type: types.FUTURE_EVENTS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchFutureEvents = (
@@ -592,12 +602,12 @@ export const pastEventsRequest = () => ({
 
 export const pastEventsSuccess = (payload: $TSFixMe) => ({
     type: types.PAST_EVENTS_SUCCESS,
-    payload
+    payload,
 });
 
 export const pastEventsFailure = (error: $TSFixMe) => ({
     type: types.PAST_EVENTS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchPastEvents = (
@@ -627,7 +637,12 @@ export const fetchPastEvents = (
     }
 };
 
-export const notmonitoredDays = (monitorId: $TSFixMe, date: $TSFixMe, name: $TSFixMe, message: $TSFixMe) => {
+export const notmonitoredDays = (
+    monitorId: $TSFixMe,
+    date: $TSFixMe,
+    name: $TSFixMe,
+    message: $TSFixMe
+) => {
     return function(dispatch: $TSFixMe) {
         dispatch(statusPageNoteReset());
         dispatch(
@@ -663,7 +678,11 @@ export const moreNoteFailure = (error: $TSFixMe) => {
     };
 };
 
-export const getMoreNote = (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: $TSFixMe) => {
+export const getMoreNote = (
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe
+) => {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}`
@@ -713,7 +732,11 @@ export const moreEventFailure = (error: $TSFixMe) => {
     };
 };
 
-export const getMoreEvent = (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: $TSFixMe) => {
+export const getMoreEvent = (
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    skip: $TSFixMe
+) => {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}`
@@ -749,12 +772,12 @@ export const moreFutureEventsRequest = () => ({
 
 export const moreFutureEventsSuccess = (payload: $TSFixMe) => ({
     type: types.MORE_FUTURE_EVENTS_SUCCESS,
-    payload
+    payload,
 });
 
 export const moreFutureEventsFailure = (error: $TSFixMe) => ({
     type: types.MORE_FUTURE_EVENTS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchMoreFutureEvents = (
@@ -789,12 +812,12 @@ export const morePastEventsRequest = () => ({
 
 export const morePastEventsSuccess = (payload: $TSFixMe) => ({
     type: types.MORE_PAST_EVENTS_SUCCESS,
-    payload
+    payload,
 });
 
 export const morePastEventsFailure = (error: $TSFixMe) => ({
     type: types.MORE_PAST_EVENTS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchMorePastEvents = (
@@ -832,7 +855,12 @@ export function selectedProbe(val: $TSFixMe) {
 }
 
 // Fetch Monitor Statuses list
-export function fetchMonitorStatuses(projectId: $TSFixMe, monitorId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+export function fetchMonitorStatuses(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/${monitorId}/monitorStatuses`,
@@ -893,7 +921,11 @@ export function fetchMonitorStatusesFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchMonitorLogs(projectId: $TSFixMe, monitorId: $TSFixMe, data: $TSFixMe) {
+export function fetchMonitorLogs(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/${monitorId}/monitorLogs`,
@@ -937,10 +969,7 @@ function fetchMonitorLogsRequest(monitorId: $TSFixMe) {
     };
 }
 
-function fetchMonitorLogsSuccess({
-    monitorId,
-    logs
-}: $TSFixMe) {
+function fetchMonitorLogsSuccess({ monitorId, logs }: $TSFixMe) {
     return {
         type: types.FETCH_MONITOR_LOGS_SUCCESS,
         payload: { monitorId, logs },
@@ -1020,7 +1049,11 @@ export function fetchEventNoteFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchEventNote(projectId: $TSFixMe, scheduledEventSlug: $TSFixMe, type: $TSFixMe) {
+export function fetchEventNote(
+    projectId: $TSFixMe,
+    scheduledEventSlug: $TSFixMe,
+    type: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         dispatch(fetchEventNoteRequest());
 
@@ -1064,7 +1097,12 @@ export function moreEventNoteFailure(error: $TSFixMe) {
     };
 }
 
-export function moreEventNote(projectId: $TSFixMe, scheduledEventId: $TSFixMe, type: $TSFixMe, skip: $TSFixMe) {
+export function moreEventNote(
+    projectId: $TSFixMe,
+    scheduledEventId: $TSFixMe,
+    type: $TSFixMe,
+    skip: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         try {
             dispatch(moreEventNoteRequest());
@@ -1153,7 +1191,11 @@ export function fetchIncidentNotesFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchIncidentNotes(projectId: $TSFixMe, incidentId: $TSFixMe, postOnStatusPage: $TSFixMe) {
+export function fetchIncidentNotes(
+    projectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    postOnStatusPage: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchIncidentNotesRequest());
@@ -1246,7 +1288,10 @@ export function fetchLastIncidentTimelineFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchLastIncidentTimeline(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
+export function fetchLastIncidentTimeline(
+    projectId: $TSFixMe,
+    incidentSlug: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchLastIncidentTimelineRequest());
@@ -1290,7 +1335,10 @@ export function fetchLastIncidentTimelinesFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchLastIncidentTimelines(projectId: $TSFixMe, statusPageSlug: $TSFixMe) {
+export function fetchLastIncidentTimelines(
+    projectId: $TSFixMe,
+    statusPageSlug: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
@@ -1342,7 +1390,12 @@ export function getAnnouncementsFailure(data: $TSFixMe) {
     };
 }
 
-export function getAnnouncements(projectId: $TSFixMe, statusPageId: $TSFixMe, skip = 0, limit: $TSFixMe) {
+export function getAnnouncements(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe,
+    skip = 0,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
@@ -1495,7 +1548,12 @@ export function calculateTimeFailure(error: $TSFixMe) {
     };
 }
 
-export function calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe, monitorId: $TSFixMe) {
+export function calculateTime(
+    statuses: $TSFixMe,
+    start: $TSFixMe,
+    range: $TSFixMe,
+    monitorId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(`monitor/${monitorId}/calculate-time`, {
             statuses,
@@ -1598,7 +1656,10 @@ export function fetchExternalStatusPagesFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchExternalStatusPages(projectId: $TSFixMe, statusPageId: $TSFixMe) {
+export function fetchExternalStatusPages(
+    projectId: $TSFixMe,
+    statusPageId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`

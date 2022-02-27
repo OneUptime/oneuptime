@@ -1,11 +1,15 @@
-import ProjectService from '../services/projectService'
-import ErrorService from 'common-server/utils/error'
+import ProjectService from '../services/projectService';
+import ErrorService from 'common-server/utils/error';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import url from 'url'
+import url from 'url';
 
 export default {
     // Description: Get subprojects which user belongs to.
-    getSubProjects: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    getSubProjects: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             const userId = req.user
                 ? req.user.id

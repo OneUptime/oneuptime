@@ -1,5 +1,8 @@
 export default {
-    updateCriterion: async function(_id: $TSFixMe, lastMatchedCriterion: $TSFixMe) {
+    updateCriterion: async function(
+        _id: $TSFixMe,
+        lastMatchedCriterion: $TSFixMe
+    ) {
         try {
             await monitorCollection.updateOne(
                 {
@@ -61,7 +64,10 @@ export default {
         }
     },
 
-    removeProbeScanning: async function(monitorIds: $TSFixMe, probeId: $TSFixMe) {
+    removeProbeScanning: async function(
+        monitorIds: $TSFixMe,
+        probeId: $TSFixMe
+    ) {
         try {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
@@ -124,7 +130,11 @@ export default {
         }
     },
 
-    updateScriptStatus: async function(_id: $TSFixMe, scriptRunStatus: $TSFixMe, scriptRunBy: $TSFixMe) {
+    updateScriptStatus: async function(
+        _id: $TSFixMe,
+        scriptRunStatus: $TSFixMe,
+        scriptRunBy: $TSFixMe
+    ) {
         try {
             await monitorCollection.updateOne(
                 {
@@ -145,9 +155,7 @@ export default {
         }
     },
 
-    async findOneBy({
-        query
-    }: $TSFixMe) {
+    async findOneBy({ query }: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -191,8 +199,8 @@ export default {
     },
 };
 
-import ErrorService from './errorService'
-import moment from 'moment'
+import ErrorService from './errorService';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorCollection = global.db.collection('monitors');
-import { ObjectId } from 'mongodb'
+import { ObjectId } from 'mongodb';

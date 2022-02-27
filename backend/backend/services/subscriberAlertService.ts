@@ -87,13 +87,7 @@ export default {
         return subscriberAlert;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -125,11 +119,7 @@ export default {
         return subscriberAlerts;
     },
 
-    findByOne: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findByOne: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -163,6 +153,6 @@ export default {
     },
 };
 
-import SubscriberAlertModel from '../models/subscriberAlert'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import SubscriberAlertModel from '../models/subscriberAlert';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

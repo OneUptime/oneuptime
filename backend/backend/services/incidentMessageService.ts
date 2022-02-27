@@ -73,11 +73,7 @@ export default {
         RealTimeService.updateIncidentNote(incidentMessage);
         return incidentMessage;
     },
-    async findOneBy({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findOneBy({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -91,13 +87,7 @@ export default {
         const incidentMessage = await incidentMessageQuery;
         return incidentMessage;
     },
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -153,8 +143,8 @@ export default {
     },
 };
 
-import IncidentMessageModel from '../models/incidentMessage'
-import RealTimeService from './realTimeService'
-import IncidentService from './incidentService'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import IncidentMessageModel from '../models/incidentMessage';
+import RealTimeService from './realTimeService';
+import IncidentService from './incidentService';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';

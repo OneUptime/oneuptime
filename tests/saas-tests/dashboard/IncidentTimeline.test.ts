@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
@@ -44,7 +44,9 @@ describe('Incident Timeline API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) => e.click());
+        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
+            e.click()
+        );
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
         await init.pageType(page, 'input[id=name]', projectMonitorName);
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -56,7 +58,9 @@ describe('Incident Timeline API', () => {
         await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
         await init.pageType(page, '#url', 'https://google.com'); //'HTTP_TEST_SERVER' auto generates incidents and this breaks the test. Also, the tests are not dependent on HTTP_TEST_SERVER
-        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+            e.click()
+        );
         await init.pageWaitForSelector(
             page,
             `#monitor-title-${projectMonitorName}`,
@@ -117,7 +121,9 @@ describe('Incident Timeline API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
             // fill investigation message thread form
@@ -191,7 +197,9 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
 
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
@@ -261,11 +269,15 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
             // fill internal message thread form
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
                 page,
@@ -335,7 +347,9 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
@@ -404,7 +418,9 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(
@@ -456,7 +472,9 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
             for (let i = 0; i < 10; i++) {
                 // add internal note
                 await init.pageWaitForSelector(page, `#add-${type}-message`, {
@@ -523,10 +541,14 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -565,7 +587,9 @@ describe('Incident Timeline API', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnResolve_0');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.

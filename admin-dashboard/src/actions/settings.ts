@@ -8,7 +8,10 @@ export const requestingSettings = () => {
     };
 };
 
-export const requestingSettingsSucceeded = (payload: $TSFixMe, payloadType: $TSFixMe) => {
+export const requestingSettingsSucceeded = (
+    payload: $TSFixMe,
+    payloadType: $TSFixMe
+) => {
     return {
         type: types.REQUESTING_SETTINGS_SUCCEEDED,
         payload,
@@ -29,12 +32,12 @@ export const testSmtpRequest = () => ({
 
 export const testSmtpSuccess = (payload: $TSFixMe) => ({
     type: types.TEST_SMTP_SUCCESS,
-    payload
+    payload,
 });
 
 export const testSmtpFailure = (error: $TSFixMe) => ({
     type: types.TEST_SMTP_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const testTwilioRequest = () => ({
@@ -43,12 +46,12 @@ export const testTwilioRequest = () => ({
 
 export const testTwilioSuccess = (payload: $TSFixMe) => ({
     type: types.TEST_TWILIO_SUCCESS,
-    payload
+    payload,
 });
 
 export const testTwilioFailure = (error: $TSFixMe) => ({
     type: types.TEST_TWILIO_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const testSmtp = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
@@ -133,7 +136,9 @@ export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
     }
 };
 
-export const saveSettings = (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const saveSettings = (type: $TSFixMe, settings: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(requestingSettings());
     try {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.

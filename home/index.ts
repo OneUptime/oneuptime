@@ -18,20 +18,20 @@ process.on('uncaughtException', err => {
 });
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
-import bodyParser from 'body-parser'
-import path from 'path'
+import bodyParser from 'body-parser';
+import path from 'path';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'comp... Remove this comment to see the full error message
-import compression from 'compression'
+import compression from 'compression';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'mini... Remove this comment to see the full error message
-import minify from 'minify'
+import minify from 'minify';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'try-... Remove this comment to see the full error message
-import tryToCatch from 'try-to-catch'
-import productCompare from './config/product-compare'
-import axios from 'axios'
-import builder from 'xmlbuilder2'
+import tryToCatch from 'try-to-catch';
+import productCompare from './config/product-compare';
+import axios from 'axios';
+import builder from 'xmlbuilder2';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -177,7 +177,10 @@ app.get('/error-tracking', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/error-tracking');
 });
 
-app.get('/unsubscribe/:monitorId/:subscriberId', async function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/unsubscribe/:monitorId/:subscriberId', async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     const { monitorId, subscriberId } = req.params;
     let apiHost;
     if (process.env.ONEUPTIME_HOST) {
@@ -256,7 +259,10 @@ app.post('/unsubscribe', async function(req: $TSFixMe, res: $TSFixMe) {
     }
 });
 
-app.get('/product/docker-container-security', function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/product/docker-container-security', function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.render('container-security', {
         support: false,
         footerCards: true,
@@ -300,7 +306,10 @@ app.get('/api-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/api-monitoring');
 });
 
-app.get('/product/kubernetes-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/product/kubernetes-monitoring', function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.render('kubernetes-monitoring', {
         support: false,
         footerCards: true,
@@ -314,7 +323,10 @@ app.get('/kubernetes-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/kubernetes-monitoring');
 });
 
-app.get('/product/performance-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/product/performance-monitoring', function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.render('performance-monitoring', {
         support: false,
         footerCards: true,
@@ -356,7 +368,10 @@ app.get('/website-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
     res.redirect('/product/website-monitoring');
 });
 
-app.get('/product/iot-device-monitoring', function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/product/iot-device-monitoring', function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.render('iot-device-monitoring', {
         support: false,
         footerCards: true,
@@ -637,7 +652,10 @@ app.get('/legal/sla', function(req: $TSFixMe, res: $TSFixMe) {
     });
 });
 
-app.get('/enterprise/download-resource/:resourceName', function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/enterprise/download-resource/:resourceName', function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.render('download-resource.ejs', {
         footerCards: false,
         support: false,

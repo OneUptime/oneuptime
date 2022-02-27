@@ -112,8 +112,8 @@ export default {
     },
 };
 
-import { ObjectId } from 'mongodb'
-import ErrorService from '../services/errorService'
+import { ObjectId } from 'mongodb';
+import ErrorService from '../services/errorService';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorLogByWeekCollection = global.db.collection('monitorlogbyweeks');
-import moment from 'moment'
+import moment from 'moment';

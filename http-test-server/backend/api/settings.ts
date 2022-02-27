@@ -1,6 +1,6 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
-import express from 'express'
-import http from 'http'
+import express from 'express';
+import http from 'http';
 
 const router = express.Router();
 

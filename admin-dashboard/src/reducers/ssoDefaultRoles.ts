@@ -52,7 +52,10 @@ const INITIAL_STATE = {
     page: 1,
 };
 
-export default function ssoDefaultRoles(state = INITIAL_STATE, action: $TSFixMe) {
+export default function ssoDefaultRoles(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case FETCH_SSO_DEFAULT_ROLES_REQUEST:
             return Object.assign({}, state, {

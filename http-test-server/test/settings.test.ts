@@ -1,9 +1,9 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import should from 'should'
-import utils from './test-utils'
+import puppeteer from 'puppeteer';
+import should from 'should';
+import utils from './test-utils';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module './test-init' or its correspond... Remove this comment to see the full error message
-import init from './test-init'
+import init from './test-init';
 
 let browser: $TSFixMe;
 let page: $TSFixMe;
@@ -181,9 +181,13 @@ describe('HTTP Settings page', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#html > span');
-        const html = await init.page$Eval(page, '#html > span', (e: $TSFixMe) => {
-            return e.innerHTML;
-        });
+        const html = await init.page$Eval(
+            page,
+            '#html > span',
+            (e: $TSFixMe) => {
+                return e.innerHTML;
+            }
+        );
         should.exist(html);
         html.should.containEql('');
     }, 160000);

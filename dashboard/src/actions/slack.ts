@@ -88,7 +88,11 @@ export const resetGetSlackTeams = () => {
     };
 };
 
-export function getSlackTeams(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getSlackTeams(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         if (skip && limit)

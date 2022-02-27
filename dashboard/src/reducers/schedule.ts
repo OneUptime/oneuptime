@@ -274,7 +274,10 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                                             action.payload,
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'never... Remove this comment to see the full error message
                                             ...schedule.schedules.filter(
-                                                (status: $TSFixMe, index: $TSFixMe) => index < 9
+                                                (
+                                                    status: $TSFixMe,
+                                                    index: $TSFixMe
+                                                ) => index < 9
                                             ),
                                         ],
                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
@@ -295,8 +298,8 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                                   limit: 0,
                               },
                           ]
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
-                    : state.subProjectSchedules.concat([
+                    : // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                      state.subProjectSchedules.concat([
                           {
                               _id: action.payload.projectId._id,
                               schedules: [action.payload],
@@ -347,9 +350,11 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                         ? {
                               _id: action.payload[0].projectId._id,
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'never... Remove this comment to see the full error message
-                              schedules: schedule.schedules.map((schedule: $TSFixMe) => schedule._id === action.payload[0]._id
-                                  ? action.payload[0]
-                                  : schedule
+                              schedules: schedule.schedules.map(
+                                  (schedule: $TSFixMe) =>
+                                      schedule._id === action.payload[0]._id
+                                          ? action.payload[0]
+                                          : schedule
                               ),
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                               count: schedule.count,
@@ -483,9 +488,11 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                         ? {
                               _id: action.payload[0].projectId._id,
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'never... Remove this comment to see the full error message
-                              schedules: schedule.schedules.map((schedule: $TSFixMe) => schedule._id === action.payload[0]._id
-                                  ? action.payload[0]
-                                  : schedule
+                              schedules: schedule.schedules.map(
+                                  (schedule: $TSFixMe) =>
+                                      schedule._id === action.payload[0]._id
+                                          ? action.payload[0]
+                                          : schedule
                               ),
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                               count: schedule.count,

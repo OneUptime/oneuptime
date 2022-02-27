@@ -93,13 +93,7 @@ export default {
         return subscriber;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 10;
         if (typeof skip === 'string') {
@@ -324,11 +318,7 @@ export default {
         return existingSubscriber !== null;
     },
 
-    findByOne: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findByOne: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -406,8 +396,8 @@ export default {
     },
 };
 
-import SubscriberModel from '../models/subscriber'
-import ErrorService from 'common-server/utils/error'
-import StatusPageService from './statusPageService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import SubscriberModel from '../models/subscriber';
+import ErrorService from 'common-server/utils/error';
+import StatusPageService from './statusPageService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

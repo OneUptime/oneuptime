@@ -1,15 +1,13 @@
-import ApiService from '../utils/apiService'
-import ErrorService from '../utils/errorService'
-import fs from 'fs'
-import { NodeSSH } from 'node-ssh'
-import fetch from 'node-fetch-commonjs'
+import ApiService from '../utils/apiService';
+import ErrorService from '../utils/errorService';
+import fs from 'fs';
+import { NodeSSH } from 'node-ssh';
+import fetch from 'node-fetch-commonjs';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { COMMAND, serverUrl } from '../utils/config'
+import { COMMAND, serverUrl } from '../utils/config';
 
 export default {
-    run: async ({
-        monitor
-    }: $TSFixMe) => {
+    run: async ({ monitor }: $TSFixMe) => {
         try {
             if (
                 monitor &&

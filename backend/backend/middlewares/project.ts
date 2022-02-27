@@ -1,8 +1,8 @@
-import ProjectService from '../services/projectService'
-import ErrorService from 'common-server/utils/error'
-import url from 'url'
+import ProjectService from '../services/projectService';
+import ErrorService from 'common-server/utils/error';
+import url from 'url';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import apiMiddleware from '../middlewares/api'
+import apiMiddleware from '../middlewares/api';
 
 export default {
     // Description: Checks if user belongs to the project.
@@ -10,7 +10,11 @@ export default {
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
-    doesUserBelongToProject: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    doesUserBelongToProject: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {

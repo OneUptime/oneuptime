@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
-import { find, update, save, updateMany, findOne } from '../util/db'
-import { ObjectId } from 'mongodb'
-import moment from 'moment'
+import { find, update, save, updateMany, findOne } from '../util/db';
+import { ObjectId } from 'mongodb';
+import moment from 'moment';
 
 const monitorCollection = 'monitors';
 const resourceCategoryCollection = 'resourcecategories';
@@ -30,7 +30,8 @@ async function run() {
 
             let updatedMonitors = statusPage.monitors;
             // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
+            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
+                ObjectId(monitorObj.monitor)
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -60,7 +61,8 @@ async function run() {
                     );
 
                     // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                    let monitorIds = monitors.map((monitor: $TSFixMe) => ObjectId(monitor._id)
+                    let monitorIds = monitors.map((monitor: $TSFixMe) =>
+                        ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
@@ -71,16 +73,20 @@ async function run() {
 
                     // stringify the ids
                     monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
-                    updatedMonitors = statusPage.monitors.map((monitorObj: $TSFixMe) => {
-                        if (monitorIds.includes(String(monitorObj.monitor))) {
-                            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                            monitorObj.statusPageCategory = ObjectId(
-                                statusPageCategory._id
-                            );
-                        }
+                    updatedMonitors = statusPage.monitors.map(
+                        (monitorObj: $TSFixMe) => {
+                            if (
+                                monitorIds.includes(String(monitorObj.monitor))
+                            ) {
+                                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                                monitorObj.statusPageCategory = ObjectId(
+                                    statusPageCategory._id
+                                );
+                            }
 
-                        return monitorObj;
-                    });
+                            return monitorObj;
+                        }
+                    );
 
                     // update the status page category
                     await update(
@@ -99,7 +105,8 @@ async function run() {
 
             let updatedMonitors = statusPage.monitors;
             // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
+            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
+                ObjectId(monitorObj.monitor)
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -119,7 +126,8 @@ async function run() {
                     );
 
                     // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                    let monitorIds = monitors.map((monitor: $TSFixMe) => ObjectId(monitor._id)
+                    let monitorIds = monitors.map((monitor: $TSFixMe) =>
+                        ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
@@ -130,16 +138,20 @@ async function run() {
 
                     // stringify the ids
                     monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
-                    updatedMonitors = statusPage.monitors.map((monitorObj: $TSFixMe) => {
-                        if (monitorIds.includes(String(monitorObj.monitor))) {
-                            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                            monitorObj.statusPageCategory = ObjectId(
-                                statusPageCategory._id
-                            );
-                        }
+                    updatedMonitors = statusPage.monitors.map(
+                        (monitorObj: $TSFixMe) => {
+                            if (
+                                monitorIds.includes(String(monitorObj.monitor))
+                            ) {
+                                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                                monitorObj.statusPageCategory = ObjectId(
+                                    statusPageCategory._id
+                                );
+                            }
 
-                        return monitorObj;
-                    });
+                            return monitorObj;
+                        }
+                    );
 
                     // update the status page category
                     await update(

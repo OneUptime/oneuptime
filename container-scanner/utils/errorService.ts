@@ -1,6 +1,6 @@
-import winston from 'winston'
+import winston from 'winston';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'wins... Remove this comment to see the full error message
-import Slack from 'winston-slack-transport'
+import Slack from 'winston-slack-transport';
 
 if (
     process.env.PORT &&

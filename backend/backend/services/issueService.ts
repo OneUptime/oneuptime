@@ -40,13 +40,7 @@ export default {
         return issue;
     },
     // find a list of Issues
-    async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -78,11 +72,7 @@ export default {
         return issues;
     },
 
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -96,7 +86,10 @@ export default {
         const issue = await issueQuery;
         return issue;
     },
-    findOneByHashAndErrorTracker: async function(fingerprint: $TSFixMe, errorTrackerId: $TSFixMe) {
+    findOneByHashAndErrorTracker: async function(
+        fingerprint: $TSFixMe,
+        errorTrackerId: $TSFixMe
+    ) {
         const query = {};
         const hash = sha256(fingerprint.join('')).toString();
 
@@ -112,7 +105,11 @@ export default {
             .populate('ignoredById', 'name');
         return issue;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData = null
+    ) {
         if (!query) {
             query = {};
         }
@@ -154,7 +151,11 @@ export default {
 
         return issue;
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe, componentId: $TSFixMe) {
+    deleteBy: async function(
+        query: $TSFixMe,
+        userId: $TSFixMe,
+        componentId: $TSFixMe
+    ) {
         if (!query) {
             query = {};
         }
@@ -205,12 +206,12 @@ export default {
     },
 };
 
-import IssueModel from '../models/issue'
+import IssueModel from '../models/issue';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cryp... Remove this comment to see the full error message
-import sha256 from 'crypto-js/sha256'
-import ComponentService from './componentService'
-import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import errorService from 'common-server/utils/error'
+import sha256 from 'crypto-js/sha256';
+import ComponentService from './componentService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import errorService from 'common-server/utils/error';

@@ -142,7 +142,9 @@ class SocketApp extends Component {
             });
 
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-            socket.on(`updateTweets-${this.props.project._id}`, function(data: $TSFixMe) {
+            socket.on(`updateTweets-${this.props.project._id}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                 if (thisObj.props.statusPage._id === data.statusPageId) {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatestweetsbysocket' does not exist on... Remove this comment to see the full error message
@@ -214,7 +216,9 @@ class SocketApp extends Component {
                 }
             );
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-            socket.on(`addEventNote-${this.props.project._id}`, function(data: $TSFixMe) {
+            socket.on(`addEventNote-${this.props.project._id}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'addeventnotebysocket' does not exist on ... Remove this comment to see the full error message
                 thisObj.props.addeventnotebysocket(data);
             });
@@ -276,7 +280,8 @@ class SocketApp extends Component {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 `resolveScheduledEvent-${this.props.project._id}`,
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvescheduledeventbysocket' does not ... Remove this comment to see the full error message
-                (event: $TSFixMe) => thisObj.props.resolvescheduledeventbysocket(event)
+                (event: $TSFixMe) =>
+                    thisObj.props.resolvescheduledeventbysocket(event)
             );
         }
         return null;
@@ -297,33 +302,34 @@ SocketApp.propTypes = {
 const mapStateToProps = (state: $TSFixMe) => ({
     project: state.status.statusPage.projectId,
     probes: state.probe.probes,
-    statusPage: state.status.statusPage
+    statusPage: state.status.statusPage,
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
-    {
-        updatestatuspagebysocket,
-        updatemonitorbysocket,
-        deletemonitorbysocket,
-        updatemonitorstatusbysocket,
-        addincidentnotebysocket,
-        updateincidentnotebysocket,
-        addscheduledeventbysocket,
-        updatescheduledeventbysocket,
-        deletescheduledeventbysocket,
-        updateprobebysocket,
-        incidentcreatedbysocket,
-        updateincidentbysocket,
-        addincidenttimelinebysocket,
-        deleteincidentnotebysocket,
-        deleteincidentbysocket,
-        addeventnotebysocket,
-        deleteeventnotebysocket,
-        updateeventnotebysocket,
-        resolvescheduledeventbysocket,
-        updatestweetsbysocket,
-    },
-    dispatch
-);
+const mapDispatchToProps = (dispatch: $TSFixMe) =>
+    bindActionCreators(
+        {
+            updatestatuspagebysocket,
+            updatemonitorbysocket,
+            deletemonitorbysocket,
+            updatemonitorstatusbysocket,
+            addincidentnotebysocket,
+            updateincidentnotebysocket,
+            addscheduledeventbysocket,
+            updatescheduledeventbysocket,
+            deletescheduledeventbysocket,
+            updateprobebysocket,
+            incidentcreatedbysocket,
+            updateincidentbysocket,
+            addincidenttimelinebysocket,
+            deleteincidentnotebysocket,
+            deleteincidentbysocket,
+            addeventnotebysocket,
+            deleteeventnotebysocket,
+            updateeventnotebysocket,
+            resolvescheduledeventbysocket,
+            updatestweetsbysocket,
+        },
+        dispatch
+    );
 
 export default connect(mapStateToProps, mapDispatchToProps)(SocketApp);

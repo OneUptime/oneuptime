@@ -1,10 +1,10 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
-import axios from 'axios'
+import axios from 'axios';
 axios.defaults.adapter = require('axios/lib/adapters/http');
 let serverMonitor: $TSFixMe;
 try {
@@ -12,7 +12,7 @@ try {
     serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
 } catch (error) {
     // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
-    import oneuptime from 'oneuptime'
+    import oneuptime from 'oneuptime';
     serverMonitor = oneuptime.ServerMonitor;
 }
 

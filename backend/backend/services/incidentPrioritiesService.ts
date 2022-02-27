@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         if (!query) query = {};
@@ -28,11 +22,7 @@ export default {
 
         return incidentPriorities;
     },
-    findOne: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOne: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -130,8 +120,8 @@ export default {
     },
 };
 
-import IncidentSettingsService from './incidentSettingsService'
-import IncidentService from './incidentService'
-import incidentPriorityModel from '../models/incidentPriority'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import IncidentSettingsService from './incidentSettingsService';
+import IncidentService from './incidentService';
+import incidentPriorityModel from '../models/incidentPriority';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

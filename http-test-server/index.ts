@@ -18,12 +18,12 @@ process.on('uncaughtException', err => {
 });
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
-import path from 'path'
+import path from 'path';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
-import bodyParser from 'body-parser'
-import http from 'http'
+import bodyParser from 'body-parser';
+import http from 'http';
 
 const { NODE_ENV } = process.env;
 
@@ -96,7 +96,7 @@ app.get('/', function(req: $TSFixMe, res: $TSFixMe) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'httpServerResponse' does not exist on ty... Remove this comment to see the full error message
             return res.send(global.httpServerResponse.body);
         }
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'httpServerResponse' does not exist on ty... Remove this comment to see the full error message
+        // @ts-expect-error ts-migrate(2339) FIXME: Property 'httpServerResponse' does not exist on ty... Remove this comment to see the full error message
     }, global.httpServerResponse.responseTime);
 });
 

@@ -25,7 +25,9 @@ export const fetchProjectsError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch all projects.
-export const fetchProjects = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchProjects = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip || 0;
     limit = limit || 10;
 
@@ -180,14 +182,18 @@ export const fetchUserProjectsError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch users belonging to a particular project
-export const fetchProjectTeam = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchProjectTeam = (projectId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(fetchProjectTeamRequest());
     try {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const response = await getApi(`team/${projectId}/teamMembers`);
         // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         const team = response.data;
-        const projectTeam = team.filter((team: $TSFixMe) => team._id === projectId)[0];
+        const projectTeam = team.filter(
+            (team: $TSFixMe) => team._id === projectId
+        )[0];
         dispatch(fetchProjectTeamSuccess(projectTeam));
         return response;
     } catch (error) {
@@ -427,7 +433,11 @@ export function resetTeamDelete() {
 }
 
 // Calls the API to fetch all user projects.
-export const fetchUserProjects = (userId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchUserProjects = (
+    userId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
 
@@ -487,7 +497,9 @@ export const deleteProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to delete a project
-export const deleteProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const deleteProject = (projectId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(deleteProjectRequest());
 
     try {
@@ -542,7 +554,9 @@ export const blockProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to block a project
-export const blockProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const blockProject = (projectId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(blockProjectRequest());
 
     try {
@@ -597,7 +611,10 @@ export const renewAlertLimitError = (error: $TSFixMe) => {
 };
 
 // Calls the API to block a project
-export const renewAlertLimit = (projectId: $TSFixMe, alertLimit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const renewAlertLimit = (
+    projectId: $TSFixMe,
+    alertLimit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     dispatch(renewAlertLimitRequest());
 
     try {
@@ -653,7 +670,9 @@ export const restoreProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to restore a project
-export const restoreProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const restoreProject = (projectId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(restoreProjectRequest());
 
     try {
@@ -708,7 +727,9 @@ export const unblockProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to un-block a project
-export const unblockProject = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const unblockProject = (projectId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(unblockProjectRequest());
 
     try {
@@ -763,7 +784,9 @@ export const addProjectNoteError = (error: $TSFixMe) => {
 };
 
 // Calls the API to add Admin Note
-export const addProjectNote = (projectId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const addProjectNote = (projectId: $TSFixMe, values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(addProjectNoteRequest());
 
     try {
@@ -818,7 +841,11 @@ export const searchProjectsError = (error: $TSFixMe) => {
 };
 
 // Calls the search projects api
-export const searchProjects = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const searchProjects = (
+    filter: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -977,10 +1004,7 @@ export function resetDeleteProjectDomain() {
     };
 }
 
-export function deleteProjectDomain({
-    projectId,
-    domainId
-}: $TSFixMe) {
+export function deleteProjectDomain({ projectId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
@@ -1036,10 +1060,7 @@ export function resetVerifyProjectDomain() {
     };
 }
 
-export function verifyProjectDomain({
-    projectId,
-    domainId
-}: $TSFixMe) {
+export function verifyProjectDomain({ projectId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 

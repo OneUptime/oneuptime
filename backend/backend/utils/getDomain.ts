@@ -32,4 +32,4 @@ export default function getDomain(s: $TSFixMe) {
     }
 
     return parts.join('.');
-};
+}

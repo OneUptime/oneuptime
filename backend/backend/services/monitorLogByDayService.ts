@@ -72,14 +72,7 @@ export default {
         return monitorLogByDay;
     },
 
-    async findBy({
-        query,
-        limit,
-        skip,
-        filter,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, filter, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -111,11 +104,7 @@ export default {
         return monitorLogsByDay;
     },
 
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -141,6 +130,6 @@ export default {
     },
 };
 
-import MonitorLogByDayModel from '../models/monitorLogByDay'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import MonitorLogByDayModel from '../models/monitorLogByDay';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -1,11 +1,5 @@
 export default {
-    async findBy({
-        query,
-        skip,
-        limit,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findBy({ query, skip, limit, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 20;
@@ -46,7 +40,13 @@ export default {
         return count;
     },
 
-    create: async function(projectId: $TSFixMe, message: $TSFixMe, userId: $TSFixMe, icon: $TSFixMe, meta: $TSFixMe) {
+    create: async function(
+        projectId: $TSFixMe,
+        message: $TSFixMe,
+        userId: $TSFixMe,
+        icon: $TSFixMe,
+        meta: $TSFixMe
+    ) {
         try {
             if (!meta) {
                 meta = {};
@@ -171,11 +171,7 @@ export default {
         return 'Notification(s) removed successfully!';
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -192,8 +188,8 @@ export default {
     },
 };
 
-import NotificationModel from '../models/notification'
-import RealTimeService from '../services/realTimeService'
-import ErrorService from 'common-server/utils/error'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import NotificationModel from '../models/notification';
+import RealTimeService from '../services/realTimeService';
+import ErrorService from 'common-server/utils/error';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

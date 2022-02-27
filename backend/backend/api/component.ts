@@ -1,20 +1,20 @@
-import express from 'express'
-import UserService from '../services/userService'
-import ComponentService from '../services/componentService'
-import NotificationService from '../services/notificationService'
-import RealTimeService from '../services/realTimeService'
-import ApplicationLogService from '../services/applicationLogService'
-import MonitorService from '../services/monitorService'
-import ApplicationSecurityService from '../services/applicationSecurityService'
-import ContainerSecurityService from '../services/containerSecurityService'
-import LogService from '../services/logService'
-import ApplicationSecurityLogService from '../services/applicationSecurityLogService'
-import ContainerSecurityLogService from '../services/containerSecurityLogService'
-import ErrorTrackerService from '../services/errorTrackerService'
-import IssueService from '../services/issueService'
-import PerformanceTrackerService from '../services/performanceTrackerService'
-import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService'
-import ErrorService from 'common-server/utils/error'
+import express from 'express';
+import UserService from '../services/userService';
+import ComponentService from '../services/componentService';
+import NotificationService from '../services/notificationService';
+import RealTimeService from '../services/realTimeService';
+import ApplicationLogService from '../services/applicationLogService';
+import MonitorService from '../services/monitorService';
+import ApplicationSecurityService from '../services/applicationSecurityService';
+import ContainerSecurityService from '../services/containerSecurityService';
+import LogService from '../services/logService';
+import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
+import ContainerSecurityLogService from '../services/containerSecurityLogService';
+import ErrorTrackerService from '../services/errorTrackerService';
+import IssueService from '../services/issueService';
+import PerformanceTrackerService from '../services/performanceTrackerService';
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
+import ErrorService from 'common-server/utils/error';
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -22,11 +22,11 @@ const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-import moment from 'moment'
+import moment from 'moment';
 
 // Route
 // Description: Adding / Updating a new component to the project.
@@ -207,8 +207,8 @@ router.get(
             const type = req.query.type;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { projectId: { $in: subProjectIds }, type }
@@ -252,8 +252,8 @@ router.get(
             const type = req.query.type;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
@@ -290,8 +290,8 @@ router.post(
             const componentId = req.params.componentId;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Check that component exists
@@ -393,8 +393,8 @@ router.get(
             const type = req.query.type;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             const query = type
@@ -585,96 +585,104 @@ router.get(
             );
 
             await Promise.all(
-                applicationLogObj.applicationLogs.map(async (elem: $TSFixMe) => {
-                    let logStatus = 'No logs yet';
-                    // confirm if the application log has started collecting logs or not
-                    const logs = await LogService.getLogsByApplicationLogId(
-                        elem._id,
-                        1,
-                        0
-                    );
-                    if (logs.length > 0) logStatus = 'Collecting Logs';
-                    const newElement = {
-                        _id: elem._id,
-                        name: elem.name,
-                        type: 'log container',
-                        createdAt: elem.createdAt,
-                        icon: 'appLog',
-                        status: logStatus,
-                        slug: elem.slug,
-                        component,
-                    };
-                    // add it to the total resources
-                    totalResources.push(newElement);
-                    return newElement;
-                })
+                applicationLogObj.applicationLogs.map(
+                    async (elem: $TSFixMe) => {
+                        let logStatus = 'No logs yet';
+                        // confirm if the application log has started collecting logs or not
+                        const logs = await LogService.getLogsByApplicationLogId(
+                            elem._id,
+                            1,
+                            0
+                        );
+                        if (logs.length > 0) logStatus = 'Collecting Logs';
+                        const newElement = {
+                            _id: elem._id,
+                            name: elem.name,
+                            type: 'log container',
+                            createdAt: elem.createdAt,
+                            icon: 'appLog',
+                            status: logStatus,
+                            slug: elem.slug,
+                            component,
+                        };
+                        // add it to the total resources
+                        totalResources.push(newElement);
+                        return newElement;
+                    }
+                )
             );
 
             await Promise.all(
-                errorTrackerObj.errorTrackers.map(async (errorTracker: $TSFixMe) => {
-                    let errorStatus = 'No Errors yet';
+                errorTrackerObj.errorTrackers.map(
+                    async (errorTracker: $TSFixMe) => {
+                        let errorStatus = 'No Errors yet';
 
-                    const populateIssue = [
-                        { path: 'errorTrackerId', select: 'name' },
-                        { path: 'resolvedById', select: 'name' },
-                        { path: 'ignoredById', select: 'name' },
-                    ];
+                        const populateIssue = [
+                            { path: 'errorTrackerId', select: 'name' },
+                            { path: 'resolvedById', select: 'name' },
+                            { path: 'ignoredById', select: 'name' },
+                        ];
 
-                    const selectIssue =
-                        'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+                        const selectIssue =
+                            'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
-                    const issues = await IssueService.findBy({
-                        query: { errorTrackerId: errorTracker._id },
-                        limit: 1,
-                        skip: 0,
-                        select: selectIssue,
-                        populate: populateIssue,
-                    });
-                    if (issues.length > 0) errorStatus = 'Listening for Errors';
-                    const newElement = {
-                        _id: errorTracker._id,
-                        name: errorTracker.name,
-                        type: 'error tracker',
-                        createdAt: errorTracker.createdAt,
-                        icon: 'errorTracking',
-                        status: errorStatus,
-                        slug: errorTracker.slug,
-                    };
-                    // add it to the total resources
-                    totalResources.push(newElement);
-                    return newElement;
-                })
-            );
-
-            await Promise.all(
-                performanceTrackers.map(async (performanceTracker: $TSFixMe) => {
-                    let trackerStatus = 'Not monitoring performance';
-                    const metrics = await PerformanceTrackerMetricService.findBy(
-                        {
-                            query: {
-                                performanceTrackerId: performanceTracker._id,
-                            },
+                        const issues = await IssueService.findBy({
+                            query: { errorTrackerId: errorTracker._id },
                             limit: 1,
                             skip: 0,
-                            select: '_id',
-                        }
-                    );
-                    if (metrics.length > 0) {
-                        trackerStatus = 'Monitoring performance';
+                            select: selectIssue,
+                            populate: populateIssue,
+                        });
+                        if (issues.length > 0)
+                            errorStatus = 'Listening for Errors';
+                        const newElement = {
+                            _id: errorTracker._id,
+                            name: errorTracker.name,
+                            type: 'error tracker',
+                            createdAt: errorTracker.createdAt,
+                            icon: 'errorTracking',
+                            status: errorStatus,
+                            slug: errorTracker.slug,
+                        };
+                        // add it to the total resources
+                        totalResources.push(newElement);
+                        return newElement;
                     }
-                    const newElement = {
-                        _id: performanceTracker._id,
-                        name: performanceTracker.name,
-                        type: 'performance tracker',
-                        createdAt: performanceTracker.createdAt,
-                        icon: 'monitor',
-                        status: trackerStatus,
-                        slug: performanceTracker.slug,
-                    };
-                    // add it to the total resources
-                    totalResources.push(newElement);
-                    return newElement;
-                })
+                )
+            );
+
+            await Promise.all(
+                performanceTrackers.map(
+                    async (performanceTracker: $TSFixMe) => {
+                        let trackerStatus = 'Not monitoring performance';
+                        const metrics = await PerformanceTrackerMetricService.findBy(
+                            {
+                                query: {
+                                    performanceTrackerId:
+                                        performanceTracker._id,
+                                },
+                                limit: 1,
+                                skip: 0,
+                                select: '_id',
+                            }
+                        );
+                        if (metrics.length > 0) {
+                            trackerStatus = 'Monitoring performance';
+                        }
+                        const newElement = {
+                            _id: performanceTracker._id,
+                            name: performanceTracker.name,
+                            type: 'performance tracker',
+                            createdAt: performanceTracker.createdAt,
+                            icon: 'monitor',
+                            status: trackerStatus,
+                            slug: performanceTracker.slug,
+                        };
+                        // add it to the total resources
+                        totalResources.push(newElement);
+                        return newElement;
+                    }
+                )
             );
 
             // return response
@@ -698,8 +706,8 @@ router.get(
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Call the ComponentService.

@@ -2,15 +2,15 @@ process.env.NODE_ENV = 'development';
 process.env.LOG_LEVEL = 'error';
 process.env.API_URL = 'http://localhost:3002';
 
-import chai from 'chai'
+import chai from 'chai';
 chai.use(require('chai-http'));
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(process.env.API_URL);
 
-import utils from './test-utils'
+import utils from './test-utils';
 const expect = require('chai').expect;
-import serverMonitor from '../lib/api'
+import serverMonitor from '../lib/api';
 
 const user = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();

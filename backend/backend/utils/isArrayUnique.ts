@@ -5,4 +5,4 @@
  */
 export default function isArrayUnique(myArray: $TSFixMe) {
     return myArray.length === new Set(myArray).size;
-};
+}

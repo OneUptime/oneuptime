@@ -163,7 +163,10 @@ const INITIAL_STATE = {
     pages: {},
 };
 
-export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) {
+export default function scheduledEvent(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case CREATE_SCHEDULED_EVENT_SUCCESS: {
             let existingPayload = false;
@@ -190,11 +193,15 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                     String(action.payload.projectId._id)
                 ) {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoingScheduledEvents' does not exist o... Remove this comment to see the full error message
-                    eventData.ongoingScheduledEvents.forEach((event: $TSFixMe) => {
-                        if (String(event._id) === String(action.payload._id)) {
-                            existingOngoingEvent = true;
+                    eventData.ongoingScheduledEvents.forEach(
+                        (event: $TSFixMe) => {
+                            if (
+                                String(event._id) === String(action.payload._id)
+                            ) {
+                                existingOngoingEvent = true;
+                            }
                         }
-                    });
+                    );
                 }
             });
 
@@ -233,7 +240,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                     ) {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEvents' does not exist on type ... Remove this comment to see the full error message
                         const existingEvent = event.scheduledEvents.find(
-                            (event: $TSFixMe) => String(event._id) === String(action.payload._id)
+                            (event: $TSFixMe) =>
+                                String(event._id) === String(action.payload._id)
                         );
                         if (!existingEvent) {
                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEvents' does not exist on type ... Remove this comment to see the full error message
@@ -297,8 +305,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                     // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     [action.payload]: !state.pages[action.payload]
                         ? 2
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        : state.pages[action.payload] + 1,
+                        : // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          state.pages[action.payload] + 1,
                 },
             });
         case PREV_PAGE:
@@ -545,10 +553,10 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                         );
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                         subEvent.count = deleted
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
-                            ? subEvent.count
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
-                            : subEvent.count - 1;
+                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                              subEvent.count
+                            : // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                              subEvent.count - 1;
                     }
                     return subEvent;
                 }
@@ -563,7 +571,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                     ) {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoingScheduledEvents' does not exist o... Remove this comment to see the full error message
                         eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
-                            (event: $TSFixMe) => String(event._id) !== String(action.payload._id)
+                            (event: $TSFixMe) =>
+                                String(event._id) !== String(action.payload._id)
                         );
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                         eventData.count =
@@ -596,8 +605,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                     ),
                     count: deleted
                         ? state.scheduledEventList.count
-                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                        : state.scheduledEventList.count - 1,
+                        : // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                          state.scheduledEventList.count - 1,
                 },
                 deletedScheduledEvent: {
                     requesting: false,
@@ -916,8 +925,8 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                 ],
                 count: existingPayload
                     ? scheduledEventInternalList.count
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                    : scheduledEventInternalList.count + 1,
+                    : // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                      scheduledEventInternalList.count + 1,
             };
 
             return {
@@ -1185,8 +1194,9 @@ export default function scheduledEvent(state = INITIAL_STATE, action: $TSFixMe) 
                     ) {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoingScheduledEvents' does not exist o... Remove this comment to see the full error message
                         event.ongoingScheduledEvents = event.ongoingScheduledEvents.filter(
-                            (ongoingEvent: $TSFixMe) => String(ongoingEvent._id) !==
-                            String(action.payload._id)
+                            (ongoingEvent: $TSFixMe) =>
+                                String(ongoingEvent._id) !==
+                                String(action.payload._id)
                         );
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                         event.count = event.ongoingScheduledEvents.length;

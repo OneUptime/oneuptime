@@ -1,15 +1,15 @@
-import PerformanceTrackerModel from '../models/performanceTracker'
-import ErrorService from 'common-server/utils/error'
-import ComponentService from './componentService'
+import PerformanceTrackerModel from '../models/performanceTracker';
+import ErrorService from 'common-server/utils/error';
+import ComponentService from './componentService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'nano... Remove this comment to see the full error message
-import generate from 'nanoid/generate'
-import slugify from 'slugify'
+import generate from 'nanoid/generate';
+import slugify from 'slugify';
 // import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
+import NotificationService from './notificationService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import uuid from 'uuid';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
@@ -76,13 +76,7 @@ export default {
         }
     },
     //Description: Gets all application logs by component.
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -115,11 +109,7 @@ export default {
         return performanceTracker;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -236,7 +226,11 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData = null
+    ) {
         if (!query) {
             query = {};
         }

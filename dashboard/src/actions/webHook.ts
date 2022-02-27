@@ -88,7 +88,11 @@ export const resetGetWebHook = () => {
     };
 };
 
-export function getWebHook(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getWebHook(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -120,7 +124,12 @@ export function getWebHook(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe)
     };
 }
 
-export function getWebHookMonitor(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getWebHookMonitor(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -237,7 +246,11 @@ export const resetUpdateWebHook = () => {
 };
 
 // Calls the API to add webhook to project
-export function updateWebHook(projectId: $TSFixMe, webhookId: $TSFixMe, data: $TSFixMe) {
+export function updateWebHook(
+    projectId: $TSFixMe,
+    webhookId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 

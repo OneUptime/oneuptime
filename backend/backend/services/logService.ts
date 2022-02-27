@@ -44,11 +44,7 @@ export default {
         });
         return log;
     },
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -63,13 +59,7 @@ export default {
 
         return log;
     },
-    async findBy({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -100,7 +90,11 @@ export default {
 
         return logs.reverse();
     },
-    async getLogsByApplicationLogId(applicationLogId: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async getLogsByApplicationLogId(
+        applicationLogId: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
+    ) {
         // try to get the application log by the ID
 
         const applicationLogCount = await ApplicationLogService.countBy({
@@ -141,7 +135,12 @@ export default {
 
         return count;
     },
-    search: async function(query: $TSFixMe, filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    search: async function(
+        query: $TSFixMe,
+        filter: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const _this = this;
         query.stringifiedContent = {
             $regex: new RegExp(filter),
@@ -231,7 +230,7 @@ export default {
     },
 };
 
-import LogModel from '../models/log'
-import ApplicationLogService from './applicationLogService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import LogModel from '../models/log';
+import ApplicationLogService from './applicationLogService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

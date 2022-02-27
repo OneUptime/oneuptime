@@ -6,12 +6,15 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 export default function IsAdminSubProject(subProject: $TSFixMe) {
     const userId = User.getUserId();
-    return [null, undefined].every(i => i !== userId) &&
-    [null, undefined].every(i => i !== subProject) &&
-    [null, undefined].every(i => i !== subProject.users) &&
-    subProject.users.length > 0 &&
-    subProject.users.some(
-        (user: $TSFixMe) => user.userId === userId &&
-        (user.role === 'Administrator' || user.role === 'Administrator')
+    return (
+        [null, undefined].every(i => i !== userId) &&
+        [null, undefined].every(i => i !== subProject) &&
+        [null, undefined].every(i => i !== subProject.users) &&
+        subProject.users.length > 0 &&
+        subProject.users.some(
+            (user: $TSFixMe) =>
+                user.userId === userId &&
+                (user.role === 'Administrator' || user.role === 'Administrator')
+        )
     );
 }

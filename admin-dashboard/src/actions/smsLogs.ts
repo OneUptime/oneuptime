@@ -23,7 +23,9 @@ export const fetchSmsLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchSmsLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchSmsLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
 
@@ -75,7 +77,11 @@ export const searchSmsLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchSmsLogs = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const searchSmsLogs = (
+    filter: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -243,7 +249,9 @@ export const resetConfirmSmsLogStatus = () => {
 };
 
 // Calls the API to change smsLogStatus
-export const smsLogStatusChange = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const smsLogStatusChange = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
     dispatch(changeSmsLogStatusRequest());
 

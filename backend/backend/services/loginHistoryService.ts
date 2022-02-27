@@ -1,5 +1,10 @@
 export default {
-    async create(user: $TSFixMe, clientIP: $TSFixMe, userAgent: $TSFixMe, status: $TSFixMe) {
+    async create(
+        user: $TSFixMe,
+        clientIP: $TSFixMe,
+        userAgent: $TSFixMe,
+        status: $TSFixMe
+    ) {
         const detector = new DeviceDetector();
         const result = detector.detect(userAgent);
         const ipLocation = await UserService.getUserIpLocation(clientIP);
@@ -22,13 +27,7 @@ export default {
             ErrorService.log('mailService.sendLoginEmail', error);
         }
     },
-    async findBy({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -63,10 +62,10 @@ export default {
     },
 };
 
-import LoginHistoryModel from '../models/loginIPLog'
-import ErrorService from 'common-server/utils/error'
-import DeviceDetector from 'node-device-detector'
-import MailService from '../services/mailService'
-import UserService from '../services/userService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import LoginHistoryModel from '../models/loginIPLog';
+import ErrorService from 'common-server/utils/error';
+import DeviceDetector from 'node-device-detector';
+import MailService from '../services/mailService';
+import UserService from '../services/userService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -1,9 +1,13 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 
 export default {
-    isAuthorizedService: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isAuthorizedService: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             let clusterKey;
 

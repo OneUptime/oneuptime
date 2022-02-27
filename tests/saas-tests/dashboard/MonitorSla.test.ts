@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -81,7 +81,9 @@ describe('Monitor SLA', () => {
                 monitorUptime,
                 page
             );
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -137,7 +139,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#name');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#name', slaName);
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -200,7 +204,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customMonitorUptime');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#customMonitorUptime', '12uptime');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -267,7 +273,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customMonitorUptime');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#customMonitorUptime', '120');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -334,7 +342,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customMonitorUptime');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#customMonitorUptime', '0');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -397,7 +407,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customFrequency');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#customFrequency', '12days');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -506,7 +518,9 @@ describe('Monitor SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click()); // set isDefault to false
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            ); // set isDefault to false
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#editSlaBtn');
 

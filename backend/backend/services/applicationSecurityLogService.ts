@@ -1,13 +1,9 @@
-import ApplicationSecurityLogModel from '../models/applicationSecurityLog'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import ApplicationSecurityLogModel from '../models/applicationSecurityLog';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function({
-        securityId,
-        componentId,
-        data
-    }: $TSFixMe) {
+    create: async function({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
@@ -50,11 +46,7 @@ export default {
 
         return securityLog;
     },
-    findOneBy: async function({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    findOneBy: async function({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -69,13 +61,7 @@ export default {
         const securityLog = await securityLogQuery;
         return securityLog;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;

@@ -75,13 +75,7 @@ export default {
         return smsTemplate;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -113,11 +107,7 @@ export default {
         return smsTemplates;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -195,8 +185,8 @@ export default {
     },
 };
 
-import SmsTemplateModel from '../models/smsTemplate'
-import smsTemplateVariables from '../config/smsTemplateVariables'
-import defaultSmsTemplate from '../config/smsTemplate'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import SmsTemplateModel from '../models/smsTemplate';
+import smsTemplateVariables from '../config/smsTemplateVariables';
+import defaultSmsTemplate from '../config/smsTemplate';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

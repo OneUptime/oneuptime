@@ -126,13 +126,7 @@ export default {
         return incidentTimelines;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -161,11 +155,7 @@ export default {
         return incidentTimelines;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -247,10 +237,10 @@ export default {
     },
 };
 
-import IncidentTimelineModel from '../models/incidentTimeline'
-import IncidentService from './incidentService'
-import RealTimeService from './realTimeService'
-import ErrorService from 'common-server/utils/error'
-import flattenArray from '../utils/flattenArray'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import IncidentTimelineModel from '../models/incidentTimeline';
+import IncidentService from './incidentService';
+import RealTimeService from './realTimeService';
+import ErrorService from 'common-server/utils/error';
+import flattenArray from '../utils/flattenArray';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

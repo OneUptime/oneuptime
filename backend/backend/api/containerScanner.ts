@@ -1,16 +1,16 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
-import ContainerSecurityService from '../services/containerSecurityService'
-import ContainerSecurityLogService from '../services//containerSecurityLogService'
+import ContainerSecurityService from '../services/containerSecurityService';
+import ContainerSecurityLogService from '../services//containerSecurityLogService';
 const isAuthorizedContainerScanner = require('../middlewares/containerScannerAuthorization')
     .isAuthorizedContainerScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import RealTimeService from '../services/realTimeService'
-import MailService from '../services/mailService'
-import UserService from '../services/userService'
-import ProjectService from '../services/projectService'
-import ErrorService from 'common-server/utils/error'
+import RealTimeService from '../services/realTimeService';
+import MailService from '../services/mailService';
+import UserService from '../services/userService';
+import ProjectService from '../services/projectService';
+import ErrorService from 'common-server/utils/error';
 
 router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,
@@ -92,8 +92,8 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
         const userIds = project.users
             .filter((e: $TSFixMe) => e.role !== 'Viewer')
             .map((e: $TSFixMe) => ({
-            id: e.userId
-        })); // This cater for projects with multiple registered members
+                id: e.userId,
+            })); // This cater for projects with multiple registered members
         // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
         project.critical = findLog.data.vulnerabilityInfo.critical;
         // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.

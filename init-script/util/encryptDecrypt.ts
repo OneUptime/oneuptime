@@ -1,5 +1,5 @@
-import crypto from 'crypto'
-import EncryptionKeys from './encryptionKeys'
+import crypto from 'crypto';
+import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
 

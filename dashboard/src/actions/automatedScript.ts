@@ -84,7 +84,11 @@ export function updateAutomatedScriptFailure(error: $TSFixMe) {
     };
 }
 
-export function updateAutomatedScript(projectId: $TSFixMe, automatedScriptId: $TSFixMe, data: $TSFixMe) {
+export function updateAutomatedScript(
+    projectId: $TSFixMe,
+    automatedScriptId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}`,
@@ -194,7 +198,11 @@ export function fetchAutomatedScriptFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchAutomatedScript(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchAutomatedScript(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
@@ -296,7 +304,10 @@ const deleteAutomatedScriptFailure = (error: $TSFixMe) => {
     };
 };
 
-export function deleteAutomatedScript(projectId: $TSFixMe, automatedSlug: $TSFixMe) {
+export function deleteAutomatedScript(
+    projectId: $TSFixMe,
+    automatedSlug: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(

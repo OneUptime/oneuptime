@@ -1,11 +1,11 @@
-import express from 'express'
+import express from 'express';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-import MonitorService from '../services/monitorService'
-import ProbeService from '../services/probeService'
+import MonitorService from '../services/monitorService';
+import ProbeService from '../services/probeService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
-import { isAuthorizedService } from '../middlewares/serviceAuthorization'
+import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 
 const router = express.Router();
 
@@ -44,7 +44,7 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             stat: validUp,
             successReasons: upSuccessReasons,
             failedReasons: upFailedReasons,
-            matchedCriterion: matchedUpCriterion
+            matchedCriterion: matchedUpCriterion,
         }: $TSFixMe =
             monitor && monitor.criteria && monitor.criteria.up
                 ? await ProbeService.scriptConditions(resp, monitor.criteria.up)
@@ -55,7 +55,7 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             stat: validDown,
             successReasons: downSuccessReasons,
             failedReasons: downFailedReasons,
-            matchedCriterion: matchedDownCriterion
+            matchedCriterion: matchedDownCriterion,
         }: $TSFixMe =
             monitor && monitor.criteria && monitor.criteria.down
                 ? await ProbeService.scriptConditions(resp, [
@@ -70,7 +70,7 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             stat: validDegraded,
             successReasons: degradedSuccessReasons,
             failedReasons: degradedFailedReasons,
-            matchedCriterion: matchedDegradedCriterion
+            matchedCriterion: matchedDegradedCriterion,
         }: $TSFixMe =
             monitor && monitor.criteria && monitor.criteria.degraded
                 ? await ProbeService.scriptConditions(
@@ -139,12 +139,13 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
         data.reason =
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
             data && data.reason && data.reason.length
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
-                ? data.reason.filter(
-                      (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => self.indexOf(item) === pos
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                  data.reason.filter(
+                      (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                          self.indexOf(item) === pos
                   )
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
-                : data.reason;
+                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                  data.reason;
 
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedUpCriterion' does not exist on ty... Remove this comment to see the full error message
         data.matchedUpCriterion =

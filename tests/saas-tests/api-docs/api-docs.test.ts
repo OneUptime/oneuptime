@@ -1,7 +1,7 @@
-import utils from '../../test-utils'
+import utils from '../../test-utils';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import init from '../../test-init';
 let page: $TSFixMe, browser: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message

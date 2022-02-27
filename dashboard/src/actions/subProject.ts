@@ -106,7 +106,10 @@ export function createNewSubProjectReset() {
     };
 }
 
-export function createSubProject(projectId: $TSFixMe, subProjectName: $TSFixMe) {
+export function createSubProject(
+    projectId: $TSFixMe,
+    subProjectName: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/subProject`, {
             subProjectName,
@@ -232,7 +235,11 @@ export function resetRenameSubProject() {
     };
 }
 
-export function renameSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe, subProjectName: $TSFixMe) {
+export function renameSubProject(
+    projectId: $TSFixMe,
+    subProjectId: $TSFixMe,
+    subProjectName: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`project/${projectId}/${subProjectId}`, {
             subProjectName,
@@ -352,7 +359,11 @@ export function exitSubProjectError(error: $TSFixMe) {
     };
 }
 
-export function exitSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe, userId: $TSFixMe) {
+export function exitSubProject(
+    projectId: $TSFixMe,
+    subProjectId: $TSFixMe,
+    userId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
@@ -411,7 +422,11 @@ export function markSubProjectForDeleteError(error: $TSFixMe) {
     };
 }
 
-export function markSubProjectForDelete(projectId: $TSFixMe, subProjectId: $TSFixMe, feedback: $TSFixMe) {
+export function markSubProjectForDelete(
+    projectId: $TSFixMe,
+    subProjectId: $TSFixMe,
+    feedback: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/deleteProject`,
@@ -443,7 +458,10 @@ export function markSubProjectForDelete(projectId: $TSFixMe, subProjectId: $TSFi
     };
 }
 
-export function setActiveSubProject(subproject: $TSFixMe, updateStorage = false) {
+export function setActiveSubProject(
+    subproject: $TSFixMe,
+    updateStorage = false
+) {
     if (updateStorage) {
         // store to localstorage
         User.setActiveSubProjectId(subproject);

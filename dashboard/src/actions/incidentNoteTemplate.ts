@@ -8,18 +8,17 @@ export const createIncidentNoteTemplateRequest = () => ({
 
 export const createIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
-    payload
+    payload,
 });
 
 export const createIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const createIncidentNoteTemplate = ({
-    projectId,
-    data
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
+export const createIncidentNoteTemplate = ({ projectId, data }: $TSFixMe) => (
+    dispatch: $TSFixMe
+) => {
     dispatch(createIncidentNoteTemplateRequest());
     const promise = postApi(`incidentNoteTemplate/${projectId}`, data);
 
@@ -51,18 +50,18 @@ export const fetchIncidentNoteTemplatesRequest = () => ({
 
 export const fetchIncidentNoteTemplatesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchIncidentNoteTemplatesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchIncidentNoteTemplates = ({
     projectId,
     skip = 0,
-    limit = 0
+    limit = 0,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchIncidentNoteTemplatesRequest());
     const promise = getApi(
@@ -97,18 +96,18 @@ export const updateIncidentNoteTemplateRequest = () => ({
 
 export const updateIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
-    payload
+    payload,
 });
 
 export const updateIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const updateIncidentNoteTemplate = ({
     projectId,
     templateId,
-    data
+    data,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(updateIncidentNoteTemplateRequest());
     const promise = putApi(
@@ -144,17 +143,17 @@ export const deleteIncidentNoteTemplateRequest = () => ({
 
 export const deleteIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deleteIncidentNoteTemplate = ({
     projectId,
-    templateId
+    templateId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deleteIncidentNoteTemplateRequest());
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.

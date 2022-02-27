@@ -73,7 +73,7 @@ export default {
     },
 };
 
-import LeadsModel from '../models/lead'
-import MailService from './mailService'
-import ErrorService from 'common-server/utils/error'
-import AirtableService from './airtableService'
+import LeadsModel from '../models/lead';
+import MailService from './mailService';
+import ErrorService from 'common-server/utils/error';
+import AirtableService from './airtableService';

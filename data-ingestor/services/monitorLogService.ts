@@ -1,17 +1,17 @@
-import MonitorLogByHourService from '../services/monitorLogByHourService'
-import MonitorLogByDayService from '../services/monitorLogByDayService'
-import MonitorLogByWeekService from '../services/monitorLogByWeekService'
-import MonitorService from '../services/monitorService'
-import ErrorService from '../services/errorService'
-import moment from 'moment'
+import MonitorLogByHourService from '../services/monitorLogByHourService';
+import MonitorLogByDayService from '../services/monitorLogByDayService';
+import MonitorLogByWeekService from '../services/monitorLogByWeekService';
+import MonitorService from '../services/monitorService';
+import ErrorService from '../services/errorService';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorLogCollection = global.db.collection('monitorlogs');
-import { ObjectId } from 'mongodb'
+import { ObjectId } from 'mongodb';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
-import { postApi } from '../utils/api'
+import { postApi } from '../utils/api';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { realtimeUrl } from '../utils/config'
-import ProjectService from './projectService'
+import { realtimeUrl } from '../utils/config';
+import ProjectService from './projectService';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 

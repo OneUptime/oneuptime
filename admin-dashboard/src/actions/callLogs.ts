@@ -23,7 +23,9 @@ export const fetchCallLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchCallLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchCallLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
 
@@ -75,7 +77,11 @@ export const searchCallLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchCallLogs = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const searchCallLogs = (
+    filter: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -243,7 +249,9 @@ export const resetConfirmCallLogStatus = () => {
 };
 
 // Calls the API to change callLogStatus
-export const callLogStatusChange = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const callLogStatusChange = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
     dispatch(changeCallLogStatusRequest());
 

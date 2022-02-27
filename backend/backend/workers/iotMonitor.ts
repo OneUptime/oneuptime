@@ -1,4 +1,4 @@
-import moment from 'moment'
+import moment from 'moment';
 const MonitorService = require('../services/monitorService'),
     IncidentService = require('../services/incidentService'),
     ZapierService = require('../services/zapierService'),

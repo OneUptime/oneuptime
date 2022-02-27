@@ -34,6 +34,6 @@ export default {
     },
 };
 
-import mongoose from '../config/db'
+import mongoose from '../config/db';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'grid... Remove this comment to see the full error message
-import Grid from 'gridfs-stream'
+import Grid from 'gridfs-stream';

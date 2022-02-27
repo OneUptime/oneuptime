@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../../package.json'. Consider ... Remove this comment to see the full error message
-import { version } from '../../package.json'
-import program from 'commander'
+import { version } from '../../package.json';
+import program from 'commander';
 program
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'typeof imp... Remove this comment to see the full error message
     .name('oneuptime')

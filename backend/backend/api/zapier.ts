@@ -1,9 +1,9 @@
-import express from 'express'
-import ZapierService from '../services/zapierService'
-import MonitorService from '../services/monitorService'
-import ProjectService from '../services/projectService'
+import express from 'express';
+import ZapierService from '../services/zapierService';
+import MonitorService from '../services/monitorService';
+import ProjectService from '../services/projectService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;

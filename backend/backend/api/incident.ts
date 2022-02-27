@@ -1,20 +1,20 @@
-import express from 'express'
-import moment from 'moment'
-import Handlebars from 'handlebars'
-import IncidentService from '../services/incidentService'
-import IncidentTimelineService from '../services/incidentTimelineService'
-import MonitorStatusService from '../services/monitorStatusService'
-import StatusPageService from '../services/statusPageService'
-import RealTimeService from '../services/realTimeService'
-import IncidentMessageService from '../services/incidentMessageService'
-import AlertService from '../services/alertService'
-import UserService from '../services/userService'
-import MonitorService from '../services/monitorService'
+import express from 'express';
+import moment from 'moment';
+import Handlebars from 'handlebars';
+import IncidentService from '../services/incidentService';
+import IncidentTimelineService from '../services/incidentTimelineService';
+import MonitorStatusService from '../services/monitorStatusService';
+import StatusPageService from '../services/statusPageService';
+import RealTimeService from '../services/realTimeService';
+import IncidentMessageService from '../services/incidentMessageService';
+import AlertService from '../services/alertService';
+import UserService from '../services/userService';
+import MonitorService from '../services/monitorService';
 const router = express.Router();
 
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
-import errorService from 'common-server/utils/error'
+import { isAuthorized } from '../middlewares/authorization';
+import errorService from 'common-server/utils/error';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 
@@ -23,13 +23,13 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import subscriberAlertService from '../services/subscriberAlertService'
-import onCallScheduleStatusService from '../services/onCallScheduleStatusService'
-import Services from '../utils/services'
-import joinNames from '../utils/joinNames'
+import subscriberAlertService from '../services/subscriberAlertService';
+import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
+import Services from '../utils/services';
+import joinNames from '../utils/joinNames';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
-import { isAuthorizedService } from '../middlewares/serviceAuthorization'
-import ErrorService from 'common-server/utils/error'
+import { isAuthorizedService } from '../middlewares/serviceAuthorization';
+import ErrorService from 'common-server/utils/error';
 
 // data-ingestor will consume this api
 // create an incident and return the created incident
@@ -133,11 +133,11 @@ router.post(
             const monitors = req.body.monitors;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.id === 'API'
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.id === 'API'
                     ? null
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                    : req.user.id
+                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                      req.user.id
                 : null;
             let createdByApi = false;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
@@ -521,8 +521,8 @@ router.get(
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call the IncidentService.
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
@@ -549,11 +549,11 @@ router.post(
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.id === 'API'
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.id === 'API'
                     ? null
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                    : req.user.id
+                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                      req.user.id
                 : null;
             let acknowledgedByApi = false;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
@@ -690,8 +690,9 @@ router.post(
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
             const filteredMsg = incidentMessages.filter(
-                (a: $TSFixMe) => a.status !== 'internal notes added' &&
-                a.status !== 'internal notes updated'
+                (a: $TSFixMe) =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
             );
             const result = {
                 data: await Services.rearrangeDuty(filteredMsg),
@@ -718,11 +719,11 @@ router.post(
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const userId = req.user
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.id === 'API'
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.id === 'API'
                     ? null
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                    : req.user.id
+                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                      req.user.id
                 : null;
             let resolvedByApi = false;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
@@ -859,8 +860,9 @@ router.post(
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
             const filteredMsg = incidentMessages.filter(
-                (a: $TSFixMe) => a.status !== 'internal notes added' &&
-                a.status !== 'internal notes updated'
+                (a: $TSFixMe) =>
+                    a.status !== 'internal notes added' &&
+                    a.status !== 'internal notes updated'
             );
             const result = {
                 data: await Services.rearrangeDuty(filteredMsg),
@@ -1283,8 +1285,9 @@ router.post(
                             b.createdAt - a.createdAt
                     );
                     const filteredMsg = incidentMessages.filter(
-                        (a: $TSFixMe) => a.status !== 'internal notes added' &&
-                        a.status !== 'internal notes updated'
+                        (a: $TSFixMe) =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
                     );
                     incidentMessage = {
                         type: data.type,
@@ -1511,8 +1514,9 @@ router.delete(
                             b.createdAt - a.createdAt
                     );
                     const filteredMsg = incidentMessages.filter(
-                        (a: $TSFixMe) => a.status !== 'internal notes added' &&
-                        a.status !== 'internal notes updated'
+                        (a: $TSFixMe) =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
                     );
                     result = {
                         type: checkMsg.type,

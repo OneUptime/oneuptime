@@ -1,5 +1,5 @@
-import express from 'express'
-import StripeService from '../services/stripeService'
+import express from 'express';
+import StripeService from '../services/stripeService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
@@ -7,10 +7,10 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 const getUser = require('../middlewares/user').getUser;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/project"' has no exported ... Remove this comment to see the full error message
-import { isUserOwner } from '../middlewares/project'
+import { isUserOwner } from '../middlewares/project';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
-import ProjectService from '../services/projectService'
+import { isAuthorized } from '../middlewares/authorization';
+import ProjectService from '../services/projectService';
 
 const router = express.Router();
 

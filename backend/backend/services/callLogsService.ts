@@ -5,7 +5,7 @@ export default {
         skip,
         sort,
         select,
-        populate
+        populate,
     }: $TSFixMe) {
         if (!skip) skip = 0;
 
@@ -43,7 +43,14 @@ export default {
         return items;
     },
 
-    create: async function(from: $TSFixMe, to: $TSFixMe, projectId: $TSFixMe, content: $TSFixMe, status: $TSFixMe, error: $TSFixMe) {
+    create: async function(
+        from: $TSFixMe,
+        to: $TSFixMe,
+        projectId: $TSFixMe,
+        content: $TSFixMe,
+        status: $TSFixMe,
+        error: $TSFixMe
+    ) {
         let item = new CallLogsModel();
 
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type 'Document<a... Remove this comment to see the full error message
@@ -89,17 +96,11 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({
-        query
-    }: $TSFixMe) {
+    hardDeleteBy: async function({ query }: $TSFixMe) {
         await CallLogsModel.deleteMany(query);
     },
 
-    search: async function({
-        filter,
-        skip,
-        limit
-    }: $TSFixMe) {
+    search: async function({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },
@@ -116,6 +117,6 @@ export default {
     },
 };
 
-import CallLogsModel from '../models/callLogs'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import CallLogsModel from '../models/callLogs';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

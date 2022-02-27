@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'ligh... Remove this comment to see the full error message
-import lighthouse from 'lighthouse'
-import chromeLauncher from 'chrome-launcher'
-import ErrorService from './errorService'
+import lighthouse from 'lighthouse';
+import chromeLauncher from 'chrome-launcher';
+import ErrorService from './errorService';
 
 function launchChromeAndRunLighthouse(
     url: $TSFixMe,
@@ -29,11 +29,12 @@ process.on('message', url => {
                 );
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 issues[category] = ids
-                    .map((id: $TSFixMe) => audits[id] &&
-                audits[id].score !== null &&
-                audits[id].score < 1
-                    ? audits[id]
-                    : id
+                    .map((id: $TSFixMe) =>
+                        audits[id] &&
+                        audits[id].score !== null &&
+                        audits[id].score < 1
+                            ? audits[id]
+                            : id
                     )
                     .filter((id: $TSFixMe) => typeof id !== 'string');
             }

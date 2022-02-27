@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 
@@ -298,7 +298,10 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogSetting');
 
             // enable logs
-            await init.page$Eval(page, 'input[name=emailStatusToggler]', (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                'input[name=emailStatusToggler]',
+                (e: $TSFixMe) => e.click()
             );
 
             // click the submit button

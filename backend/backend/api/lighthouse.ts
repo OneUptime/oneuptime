@@ -1,7 +1,7 @@
-import express from 'express'
-import ProbeService from '../services/probeService'
-import MonitorService from '../services/monitorService'
-import LighthouseLogService from '../services/lighthouseLogService'
+import express from 'express';
+import ProbeService from '../services/probeService';
+import MonitorService from '../services/monitorService';
+import LighthouseLogService from '../services/lighthouseLogService';
 const router = express.Router();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -9,10 +9,10 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const {
     isAuthorizedLighthouse,
 } = require('../middlewares/lighthouseAuthorization');
-import MailService from '../services/mailService'
-import UserService from '../services/userService'
-import ProjectService from '../services/projectService'
-import ErrorService from 'common-server/utils/error'
+import MailService from '../services/mailService';
+import UserService from '../services/userService';
+import ProjectService from '../services/projectService';
+import ErrorService from 'common-server/utils/error';
 
 // Route
 // Description: Updating profile setting.
@@ -121,8 +121,8 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 const userIds = project.users
                     .filter((e: $TSFixMe) => e.role !== 'Viewer')
                     .map((e: $TSFixMe) => ({
-                    id: e.userId
-                })); // This cater for projects with multiple registered members
+                        id: e.userId,
+                    })); // This cater for projects with multiple registered members
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type '{}'... Remove this comment to see the full error message
                 const performance = data.performance;
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type '{... Remove this comment to see the full error message

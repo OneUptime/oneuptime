@@ -1,4 +1,4 @@
-import ServiceBase from './base'
+import ServiceBase from './base';
 const {
     schema: StatusPageModel,
     requiredFields,
@@ -90,7 +90,7 @@ export default {
         limit,
         populate,
         select,
-        sort
+        sort,
     }: $TSFixMe) {
         return await StatusPageServiceBase.findBy({
             query,
@@ -108,7 +108,7 @@ export default {
         populate,
         skip,
         limit,
-        sort
+        sort,
     }: $TSFixMe) {
         return await StatusPageServiceBase.findOneBy({
             query,
@@ -125,9 +125,7 @@ export default {
         return await StatusPageServiceBase.countBy({ query });
     },
 
-    create: async function({
-        data
-    }: $TSFixMe) {
+    create: async function({ data }: $TSFixMe) {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
         data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
@@ -210,7 +208,8 @@ export default {
         if (statusPage) {
             // attach the domain id to statuspage collection and update it
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
-            const domain = statusPage.domains.find((domain: $TSFixMe) => domain.domain === subDomain ? true : false
+            const domain = statusPage.domains.find((domain: $TSFixMe) =>
+                domain.domain === subDomain ? true : false
             );
             if (domain) {
                 const error = new Error('Domain already exists');
@@ -276,7 +275,11 @@ export default {
 
     // update all the occurence of the old domain to the new domain
     // use regex to replace the value
-    updateCustomDomain: async function(domainId: $TSFixMe, newDomain: $TSFixMe, oldDomain: $TSFixMe) {
+    updateCustomDomain: async function(
+        domainId: $TSFixMe,
+        newDomain: $TSFixMe,
+        oldDomain: $TSFixMe
+    ) {
         const _this = this;
         const populateStatusPage = [
             {
@@ -462,12 +465,14 @@ export default {
 
         let deletedDomain: $TSFixMe = null;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
-        const remainingDomains = statusPage.domains.filter((domain: $TSFixMe) => {
-            if (String(domain._id) === String(domainId)) {
-                deletedDomain = domain;
+        const remainingDomains = statusPage.domains.filter(
+            (domain: $TSFixMe) => {
+                if (String(domain._id) === String(domainId)) {
+                    deletedDomain = domain;
+                }
+                return String(domain._id) !== String(domainId);
             }
-            return String(domain._id) !== String(domainId);
-        });
+        );
 
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
         const greenlock = global.greenlock;
@@ -638,8 +643,9 @@ export default {
         // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
         for (const statusPage of statusPages) {
             const monitors = statusPage.monitors.filter(
-                (monitorData: $TSFixMe) => String(monitorData.monitor._id || monitorData.monitor) !==
-                String(monitorId)
+                (monitorData: $TSFixMe) =>
+                    String(monitorData.monitor._id || monitorData.monitor) !==
+                    String(monitorId)
             );
 
             if (monitors.length !== statusPage.monitors.length) {
@@ -896,7 +902,11 @@ export default {
         return incident;
     },
 
-    getIncidentNotes: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getIncidentNotes: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -933,7 +943,11 @@ export default {
         return { message, count };
     },
 
-    getNotesByDate: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getNotesByDate: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -974,7 +988,11 @@ export default {
         return { investigationNotes, count };
     },
 
-    getEvents: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getEvents: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1077,7 +1095,11 @@ export default {
         }
     },
 
-    getFutureEvents: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getFutureEvents: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1112,7 +1134,9 @@ export default {
         let monitorIds = statuspage
             ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
-        monitorIds = monitorIds.map((monitor: $TSFixMe) => monitor._id || monitor);
+        monitorIds = monitorIds.map(
+            (monitor: $TSFixMe) => monitor._id || monitor
+        );
         if (monitorIds && monitorIds.length) {
             const currentDate = moment();
             const eventIds: $TSFixMe = [];
@@ -1180,7 +1204,11 @@ export default {
         }
     },
 
-    getPastEvents: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getPastEvents: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1307,7 +1335,11 @@ export default {
         return scheduledEvent;
     },
 
-    getEventNotes: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getEventNotes: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1347,7 +1379,11 @@ export default {
         return { notes: eventNote, count };
     },
 
-    getEventsByDate: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getEventsByDate: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1382,7 +1418,7 @@ export default {
         query,
         userId,
         populate,
-        select
+        select,
     }: $TSFixMe) {
         const thisObj = this;
         if (!query) {
@@ -1411,14 +1447,16 @@ export default {
             const domain = query.domains.$elemMatch.domain;
 
             const verifiedStatusPages = statusPages.filter(
-                (page: $TSFixMe) => page &&
-                page.domains.length > 0 &&
-                page.domains.filter(
-                    (domainItem: $TSFixMe) => domainItem &&
-                    domainItem.domain === domain &&
-                    domainItem.domainVerificationToken &&
-                    domainItem.domainVerificationToken.verified === true
-                ).length > 0
+                (page: $TSFixMe) =>
+                    page &&
+                    page.domains.length > 0 &&
+                    page.domains.filter(
+                        (domainItem: $TSFixMe) =>
+                            domainItem &&
+                            domainItem.domain === domain &&
+                            domainItem.domainVerificationToken &&
+                            domainItem.domainVerificationToken.verified === true
+                    ).length > 0
             );
             if (verifiedStatusPages.length > 0) {
                 statusPage = verifiedStatusPages[0];
@@ -1440,7 +1478,8 @@ export default {
                 throw error;
             }
 
-            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) => String(monitorObj.monitor._id || monitorObj.monitor)
+            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
+                String(monitorObj.monitor._id || monitorObj.monitor)
             );
             const projectId = statusPage.projectId._id || statusPage.projectId;
             // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ parentProject... Remove this comment to see the full error message
@@ -1460,7 +1499,8 @@ export default {
             );
             const filteredMonitorData = monitors.map(subProject => {
                 // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
-                return subProject.monitors.filter((monitor: $TSFixMe) => monitorIds.includes(monitor._id.toString())
+                return subProject.monitors.filter((monitor: $TSFixMe) =>
+                    monitorIds.includes(monitor._id.toString())
                 );
             });
             statusPage.monitorsData = _.flatten(filteredMonitorData);
@@ -1502,7 +1542,8 @@ export default {
         );
         const statuspage = withMonitors[0];
         const monitorIds =
-            statuspage && statuspage.monitors.map((m: $TSFixMe) => m.monitor._id);
+            statuspage &&
+            statuspage.monitors.map((m: $TSFixMe) => m.monitor._id);
         if (monitorIds && monitorIds.length) {
             const populate = [
                 {
@@ -1555,7 +1596,9 @@ export default {
                     });
                     if (project && project._id) {
                         if (
-                            project.users.some((user: $TSFixMe) => user.userId === userId)
+                            project.users.some(
+                                (user: $TSFixMe) => user.userId === userId
+                            )
                         ) {
                             resolve(true);
                         } else {
@@ -1577,7 +1620,7 @@ export default {
     getStatusPagesByProjectId: async function({
         projectId,
         skip = 0,
-        limit = 10
+        limit = 10,
     }: $TSFixMe) {
         const _this = this;
 
@@ -1658,7 +1701,11 @@ export default {
         }
     },
     // get status pages for this incident
-    getStatusPagesForIncident: async (incidentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    getStatusPagesForIncident: async (
+        incidentId: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) => {
         // first get the monitor, then scan status page collection containing the monitor
         let { monitors } = await IncidentModel.findById(incidentId).select(
             'monitors.monitorId'
@@ -1668,7 +1715,8 @@ export default {
         let count = 0;
         if (monitors) {
             monitors = monitors.map(
-                (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
+                (monitor: $TSFixMe) =>
+                    monitor.monitorId._id || monitor.monitorId
             );
             count = await StatusPageModel.find({
                 'monitors.monitor': { $in: monitors },
@@ -1696,7 +1744,8 @@ export default {
         const startDate = moment(Date.now()).subtract(90, 'days');
         const monitorsIds =
             statusPages && statusPages.monitors
-                ? statusPages.monitors.map((m: $TSFixMe) => m.monitor && m.monitor._id ? m.monitor._id : null
+                ? statusPages.monitors.map((m: $TSFixMe) =>
+                      m.monitor && m.monitor._id ? m.monitor._id : null
                   )
                 : [];
         const statuses = await Promise.all(
@@ -1753,7 +1802,11 @@ export default {
 
         return newExternalStatusPage;
     },
-    getExternalStatusPage: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getExternalStatusPage: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1774,7 +1827,11 @@ export default {
         const externalStatusPages = await ExternalStatusPageModel.find(query);
         return externalStatusPages;
     },
-    updateExternalStatusPage: async function(projectId: $TSFixMe, _id: $TSFixMe, data: $TSFixMe) {
+    updateExternalStatusPage: async function(
+        projectId: $TSFixMe,
+        _id: $TSFixMe,
+        data: $TSFixMe
+    ) {
         const query = { projectId, _id };
 
         const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
@@ -1788,7 +1845,11 @@ export default {
         );
         return externalStatusPages;
     },
-    deleteExternalStatusPage: async function(projectId: $TSFixMe, _id: $TSFixMe, userId: $TSFixMe) {
+    deleteExternalStatusPage: async function(
+        projectId: $TSFixMe,
+        _id: $TSFixMe,
+        userId: $TSFixMe
+    ) {
         const query = { projectId, _id };
 
         const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
@@ -1810,7 +1871,7 @@ export default {
     createAnnouncement: async function(data: $TSFixMe) {
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-            monitorId: monitor
+            monitorId: monitor,
         }));
         // slugify announcement name
         if (data && data.name) {
@@ -1837,7 +1898,11 @@ export default {
         return newAnnouncement;
     },
 
-    getAnnouncements: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getAnnouncements: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1998,7 +2063,11 @@ export default {
         return response;
     },
 
-    getAnnouncementLogs: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getAnnouncementLogs: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -2157,31 +2226,31 @@ const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     }
 };
 
-import IncidentModel from '../models/incident'
+import IncidentModel from '../models/incident';
 
-import IncidentService from './incidentService'
-import ScheduledEventsService from './scheduledEventService'
-import MonitorService from './monitorService'
-import ErrorService from 'common-server/utils/error'
-import SubscriberService from './subscriberService'
-import ProjectService from './projectService'
-import AlertService from './alertService'
+import IncidentService from './incidentService';
+import ScheduledEventsService from './scheduledEventService';
+import MonitorService from './monitorService';
+import ErrorService from 'common-server/utils/error';
+import SubscriberService from './subscriberService';
+import ProjectService from './projectService';
+import AlertService from './alertService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import _ from 'lodash'
-import defaultStatusPageColors from '../config/statusPageColors'
-import DomainVerificationService from './domainVerificationService'
-import flattenArray from '../utils/flattenArray'
-import ScheduledEventNoteService from './scheduledEventNoteService'
-import IncidentMessageService from './incidentMessageService'
-import moment from 'moment'
+import _ from 'lodash';
+import defaultStatusPageColors from '../config/statusPageColors';
+import DomainVerificationService from './domainVerificationService';
+import flattenArray from '../utils/flattenArray';
+import ScheduledEventNoteService from './scheduledEventNoteService';
+import IncidentMessageService from './incidentMessageService';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
-import CertificateStoreService from './certificateStoreService'
-import AnnouncementModel from '../models/announcements'
-import ExternalStatusPageModel from '../models/externalStatusPage'
-import getSlug from '../utils/getSlug'
-import AnnouncementLogModel from '../models/announcementLogs'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import axios from 'axios'
+import uuid from 'uuid';
+import CertificateStoreService from './certificateStoreService';
+import AnnouncementModel from '../models/announcements';
+import ExternalStatusPageModel from '../models/externalStatusPage';
+import getSlug from '../utils/getSlug';
+import AnnouncementLogModel from '../models/announcementLogs';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import axios from 'axios';
 const bearer = process.env.TWITTER_BEARER_TOKEN;

@@ -1,5 +1,5 @@
-import JsonToCsv from './jsonToCsv'
-import { GridFSBucket } from 'mongodb'
+import JsonToCsv from './jsonToCsv';
+import { GridFSBucket } from 'mongodb';
 
 export default {
     sendEmptyResponse(req: $TSFixMe, res: $TSFixMe) {
@@ -58,7 +58,12 @@ export default {
         }
     },
 
-    sendListResponse: async function(req: $TSFixMe, res: $TSFixMe, list: $TSFixMe, count: $TSFixMe) {
+    sendListResponse: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        list: $TSFixMe,
+        count: $TSFixMe
+    ) {
         // remove __v, deleted, deletedAt and deletedById if not Master Admin
         const response = {};
 

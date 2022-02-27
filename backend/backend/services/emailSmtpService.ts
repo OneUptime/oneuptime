@@ -121,13 +121,7 @@ export default {
         return emailSmtp;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -169,11 +163,7 @@ export default {
         return emailSmtp;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -215,8 +205,8 @@ export default {
     },
 };
 
-import Crypto from 'crypto'
-import EmailSmtpModel from '../models/smtp'
-import EncryptDecrypt from '../config/encryptDecrypt'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import Crypto from 'crypto';
+import EmailSmtpModel from '../models/smtp';
+import EncryptDecrypt from '../config/encryptDecrypt';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

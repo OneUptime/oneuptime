@@ -1,9 +1,9 @@
-import EscalationModel from '../models/escalation'
-import moment from 'moment'
-import DateTime from '../utils/DateTime'
-import ScheduleService from './scheduleService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import EscalationModel from '../models/escalation';
+import moment from 'moment';
+import DateTime from '../utils/DateTime';
+import ScheduleService from './scheduleService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     findBy: async function({
@@ -12,7 +12,7 @@ export default {
         skip,
         sort,
         select,
-        populate
+        populate,
     }: $TSFixMe) {
         if (!skip) skip = 0;
 
@@ -38,11 +38,7 @@ export default {
         return escalations;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -165,7 +161,11 @@ export default {
         return updatedData;
     },
 
-    deleteEscalationMember: async function(projectId: $TSFixMe, memberId: $TSFixMe, deletedById: $TSFixMe) {
+    deleteEscalationMember: async function(
+        projectId: $TSFixMe,
+        memberId: $TSFixMe,
+        deletedById: $TSFixMe
+    ) {
         const _this = this;
         const escalations = await _this.findBy({
             query: { projectId },
@@ -179,8 +179,13 @@ export default {
                 for (const team of teams) {
                     const teamMembers = team.teamMembers;
                     const filtered = teamMembers
-                        .filter((meamber: $TSFixMe) => meamber['groupId'] !== memberId)
-                        .filter((member: $TSFixMe) => member['userId'] !== memberId);
+                        .filter(
+                            (meamber: $TSFixMe) =>
+                                meamber['groupId'] !== memberId
+                        )
+                        .filter(
+                            (member: $TSFixMe) => member['userId'] !== memberId
+                        );
                     newTeams.push({
                         _id: team._id,
                         teamMembers: filtered,
@@ -212,8 +217,9 @@ export default {
                             populate: populateSchedule,
                         });
                         const rmEscalation = schedule.escalationIds.filter(
-                            (escalationId: $TSFixMe) => String(escalationId._id) !==
-                            String(escalation._id)
+                            (escalationId: $TSFixMe) =>
+                                String(escalationId._id) !==
+                                String(escalation._id)
                         );
                         schedule.escalationIds = rmEscalation;
                         await Promise.all([

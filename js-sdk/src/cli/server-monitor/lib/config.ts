@@ -6,7 +6,7 @@
 
 'use strict';
 
-import path from 'path'
+import path from 'path';
 
 /** The api url to send server information. */
 const API_URL =

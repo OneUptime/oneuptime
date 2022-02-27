@@ -22,7 +22,9 @@ export const fetchSsosError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSsos = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchSsos = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsosRequest());
@@ -150,9 +152,7 @@ export const addSsoError = (payload: $TSFixMe) => {
     };
 };
 
-export const addSso = ({
-    data
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const addSso = ({ data }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addSsoRequest());
     try {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -193,10 +193,9 @@ export const updateSsoError = (payload: $TSFixMe) => {
     };
 };
 
-export const updateSso = ({
-    id,
-    data
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const updateSso = ({ id, data }: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(updateSsoRequest());
     try {
         await putApi(`sso/${id}`, data);

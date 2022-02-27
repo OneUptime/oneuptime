@@ -1,12 +1,12 @@
-import logger from 'common-server/utils/logger'
+import logger from 'common-server/utils/logger';
 const getApi = require('../utils/api').getApi;
-import ApiMonitors from './apiMonitors'
-import UrlMonitors from './urlMonitors'
-import IPMonitors from './ipMonitors'
-import ServerMonitors from './serverMonitors'
-import ErrorService from '../utils/errorService'
-import IncomingHttpRequestMonitors from './incomingHttpRequestMonitors'
-import KubernetesMonitors from './kubernetesMonitors'
+import ApiMonitors from './apiMonitors';
+import UrlMonitors from './urlMonitors';
+import IPMonitors from './ipMonitors';
+import ServerMonitors from './serverMonitors';
+import ErrorService from '../utils/errorService';
+import IncomingHttpRequestMonitors from './incomingHttpRequestMonitors';
+import KubernetesMonitors from './kubernetesMonitors';
 let limit = process.env.RESOURCES_LIMIT;
 
 if (limit && typeof limit === 'string') {
@@ -15,7 +15,7 @@ if (limit && typeof limit === 'string') {
 }
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'awai... Remove this comment to see the full error message
-import asyncSleep from 'await-sleep'
+import asyncSleep from 'await-sleep';
 
 const _this = {
     runJob: async function() {

@@ -1,9 +1,9 @@
-import express from 'express'
+import express from 'express';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import CertificateStoreService from '../services/certificateStoreService'
-import StatusPageService from '../services/statusPageService'
-import SiteManagerService from '../services/siteManagerService'
+import CertificateStoreService from '../services/certificateStoreService';
+import StatusPageService from '../services/statusPageService';
+import SiteManagerService from '../services/siteManagerService';
 
 const router = express.Router();
 

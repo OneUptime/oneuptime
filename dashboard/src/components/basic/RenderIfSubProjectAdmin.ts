@@ -15,8 +15,9 @@ export function RenderIfSubProjectAdmin(props: $TSFixMe) {
         currentProject.users &&
         currentProject.users.length > 0 &&
         currentProject.users.filter(
-            (user: $TSFixMe) => user.userId === userId &&
-            (user.role === 'Administrator' || user.role === 'Owner')
+            (user: $TSFixMe) =>
+                user.userId === userId &&
+                (user.role === 'Administrator' || user.role === 'Owner')
         ).length > 0
     ) {
         renderItems = children;
@@ -27,9 +28,10 @@ export function RenderIfSubProjectAdmin(props: $TSFixMe) {
                     if (
                         subProject._id === subProjectId &&
                         subProject.users.filter(
-                            (user: $TSFixMe) => user.userId === userId &&
-                            (user.role === 'Administrator' ||
-                                user.role === 'Owner')
+                            (user: $TSFixMe) =>
+                                user.userId === userId &&
+                                (user.role === 'Administrator' ||
+                                    user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = children;
@@ -41,9 +43,10 @@ export function RenderIfSubProjectAdmin(props: $TSFixMe) {
                         subProject.users &&
                         subProject.users.length > 0 &&
                         subProject.users.filter(
-                            (user: $TSFixMe) => user.userId === userId &&
-                            (user.role === 'Administrator' ||
-                                user.role === 'Owner')
+                            (user: $TSFixMe) =>
+                                user.userId === userId &&
+                                (user.role === 'Administrator' ||
+                                    user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = children;

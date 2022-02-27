@@ -1,7 +1,7 @@
-import express from 'express'
-import ReportService from '../services/reportService'
+import express from 'express';
+import ReportService from '../services/reportService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -24,8 +24,8 @@ router.get(
             const { startDate, endDate, skip, limit } = req.query;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call ReportService
             const members = await ReportService.getMostActiveMembers(
@@ -61,8 +61,8 @@ router.get(
             const { startDate, endDate, skip, limit } = req.query;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call Reports Service
             const monitors = await ReportService.getMostActiveMonitors(
@@ -98,8 +98,8 @@ router.get(
             const { startDate, endDate, filter } = req.query;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Reports Service
             const resolveTime = await ReportService.getAverageTimeBy(
@@ -131,8 +131,8 @@ router.get(
             const { startDate, endDate, filter } = req.query;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Reports Service
             const incidents = await ReportService.getIncidentCountBy(

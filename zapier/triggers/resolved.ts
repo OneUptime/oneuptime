@@ -8,7 +8,9 @@ const fallbackHook = (z: $TSFixMe, bundle: $TSFixMe) => {
         url: `${bundle.authData.serverUrl}/zapier/incident/resolved`,
     };
 
-    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
+    return z
+        .request(options)
+        .then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
@@ -28,7 +30,9 @@ const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
+    return z
+        .request(options)
+        .then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 const unSubscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
@@ -44,7 +48,9 @@ const unSubscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
+    return z
+        .request(options)
+        .then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

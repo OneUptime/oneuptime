@@ -1,6 +1,6 @@
 const getApi = require('../utils/api').getApi;
-import ErrorService from '../utils/errorService'
-import ContainerSecurity from './containerSecurity'
+import ErrorService from '../utils/errorService';
+import ContainerSecurity from './containerSecurity';
 
 export default {
     runContainerScan: async function() {

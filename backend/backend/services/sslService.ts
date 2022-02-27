@@ -1,17 +1,13 @@
-import SslModel from '../models/ssl'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import SslModel from '../models/ssl';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
         const sslChallenge = await SslModel.create(data);
         return sslChallenge;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -24,13 +20,7 @@ export default {
         const sslChallenge = await sslChallengeQuery;
         return sslChallenge;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;

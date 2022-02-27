@@ -1,31 +1,27 @@
-import IncomingRequestModel from '../models/incomingRequest'
-import IncidentService from '../services/incidentService'
-import MonitorService from '../services/monitorService'
-import AlertService from '../services/alertService'
-import ErrorService from 'common-server/utils/error'
-import ProjectService from '../services/projectService'
+import IncomingRequestModel from '../models/incomingRequest';
+import IncidentService from '../services/incidentService';
+import MonitorService from '../services/monitorService';
+import AlertService from '../services/alertService';
+import ErrorService from 'common-server/utils/error';
+import ProjectService from '../services/projectService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'domp... Remove this comment to see the full error message
-import createDOMPurify from 'dompurify'
+import createDOMPurify from 'dompurify';
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import { isEmpty } from 'lodash'
-import IncidentMessageService from '../services/incidentMessageService'
-import IncidentPrioritiesService from '../services/incidentPrioritiesService'
-import IncidentSettingsService from '../services/incidentSettingsService'
-import joinNames from '../utils/joinNames'
-import vm from 'vm'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import { isEmpty } from 'lodash';
+import IncidentMessageService from '../services/incidentMessageService';
+import IncidentPrioritiesService from '../services/incidentPrioritiesService';
+import IncidentSettingsService from '../services/incidentSettingsService';
+import joinNames from '../utils/joinNames';
+import vm from 'vm';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 // import RealTimeService from './realTimeService'
 
 export default {
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -71,7 +67,7 @@ export default {
         if (data.createIncident) {
             // reassign data.monitors with a restructured monitor data
             data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor
+                monitorId: monitor,
             }));
         }
 
@@ -159,7 +155,11 @@ export default {
         return updatedIncomingRequest;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, excludeMonitors: $TSFixMe) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        excludeMonitors: $TSFixMe
+    ) {
         const _this = this;
         let unsetData = {};
         if (!query) {
@@ -192,7 +192,7 @@ export default {
 
             // reassign data.monitors with a restructured monitor data
             data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor
+                monitorId: monitor,
             }));
         }
 
@@ -365,13 +365,7 @@ export default {
         return incomingRequest;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -490,8 +484,9 @@ export default {
             allIncomingRequest.map(async (incomingRequest: $TSFixMe) => {
                 // remove the monitor from incomingRequest monitors list
                 incomingRequest.monitors = incomingRequest.monitors.filter(
-                    (monitor: $TSFixMe) => String(monitor.monitorId._id || monitor.monitorId) !==
-                    String(monitorId)
+                    (monitor: $TSFixMe) =>
+                        String(monitor.monitorId._id || monitor.monitorId) !==
+                        String(monitorId)
                 );
 
                 if (incomingRequest.monitors.length > 0) {
@@ -803,22 +798,25 @@ export default {
                     const priorityObj = {};
                     incidentPriorities.forEach(
                         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        (priority: $TSFixMe) => priorityObj[priority.name.toLowerCase()] =
-                                priority._id
+                        (priority: $TSFixMe) =>
+                            (priorityObj[priority.name.toLowerCase()] =
+                                priority._id)
                     );
                     data.incidentPriority =
                         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
-                    data.customFields = data.customFields.map((field: $TSFixMe) => ({
-                        ...field,
+                    data.customFields = data.customFields.map(
+                        (field: $TSFixMe) => ({
+                            ...field,
 
-                        fieldValue: analyseVariable(
-                            String(field.fieldValue),
-                            dataConfig
-                        )
-                    }));
+                            fieldValue: analyseVariable(
+                                String(field.fieldValue),
+                                dataConfig
+                            ),
+                        })
+                    );
 
                     if (!monitorsWithIncident.includes(String(monitor._id))) {
                         let incident;
@@ -837,7 +835,9 @@ export default {
                 }
             } else {
                 if (monitors && monitors.length > 0) {
-                    const monitorNames = monitors.map((monitor: $TSFixMe) => monitor.name);
+                    const monitorNames = monitors.map(
+                        (monitor: $TSFixMe) => monitor.name
+                    );
                     const componentNames: $TSFixMe = [];
                     monitors.forEach((monitor: $TSFixMe) => {
                         if (
@@ -903,23 +903,28 @@ export default {
                     const priorityObj = {};
                     incidentPriorities.forEach(
                         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        (priority: $TSFixMe) => priorityObj[priority.name.toLowerCase()] =
-                                priority._id
+                        (priority: $TSFixMe) =>
+                            (priorityObj[priority.name.toLowerCase()] =
+                                priority._id)
                     );
                     data.incidentPriority =
                         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
-                    data.customFields = data.customFields.map((field: $TSFixMe) => ({
-                        ...field,
+                    data.customFields = data.customFields.map(
+                        (field: $TSFixMe) => ({
+                            ...field,
 
-                        fieldValue: analyseVariable(
-                            String(field.fieldValue),
-                            dataConfig
-                        )
-                    }));
-                    data.monitors = monitors.map((monitor: $TSFixMe) => monitor._id);
+                            fieldValue: analyseVariable(
+                                String(field.fieldValue),
+                                dataConfig
+                            ),
+                        })
+                    );
+                    data.monitors = monitors.map(
+                        (monitor: $TSFixMe) => monitor._id
+                    );
                     let incident;
                     if (_incident) {
                         incident = await IncidentService.updateOneBy(
@@ -961,7 +966,9 @@ export default {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
+                subProjectIds = subProjects.map(
+                    (project: $TSFixMe) => project._id
+                );
             }
             subProjectIds.push(incomingRequest.projectId);
 
@@ -1401,7 +1408,9 @@ export default {
                     const monitors = incident.monitors.map(
                         (monitorObj: $TSFixMe) => monitorObj.monitorId
                     );
-                    const monitorNames = monitors.map((monitor: $TSFixMe) => monitor.name);
+                    const monitorNames = monitors.map(
+                        (monitor: $TSFixMe) => monitor.name
+                    );
                     const componentNames: $TSFixMe = [];
                     monitors.forEach((monitor: $TSFixMe) => {
                         if (
@@ -1491,7 +1500,9 @@ export default {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
+                subProjectIds = subProjects.map(
+                    (project: $TSFixMe) => project._id
+                );
             }
             subProjectIds.push(incomingRequest.projectId);
 
@@ -2071,7 +2082,8 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe) {
         let ctx = Object.create(null); // fix against prototype vulnerability
         ctx = { ...data };
 
-        const processedValues = matched.map((item: $TSFixMe) => vm.runInNewContext(item, ctx)
+        const processedValues = matched.map((item: $TSFixMe) =>
+            vm.runInNewContext(item, ctx)
         );
 
         if (!processedValues || processedValues.length === 0) {

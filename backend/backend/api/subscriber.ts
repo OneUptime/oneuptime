@@ -1,8 +1,8 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 
-import SubscriberService from '../services/subscriberService'
-import MonitorService from '../services/monitorService'
+import SubscriberService from '../services/subscriberService';
+import MonitorService from '../services/monitorService';
 
 const getUser = require('../middlewares/user').getUser;
 

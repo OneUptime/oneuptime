@@ -4,7 +4,7 @@
  * @module logger
  */
 
-import pino from 'pino'
+import pino from 'pino';
 
 /** The logger service. */
 const logger = pino({

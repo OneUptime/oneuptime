@@ -1,8 +1,5 @@
 export default {
-    create: async function({
-        name,
-        value
-    }: $TSFixMe) {
+    create: async function({ name, value }: $TSFixMe) {
         if (name === 'smtp' && value.internalSmtp && !value.customSmtp) {
             value = {
                 internalSmtp: true,
@@ -164,13 +161,7 @@ export default {
         return globalConfigs;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -229,11 +220,7 @@ export default {
         return globalConfigs;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -293,8 +280,8 @@ export default {
     },
 };
 
-import Crypto from 'crypto'
-import GlobalConfigModel from '../models/globalConfig'
-import EncryptDecrypt from '../config/encryptDecrypt'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import Crypto from 'crypto';
+import GlobalConfigModel from '../models/globalConfig';
+import EncryptDecrypt from '../config/encryptDecrypt';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

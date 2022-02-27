@@ -1,7 +1,7 @@
-import express from 'express'
+import express from 'express';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import SiteManagerService from '../services/siteManagerService'
+import SiteManagerService from '../services/siteManagerService';
 
 const router = express.Router();
 

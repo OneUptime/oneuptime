@@ -150,7 +150,11 @@ export const bindRaf = (fn: $TSFixMe) => {
     };
 };
 
-export const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, backupStatus: $TSFixMe) => {
+export const filterProbeData = (
+    monitor: $TSFixMe,
+    probe: $TSFixMe,
+    backupStatus: $TSFixMe
+) => {
     const monitorStatuses = monitor.statuses || backupStatus;
 
     const probesStatus =
@@ -175,7 +179,8 @@ export const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, backupStatus
     return statuses;
 };
 
-export const getMonitorStatus = (statuses: $TSFixMe) => statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
+export const getMonitorStatus = (statuses: $TSFixMe) =>
+    statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
 export function getServiceStatus(monitorsData: $TSFixMe, probes: $TSFixMe) {
     const monitorsLength = monitorsData.length;
@@ -219,7 +224,13 @@ export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe) => {
     ).toFixed(decimalPlaces);
 };
 
-export const formatBytes = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe) => {
+export const formatBytes = (
+    a: $TSFixMe,
+    b: $TSFixMe,
+    c: $TSFixMe,
+    d: $TSFixMe,
+    e: $TSFixMe
+) => {
     return (
         formatDecimal(
             ((b = Math),
@@ -239,13 +250,17 @@ export const capitalize = (words: $TSFixMe) => {
 
     words = words.split(' ');
     words = words.map(
-        (word: $TSFixMe) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        (word: $TSFixMe) =>
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     );
 
     return words.join(' ').trim();
 };
 
-export const handleResources = (monitorState: $TSFixMe, announcement: $TSFixMe) => {
+export const handleResources = (
+    monitorState: $TSFixMe,
+    announcement: $TSFixMe
+) => {
     const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
 

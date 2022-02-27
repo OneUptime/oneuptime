@@ -112,11 +112,10 @@ const appReducer = combineReducers({
     incidentNoteTemplate,
     statusPageCategory,
     sso,
-    StatusPage
+    StatusPage,
 });
 
-
-// Global Actions. 
+// Global Actions.
 
 export default (state: $TSFixMe, action: $TSFixMe) => {
     if (action.type === 'CLEAR_STORE') {

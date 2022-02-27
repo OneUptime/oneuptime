@@ -1,5 +1,5 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
-import { find, update, removeField, rename } from '../util/db'
+import { find, update, removeField, rename } from '../util/db';
 
 const monitorCategoryCollection = 'monitorcategories';
 const resourceCategoryCollection = 'resourcecategories';

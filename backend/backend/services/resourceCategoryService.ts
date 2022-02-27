@@ -82,13 +82,7 @@ export default {
         return resourceCategory;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -120,11 +114,13 @@ export default {
 
         let resourceCategories = await resourceCategoriesQuery;
 
-        resourceCategories = resourceCategories.map((resourceCategory: $TSFixMe) => ({
-            name: resourceCategory.name,
-            _id: resourceCategory._id,
-            createdAt: resourceCategory.createdAt
-        }));
+        resourceCategories = resourceCategories.map(
+            (resourceCategory: $TSFixMe) => ({
+                name: resourceCategory.name,
+                _id: resourceCategory._id,
+                createdAt: resourceCategory.createdAt,
+            })
+        );
         return resourceCategories;
     },
 
@@ -187,11 +183,11 @@ export default {
     },
 };
 
-import ResourceCategoryModel from '../models/resourceCategory'
-import MonitorModel from '../models/monitor'
-import ApplicationLogModel from '../models/applicationLog'
-import ErrorTrackerModel from '../models/errorTracker'
-import ApplicationSecurityModel from '../models/applicationSecurity'
-import ContainerSecurityModel from '../models/containerSecurity'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import ResourceCategoryModel from '../models/resourceCategory';
+import MonitorModel from '../models/monitor';
+import ApplicationLogModel from '../models/applicationLog';
+import ErrorTrackerModel from '../models/errorTracker';
+import ApplicationSecurityModel from '../models/applicationSecurity';
+import ContainerSecurityModel from '../models/containerSecurity';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

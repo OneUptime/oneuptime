@@ -1,7 +1,7 @@
-import express from 'express'
+import express from 'express';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'requ... Remove this comment to see the full error message
-import request from 'request'
-import IntegrationService from '../services/integrationService'
+import request from 'request';
+import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const {
@@ -94,38 +94,41 @@ router.post('/:projectId/link', getUser, isUserAdmin, async function(req, res) {
         method: 'GET',
     };
 
-    request(options, async (error: $TSFixMe, response: $TSFixMe, body: $TSFixMe) => {
-        const JSONresponse = JSON.parse(body);
-        if (!JSONresponse.ok) {
-            return sendErrorResponse(req, res, JSONresponse.error);
-        } else {
-            // get slack response object
-            const data = {
-                userId: JSONresponse.user_id,
-                teamName: JSONresponse.team_name,
-                accessToken: JSONresponse.access_token,
-                teamId: JSONresponse.team_id,
-                channelId: JSONresponse.incoming_webhook.channel_id,
-                channel: JSONresponse.incoming_webhook.channel,
-                botUserId: JSONresponse.bot.bot_user_id,
-                botAccessToken: JSONresponse.bot.bot_access_token,
-            };
+    request(
+        options,
+        async (error: $TSFixMe, response: $TSFixMe, body: $TSFixMe) => {
+            const JSONresponse = JSON.parse(body);
+            if (!JSONresponse.ok) {
+                return sendErrorResponse(req, res, JSONresponse.error);
+            } else {
+                // get slack response object
+                const data = {
+                    userId: JSONresponse.user_id,
+                    teamName: JSONresponse.team_name,
+                    accessToken: JSONresponse.access_token,
+                    teamId: JSONresponse.team_id,
+                    channelId: JSONresponse.incoming_webhook.channel_id,
+                    channel: JSONresponse.incoming_webhook.channel,
+                    botUserId: JSONresponse.bot.bot_user_id,
+                    botAccessToken: JSONresponse.bot.bot_access_token,
+                };
 
-            const integrationType = 'slack';
-            try {
-                const slack = await IntegrationService.create(
-                    projectId,
-                    userId,
-                    data,
-                    integrationType,
-                    null
-                );
-                return sendItemResponse(req, res, slack);
-            } catch (error) {
-                return sendErrorResponse(req, res, error);
+                const integrationType = 'slack';
+                try {
+                    const slack = await IntegrationService.create(
+                        projectId,
+                        userId,
+                        data,
+                        integrationType,
+                        null
+                    );
+                    return sendItemResponse(req, res, slack);
+                } catch (error) {
+                    return sendErrorResponse(req, res, error);
+                }
             }
         }
-    });
+    );
 });
 
 // req => params => {teamId, projectId}

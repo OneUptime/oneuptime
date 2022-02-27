@@ -33,7 +33,11 @@ export const resetCreateSubscriber = () => {
 };
 
 // Calls the API to create new subscriber.
-export function createSubscriber(projectId: $TSFixMe, monitorId: $TSFixMe, data: $TSFixMe) {
+export function createSubscriber(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `subscriber/${projectId}/subscribe/${monitorId}`,
@@ -96,7 +100,13 @@ export const resetExportCsv = () => {
 };
 
 // Calls the API to export subscribers to csv
-export function exportCSV(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe, csv: $TSFixMe) {
+export function exportCSV(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe,
+    csv: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
@@ -241,7 +251,11 @@ export function downloadCsvTemplate() {
  * @param {*} projectId
  * @param {*} monitorId
  */
-export function importSubscribersFromCsvFile(data: $TSFixMe, projectId: $TSFixMe, monitorId: $TSFixMe) {
+export function importSubscribersFromCsvFile(
+    data: $TSFixMe,
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `subscriber/${projectId}/${monitorId}/csv`,

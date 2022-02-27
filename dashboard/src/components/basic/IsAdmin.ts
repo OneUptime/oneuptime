@@ -6,12 +6,15 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 export default function IsAdmin(currentProject: $TSFixMe) {
     const userId = User.getUserId();
-    return [null, undefined].every(i => i !== userId) &&
-    [null, undefined].every(i => i !== currentProject) &&
-    [null, undefined].every(i => i !== currentProject.users) &&
-    currentProject.users.length > 0 &&
-    currentProject.users.some(
-        (user: $TSFixMe) => user.userId === userId &&
-        (user.role === 'Administrator' || user.role === 'Administrator')
+    return (
+        [null, undefined].every(i => i !== userId) &&
+        [null, undefined].every(i => i !== currentProject) &&
+        [null, undefined].every(i => i !== currentProject.users) &&
+        currentProject.users.length > 0 &&
+        currentProject.users.some(
+            (user: $TSFixMe) =>
+                user.userId === userId &&
+                (user.role === 'Administrator' || user.role === 'Administrator')
+        )
     );
 }

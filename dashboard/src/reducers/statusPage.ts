@@ -735,7 +735,10 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                             action.payload,
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPages' does not exist on type 'nev... Remove this comment to see the full error message
                                             ...statusPage.statusPages.filter(
-                                                (status: $TSFixMe, index: $TSFixMe) => index < 9
+                                                (
+                                                    status: $TSFixMe,
+                                                    index: $TSFixMe
+                                                ) => index < 9
                                             ),
                                         ],
                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
@@ -758,8 +761,8 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                   limit: 0,
                               },
                           ]
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
-                    : state.subProjectStatusPages.concat([
+                    : // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                      state.subProjectStatusPages.concat([
                           {
                               _id: action.payload.projectId._id
                                   ? action.payload.projectId._id
@@ -960,9 +963,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
                 JSON.stringify(state.status.domains)
             ); // deep clone to avoid mutation of state
-            updateDomains.forEach(({
-                domainVerificationToken
-            }: $TSFixMe) => {
+            updateDomains.forEach(({ domainVerificationToken }: $TSFixMe) => {
                 if (domainVerificationToken._id === action.payload._id) {
                     domainVerificationToken.verified = action.payload.verified;
                     domainVerificationToken.verifiedAt =
@@ -1059,8 +1060,9 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                     ...state.status,
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
                     monitors: state.status.monitors.filter(
-                        (monitorData: $TSFixMe) => String(monitorData.monitor) !==
-                        String(action.payload)
+                        (monitorData: $TSFixMe) =>
+                            String(monitorData.monitor) !==
+                            String(action.payload)
                     ),
                 };
                 return {
@@ -1222,9 +1224,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 };
             });
             const monitorNames = action.payload.monitors.map(
-                ({
-                    monitor
-                }: $TSFixMe) => monitor.name
+                ({ monitor }: $TSFixMe) => monitor.name
             );
             const status = { ...action.payload, monitorNames, monitors };
             return Object.assign({}, state, {
@@ -1396,31 +1396,33 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
-            const subProjectStatusPages = action.payload.map((statusPage: $TSFixMe) => {
-                const statusPages: $TSFixMe = [];
-                statusPage.statusPages.forEach((statuspage: $TSFixMe) => {
-                    const monitorNames: $TSFixMe = [],
-                        monitors: $TSFixMe = [];
-                    statuspage.monitors.forEach((monitorData: $TSFixMe) => {
-                        monitorNames.push(monitorData.monitor.name);
-                        monitors.push({
-                            ...monitorData,
-                            monitor: monitorData.monitor._id,
-                            monitorName: monitorData.monitor.name,
+            const subProjectStatusPages = action.payload.map(
+                (statusPage: $TSFixMe) => {
+                    const statusPages: $TSFixMe = [];
+                    statusPage.statusPages.forEach((statuspage: $TSFixMe) => {
+                        const monitorNames: $TSFixMe = [],
+                            monitors: $TSFixMe = [];
+                        statuspage.monitors.forEach((monitorData: $TSFixMe) => {
+                            monitorNames.push(monitorData.monitor.name);
+                            monitors.push({
+                                ...monitorData,
+                                monitor: monitorData.monitor._id,
+                                monitorName: monitorData.monitor.name,
+                            });
+                        });
+                        statusPages.push({
+                            ...statuspage,
+                            monitorNames,
+                            monitors,
                         });
                     });
-                    statusPages.push({
-                        ...statuspage,
-                        monitorNames,
-                        monitors,
-                    });
-                });
 
-                return {
-                    ...statusPage,
-                    statusPages,
-                };
-            });
+                    return {
+                        ...statusPage,
+                        statusPages,
+                    };
+                }
+            );
 
             return Object.assign({}, state, {
                 subProjectStatusPages,
@@ -1568,9 +1570,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                     subProjectStatusPage => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPages' does not exist on type 'nev... Remove this comment to see the full error message
                         subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(
-                            ({
-                                _id
-                            }: $TSFixMe) => _id !== action.payload._id
+                            ({ _id }: $TSFixMe) => _id !== action.payload._id
                         );
                         return subProjectStatusPage;
                     }

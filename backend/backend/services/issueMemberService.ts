@@ -31,11 +31,7 @@ export default {
         return issueMember;
     },
     // find a list of Members assigned to an Issue
-    async findBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -48,11 +44,7 @@ export default {
         const issues = await issuesQuery;
         return issues;
     },
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -66,7 +58,11 @@ export default {
 
         return issueMember;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData = null
+    ) {
         if (!query) {
             query = {};
         }
@@ -109,6 +105,6 @@ export default {
     },
 };
 
-import IssueMemberModel from '../models/issueMember'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import IssueMemberModel from '../models/issueMember';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

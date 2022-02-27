@@ -7,15 +7,17 @@ export const createMonitorSlaRequest = () => ({
 
 export const createMonitorSlaSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_MONITOR_SLA_SUCCESS,
-    payload
+    payload,
 });
 
 export const createMonitorSlaFailure = (error: $TSFixMe) => ({
     type: types.CREATE_MONITOR_SLA_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const createMonitorSla = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const createMonitorSla = (projectId: $TSFixMe, data: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     try {
         dispatch(createMonitorSlaRequest());
 
@@ -41,12 +43,12 @@ export const updateMonitorSlaRequest = () => ({
 
 export const updateMonitorSlaSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_MONITOR_SLA_SUCCESS,
-    payload
+    payload,
 });
 
 export const updateMonitorSlaFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_MONITOR_SLA_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const updateMonitorSla = (
@@ -84,15 +86,19 @@ export const fetchMonitorSlasRequest = () => ({
 
 export const fetchMonitorSlasSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_MONITOR_SLAS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchMonitorSlasFailure = (error: $TSFixMe) => ({
     type: types.FETCH_MONITOR_SLAS_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const fetchMonitorSlas = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchMonitorSlas = (
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(fetchMonitorSlasRequest());
 
@@ -120,15 +126,18 @@ export const deleteMonitorSlaRequest = () => ({
 
 export const deleteMonitorSlaSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_MONITOR_SLA_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteMonitorSlaFailure = (error: $TSFixMe) => ({
     type: types.DELETE_MONITOR_SLA_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const deleteMonitorSla = (projectId: $TSFixMe, monitorSlaId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const deleteMonitorSla = (
+    projectId: $TSFixMe,
+    monitorSlaId: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(deleteMonitorSlaRequest());
 
@@ -154,7 +163,7 @@ export const deleteMonitorSla = (projectId: $TSFixMe, monitorSlaId: $TSFixMe) =>
 // set active monitor sla
 export const setActiveMonitorSla = (monitorSlaId: $TSFixMe) => ({
     type: types.SET_ACTIVE_MONITOR_SLA,
-    payload: monitorSlaId
+    payload: monitorSlaId,
 });
 
 export const fetchDefaultMonitorSlaRequest = () => ({
@@ -163,15 +172,17 @@ export const fetchDefaultMonitorSlaRequest = () => ({
 
 export const fetchDefaultMonitorSlaSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_DEFAULT_MONITOR_SLA_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchDefaultMonitorSlaFailure = (error: $TSFixMe) => ({
     type: types.FETCH_DEFAULT_MONITOR_SLA_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const fetchDefaultMonitorSla = (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchDefaultMonitorSla = (projectId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     try {
         dispatch(fetchDefaultMonitorSlaRequest());
 

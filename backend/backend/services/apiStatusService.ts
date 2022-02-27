@@ -1,17 +1,13 @@
-import ApiStatusModel from '../models/apiStatus'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import ApiStatusModel from '../models/apiStatus';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
         const apiStatus = await ApiStatusModel.create(data);
         return apiStatus;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;

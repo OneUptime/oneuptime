@@ -1,5 +1,5 @@
-import { join } from 'path'
-import { performance } from 'perf_hooks'
+import { join } from 'path';
+import { performance } from 'perf_hooks';
 
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
@@ -57,10 +57,7 @@ const run = async (
             const consoleLogs: $TSFixMe = [];
             let lastMessage: $TSFixMe = null;
 
-            worker.on('message', ({
-                type,
-                payload
-            }: $TSFixMe) => {
+            worker.on('message', ({ type, payload }: $TSFixMe) => {
                 switch (type) {
                     case 'ping': {
                         lastMessage = Date.now();
@@ -185,7 +182,7 @@ const run = async (
     } else {
         // worker_threads code
         // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
-        import { NodeVM } from 'vm2'
+        import { NodeVM } from 'vm2';
         const vm = new NodeVM({
             eval: false,
             wasm: false,

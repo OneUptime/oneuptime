@@ -1,9 +1,9 @@
 require('should');
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'zapier-platform-core' or its c... Remove this comment to see the full error message
-import zapier from 'zapier-platform-core'
+import zapier from 'zapier-platform-core';
 
-import App from '../../index'
+import App from '../../index';
 
 const appTester = zapier.createAppTester(App);
 

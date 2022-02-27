@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -238,7 +238,9 @@ describe('Twilio Settings API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#twilio-form');
 
-            await init.page$Eval(page, '#sms-enabled', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#sms-enabled', (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[name=account-sid]');

@@ -1,7 +1,7 @@
-import IncidentCommunicationSlaModel from '../models/incidentCommunicationSla'
-import MonitorService from './monitorService'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import IncidentCommunicationSlaModel from '../models/incidentCommunicationSla';
+import MonitorService from './monitorService';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';
 
 export default {
     create: async function(data: $TSFixMe) {
@@ -46,11 +46,7 @@ export default {
 
         return createdIncidentCommunicationSla;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -72,13 +68,7 @@ export default {
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -142,7 +132,9 @@ export default {
                 query: { incidentCommunicationSla: query._id },
                 select: '_id',
             });
-            const initialMonitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
+            const initialMonitorIds = monitors.map(
+                (monitor: $TSFixMe) => monitor._id
+            );
 
             const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {

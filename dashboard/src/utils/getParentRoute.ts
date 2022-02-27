@@ -1,4 +1,8 @@
-function getParentRoute(childRoute: $TSFixMe, projectId = null, type: $TSFixMe) {
+function getParentRoute(
+    childRoute: $TSFixMe,
+    projectId = null,
+    type: $TSFixMe
+) {
     const urlParts = childRoute.split('/');
     const lastNode = urlParts.pop();
     if (lastNode === 'alert-log') {

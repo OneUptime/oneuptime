@@ -1,4 +1,4 @@
-import apiMiddleware from './api'
+import apiMiddleware from './api';
 const SendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const doesUserBelongToProject = require('./project').doesUserBelongToProject;

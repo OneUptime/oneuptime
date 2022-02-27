@@ -1,9 +1,9 @@
-import ScheduledEventNoteModel from '../models/scheduledEventNote'
-import ErrorService from 'common-server/utils/error'
-import RealTimeService from './realTimeService'
-import AlertService from './alertService'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import ScheduledEventNoteModel from '../models/scheduledEventNote';
+import ErrorService from 'common-server/utils/error';
+import RealTimeService from './realTimeService';
+import AlertService from './alertService';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';
 
 export default {
     create: async function(data: $TSFixMe, projectId: $TSFixMe) {
@@ -35,15 +35,17 @@ export default {
             scheduledEventMessage.type === 'investigation' &&
             !(
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
-                scheduledEventMessage.event_state === 'Resolved' ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
-                scheduledEventMessage.event_state === 'Created' ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
-                scheduledEventMessage.event_state === 'Started' ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
-                scheduledEventMessage.event_state === 'Ended' ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
-                scheduledEventMessage.event_state === 'Cancelled'
+                (
+                    scheduledEventMessage.event_state === 'Resolved' ||
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    scheduledEventMessage.event_state === 'Created' ||
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    scheduledEventMessage.event_state === 'Started' ||
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    scheduledEventMessage.event_state === 'Ended' ||
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    scheduledEventMessage.event_state === 'Cancelled'
+                )
             )
         ) {
             AlertService.sendScheduledEventInvestigationNoteToSubscribers(
@@ -68,7 +70,11 @@ export default {
 
         return scheduledEventMessage;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, projectId: $TSFixMe) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        projectId: $TSFixMe
+    ) {
         if (!query) {
             query = {};
         }
@@ -120,11 +126,7 @@ export default {
 
         return eventMessage;
     },
-    findOneBy: async function({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    findOneBy: async function({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -136,13 +138,7 @@ export default {
         const eventMessage = await eventMessageQuery;
         return eventMessage;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -176,7 +172,11 @@ export default {
         const count = await ScheduledEventNoteModel.countDocuments(query);
         return count;
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe) {
+    deleteBy: async function(
+        query: $TSFixMe,
+        userId: $TSFixMe,
+        projectId: $TSFixMe
+    ) {
         const data = {
             deleted: true,
             event_state: 'Deleted',

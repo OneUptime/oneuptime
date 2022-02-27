@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -144,7 +138,10 @@ export default {
         for (const ssoUser of existingSsoUsers) {
             const { users, _id: projectId } = projectObj;
             if (
-                users.some((user: $TSFixMe) => String(user.userId) === String(ssoUser._id))
+                users.some(
+                    (user: $TSFixMe) =>
+                        String(user.userId) === String(ssoUser._id)
+                )
             ) {
                 // User already member of the project!
                 continue;
@@ -159,11 +156,7 @@ export default {
         return savedSso;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -284,10 +277,7 @@ export default {
         const count = await ssoDefaultRolesModel.countDocuments(query);
         return count;
     },
-    addUserToDefaultProjects: async function({
-        domain,
-        userId
-    }: $TSFixMe) {
+    addUserToDefaultProjects: async function({ domain, userId }: $TSFixMe) {
         const populateDefaultRoleSso = [
             { path: 'domain', select: '_id domain' },
             { path: 'project', select: '_id name' },
@@ -324,10 +314,10 @@ export default {
     },
 };
 
-import ssoDefaultRolesModel from '../models/ssoDefaultRoles'
-import mongoose from 'mongoose'
-import ProjectService from './projectService'
-import SsoService from './ssoService'
-import UserService from './userService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import ssoDefaultRolesModel from '../models/ssoDefaultRoles';
+import mongoose from 'mongoose';
+import ProjectService from './projectService';
+import SsoService from './ssoService';
+import UserService from './userService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -6,9 +6,11 @@ import { User } from '../../config';
 // returns JSX.Element or NULL
 export default function IsUserInSubProject(subProject: $TSFixMe) {
     const userId = User.getUserId();
-    return [null, undefined].every(i => i !== userId) &&
-    [null, undefined].every(i => i !== subProject) &&
-    [null, undefined].every(i => i !== subProject.users) &&
-    subProject.users.length > 0 &&
-    subProject.users.some((user: $TSFixMe) => user.userId === userId);
+    return (
+        [null, undefined].every(i => i !== userId) &&
+        [null, undefined].every(i => i !== subProject) &&
+        [null, undefined].every(i => i !== subProject.users) &&
+        subProject.users.length > 0 &&
+        subProject.users.some((user: $TSFixMe) => user.userId === userId)
+    );
 }

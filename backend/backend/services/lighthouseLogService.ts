@@ -64,13 +64,7 @@ export default {
         return lighthouseLog;
     },
 
-    async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -101,11 +95,7 @@ export default {
         return lighthouseLogs;
     },
 
-    async findOneBy({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findOneBy({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -122,12 +112,7 @@ export default {
         return lighthouseLog;
     },
 
-    async findLastestScan({
-        monitorId,
-        url,
-        skip,
-        limit
-    }: $TSFixMe) {
+    async findLastestScan({ monitorId, url, skip, limit }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -223,7 +208,11 @@ export default {
             RealTimeService.updateLighthouseLog(data, monitor.projectId._id);
         }
     },
-    async updateAllLighthouseLogs(projectId: $TSFixMe, monitorId: $TSFixMe, query: $TSFixMe) {
+    async updateAllLighthouseLogs(
+        projectId: $TSFixMe,
+        monitorId: $TSFixMe,
+        query: $TSFixMe
+    ) {
         await this.updateManyBy({ monitorId: monitorId }, query);
         const logs = await this.findLastestScan({
             monitorId,
@@ -238,9 +227,9 @@ export default {
     },
 };
 
-import LighthouseLogModel from '../models/lighthouseLog'
-import MonitorService from './monitorService'
-import RealTimeService from './realTimeService'
-import probeService from './probeService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import LighthouseLogModel from '../models/lighthouseLog';
+import MonitorService from './monitorService';
+import RealTimeService from './realTimeService';
+import probeService from './probeService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

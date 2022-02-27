@@ -1,8 +1,8 @@
-import PerformanceTrackerMetricModel from '../models/performanceTrackerMetric'
-import moment from 'moment'
-import RealTimeService from './realTimeService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import PerformanceTrackerMetricModel from '../models/performanceTrackerMetric';
+import moment from 'moment';
+import RealTimeService from './realTimeService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
@@ -25,7 +25,7 @@ export default {
         sortCriteria = 'createdAt',
         sort = -1,
         select,
-        populate
+        populate,
     }: $TSFixMe) {
         if (!skip) skip = 0;
 
@@ -73,7 +73,7 @@ export default {
 
         sort = -1,
         select,
-        populate
+        populate,
     }: $TSFixMe) {
         if (!query) {
             query = {};
@@ -120,7 +120,7 @@ export default {
                     callIdentifier,
                     performanceTrackerId,
                     method,
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                 } = value[0];
                 const result = {
                     type,
@@ -164,11 +164,7 @@ export default {
         return trackerMetrics;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -242,7 +238,12 @@ export default {
         return count;
     },
 
-    createMetricsData: async function(appId: $TSFixMe, type: $TSFixMe, data: $TSFixMe, receivedAt: $TSFixMe) {
+    createMetricsData: async function(
+        appId: $TSFixMe,
+        type: $TSFixMe,
+        data: $TSFixMe,
+        receivedAt: $TSFixMe
+    ) {
         const _this = this;
         receivedAt = moment(receivedAt).format();
         // handle incoming/outgoing request
@@ -284,7 +285,11 @@ export default {
         RealTimeService.sendErrorMetrics(appId, error);
     },
 
-    structureMetricsTime: async function(appId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+    structureMetricsTime: async function(
+        appId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) {
         const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
@@ -336,7 +341,11 @@ export default {
     },
 
     // setup the throughput data for frontend
-    structureMetricsCount: async function(appId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+    structureMetricsCount: async function(
+        appId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) {
         const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
@@ -385,7 +394,11 @@ export default {
         return finalOutput;
     },
 
-    structureMetricsError: async function(appId: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) {
+    structureMetricsError: async function(
+        appId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) {
         const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();

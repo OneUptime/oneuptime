@@ -1,9 +1,9 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 
 const getUser = require('../middlewares/user').getUser;
 
-import MonitorCriteriaService from '../services/monitorCriteriaService'
+import MonitorCriteriaService from '../services/monitorCriteriaService';
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;

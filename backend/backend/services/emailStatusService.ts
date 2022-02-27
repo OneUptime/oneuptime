@@ -5,7 +5,7 @@ export default {
         skip,
         sort,
         populate,
-        select
+        select,
     }: $TSFixMe) {
         if (!skip) skip = 0;
 
@@ -47,7 +47,7 @@ export default {
         template,
         content,
         error,
-        smtpServer
+        smtpServer,
     }: $TSFixMe) {
         const globalConfig = await GlobalConfigService.findOneBy({
             query: { name: 'emailLogMonitoringStatus' },
@@ -107,9 +107,7 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({
-        query
-    }: $TSFixMe) {
+    hardDeleteBy: async function({ query }: $TSFixMe) {
         await EmailStatusModel.deleteMany(query);
     },
 
@@ -117,11 +115,7 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with item or error.
-    findOneBy: async function({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    findOneBy: async function({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -172,11 +166,7 @@ export default {
         return updatedData;
     },
 
-    search: async function({
-        filter,
-        skip,
-        limit
-    }: $TSFixMe) {
+    search: async function({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },
@@ -194,7 +184,7 @@ export default {
     },
 };
 
-import EmailStatusModel from '../models/emailStatus'
-import GlobalConfigService from './globalConfigService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import EmailStatusModel from '../models/emailStatus';
+import GlobalConfigService from './globalConfigService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

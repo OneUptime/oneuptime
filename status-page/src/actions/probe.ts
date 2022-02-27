@@ -3,7 +3,11 @@ import * as types from '../constants/probe';
 import errors from '../errors';
 
 // Fetch Project Probes list
-export function getProbes(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getProbes(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 

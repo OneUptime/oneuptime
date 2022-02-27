@@ -1,10 +1,10 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'speakeasy' or its correspondin... Remove this comment to see the full error message
-import speakeasy from 'speakeasy'
-import { expect } from 'chai'
+import speakeasy from 'speakeasy';
+import { expect } from 'chai';
 
 require('should');
 const projectName = 'project';

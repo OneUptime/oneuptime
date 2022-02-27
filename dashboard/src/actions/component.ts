@@ -16,11 +16,7 @@ export function hideDeleteModal() {
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
-export function fetchComponents({
-    projectId,
-    skip = 0,
-    limit = 3
-}: $TSFixMe) {
+export function fetchComponents({ projectId, skip = 0, limit = 3 }: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}?skip=${skip}&limit=${limit}`
@@ -82,7 +78,7 @@ export function resetFetchComponents() {
 export function fetchPaginatedComponents({
     projectId,
     skip = 0,
-    limit = 3
+    limit = 3,
 }: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
@@ -130,7 +126,10 @@ export function fetchPaginatedComponentsRequest(projectId: $TSFixMe) {
     };
 }
 
-export function fetchPaginatedComponentsFailure(error: $TSFixMe, projectId: $TSFixMe) {
+export function fetchPaginatedComponentsFailure(
+    error: $TSFixMe,
+    projectId: $TSFixMe
+) {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_FAILURE,
         payload: { error, projectId },
@@ -385,7 +384,12 @@ export function addSeatReset() {
 
 // Component Resources list
 // props -> {name: '', type, data -> { data.url}}
-export function fetchComponentResources(projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchComponentResources(
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`

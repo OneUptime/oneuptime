@@ -1,11 +1,11 @@
-import express from 'express'
-import ApplicationLogService from '../services/applicationLogService'
-import UserService from '../services/userService'
-import ComponentService from '../services/componentService'
-import RealTimeService from '../services/realTimeService'
-import LogService from '../services/logService'
-import ErrorService from 'common-server/utils/error'
-import NotificationService from '../services/notificationService'
+import express from 'express';
+import ApplicationLogService from '../services/applicationLogService';
+import UserService from '../services/userService';
+import ComponentService from '../services/componentService';
+import RealTimeService from '../services/realTimeService';
+import LogService from '../services/logService';
+import ErrorService from 'common-server/utils/error';
+import NotificationService from '../services/notificationService';
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
@@ -13,14 +13,14 @@ const isApplicationLogValid = require('../middlewares/applicationLog')
     .isApplicationLogValid;
 
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-import ResourceCategoryService from '../services/resourceCategoryService'
+import ResourceCategoryService from '../services/resourceCategoryService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
+import uuid from 'uuid';
 
 // Route
 // Description: Adding a new application log to a component.

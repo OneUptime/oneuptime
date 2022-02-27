@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -73,7 +73,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -144,7 +147,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -215,7 +221,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -286,7 +295,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -309,7 +321,9 @@ describe('Incident Communication SLA', () => {
             await init.pageClick(page, '#alertTime');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#alertTime', alertTime);
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#createSlaBtn');
 
@@ -358,7 +372,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(
@@ -427,7 +444,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(
@@ -591,7 +611,10 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.communication-sla-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.communication-sla-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             await init.pageWaitForSelector(

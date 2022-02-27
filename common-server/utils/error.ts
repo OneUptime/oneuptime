@@ -1,4 +1,4 @@
-import logger from './logger'
+import logger from './logger';
 
 export default {
     // logdata would be undefined for some logs

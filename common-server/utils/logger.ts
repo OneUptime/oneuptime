@@ -1,7 +1,7 @@
-import winston from 'winston'
+import winston from 'winston';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'wins... Remove this comment to see the full error message
-import logstash from 'winston-logstash-transport'
-import Slack from 'winston-slack-webhook-transport'
+import logstash from 'winston-logstash-transport';
+import Slack from 'winston-slack-webhook-transport';
 
 const MESSAGE = Symbol.for('message');
 const LEVEL = Symbol.for('level');

@@ -27,11 +27,7 @@ export function verifyDomainFailure(error: $TSFixMe) {
     };
 }
 
-export function verifyDomain({
-    projectId,
-    domainId,
-    payload
-}: $TSFixMe) {
+export function verifyDomain({ projectId, domainId, payload }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(verifyDomainRequest());
 
@@ -83,7 +79,7 @@ export function createDomain({
     cert,
     privateKey,
     autoProvisioning,
-    enableHttps
+    enableHttps,
 }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(createDomainRequest());
@@ -129,11 +125,7 @@ export function deleteDomainFailure(payload: $TSFixMe) {
     };
 }
 
-export function deleteDomain({
-    projectId,
-    statusPageId,
-    domainId
-}: $TSFixMe) {
+export function deleteDomain({ projectId, statusPageId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(deleteDomainRequest());
         try {
@@ -185,7 +177,7 @@ export function updateDomain({
     cert,
     privateKey,
     enableHttps,
-    autoProvisioning
+    autoProvisioning,
 }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(updateDomainRequest());

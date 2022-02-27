@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -41,7 +41,9 @@ describe('Status Page -> Pricing Plan Component', () => {
         async (done: $TSFixMe) => {
             // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '"test"' is not assignable to par... Remove this comment to see the full error message
             await init.addProject(page, 'test');
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnCreateStatusPage_test');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -65,9 +67,15 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
-            await init.page$Eval(page, 'input[name="isPrivate"]', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                'input[name="isPrivate"]',
+                (elem: $TSFixMe) => elem.click()
             );
             const modal = await init.pageWaitForSelector(
                 page,
@@ -140,7 +148,9 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
                 page,
@@ -152,9 +162,15 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
-            await init.page$Eval(page, 'input[name="isPrivate"]', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                'input[name="isPrivate"]',
+                (elem: $TSFixMe) => elem.click()
             );
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {
@@ -194,7 +210,9 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
+                elem.click()
+            );
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
                 page,
@@ -206,9 +224,15 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
-            await init.page$Eval(page, 'input[name="isPrivate"]', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                'input[name="isPrivate"]',
+                (elem: $TSFixMe) => elem.click()
             );
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {
@@ -237,10 +261,16 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
-            await init.page$Eval(page, 'input[name="isPrivate"]', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                'input[name="isPrivate"]',
+                (elem: $TSFixMe) => elem.click()
             );
             const value = await init.page$Eval(
                 page,

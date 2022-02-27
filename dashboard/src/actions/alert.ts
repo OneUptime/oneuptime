@@ -91,7 +91,11 @@ export function projectAlertSuccess(alert: $TSFixMe) {
 
 // Calls the API to fetch Alerts.
 
-export function fetchProjectAlert(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchProjectAlert(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
@@ -156,7 +160,12 @@ export function incidentAlertSuccess(alert: $TSFixMe) {
 
 // Calls the API to fetch Alerts.
 
-export function fetchIncidentAlert(projectId: $TSFixMe, incidentSlug: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchIncidentAlert(
+    projectId: $TSFixMe,
+    incidentSlug: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
@@ -220,7 +229,12 @@ export function subscriberAlertSuccess(alert: $TSFixMe) {
 
 // Calls the API to fetch Subscriber Alerts.
 
-export function fetchSubscriberAlert(projectId: $TSFixMe, incidentSlug: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchSubscriberAlert(
+    projectId: $TSFixMe,
+    incidentSlug: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function(dispatch: $TSFixMe) {
@@ -285,7 +299,11 @@ export function fetchAlertChargesSuccess(alertCharges: $TSFixMe) {
     };
 }
 
-export function fetchAlertCharges(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchAlertCharges(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     let promise;
     return function(dispatch: $TSFixMe) {
         if (skip >= 0 && limit > 0) {

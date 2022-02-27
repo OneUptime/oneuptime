@@ -22,7 +22,11 @@ function fetchIncidentPrioritiesFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchIncidentPriorities(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchIncidentPriorities(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit ||

@@ -714,12 +714,12 @@ const generateBackupCodesRequest = () => ({
 
 const generateBackupCodesSuccess = (payload: $TSFixMe) => ({
     type: types.GENERATE_BACKUP_CODES_SUCCESS,
-    payload
+    payload,
 });
 
 const generateBackupCodesFailure = (payload: $TSFixMe) => ({
     type: types.GENERATE_BACKUP_CODES_FAILURE,
-    payload
+    payload,
 });
 
 export const generateBackupCodes = () => {

@@ -1,10 +1,16 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./api"' has no exported member 'postApi'.... Remove this comment to see the full error message
-import { postApi } from './api'
+import { postApi } from './api';
 const SLACK_URL = process.env.SLACK_BILLING_WEBHOOK;
 
 export default {
     // webhook notification to slack channel
-    sendSlackAlert: async (title: $TSFixMe, identifier: $TSFixMe, reason: $TSFixMe, code: $TSFixMe, invoiceUrl: $TSFixMe) => {
+    sendSlackAlert: async (
+        title: $TSFixMe,
+        identifier: $TSFixMe,
+        reason: $TSFixMe,
+        code: $TSFixMe,
+        invoiceUrl: $TSFixMe
+    ) => {
         let data = {
             blocks: [
                 {

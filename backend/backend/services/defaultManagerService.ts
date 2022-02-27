@@ -1,17 +1,13 @@
-import DefaultManagerModel from '../models/defaultManager'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import DefaultManagerModel from '../models/defaultManager';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
         const defaultManager = await DefaultManagerModel.create(data);
         return defaultManager;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -24,13 +20,7 @@ export default {
         const defaultManager = await defaultManagerQuery;
         return defaultManager;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;

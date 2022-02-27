@@ -1,8 +1,8 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
+import { IS_SAAS_SERVICE } from '../config/server';
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 //This API is used to get the backend response if it's a consumer service deployed on OneUptime Cloud or an Enterprise Service deployed on Enterprise customer's cloud.

@@ -161,12 +161,14 @@ export default (state = initialState, action: $TSFixMe) => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'nev... Remove this comment to see the full error message
                         subProject.teamMembers = action.payload.find(
                             // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
-                            (team: $TSFixMe) => team.projectId === subProject._id
+                            (team: $TSFixMe) =>
+                                team.projectId === subProject._id
                         ).team;
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                         subProject.count = action.payload.find(
                             // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
-                            (team: $TSFixMe) => team.projectId === subProject._id
+                            (team: $TSFixMe) =>
+                                team.projectId === subProject._id
                         ).team.length;
                         return subProject;
                     }
@@ -215,7 +217,8 @@ export default (state = initialState, action: $TSFixMe) => {
                         if (action.payload) {
                             const projectObj = action.payload.find(
                                 // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
-                                (team: $TSFixMe) => team.projectId === subProject._id
+                                (team: $TSFixMe) =>
+                                    team.projectId === subProject._id
                             );
 
                             if (projectObj) {
@@ -321,12 +324,14 @@ export default (state = initialState, action: $TSFixMe) => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'nev... Remove this comment to see the full error message
                         subProject.teamMembers = action.payload.find(
                             // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
-                            (team: $TSFixMe) => team.projectId === subProject._id
+                            (team: $TSFixMe) =>
+                                team.projectId === subProject._id
                         ).team;
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
                         subProject.count = action.payload.find(
                             // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
-                            (team: $TSFixMe) => team.projectId === subProject._id
+                            (team: $TSFixMe) =>
+                                team.projectId === subProject._id
                         ).team.length;
                         return subProject;
                     }
@@ -352,8 +357,8 @@ export default (state = initialState, action: $TSFixMe) => {
                     ...state.pages,
                     // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     [action.payload]: state.pages[action.payload]
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        ? state.pages[action.payload] + 1
+                        ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          state.pages[action.payload] + 1
                         : 2,
                 },
             };
@@ -365,8 +370,8 @@ export default (state = initialState, action: $TSFixMe) => {
                     ...state.pages,
                     // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     [action.payload]: state.pages[action.payload]
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        ? state.pages[action.payload] - 1
+                        ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          state.pages[action.payload] - 1
                         : 1,
                 },
             };

@@ -223,13 +223,7 @@ export default {
         return monitorLog;
     },
 
-    async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -258,11 +252,7 @@ export default {
         return monitorLogs;
     },
 
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -324,13 +314,13 @@ export default {
     },
 };
 
-import MonitorLogModel from '../models/monitorLog'
-import MonitorLogByHourService from '../services/monitorLogByHourService'
-import MonitorLogByDayService from '../services/monitorLogByDayService'
-import MonitorLogByWeekService from '../services/monitorLogByWeekService'
-import MonitorService from '../services/monitorService'
-import RealTimeService from './realTimeService'
-import ErrorService from 'common-server/utils/error'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import moment from 'moment'
+import MonitorLogModel from '../models/monitorLog';
+import MonitorLogByHourService from '../services/monitorLogByHourService';
+import MonitorLogByDayService from '../services/monitorLogByDayService';
+import MonitorLogByWeekService from '../services/monitorLogByWeekService';
+import MonitorService from '../services/monitorService';
+import RealTimeService from './realTimeService';
+import ErrorService from 'common-server/utils/error';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import moment from 'moment';

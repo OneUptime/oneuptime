@@ -1,5 +1,5 @@
-import mongoose from 'mongoose'
-import logger from 'common-server/utils/logger'
+import mongoose from 'mongoose';
+import logger from 'common-server/utils/logger';
 const mongoUrl =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
 

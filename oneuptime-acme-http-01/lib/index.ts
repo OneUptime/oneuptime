@@ -1,7 +1,7 @@
 'use strict';
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
-import axios from 'axios'
+import axios from 'axios';
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 export default {

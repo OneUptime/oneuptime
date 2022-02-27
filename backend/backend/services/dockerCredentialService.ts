@@ -1,19 +1,13 @@
-import Crypto from 'crypto'
-import DockerCredentialModel from '../models/dockerCredential'
+import Crypto from 'crypto';
+import DockerCredentialModel from '../models/dockerCredential';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
-import { encrypt, decrypt } from '../config/encryptDecrypt'
-import axios from 'axios'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import { encrypt, decrypt } from '../config/encryptDecrypt';
+import axios from 'axios';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -37,11 +31,7 @@ export default {
         const dockerCredentials = await dockerCredentialQuery;
         return dockerCredentials;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -171,10 +161,7 @@ export default {
         await DockerCredentialModel.deleteMany(query);
         return 'Docker credential(s) successfully deleted';
     },
-    validateDockerCredential: async function({
-        username,
-        password
-    }: $TSFixMe) {
+    validateDockerCredential: async function({ username, password }: $TSFixMe) {
         try {
             // user docker api to check if username and password is valid
             const response = await axios.post(

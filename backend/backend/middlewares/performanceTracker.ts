@@ -1,9 +1,13 @@
-import ErrorService from 'common-server/utils/error'
-import PerformanceTrackerService from '../services/performanceTrackerService'
+import ErrorService from 'common-server/utils/error';
+import PerformanceTrackerService from '../services/performanceTrackerService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
-    isValidAPIKey: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isValidAPIKey: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             const { key } = req.params;
             if (!key) {

@@ -97,8 +97,9 @@ export function markAsRead(projectId: $TSFixMe, notificationIds: $TSFixMe) {
         try {
             const userId = User.getUserId();
             notificationIds = notificationIds.map(
-                (notification: $TSFixMe) => notification.notificationId ||
-                notification.notificaitonId._id
+                (notification: $TSFixMe) =>
+                    notification.notificationId ||
+                    notification.notificaitonId._id
             );
 
             const notifications = await putApi(
@@ -133,7 +134,10 @@ export function markAsRead(projectId: $TSFixMe, notificationIds: $TSFixMe) {
     };
 }
 
-export function closeNotification(projectId: $TSFixMe, notificationId: $TSFixMe) {
+export function closeNotification(
+    projectId: $TSFixMe,
+    notificationId: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         try {
             const userId = User.getUserId();
@@ -191,7 +195,11 @@ export function markAllAsRead(projectId: $TSFixMe) {
     };
 }
 
-export function billingActionTaken(projectId: $TSFixMe, notificationId: $TSFixMe, values: $TSFixMe) {
+export function billingActionTaken(
+    projectId: $TSFixMe,
+    notificationId: $TSFixMe,
+    values: $TSFixMe
+) {
     return async function(dispatch: $TSFixMe) {
         try {
             const notification = putApi(

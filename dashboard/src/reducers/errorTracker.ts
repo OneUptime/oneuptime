@@ -471,13 +471,14 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.ignoredIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue = action.payload.ignoredIssues.filter(
-                    (ignoredIssue: $TSFixMe) => ignoredIssue._id === errorTrackerIssues._id
+                    (ignoredIssue: $TSFixMe) =>
+                        ignoredIssue._id === errorTrackerIssues._id
                 );
 
                 if (issue && issue.length > 0) {
@@ -546,13 +547,14 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.unresolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue = action.payload.unresolvedIssues.filter(
-                    (unresolvedIssue: $TSFixMe) => unresolvedIssue._id === errorTrackerIssues._id
+                    (unresolvedIssue: $TSFixMe) =>
+                        unresolvedIssue._id === errorTrackerIssues._id
                 );
 
                 if (issue && issue.length > 0) {
@@ -621,13 +623,14 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                ? state.errorTrackerIssues[action.payload.errorTrackerId]
+                ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.resolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue = action.payload.resolvedIssues.filter(
-                    (resolvedIssue: $TSFixMe) => resolvedIssue._id === errorTrackerIssues._id
+                    (resolvedIssue: $TSFixMe) =>
+                        resolvedIssue._id === errorTrackerIssues._id
                 );
 
                 if (issue && issue.length > 0) {
@@ -772,7 +775,8 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                     action.payload.errorEvent.errorTrackerId
                 ].errorTrackerIssues;
             temporaryIssue = temporaryIssues.filter(
-                (issue: $TSFixMe) => issue._id === action.payload.errorEvent.issueId
+                (issue: $TSFixMe) =>
+                    issue._id === action.payload.errorEvent.issueId
             );
             // if issue exist
             if (
@@ -816,9 +820,7 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                     .errorTrackerIssues;
 
             temporaryIssues = temporaryIssues.filter(
-                ({
-                    _id
-                }: $TSFixMe) => _id !== action.payload._id
+                ({ _id }: $TSFixMe) => _id !== action.payload._id
             );
             return Object.assign({}, state, {
                 errorTrackerIssues: {

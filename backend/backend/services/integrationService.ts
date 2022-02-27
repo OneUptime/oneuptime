@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -50,7 +44,7 @@ export default {
         data.monitors =
             data.monitors &&
             data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor
+                monitorId: monitor,
             }));
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
         integrationModel.monitorId = data.monitorId || null;
@@ -106,11 +100,7 @@ export default {
         return integration;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (query.deleted) query.deleted = false;
@@ -264,6 +254,6 @@ export default {
         return 'Integration(s) Removed Successfully!';
     },
 };
-import IntegrationModel from '../models/integration'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import IntegrationModel from '../models/integration';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -52,13 +52,7 @@ export default {
         incidentSettings.name = name;
         return await incidentSettings.save();
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -92,11 +86,7 @@ export default {
         if (!query.deleted) query.deleted = false;
         return await incidentSettingsModel.countDocuments(query);
     },
-    findOne: async ({
-        query,
-        select,
-        populate
-    }: $TSFixMe) => {
+    findOne: async ({ query, select, populate }: $TSFixMe) => {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -208,6 +198,6 @@ export default {
     },
 };
 
-import incidentSettingsModel from '../models/incidentSettings'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import incidentSettingsModel from '../models/incidentSettings';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

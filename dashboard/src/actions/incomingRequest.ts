@@ -7,15 +7,18 @@ export const createIncomingRequestRequest = () => ({
 
 export const createIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_INCOMING_REQUEST_SUCCESS,
-    payload
+    payload,
 });
 
 export const createIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.CREATE_INCOMING_REQUEST_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const createIncomingRequest = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const createIncomingRequest = (
+    projectId: $TSFixMe,
+    data: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(createIncomingRequestRequest());
 
@@ -44,12 +47,12 @@ export const editIncomingRequestRequest = () => ({
 
 export const editIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.EDIT_INCOMING_REQUEST_SUCCESS,
-    payload
+    payload,
 });
 
 export const editIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.EDIT_INCOMING_REQUEST_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const editIncomingRequest = (
@@ -85,12 +88,12 @@ export const deleteIncomingRequestRequest = () => ({
 
 export const deleteIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCOMING_REQUEST_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCOMING_REQUEST_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deleteIncomingRequest = (
@@ -125,12 +128,12 @@ export const fetchAllIncomingRequestRequest = () => ({
 
 export const fetchAllIncomingRequestSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchAllIncomingRequestFailure = (error: $TSFixMe) => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchAllIncomingRequest = (
@@ -161,7 +164,7 @@ export const fetchAllIncomingRequest = (
 
 export const setActiveIncomingRequest = (requestId: $TSFixMe) => ({
     type: types.SET_ACTIVE_INCOMING_REQUEST,
-    payload: requestId
+    payload: requestId,
 });
 
 export const incomingRequestToggle = (

@@ -5,7 +5,7 @@ export default {
         limit,
         sort,
         populate,
-        select
+        select,
     }: $TSFixMe) {
         if (!skip) skip = 0;
 
@@ -49,7 +49,7 @@ export default {
         activeEscalation,
         schedule,
         escalations,
-        incidentAcknowledged
+        incidentAcknowledged,
     }: $TSFixMe) {
         let item = new OnCallScheduleStatusModel();
 
@@ -70,9 +70,7 @@ export default {
         return item;
     },
 
-    countBy: async function({
-        query
-    }: $TSFixMe) {
+    countBy: async function({ query }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -82,10 +80,7 @@ export default {
         return count;
     },
 
-    updateOneBy: async function({
-        query,
-        data
-    }: $TSFixMe) {
+    updateOneBy: async function({ query, data }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -103,10 +98,7 @@ export default {
         return item;
     },
 
-    updateBy: async function({
-        query,
-        data
-    }: $TSFixMe) {
+    updateBy: async function({ query, data }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -137,10 +129,7 @@ export default {
         return items;
     },
 
-    deleteBy: async function({
-        query,
-        userId
-    }: $TSFixMe) {
+    deleteBy: async function({ query, userId }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -162,13 +151,11 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({
-        query
-    }: $TSFixMe) {
+    hardDeleteBy: async function({ query }: $TSFixMe) {
         await OnCallScheduleStatusModel.deleteMany(query);
     },
 };
 
-import OnCallScheduleStatusModel from '../models/onCallScheduleStatus'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import OnCallScheduleStatusModel from '../models/onCallScheduleStatus';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

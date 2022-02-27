@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -48,7 +48,9 @@ describe('Status Page', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(
                 page,
                 'button[type="button"] .bs-FileUploadButton',
@@ -80,9 +82,15 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
-            await init.page$Eval(page, 'input[name="isPrivate"]', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                'input[name="isPrivate"]',
+                (elem: $TSFixMe) => elem.click()
             );
 
             const modal = await page.$('#pricingPlanModal');

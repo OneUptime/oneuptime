@@ -95,7 +95,9 @@ export const resetConfirmLicense = () => {
 };
 
 // Calls the API to confirm license
-export const confirmLicense = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const confirmLicense = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
     dispatch(confirmLicenseRequest());
 

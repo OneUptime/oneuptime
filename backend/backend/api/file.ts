@@ -1,7 +1,7 @@
-import express from 'express'
+import express from 'express';
 
 const router = express.Router();
-import FileService from '../services/fileService'
+import FileService from '../services/fileService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendFileResponse = require('../middlewares/response').sendFileResponse;
 

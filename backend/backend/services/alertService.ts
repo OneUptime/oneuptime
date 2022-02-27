@@ -4,7 +4,10 @@ export default {
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-    getSchedulesForAlerts: async function(incident: $TSFixMe, monitor: $TSFixMe) {
+    getSchedulesForAlerts: async function(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ) {
         const monitorId = monitor._id;
         const projectId = incident.projectId._id || incident.projectId;
 
@@ -95,7 +98,7 @@ export default {
         limit,
         sort,
         populate,
-        select
+        select,
     }: $TSFixMe) {
         if (!skip) skip = 0;
 
@@ -141,7 +144,7 @@ export default {
         error,
         errorMessage,
         eventType,
-        alertProgress
+        alertProgress,
     }: $TSFixMe) {
         const _this = this;
         alertProgress =
@@ -187,10 +190,7 @@ export default {
         return savedAlert;
     },
 
-    sendRealTimeUpdate: async function({
-        incidentId,
-        projectId
-    }: $TSFixMe) {
+    sendRealTimeUpdate: async function({ incidentId, projectId }: $TSFixMe) {
         const _this = this;
 
         const populateIncidentMessage = [
@@ -311,8 +311,9 @@ export default {
                 typeof a.schedule !== 'object' && b.createdAt - a.createdAt
         );
         let filteredMsg = incidentMessages.filter(
-            (a: $TSFixMe) => a.status !== 'internal notes added' &&
-            a.status !== 'internal notes updated'
+            (a: $TSFixMe) =>
+                a.status !== 'internal notes added' &&
+                a.status !== 'internal notes updated'
         );
         filteredMsg = await Services.rearrangeDuty(filteredMsg);
         const result = {
@@ -434,7 +435,7 @@ export default {
     sendAlertsToTeamMembersInSchedule: async function({
         schedule,
         incident,
-        monitorId
+        monitorId,
     }: $TSFixMe) {
         const _this = this;
         const projectId = incident.projectId._id
@@ -627,7 +628,7 @@ export default {
         schedule,
         incident,
         alertProgress,
-        monitor
+        monitor,
     }: $TSFixMe) {
         const _this = this;
         const selectOnCallScheduleStatus =
@@ -722,7 +723,7 @@ export default {
         monitor,
         schedule,
         onCallScheduleStatus,
-        alertProgress
+        alertProgress,
     }: $TSFixMe) {
         const _this = this;
         const monitorId = monitor._id;
@@ -785,7 +786,9 @@ export default {
             .apply([], groupUsers)
             .map(id => ({ userId: id }));
         const filterdUserIds = groupUserIds.filter(user =>
-            activeTeam.teamMembers.some((team: $TSFixMe) => team.userId !== user.userId)
+            activeTeam.teamMembers.some(
+                (team: $TSFixMe) => team.userId !== user.userId
+            )
         );
 
         const currentEscalationStatus =
@@ -1001,7 +1004,7 @@ export default {
         escalation,
         onCallScheduleStatus,
         eventType,
-        pushProgress
+        pushProgress,
     }: $TSFixMe) {
         const _this = this;
         let pushMessage;
@@ -1120,7 +1123,7 @@ export default {
         escalation,
         onCallScheduleStatus,
         eventType,
-        emailProgress
+        emailProgress,
     }: $TSFixMe) {
         const _this = this;
         const probeName =
@@ -1268,12 +1271,7 @@ export default {
     },
 
     sendSlaEmailToTeamMembers: async function(
-        {
-            projectId,
-            incidentCommunicationSla,
-            incident,
-            alertTime
-        }: $TSFixMe,
+        { projectId, incidentCommunicationSla, incident, alertTime }: $TSFixMe,
         breached = false
     ) {
         const teamMembers = await TeamService.getTeamMembersBy({
@@ -1368,7 +1366,7 @@ export default {
         escalation,
         onCallScheduleStatus,
         eventType,
-        callProgress
+        callProgress,
     }: $TSFixMe) {
         const _this = this;
         let alert;
@@ -1581,7 +1579,7 @@ export default {
         escalation,
         onCallScheduleStatus,
         eventType,
-        smsProgress
+        smsProgress,
     }: $TSFixMe) {
         const _this = this;
         let alert;
@@ -1795,7 +1793,9 @@ export default {
         incident: $TSFixMe,
         statusPageNoteData: $TSFixMe
     ) {
-        const monitors = incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
+        const monitors = incident.monitors.map(
+            (monitor: $TSFixMe) => monitor.monitorId
+        );
         const populateComponent = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
@@ -1853,7 +1853,9 @@ export default {
         const uuid = new Date().getTime();
         const track = {};
 
-        const monitors = incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
+        const monitors = incident.monitors.map(
+            (monitor: $TSFixMe) => monitor.monitorId
+        );
         const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
         const subscribers = await SubscriberService.subscribersForAlert({
             subscribed: true,
@@ -1865,7 +1867,7 @@ export default {
             subscriber,
             monitor,
             statusPageSlug,
-            subscribers
+            subscribers,
         }: $TSFixMe) => {
             await _this.sendSubscriberAlert(
                 subscriber,
@@ -1929,7 +1931,10 @@ export default {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident: $TSFixMe, monitors: $TSFixMe) {
+    sendCreatedIncidentToSubscribers: async function(
+        incident: $TSFixMe,
+        monitors: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
 
@@ -1951,7 +1956,7 @@ export default {
             subscriber,
             monitor,
             enabledStatusPage,
-            subscribers
+            subscribers,
         }: $TSFixMe) => {
             await _this.sendSubscriberAlert(
                 subscriber,
@@ -2042,7 +2047,10 @@ export default {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function(incident: $TSFixMe, monitor: $TSFixMe) {
+    sendAcknowledgedIncidentMail: async function(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ) {
         const _this = this;
         if (incident) {
             const projectId = incident.projectId._id
@@ -2236,7 +2244,7 @@ export default {
         schedule,
         escalation,
         onCallScheduleStatus,
-        eventType
+        eventType,
     }: $TSFixMe) {
         const _this = this;
 
@@ -2403,7 +2411,10 @@ export default {
         }
     },
 
-    sendResolveIncidentMail: async function(incident: $TSFixMe, monitor: $TSFixMe) {
+    sendResolveIncidentMail: async function(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ) {
         const _this = this;
         if (incident) {
             const projectId = incident.projectId._id
@@ -2599,7 +2610,7 @@ export default {
         schedule,
         escalation,
         onCallScheduleStatus,
-        eventType
+        eventType,
     }: $TSFixMe) {
         const _this = this;
         const projectId = incident.projectId._id || incident.projectId;
@@ -2761,7 +2772,10 @@ export default {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident: $TSFixMe, monitors: $TSFixMe) {
+    sendAcknowledgedIncidentToSubscribers: async function(
+        incident: $TSFixMe,
+        monitors: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
         const track = {};
@@ -2782,7 +2796,7 @@ export default {
             subscriber,
             monitor,
             enabledStatusPage,
-            subscribers
+            subscribers,
         }: $TSFixMe) => {
             await _this.sendSubscriberAlert(
                 subscriber,
@@ -2873,7 +2887,10 @@ export default {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident: $TSFixMe, monitors: $TSFixMe) {
+    sendResolvedIncidentToSubscribers: async function(
+        incident: $TSFixMe,
+        monitors: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
         const track = {};
@@ -2894,7 +2911,7 @@ export default {
             subscriber,
             monitor,
             enabledStatusPage,
-            subscribers
+            subscribers,
         }: $TSFixMe) => {
             await _this.sendSubscriberAlert(
                 subscriber,
@@ -2995,7 +3012,7 @@ export default {
             incidentState,
             noteType,
             statusNoteStatus,
-            statusPageSlug
+            statusPageSlug,
         }: $TSFixMe = {},
         totalSubscribers: $TSFixMe,
         id: $TSFixMe,
@@ -3050,12 +3067,14 @@ export default {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusHost' does not exist on type 'Glob... Remove this comment to see the full error message
             statusPageUrl = `${global.statusHost}/status-page/${statusPage._id}`;
             if (statusPage.domains && statusPage.domains.length > 0) {
-                const domains = statusPage.domains.filter((domainData: $TSFixMe) => {
-                    if (domainData.domainVerificationToken.verified) {
-                        return true;
+                const domains = statusPage.domains.filter(
+                    (domainData: $TSFixMe) => {
+                        if (domainData.domainVerificationToken.verified) {
+                            return true;
+                        }
+                        return false;
                     }
-                    return false;
-                });
+                );
 
                 if (domains.length > 0) {
                     statusPageUrl = `${domains[0].domain}/status-page/${statusPage._id}`;
@@ -3074,13 +3093,15 @@ export default {
         if (monitor && monitor.customFields) {
             monitor.customFields.forEach(
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                (field: $TSFixMe) => monitorCustomFields[field.fieldName] = field.fieldValue
+                (field: $TSFixMe) =>
+                    (monitorCustomFields[field.fieldName] = field.fieldValue)
             );
         }
         if (incident && incident.customFields) {
             incident.customFields.forEach(
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                (field: $TSFixMe) => incidentCustomFields[field.fieldName] = field.fieldValue
+                (field: $TSFixMe) =>
+                    (incidentCustomFields[field.fieldName] = field.fieldValue)
             );
         }
         const customFields = {
@@ -3873,7 +3894,11 @@ export default {
         return countryCode[[shortName]];
     },
 
-    isOnDuty(timezone: $TSFixMe, escalationStartTime: $TSFixMe, escalationEndTime: $TSFixMe) {
+    isOnDuty(
+        timezone: $TSFixMe,
+        escalationStartTime: $TSFixMe,
+        escalationEndTime: $TSFixMe
+    ) {
         if (!timezone || !escalationStartTime || !escalationEndTime) {
             return true;
         }
@@ -4025,7 +4050,10 @@ export default {
         }
     },
 
-    sendUnpaidSubscriptionEmail: async function(project: $TSFixMe, user: $TSFixMe) {
+    sendUnpaidSubscriptionEmail: async function(
+        project: $TSFixMe,
+        user: $TSFixMe
+    ) {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
@@ -4041,7 +4069,10 @@ export default {
         });
     },
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function(project: $TSFixMe, user: $TSFixMe) {
+    sendProjectDeleteEmailForUnpaidSubscription: async function(
+        project: $TSFixMe,
+        user: $TSFixMe
+    ) {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName } = project;
         const projectPlan =
@@ -4062,7 +4093,7 @@ export default {
             const sendSubscribersAlert = async ({
                 subscriber,
                 component,
-                subscribers
+                subscribers,
             }: $TSFixMe) => {
                 await _this.sendSubscriberScheduledEventAlert(
                     subscriber,
@@ -4108,7 +4139,9 @@ export default {
             }
         }
     },
-    sendResolvedScheduledEventToSubscribers: async function(schedule: $TSFixMe) {
+    sendResolvedScheduledEventToSubscribers: async function(
+        schedule: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
@@ -4116,7 +4149,7 @@ export default {
             const sendSubscribersAlert = async ({
                 subscriber,
                 component,
-                subscribers
+                subscribers,
             }: $TSFixMe) => {
                 await _this.sendSubscriberScheduledEventAlert(
                     subscriber,
@@ -4163,7 +4196,9 @@ export default {
         }
     },
 
-    sendCancelledScheduledEventToSubscribers: async function(schedule: $TSFixMe) {
+    sendCancelledScheduledEventToSubscribers: async function(
+        schedule: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
@@ -4189,13 +4224,17 @@ export default {
         }
     },
 
-    sendScheduledEventInvestigationNoteToSubscribers: async function(message: $TSFixMe) {
+    sendScheduledEventInvestigationNoteToSubscribers: async function(
+        message: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
 
         const monitorIds =
             message.scheduledEventId &&
-            message.scheduledEventId.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
+            message.scheduledEventId.monitors.map(
+                (monitor: $TSFixMe) => monitor.monitorId
+            );
 
         const monitorsAffected = await MonitorService.findBy({
             query: { _id: { $in: monitorIds }, deleted: false },
@@ -4342,8 +4381,9 @@ export default {
                                 projectId,
                                 unsubscribeUrl,
                                 monitorsAffected.filter(
-                                    (monitor: $TSFixMe) => String(monitor._id) ===
-                                    String(monitorId)
+                                    (monitor: $TSFixMe) =>
+                                        String(monitor._id) ===
+                                        String(monitorId)
                                 )
                             );
                             alertStatus = 'Sent';
@@ -4358,7 +4398,7 @@ export default {
                             );
                             throw error;
                         }
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
                     } else if (subscriber.alertVia === AlertType.SMS) {
                         let owner;
                         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
@@ -5062,7 +5102,9 @@ export default {
         }
     },
 
-    sendAnnouncementNotificationToSubscribers: async function(message: $TSFixMe) {
+    sendAnnouncementNotificationToSubscribers: async function(
+        message: $TSFixMe
+    ) {
         const _this = this;
         const uuid = new Date().getTime();
 
@@ -5075,7 +5117,7 @@ export default {
                 totalSubscribers,
                 subscribers,
                 unsubscribeUrl,
-                monitorName
+                monitorName,
             }: $TSFixMe) => {
                 if (subscriber.alertVia === AlertType.Email) {
                     const [
@@ -5515,57 +5557,57 @@ function calcSmsSegments(sms: $TSFixMe) {
     return Math.ceil(smsLength / 160);
 }
 
-import AlertModel from '../models/alert'
-import ProjectService from './projectService'
-import PaymentService from './paymentService'
-import AlertType from '../config/alertType'
-import ScheduleService from './scheduleService'
-import SubscriberService from './subscriberService'
-import SubscriberAlertService from './subscriberAlertService'
-import EmailTemplateService from './emailTemplateService'
-import SmsTemplateService from './smsTemplateService'
-import EscalationService from './escalationService'
-import MailService from './mailService'
-import UserService from './userService'
-import MonitorService from './monitorService'
-import TwilioService from './twilioService'
-import ErrorService from 'common-server/utils/error'
-import StatusPageService from './statusPageService'
-import AlertChargeService from './alertChargeService'
-import countryCode from '../config/countryCode'
+import AlertModel from '../models/alert';
+import ProjectService from './projectService';
+import PaymentService from './paymentService';
+import AlertType from '../config/alertType';
+import ScheduleService from './scheduleService';
+import SubscriberService from './subscriberService';
+import SubscriberAlertService from './subscriberAlertService';
+import EmailTemplateService from './emailTemplateService';
+import SmsTemplateService from './smsTemplateService';
+import EscalationService from './escalationService';
+import MailService from './mailService';
+import UserService from './userService';
+import MonitorService from './monitorService';
+import TwilioService from './twilioService';
+import ErrorService from 'common-server/utils/error';
+import StatusPageService from './statusPageService';
+import AlertChargeService from './alertChargeService';
+import countryCode from '../config/countryCode';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/alertType"' has no exported mem... Remove this comment to see the full error message
-import { getCountryType } from '../config/alertType'
-import SmsCountService from './smsCountService'
-import DateTime from '../utils/DateTime'
-import moment from 'moment-timezone'
+import { getCountryType } from '../config/alertType';
+import SmsCountService from './smsCountService';
+import DateTime from '../utils/DateTime';
+import moment from 'moment-timezone';
 const TimeZoneNames = moment.tz.names();
-import OnCallScheduleStatusService from './onCallScheduleStatusService'
+import OnCallScheduleStatusService from './onCallScheduleStatusService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
-import ComponentService from './componentService'
-import GlobalConfigService from './globalConfigService'
-import WebHookService from '../services/webHookService'
-import IncidentUtility from '../utils/incident'
-import TeamService from './teamService'
-import secondsToHms from '../utils/secondsToHms'
+import { IS_SAAS_SERVICE } from '../config/server';
+import ComponentService from './componentService';
+import GlobalConfigService from './globalConfigService';
+import WebHookService from '../services/webHookService';
+import IncidentUtility from '../utils/incident';
+import TeamService from './teamService';
+import secondsToHms from '../utils/secondsToHms';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/plans"' has no exported member ... Remove this comment to see the full error message
-import { getPlanById, getPlanByExtraUserId } from '../config/plans'
+import { getPlanById, getPlanByExtraUserId } from '../config/plans';
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
-import componentService from './componentService'
+import componentService from './componentService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'web-... Remove this comment to see the full error message
-import webpush from 'web-push'
+import webpush from 'web-push';
 const {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } = require('../utils/incident');
 //  import IncidentService from './incidentService' Declared but unused
-import IncidentMessageService from './incidentMessageService'
-import IncidentTimelineService from './incidentTimelineService'
-import Services from '../utils/services'
-import RealTimeService from './realTimeService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import IncidentMessageService from './incidentMessageService';
+import IncidentTimelineService from './incidentTimelineService';
+import Services from '../utils/services';
+import RealTimeService from './realTimeService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
-import { find, update, save } from '../util/db'
+import { find, update, save } from '../util/db';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
 const { IS_TESTING, IS_SAAS_SERVICE } = process.env;
 
 const userCollection = 'users';

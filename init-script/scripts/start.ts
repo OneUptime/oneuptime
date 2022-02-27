@@ -1,8 +1,8 @@
 const PKG_VERSION = require('../package.json').version;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
-import { find, save, deleteDatabase } from '../util/db'
+import { find, save, deleteDatabase } from '../util/db';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
 
 async function run() {
     await updateVersion();

@@ -7,11 +7,7 @@ export default {
         monitor: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe,
-        {
-            note,
-            incidentState,
-            statusNoteStatus
-        }: $TSFixMe = {}
+        { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ) {
         const [project, monitorStatus] = await Promise.all([
             // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
@@ -48,11 +44,7 @@ export default {
         incidentStatus: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe,
-        {
-            note,
-            incidentState,
-            statusNoteStatus
-        }: $TSFixMe = {}
+        { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ) {
         const self = this;
         let response;
@@ -139,11 +131,7 @@ export default {
         component: $TSFixMe,
         duration: $TSFixMe,
         webHookType = PROJECT_WEBHOOK,
-        {
-            note,
-            incidentState,
-            statusNoteStatus
-        }: $TSFixMe = {}
+        { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ) {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
@@ -381,11 +369,11 @@ export default {
     },
 };
 
-import IntegrationService from './integrationService'
-import axios from 'axios'
-import ProjectService from './projectService'
-import MonitorStatusService from './monitorStatusService'
-import ErrorService from 'common-server/utils/error'
+import IntegrationService from './integrationService';
+import axios from 'axios';
+import ProjectService from './projectService';
+import MonitorStatusService from './monitorStatusService';
+import ErrorService from 'common-server/utils/error';
 const {
     PROJECT_WEBHOOK,
     EXTERNAL_SUBSCRIBER_WEBHOOK,

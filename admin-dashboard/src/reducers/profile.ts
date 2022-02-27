@@ -5,7 +5,10 @@ const INITIAL_STATE = {
     menuPosition: 0,
 };
 
-export default function profileSettings(state = INITIAL_STATE, action: $TSFixMe) {
+export default function profileSettings(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case SHOW_PROFILE_MENU:
             return Object.assign({}, state, {

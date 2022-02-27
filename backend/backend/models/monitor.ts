@@ -1,4 +1,4 @@
-import mongoose from '../config/db'
+import mongoose from '../config/db';
 const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded

@@ -1,7 +1,7 @@
-import MonitorSlaModel from '../models/monitorSla'
-import MonitorService from './monitorService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import MonitorSlaModel from '../models/monitorSla';
+import MonitorService from './monitorService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
@@ -44,11 +44,7 @@ export default {
 
         return createdMonitorSla;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -61,13 +57,7 @@ export default {
         const monitorSla = await monitorSlaQuery;
         return monitorSla;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -119,7 +109,9 @@ export default {
                 query: { monitorSla: query._id },
                 select: '_id',
             });
-            const initialMonitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
+            const initialMonitorIds = monitors.map(
+                (monitor: $TSFixMe) => monitor._id
+            );
 
             const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {

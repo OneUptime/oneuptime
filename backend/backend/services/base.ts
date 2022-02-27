@@ -1,6 +1,6 @@
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import getSlug from '../utils/getSlug'
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import getSlug from '../utils/getSlug';
 
 class ServiceBase {
     adminItemProps: $TSFixMe;
@@ -25,7 +25,7 @@ class ServiceBase {
         publicItemProps,
         adminItemProps,
         memberItemProps,
-        viewerItemProps
+        viewerItemProps,
     }: $TSFixMe) {
         if (!model) {
             throw new Error('model is required');
@@ -105,17 +105,14 @@ class ServiceBase {
         return count;
     }
 
-    async deleteOneBy({
-        query = {},
-        deletedByUserId
-    }: $TSFixMe) {
+    async deleteOneBy({ query = {}, deletedByUserId }: $TSFixMe) {
         return await this.deleteBy({ query, multiple: false, deletedByUserId });
     }
 
     async deleteBy({
         query = {},
         multiple = false,
-        deletedByUserId
+        deletedByUserId,
     }: $TSFixMe) {
         query.deleted = false;
 
@@ -206,11 +203,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForViewer({
-        query = {},
-        skip = 0,
-        sort
-    }: $TSFixMe) {
+    async getItemForViewer({ query = {}, skip = 0, sort }: $TSFixMe) {
         return await this.findOneBy({
             query,
             skip,
@@ -220,11 +213,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForAdmin({
-        query = {},
-        skip = 0,
-        sort
-    }: $TSFixMe) {
+    async getItemForAdmin({ query = {}, skip = 0, sort }: $TSFixMe) {
         return await this.findOneBy({
             query,
             skip,
@@ -234,11 +223,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForMember({
-        query = {},
-        skip = 0,
-        sort
-    }: $TSFixMe) {
+    async getItemForMember({ query = {}, skip = 0, sort }: $TSFixMe) {
         return await this.findOneBy({
             query,
             skip,
@@ -248,11 +233,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForPublic({
-        query = {},
-        skip = 0,
-        sort
-    }: $TSFixMe) {
+    async getItemForPublic({ query = {}, skip = 0, sort }: $TSFixMe) {
         return await this.findOneBy({
             query,
             skip,

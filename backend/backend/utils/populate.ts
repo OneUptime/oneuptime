@@ -1,4 +1,4 @@
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 export default (populateArray: $TSFixMe, query: $TSFixMe) => {
     /**
      * populate should be an array of object, no matter the depth it exist in

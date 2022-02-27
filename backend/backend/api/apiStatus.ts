@@ -1,7 +1,7 @@
-import express from 'express'
+import express from 'express';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import ApiStatusService from '../services/apiStatusService'
+import ApiStatusService from '../services/apiStatusService';
 
 const router = express.Router();
 

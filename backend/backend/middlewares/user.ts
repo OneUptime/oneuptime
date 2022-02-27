@@ -1,14 +1,14 @@
 const jwtSecretKey = process.env['JWT_SECRET'];
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
-import jwt from 'jsonwebtoken'
-import url from 'url'
-import UserService from '../services/userService'
-import ErrorService from 'common-server/utils/error'
-import ProjectService from '../services/projectService'
+import jwt from 'jsonwebtoken';
+import url from 'url';
+import UserService from '../services/userService';
+import ErrorService from 'common-server/utils/error';
+import ProjectService from '../services/projectService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import apiMiddleware from '../middlewares/api'
+import apiMiddleware from '../middlewares/api';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/plans"' has no exported member ... Remove this comment to see the full error message
-import { getPlanById } from '../config/plans'
+import { getPlanById } from '../config/plans';
 
 const _this = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
@@ -138,29 +138,38 @@ const _this = {
                 const token = accessToken.split(' ')[1] || accessToken;
 
                 //Decode the token
-                jwt.verify(token, jwtSecretKey, (err: $TSFixMe, decoded: $TSFixMe) => {
-                    if (err) {
-                        return sendErrorResponse(req, res, {
-                            code: 401,
-                            message: 'You are unauthorized to access the page.',
-                        });
-                    } else {
-                        req.authorizationType = 'USER';
-                        req.user = decoded;
-                        UserService.updateOneBy(
-                            { _id: req.user.id },
-                            { lastActive: Date.now() }
-                        );
-                        return next();
+                jwt.verify(
+                    token,
+                    jwtSecretKey,
+                    (err: $TSFixMe, decoded: $TSFixMe) => {
+                        if (err) {
+                            return sendErrorResponse(req, res, {
+                                code: 401,
+                                message:
+                                    'You are unauthorized to access the page.',
+                            });
+                        } else {
+                            req.authorizationType = 'USER';
+                            req.user = decoded;
+                            UserService.updateOneBy(
+                                { _id: req.user.id },
+                                { lastActive: Date.now() }
+                            );
+                            return next();
+                        }
                     }
-                });
+                );
             }
         } catch (error) {
             ErrorService.log('user.checkUser', error);
             throw error;
         }
     },
-    checkUserBelongToProject: function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    checkUserBelongToProject: function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             const accessToken =
                 req.headers['authorization'] ||
@@ -176,63 +185,69 @@ const _this = {
                     });
                 }
                 const token = accessToken.split(' ')[1] || accessToken;
-                jwt.verify(token, jwtSecretKey, async (err: $TSFixMe, decoded: $TSFixMe) => {
-                    if (err) {
-                        return sendErrorResponse(req, res, {
-                            code: 401,
-                            message: 'You are unauthorized to access the page.',
-                        });
-                    } else {
-                        req.authorizationType = 'USER';
-                        req.user = decoded;
+                jwt.verify(
+                    token,
+                    jwtSecretKey,
+                    async (err: $TSFixMe, decoded: $TSFixMe) => {
+                        if (err) {
+                            return sendErrorResponse(req, res, {
+                                code: 401,
+                                message:
+                                    'You are unauthorized to access the page.',
+                            });
+                        } else {
+                            req.authorizationType = 'USER';
+                            req.user = decoded;
 
-                        const userId = req.user
-                            ? req.user.id
-                            : null || url.parse(req.url, true).query.userId;
-                        const projectId =
-                            req.params.projectId ||
-                            req.body.projectId ||
-                            url.parse(req.url, true).query.projectId;
-                        if (!projectId) {
-                            return res.status(400).send({
-                                code: 400,
-                                message: 'Project id is not present.',
-                            });
-                        }
-                        const [project] = await Promise.all([
-                            ProjectService.findOneBy({
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ _id: any; }' is not assignable... Remove this comment to see the full error message
-                                _id: projectId,
-                            }),
-                            UserService.updateOneBy(
-                                { _id: req.user.id },
-                                { lastActive: Date.now() }
-                            ),
-                        ]);
-                        let isUserPresentInProject = false;
-                        if (project) {
-                            for (let i = 0; i < project.users.length; i++) {
-                                if (project.users[i].userId === userId) {
-                                    isUserPresentInProject = true;
-                                    break;
-                                }
+                            const userId = req.user
+                                ? req.user.id
+                                : null || url.parse(req.url, true).query.userId;
+                            const projectId =
+                                req.params.projectId ||
+                                req.body.projectId ||
+                                url.parse(req.url, true).query.projectId;
+                            if (!projectId) {
+                                return res.status(400).send({
+                                    code: 400,
+                                    message: 'Project id is not present.',
+                                });
                             }
-                        } else {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'Project does not exist.',
-                            });
-                        }
-                        if (isUserPresentInProject) {
-                            return next();
-                        } else {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'You are not present in this project.',
-                            });
+                            const [project] = await Promise.all([
+                                ProjectService.findOneBy({
+                                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ _id: any; }' is not assignable... Remove this comment to see the full error message
+                                    _id: projectId,
+                                }),
+                                UserService.updateOneBy(
+                                    { _id: req.user.id },
+                                    { lastActive: Date.now() }
+                                ),
+                            ]);
+                            let isUserPresentInProject = false;
+                            if (project) {
+                                for (let i = 0; i < project.users.length; i++) {
+                                    if (project.users[i].userId === userId) {
+                                        isUserPresentInProject = true;
+                                        break;
+                                    }
+                                }
+                            } else {
+                                return sendErrorResponse(req, res, {
+                                    code: 400,
+                                    message: 'Project does not exist.',
+                                });
+                            }
+                            if (isUserPresentInProject) {
+                                return next();
+                            } else {
+                                return sendErrorResponse(req, res, {
+                                    code: 400,
+                                    message:
+                                        'You are not present in this project.',
+                                });
+                            }
                         }
                     }
-                });
+                );
             }
         } catch (error) {
             ErrorService.log('user.checkUserBelongToProject', error);
@@ -240,7 +255,11 @@ const _this = {
         }
     },
 
-    isUserMasterAdmin: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isUserMasterAdmin: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         if (!req.user) {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
             req = await _this.getUser(req);
@@ -264,7 +283,11 @@ const _this = {
         }
     },
 
-    isScaleOrMasterAdmin: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isScaleOrMasterAdmin: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 

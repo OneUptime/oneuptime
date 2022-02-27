@@ -1,20 +1,14 @@
-import ScriptModel from '../models/automatedScripts'
-import ScriptModelLog from '../models/automationScriptsLog'
+import ScriptModel from '../models/automatedScripts';
+import ScriptModelLog from '../models/automationScriptsLog';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
-import { postApi } from '../utils/api'
-import getSlug from '../utils/getSlug'
+import { postApi } from '../utils/api';
+import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -118,7 +112,11 @@ export default {
         return response;
     },
 
-    findAllLogs: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    findAllLogs: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -141,11 +139,7 @@ export default {
         return response;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -160,7 +154,11 @@ export default {
         return response;
     },
 
-    getAutomatedLogs: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    getAutomatedLogs: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const _this = this;
         const response = await _this.findAllLogs(query, skip, limit);
         return response;
@@ -176,7 +174,7 @@ export default {
         triggeredId,
         triggeredBy,
         resources,
-        stackSize = 0
+        stackSize = 0,
     }: $TSFixMe) {
         const _this = this;
         if (stackSize === 3) {
@@ -240,7 +238,7 @@ export default {
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
-        stackSize
+        stackSize,
     }: $TSFixMe) {
         const _this = this;
         const selectScript =
@@ -285,14 +283,14 @@ export default {
             };
         }
         triggeredBy === 'user'
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-            ? (data.triggerByUser = triggeredId)
+            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+              (data.triggerByUser = triggeredId)
             : triggeredBy === 'script'
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-            ? (data.triggerByScript = triggeredId)
+            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+              (data.triggerByScript = triggeredId)
             : triggeredBy === 'incident'
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-            ? (data.triggerByIncident = triggeredId)
+            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+              (data.triggerByIncident = triggeredId)
             : null;
         // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         if (data.success && successEvent.length > 0) {
@@ -321,19 +319,18 @@ export default {
         return automatedScriptLog;
     },
 
-    removeScriptFromEvent: async function({
-        projectId,
-        id
-    }: $TSFixMe) {
+    removeScriptFromEvent: async function({ projectId, id }: $TSFixMe) {
         const _this = this;
         const scripts = await ScriptModel.find({ projectId }).lean();
         await Promise.all(
             scripts.map(async (script: $TSFixMe) => {
                 const successEvent = script.successEvent.filter(
-                    (script: $TSFixMe) => String(script.automatedScript) !== String(id)
+                    (script: $TSFixMe) =>
+                        String(script.automatedScript) !== String(id)
                 );
                 const failureEvent = script.failureEvent.filter(
-                    (script: $TSFixMe) => String(script.automatedScript) !== String(id)
+                    (script: $TSFixMe) =>
+                        String(script.automatedScript) !== String(id)
                 );
                 return await _this.updateOne(
                     { _id: script._id },
@@ -365,9 +362,7 @@ export default {
         return response;
     },
 
-    hardDeleteBy: async function({
-        query
-    }: $TSFixMe) {
+    hardDeleteBy: async function({ query }: $TSFixMe) {
         await ScriptModel.deleteMany(query);
     },
 };

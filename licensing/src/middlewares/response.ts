@@ -1,4 +1,4 @@
-import JsonToCsv from './jsonToCsv'
+import JsonToCsv from './jsonToCsv';
 
 export default {
     sendEmptyResponse(req: $TSFixMe, res: $TSFixMe) {
@@ -27,7 +27,12 @@ export default {
         }
     },
 
-    sendListResponse: async function(req: $TSFixMe, res: $TSFixMe, list: $TSFixMe, count: $TSFixMe) {
+    sendListResponse: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        list: $TSFixMe,
+        count: $TSFixMe
+    ) {
         const response = {};
 
         if (!list) {

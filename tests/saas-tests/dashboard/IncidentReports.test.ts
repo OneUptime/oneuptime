@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 
 // parent user credentials
@@ -39,7 +39,9 @@ describe('Incident Reports API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) => e.click());
+        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
+            e.click()
+        );
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
         await init.pageType(page, 'input[id=name]', monitorName);
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -51,7 +53,9 @@ describe('Incident Reports API', () => {
         await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
-        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+            e.click()
+        );
         await init.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });

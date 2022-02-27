@@ -1,43 +1,43 @@
-import express from 'express'
-import StatusPageService from '../services/statusPageService'
-import MonitorService from '../services/monitorService'
-import ProbeService from '../services/probeService'
-import UtilService from '../services/utilService'
-import RealTimeService from '../services/realTimeService'
-import DomainVerificationService from '../services/domainVerificationService'
-import IncidentService from '../services/incidentService'
+import express from 'express';
+import StatusPageService from '../services/statusPageService';
+import MonitorService from '../services/monitorService';
+import ProbeService from '../services/probeService';
+import UtilService from '../services/utilService';
+import RealTimeService from '../services/realTimeService';
+import DomainVerificationService from '../services/domainVerificationService';
+import IncidentService from '../services/incidentService';
 
 const router = express.Router();
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
-import validUrl from 'valid-url'
-import multer from 'multer'
-import ErrorService from 'common-server/utils/error'
+import validUrl from 'valid-url';
+import multer from 'multer';
+import ErrorService from 'common-server/utils/error';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'jsto... Remove this comment to see the full error message
-import { toXML } from 'jstoxml'
-import moment from 'moment'
+import { toXML } from 'jstoxml';
+import moment from 'moment';
 
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
-import { getUser, checkUser } from '../middlewares/user'
+import { getUser, checkUser } from '../middlewares/user';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/project"' has no exported ... Remove this comment to see the full error message
-import { isUserAdmin } from '../middlewares/project'
-import storage from '../middlewares/upload'
+import { isUserAdmin } from '../middlewares/project';
+import storage from '../middlewares/upload';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
-import IncidentTimelineService from '../services/incidentTimelineService'
+import { isAuthorized } from '../middlewares/authorization';
+import IncidentTimelineService from '../services/incidentTimelineService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/ipHandler"' has no exporte... Remove this comment to see the full error message
-import { ipWhitelist } from '../middlewares/ipHandler'
+import { ipWhitelist } from '../middlewares/ipHandler';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
-import defaultStatusPageColors from '../config/statusPageColors'
-import SubscriberService from '../services/subscriberService'
-import ScheduledEventService from '../services/scheduledEventService'
-import axios from 'axios'
-import cheerio from 'cheerio'
+import uuid from 'uuid';
+import defaultStatusPageColors from '../config/statusPageColors';
+import SubscriberService from '../services/subscriberService';
+import ScheduledEventService from '../services/scheduledEventService';
+import axios from 'axios';
+import cheerio from 'cheerio';
 
-import ApiBase from './base'
+import ApiBase from './base';
 
 ApiBase({
     router,
@@ -1665,7 +1665,9 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         });
 
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
-        const monitors = statusPage.monitors.map((mon: $TSFixMe) => mon.monitor._id);
+        const monitors = statusPage.monitors.map(
+            (mon: $TSFixMe) => mon.monitor._id
+        );
         const populate = [
             { path: 'projectId', select: 'name _id' },
             { path: 'monitorId', select: 'name _id' },
@@ -2075,7 +2077,7 @@ router.put(
                 }
 
                 data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-                    monitorId: monitor
+                    monitorId: monitor,
                 }));
             }
 
@@ -2693,7 +2695,10 @@ async function getStatusPage(req: $TSFixMe, statusPageSlug: $TSFixMe) {
     }
 }
 
-async function getOngoingScheduledEvents(req: $TSFixMe, statusPageSlug: $TSFixMe) {
+async function getOngoingScheduledEvents(
+    req: $TSFixMe,
+    statusPageSlug: $TSFixMe
+) {
     const { skip = 0, limit = 5, theme = false } = req.query;
     // Call the StatusPageService.
     const response = await StatusPageService.getEvents(
@@ -2808,7 +2813,11 @@ async function getMonitorLogs(req: $TSFixMe, monitors: $TSFixMe) {
     return logs;
 }
 
-async function getAnnouncements(req: $TSFixMe, statusPageId: $TSFixMe, projectId: $TSFixMe) {
+async function getAnnouncements(
+    req: $TSFixMe,
+    statusPageId: $TSFixMe,
+    projectId: $TSFixMe
+) {
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideAnnouncement' does not exist on type... Remove this comment to see the full error message
@@ -2859,7 +2868,11 @@ async function getMonitorTimelines(statusPageSlug: $TSFixMe) {
     return response;
 }
 //get status page notes
-async function getStatusPageNote(req: $TSFixMe, statusPageSlug: $TSFixMe, theme: $TSFixMe) {
+async function getStatusPageNote(
+    req: $TSFixMe,
+    statusPageSlug: $TSFixMe,
+    theme: $TSFixMe
+) {
     let result;
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
@@ -2937,7 +2950,12 @@ async function getAnnouncementLogs(statusPage: $TSFixMe, limit = 5, skip = 0) {
 }
 //calculate time
 
-async function calculateTime(statusPage: $TSFixMe, monitorStatus: $TSFixMe, probeData: $TSFixMe, range: $TSFixMe) {
+async function calculateTime(
+    statusPage: $TSFixMe,
+    monitorStatus: $TSFixMe,
+    probeData: $TSFixMe,
+    range: $TSFixMe
+) {
     const result = {};
     const start = Date.now();
     const theme = statusPage.theme === 'Clean Theme';
@@ -2953,7 +2971,8 @@ async function calculateTime(statusPage: $TSFixMe, monitorStatus: $TSFixMe, prob
                 (a: $TSFixMe) => String(a._id) === String(monitorId)
             );
             const probe = probeData?.probes.filter(
-                (probe: $TSFixMe) => String(probe._id) === String(monitorData?.statuses[0]?._id)
+                (probe: $TSFixMe) =>
+                    String(probe._id) === String(monitorData?.statuses[0]?._id)
             );
             const statuses = filterProbeData(
                 monitorData,
@@ -2969,7 +2988,11 @@ async function calculateTime(statusPage: $TSFixMe, monitorStatus: $TSFixMe, prob
     return result;
 }
 
-const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, backupStatus: $TSFixMe) => {
+const filterProbeData = (
+    monitor: $TSFixMe,
+    probe: $TSFixMe,
+    backupStatus: $TSFixMe
+) => {
     const monitorStatuses = monitor?.statuses || backupStatus;
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0

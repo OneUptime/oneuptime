@@ -1,14 +1,14 @@
-import IncidentService from './incidentService'
-import ErrorService from './errorService'
+import IncidentService from './incidentService';
+import ErrorService from './errorService';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const incidentTimelineCollection = global.db.collection('incidenttimelines');
-import { ObjectId } from 'mongodb'
+import { ObjectId } from 'mongodb';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
-import { postApi } from '../utils/api'
-import moment from 'moment'
+import { postApi } from '../utils/api';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { realtimeUrl } from '../utils/config'
-import ProjectService from './projectService'
+import { realtimeUrl } from '../utils/config';
+import ProjectService from './projectService';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
@@ -76,14 +76,14 @@ export default {
                     },
                 });
                 const projectId = project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProjectId' does not exist on type ... Remove this comment to see the full error message
-                    ? project.parentProjectId
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProjectId' does not exist on type ... Remove this comment to see the full error message
-                        ? project.parentProjectId._id || project.parentProjectId
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'Promise<any... Remove this comment to see the full error message
-                        : project._id
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
-                    : incidentTimeline.projectId._id ||
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProjectId' does not exist on type ... Remove this comment to see the full error message
+                      project.parentProjectId
+                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProjectId' does not exist on type ... Remove this comment to see the full error message
+                          project.parentProjectId._id || project.parentProjectId
+                        : // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'Promise<any... Remove this comment to see the full error message
+                          project._id
+                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                      incidentTimeline.projectId._id ||
                       // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
                       incidentTimeline.projectId;
 

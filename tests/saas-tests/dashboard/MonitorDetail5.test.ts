@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -55,7 +55,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '#newFormId');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', urlMonitorName);
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -67,7 +69,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+                e.click()
+            );
 
             //Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -115,7 +119,10 @@ describe('Monitor Detail API', () => {
                 page,
                 `#addSiteUrl_${urlMonitorName}`
             );
-            await init.page$Eval(page, `#addSiteUrl_${urlMonitorName}`, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                `#addSiteUrl_${urlMonitorName}`,
+                (e: $TSFixMe) => e.click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -126,7 +133,9 @@ describe('Monitor Detail API', () => {
                 'input[id=siteUrl]',
                 'https://oneuptime.com'
             );
-            await init.page$Eval(page, '#addSiteUrlButton', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#addSiteUrlButton', (e: $TSFixMe) =>
+                e.click()
+            );
 
             await init.pageWaitForSelector(page, '#addSiteUrlButton', {
                 hidden: true,
@@ -172,7 +181,9 @@ describe('Monitor Detail API', () => {
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#websiteUrlDelete');
-            await init.page$Eval(page, '#websiteUrlDelete', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#websiteUrlDelete', (e: $TSFixMe) =>
+                e.click()
+            );
 
             await init.pageWaitForSelector(page, '#websiteUrlDelete', {
                 hidden: true,
@@ -211,14 +222,18 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]', { clickCount: 3 });
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', newMonitorName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 hidden: true,
             });
@@ -251,12 +266,17 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '.advanced-options-tab');
 
             const deleteButtonSelector = `#delete_${newMonitorName}`;
-            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             const confirmDeleteButtonSelector = '#deleteMonitor';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
-            await init.page$Eval(page, confirmDeleteButtonSelector, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                confirmDeleteButtonSelector,
+                (e: $TSFixMe) => e.click()
             );
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector, {
                 hidden: true,

@@ -1,5 +1,5 @@
-import winston from 'winston'
-import Slack from 'winston-slack-webhook-transport'
+import winston from 'winston';
+import Slack from 'winston-slack-webhook-transport';
 
 if (
     process.env.PORT &&

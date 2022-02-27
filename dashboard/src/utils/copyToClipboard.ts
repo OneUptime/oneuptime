@@ -18,8 +18,8 @@ export default function(text: $TSFixMe) {
     const selected =
         // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
         document.getSelection().rangeCount > 0
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-            ? document.getSelection().getRangeAt(0)
+            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+              document.getSelection().getRangeAt(0)
             : false;
 
     el.select();

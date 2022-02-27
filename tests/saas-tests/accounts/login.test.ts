@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 
@@ -95,9 +95,13 @@ describe('Login API', () => {
             await init.pageClick(page, 'button[type=submit]');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#loginError');
-            const html = await init.page$Eval(page, '#main-body', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const html = await init.page$Eval(
+                page,
+                '#main-body',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
 
             html.should.containEql('User does not exist.');
         },

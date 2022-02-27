@@ -10,19 +10,19 @@ export const fetchTimeMetricsRequest = () => ({
 
 export const fetchTimeMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_TIME_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchTimeMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_TIME_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchTimeMetrics = ({
     appId,
     key,
     startDate,
-    endDate
+    endDate,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchTimeMetricsRequest());
 
@@ -61,19 +61,19 @@ export const fetchThroughputMetricsRequest = () => ({
 
 export const fetchThroughputMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_THROUGHPUT_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchThroughputMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_THROUGHPUT_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchThroughputMetrics = ({
     appId,
     key,
     startDate,
-    endDate
+    endDate,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchThroughputMetricsRequest());
 
@@ -112,19 +112,19 @@ export const fetchErrorMetricsRequest = () => ({
 
 export const fetchErrorMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_ERROR_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchErrorMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_ERROR_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchErrorMetrics = ({
     appId,
     key,
     startDate,
-    endDate
+    endDate,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchErrorMetricsRequest());
 
@@ -159,78 +159,78 @@ export const fetchErrorMetrics = ({
 // handle setting startDate/endDate - (TIME || THROUGHPUT || ERROR)
 export const setTimeStartDate = (date: $TSFixMe) => ({
     type: types.SET_TIME_STARTDATE,
-    payload: date
+    payload: date,
 });
 
 export const setTimeEndDate = (date: $TSFixMe) => ({
     type: types.SET_TIME_ENDDATE,
-    payload: date
+    payload: date,
 });
 
 export const setThroughputStartDate = (date: $TSFixMe) => ({
     type: types.SET_THROUGHPUT_STARTDATE,
-    payload: date
+    payload: date,
 });
 
 export const setThroughputEndDate = (date: $TSFixMe) => ({
     type: types.SET_THROUGHPUT_ENDDATE,
-    payload: date
+    payload: date,
 });
 
 export const setErrorStartDate = (date: $TSFixMe) => ({
     type: types.SET_ERROR_STARTDATE,
-    payload: date
+    payload: date,
 });
 
 export const setErrorEndDate = (date: $TSFixMe) => ({
     type: types.SET_ERROR_ENDDATE,
-    payload: date
+    payload: date,
 });
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetTimeDate = (startDate, endDate) => ({
     type: types.RESET_TIME_DATE,
-    payload: { startDate, endDate }
+    payload: { startDate, endDate },
 });
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetThroughputDate = (startDate, endDate) => ({
     type: types.RESET_THROUGHPUT_DATE,
-    payload: { startDate, endDate }
+    payload: { startDate, endDate },
 });
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetErrorDate = (startDate, endDate) => ({
     type: types.RESET_ERROR_DATE,
-    payload: { startDate, endDate }
+    payload: { startDate, endDate },
 });
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetIncomingDate = (startDate, endDate) => ({
     type: types.RESET_INCOMING_DATE,
-    payload: { startDate, endDate }
+    payload: { startDate, endDate },
 });
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
 export const resetOutgoingDate = (startDate, endDate) => ({
     type: types.RESET_OUTGOING_DATE,
-    payload: { startDate, endDate }
+    payload: { startDate, endDate },
 });
 
 // update metrics from realtime update
 export const updateTimeMetrics = (payload: $TSFixMe) => ({
     type: types.UPDATE_TIME_METRICS,
-    payload
+    payload,
 });
 
 export const updateThroughputMetrics = (payload: $TSFixMe) => ({
     type: types.UPDATE_THROUGHPUT_METRICS,
-    payload
+    payload,
 });
 
 export const updateErrorMetrics = (payload: $TSFixMe) => ({
     type: types.UPDATE_ERROR_METRICS,
-    payload
+    payload,
 });
 
 // fetch all performance metrics (incoming/outgoing)
@@ -240,12 +240,12 @@ export const fetchIncomingMetricsRequest = () => ({
 
 export const fetchIncomingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_INCOMING_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchIncomingMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_INCOMING_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchIncomingMetrics = ({
@@ -254,7 +254,7 @@ export const fetchIncomingMetrics = ({
     skip,
     limit,
     startDate,
-    endDate
+    endDate,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchIncomingMetricsRequest());
 
@@ -292,12 +292,12 @@ export const fetchOutgoingMetricsRequest = () => ({
 
 export const fetchOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_OUTGOING_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchOutgoingMetricsFailing = (error: $TSFixMe) => ({
     type: types.FETCH_OUTGOING_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchOutgoingMetrics = ({
@@ -306,7 +306,7 @@ export const fetchOutgoingMetrics = ({
     skip,
     limit,
     startDate,
-    endDate
+    endDate,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchOutgoingMetricsRequest());
 
@@ -340,22 +340,22 @@ export const fetchOutgoingMetrics = ({
 
 export const setIncomingStartDate = (payload: $TSFixMe) => ({
     type: types.SET_INCOMING_STARTDATE,
-    payload
+    payload,
 });
 
 export const setIncomingEndDate = (payload: $TSFixMe) => ({
     type: types.SET_INCOMING_ENDDATE,
-    payload
+    payload,
 });
 
 export const setOutgoingStartDate = (payload: $TSFixMe) => ({
     type: types.SET_OUTGOING_STARTDATE,
-    payload
+    payload,
 });
 
 export const setOutgoingEndDate = (payload: $TSFixMe) => ({
     type: types.SET_OUTGOING_ENDDATE,
-    payload
+    payload,
 });
 
 // delete a particular performance metrics (incoming/outgoing)
@@ -365,23 +365,21 @@ export const deleteIncomingMetricsRequest = () => ({
 
 export const deleteIncomingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_INCOMING_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteIncomingMetricsFailure = (error: $TSFixMe) => ({
     type: types.DELETE_INCOMING_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const resetIncomingDelete = () => ({
     type: types.RESET_INCOMING_DELETE,
 });
 
-export const deleteIncomingMetrics = ({
-    appId,
-    key,
-    metricId
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
+export const deleteIncomingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
+    dispatch: $TSFixMe
+) => {
     dispatch(deleteIncomingMetricsRequest());
 
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
@@ -416,23 +414,21 @@ export const deleteOutgoingMetricsRequest = () => ({
 
 export const deleteOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_OUTGOING_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteOutgoingMetricsFailure = (error: $TSFixMe) => ({
     type: types.DELETE_OUTGOING_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const resetOutgoingDelete = () => ({
     type: types.RESET_OUTGOING_DELETE,
 });
 
-export const deleteOutgoingMetrics = ({
-    appId,
-    key,
-    metricId
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
+export const deleteOutgoingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
+    dispatch: $TSFixMe
+) => {
     dispatch(deleteOutgoingMetricsRequest());
 
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.

@@ -1,22 +1,18 @@
-import incidentSMSActionModel from '../models/incidentSMSAction'
-import twilio from 'twilio'
-import SmsSmtpService from './smsSmtpService'
-import Handlebars from 'handlebars'
-import defaultSmsTemplates from '../config/smsTemplate'
-import GlobalConfigService from './globalConfigService'
-import UserService from './userService'
-import SmsCountService from './smsCountService'
-import CallLogsService from './callLogsService'
-import AlertService from './alertService'
+import incidentSMSActionModel from '../models/incidentSMSAction';
+import twilio from 'twilio';
+import SmsSmtpService from './smsSmtpService';
+import Handlebars from 'handlebars';
+import defaultSmsTemplates from '../config/smsTemplate';
+import GlobalConfigService from './globalConfigService';
+import UserService from './userService';
+import SmsCountService from './smsCountService';
+import CallLogsService from './callLogsService';
+import AlertService from './alertService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_TESTING } from '../config/server'
+import { IS_TESTING } from '../config/server';
 
 const _this = {
-    findByOne: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findByOne: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1543,7 +1539,10 @@ const _this = {
         return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
     },
 
-    getTemplate: async function(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe) {
+    getTemplate: async function(
+        smsTemplate: $TSFixMe,
+        smsTemplateType: $TSFixMe
+    ) {
         const defaultTemplate = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
@@ -1682,7 +1681,11 @@ const _this = {
     },
 
     // Fetch Available numbers to buy from twilio
-    fetchPhoneNumbers: async (projectId: $TSFixMe, countryCode: $TSFixMe, numberType: $TSFixMe) => {
+    fetchPhoneNumbers: async (
+        projectId: $TSFixMe,
+        countryCode: $TSFixMe,
+        numberType: $TSFixMe
+    ) => {
         let accountSid = null;
         let authToken = null;
         let numbers;

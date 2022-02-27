@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -97,11 +91,7 @@ export default {
         return numbers;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -163,7 +153,9 @@ export default {
                 query: { _id: projectId },
                 select: 'users',
             });
-            let owner = project.users.filter((user: $TSFixMe) => user.role === 'Owner');
+            let owner = project.users.filter(
+                (user: $TSFixMe) => user.role === 'Owner'
+            );
             owner = owner && owner.length ? owner[0] : owner;
             const user = await UserService.findOneBy({
                 query: { _id: owner.userId },
@@ -353,7 +345,9 @@ export default {
                     query: { _id: projectId },
                     select: 'users',
                 });
-                let owner = project.users.filter((user: $TSFixMe) => user.role === 'Owner');
+                let owner = project.users.filter(
+                    (user: $TSFixMe) => user.role === 'Owner'
+                );
                 owner = owner && owner.length ? owner[0] : owner;
                 await PaymentService.chargeAlert(
                     owner.userId,
@@ -393,7 +387,12 @@ export default {
         return 'Customer has been successfully charged for the call.';
     },
 
-    getCallResponse: async function(data: $TSFixMe, to: $TSFixMe, body: $TSFixMe, backup: $TSFixMe) {
+    getCallResponse: async function(
+        data: $TSFixMe,
+        to: $TSFixMe,
+        body: $TSFixMe,
+        backup: $TSFixMe
+    ) {
         const fromNumber = body['From'];
         const callSid = body['CallSid'];
         const dialCallSid = body['DialCallSid'] || null;
@@ -750,18 +749,18 @@ export default {
     },
 };
 
-import CallRoutingModel from '../models/callRouting'
-import CallRoutingLogService from '../services/callRoutingLogService'
-import PaymentService from './paymentService'
-import TwilioService from './twilioService'
-import ScheduleService from './scheduleService'
-import AlertService from './alertService'
-import EscalationService from './escalationService'
-import UserService from './userService'
-import twilio from 'twilio'
+import CallRoutingModel from '../models/callRouting';
+import CallRoutingLogService from '../services/callRoutingLogService';
+import PaymentService from './paymentService';
+import TwilioService from './twilioService';
+import ScheduleService from './scheduleService';
+import AlertService from './alertService';
+import EscalationService from './escalationService';
+import UserService from './userService';
+import twilio from 'twilio';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
-import ProjectService from './projectService'
-import FileService from './fileService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import { IS_SAAS_SERVICE } from '../config/server';
+import ProjectService from './projectService';
+import FileService from './fileService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

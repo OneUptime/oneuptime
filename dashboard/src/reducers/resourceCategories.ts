@@ -51,7 +51,10 @@ const INITIAL_STATE = {
     },
 };
 
-export default function resourceCategory(state = INITIAL_STATE, action: $TSFixMe) {
+export default function resourceCategory(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case CREATE_RESOURCE_CATEGORY_SUCCESS:
             return Object.assign({}, state, {

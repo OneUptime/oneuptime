@@ -1,5 +1,8 @@
 const Services = {
-    successEvent: async function(customerId: $TSFixMe, subscriptionId: $TSFixMe) {
+    successEvent: async function(
+        customerId: $TSFixMe,
+        subscriptionId: $TSFixMe
+    ) {
         // eslint-disable-next-line no-unused-vars
         const [user, project] = await Promise.all([
             UserService.findOneBy({
@@ -82,7 +85,10 @@ const Services = {
         return { paymentStatus: 'failed' };
     },
 
-    cancelEvent: async function(customerId: $TSFixMe, subscriptionId: $TSFixMe) {
+    cancelEvent: async function(
+        customerId: $TSFixMe,
+        subscriptionId: $TSFixMe
+    ) {
         const [user, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
@@ -156,7 +162,8 @@ const Services = {
             ) {
                 duplicateCard =
                     cards.data.filter(
-                        (card: $TSFixMe) => card.fingerprint === tokenCard.card.fingerprint
+                        (card: $TSFixMe) =>
+                            card.fingerprint === tokenCard.card.fingerprint
                     ).length > 0;
             }
 
@@ -354,7 +361,11 @@ const Services = {
         }
         return false;
     },
-    addBalance: async function(userId: $TSFixMe, chargeAmount: $TSFixMe, projectId: $TSFixMe) {
+    addBalance: async function(
+        userId: $TSFixMe,
+        chargeAmount: $TSFixMe,
+        projectId: $TSFixMe
+    ) {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
         const user = await UserService.findOneBy({
@@ -421,7 +432,11 @@ const Services = {
         }
         return updatedPaymentIntent;
     },
-    makeTestCharge: async function(tokenId: $TSFixMe, email: $TSFixMe, companyName: $TSFixMe) {
+    makeTestCharge: async function(
+        tokenId: $TSFixMe,
+        email: $TSFixMe,
+        companyName: $TSFixMe
+    ) {
         const description = 'Verify if card is billable';
         const testChargeValue = 100;
         const stripeCustomerId = await PaymentService.createCustomer(
@@ -479,15 +494,15 @@ const Services = {
     },
 };
 
-import payment from '../config/payment'
-import UserService from '../services/userService'
-import PaymentService from '../services/paymentService'
-import ProjectService from '../services/projectService'
-import ProjectModel from '../models/project'
-import MailService from '../services/mailService'
-import ErrorService from 'common-server/utils/error'
+import payment from '../config/payment';
+import UserService from '../services/userService';
+import PaymentService from '../services/paymentService';
+import ProjectService from '../services/projectService';
+import ProjectModel from '../models/project';
+import MailService from '../services/mailService';
+import ErrorService from 'common-server/utils/error';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/stripeHandlers"' has no exported... Remove this comment to see the full error message
-import { sendSlackAlert } from '../utils/stripeHandlers'
+import { sendSlackAlert } from '../utils/stripeHandlers';
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });

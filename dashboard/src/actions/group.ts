@@ -9,15 +9,17 @@ export const addGroupRequest = () => ({
 
 export const addGroupSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_GROUP_SUCCESS,
-    payload
+    payload,
 });
 
 export const addGroupFailure = (error: $TSFixMe) => ({
     type: types.CREATE_GROUP_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(addGroupRequest());
 
     try {
@@ -43,20 +45,24 @@ export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (dispa
 // Edit and update Groups
 export const updateGroupRequest = (payload: $TSFixMe) => ({
     type: types.UPDATE_GROUP_REQUEST,
-    payload
+    payload,
 });
 
 export const updateGroupSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_GROUP_SUCCESS,
-    payload
+    payload,
 });
 
 export const updateGroupFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_GROUP_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const updateGroup = (projectId: $TSFixMe, groupId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const updateGroup = (
+    projectId: $TSFixMe,
+    groupId: $TSFixMe,
+    data: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     dispatch(updateGroupRequest(groupId));
 
     try {
@@ -85,12 +91,12 @@ export const getGroupsRequest = () => ({
 
 export const getGroupsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_GROUPS_SUCCESS,
-    payload
+    payload,
 });
 
 export const getGroupsFailure = (error: $TSFixMe) => ({
     type: types.GET_GROUPS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getGroups = () => async (dispatch: $TSFixMe) => {
@@ -120,15 +126,19 @@ export const getProjectGroupsRequest = () => ({
 
 export const getProjectGroupsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_PROJECT_GROUPS_SUCCESS,
-    payload
+    payload,
 });
 
 export const getProjectGroupsFailure = (error: $TSFixMe) => ({
     type: types.GET_PROJECT_GROUPS_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const getProjectGroups = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const getProjectGroups = (
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     dispatch(getProjectGroupsRequest());
     try {
         const response = await getApi(
@@ -156,15 +166,17 @@ export const deleteGroupRequest = () => ({
 
 export const deleteGroupSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_GROUP_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteGroupFailure = (error: $TSFixMe) => ({
     type: types.DELETE_GROUP_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const deleteGroup = (projectId: $TSFixMe, groupId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const deleteGroup = (projectId: $TSFixMe, groupId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(deleteGroupRequest());
 
     try {

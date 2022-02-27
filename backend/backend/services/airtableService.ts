@@ -4,35 +4,21 @@ export default {
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
     //Returns: promise
 
-    find: async function({
-        tableName,
-        view,
-        limit
-    }: $TSFixMe) {
+    find: async function({ tableName, view, limit }: $TSFixMe) {
         return base(tableName)
             .select({ view, pageSize: limit })
             .firstPage();
     },
 
-    update: async function({
-        tableName,
-        id,
-        fields
-    }: $TSFixMe) {
+    update: async function({ tableName, id, fields }: $TSFixMe) {
         return base(tableName).update(id, fields);
     },
 
-    create: async function({
-        tableName,
-        fields
-    }: $TSFixMe) {
+    create: async function({ tableName, fields }: $TSFixMe) {
         return base(tableName).create(fields);
     },
 
-    delete: async function({
-        tableName,
-        id
-    }: $TSFixMe) {
+    delete: async function({ tableName, id }: $TSFixMe) {
         return base(tableName).destroy(id);
     },
 
@@ -43,7 +29,7 @@ export default {
         company,
         jobRole,
         createdAt,
-        source
+        source,
     }: $TSFixMe) {
         if (!base) return;
 
@@ -68,7 +54,7 @@ export default {
         source,
         type,
         volume,
-        website
+        website,
     }: $TSFixMe) {
         if (!base) return;
 
@@ -96,13 +82,7 @@ export default {
     //Params:
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    logFeedback: function({
-        message,
-        name,
-        email,
-        project,
-        page
-    }: $TSFixMe) {
+    logFeedback: function({ message, name, email, project, page }: $TSFixMe) {
         if (!base) return;
 
         return base('Feedback').create({
@@ -124,11 +104,7 @@ export default {
         return base('Feedback').destroy(airtableId);
     },
 
-    deleteAll: async function({
-        tableName,
-        view,
-        limit
-    }: $TSFixMe) {
+    deleteAll: async function({ tableName, view, limit }: $TSFixMe) {
         if (!view) {
             view = 'Grid view';
         }
@@ -158,7 +134,7 @@ export default {
         reason,
         project,
         name,
-        email
+        email,
     }: $TSFixMe) {
         if (!base) return;
 
@@ -171,7 +147,7 @@ export default {
     },
 };
 
-import Airtable from 'airtable'
+import Airtable from 'airtable';
 const AirtableApiKey = process.env['AIRTABLE_API_KEY'];
 const AirtableBaseId = process.env['AIRTABLE_BASE_ID'];
 let base: $TSFixMe = null;

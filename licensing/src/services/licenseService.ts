@@ -1,9 +1,5 @@
 export default {
-    confirm: async ({
-        license,
-        email,
-        limit
-    }: $TSFixMe) => {
+    confirm: async ({ license, email, limit }: $TSFixMe) => {
         try {
             if (!limit) limit = 9999;
 
@@ -70,5 +66,5 @@ export default {
 };
 
 const generateWebToken = require('../utils/WebToken').generateWebToken;
-import AirtableService from './airtableService'
-import ErrorService from './errorService'
+import AirtableService from './airtableService';
+import ErrorService from './errorService';

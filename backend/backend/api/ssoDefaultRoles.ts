@@ -1,11 +1,11 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import SsoDefaultRolesService from '../services/ssoDefaultRolesService'
+import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     const skip = req.query.skip || 0;

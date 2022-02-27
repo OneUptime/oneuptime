@@ -1,14 +1,14 @@
-import ContainerSecurityModel from '../models/containerSecurity'
-import moment from 'moment'
+import ContainerSecurityModel from '../models/containerSecurity';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
-import { decrypt } from '../config/encryptDecrypt'
-import ContainerSecurityLogService from './containerSecurityLogService'
-import DockerCredentialService from './dockerCredentialService'
-import ResourceCategoryService from './resourceCategoryService'
-import getSlug from '../utils/getSlug'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import RealTimeService from './realTimeService'
+import { decrypt } from '../config/encryptDecrypt';
+import ContainerSecurityLogService from './containerSecurityLogService';
+import DockerCredentialService from './dockerCredentialService';
+import ResourceCategoryService from './resourceCategoryService';
+import getSlug from '../utils/getSlug';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import RealTimeService from './realTimeService';
 
 export default {
     create: async function(data: $TSFixMe) {
@@ -70,11 +70,7 @@ export default {
         const containerSecurity = await ContainerSecurityModel.create(data);
         return containerSecurity;
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -90,13 +86,7 @@ export default {
         const containerSecurity = await containerSecurityQuery;
         return containerSecurity;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -123,7 +113,11 @@ export default {
         const containerSecurities = await containerSecurityQuery;
         return containerSecurities;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData = null
+    ) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;

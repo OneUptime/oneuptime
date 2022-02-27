@@ -1,25 +1,25 @@
-import express from 'express'
-import ProjectService from '../services/projectService'
+import express from 'express';
+import ProjectService from '../services/projectService';
 
 const router = express.Router();
-import PaymentService from '../services/paymentService'
-import UserService from '../services/userService'
-import MailService from '../services/mailService'
-import AirtableService from '../services/airtableService'
+import PaymentService from '../services/paymentService';
+import UserService from '../services/userService';
+import MailService from '../services/mailService';
+import AirtableService from '../services/airtableService';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
+import { IS_SAAS_SERVICE } from '../config/server';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const isAuthorizedService = require('../middlewares/serviceAuthorization')
     .isAuthorizedService;
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 
 // Route
 // Description: Creating new Porject by Admin.
@@ -228,13 +228,18 @@ router.get('/projects', getUser, async function(req, res) {
         let projectIds = [];
         if (userProjects.length > 0) {
             const subProjects = userProjects
-                .map((project: $TSFixMe) => project.parentProjectId ? project : null)
+                .map((project: $TSFixMe) =>
+                    project.parentProjectId ? project : null
+                )
                 .filter((subProject: $TSFixMe) => subProject !== null);
             parentProjectIds = subProjects.map(
-                (subProject: $TSFixMe) => subProject.parentProjectId._id || subProject.parentProjectId
+                (subProject: $TSFixMe) =>
+                    subProject.parentProjectId._id || subProject.parentProjectId
             );
             const projects = userProjects
-                .map((project: $TSFixMe) => project.parentProjectId ? null : project)
+                .map((project: $TSFixMe) =>
+                    project.parentProjectId ? null : project
+                )
                 .filter((project: $TSFixMe) => project !== null);
             projectIds = projects.map((project: $TSFixMe) => project._id);
         }
@@ -731,7 +736,9 @@ router.put(
                     query: { _id: projectId },
                     select: 'users',
                 });
-                const owner = project.users.find((user: $TSFixMe) => user.role === 'Owner');
+                const owner = project.users.find(
+                    (user: $TSFixMe) => user.role === 'Owner'
+                );
                 const [updatedProject, user] = await Promise.all([
                     ProjectService.changePlan(projectId, owner.userId, planId),
                     UserService.findOneBy({

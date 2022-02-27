@@ -88,7 +88,11 @@ export const resetGetMsTeams = () => {
     };
 };
 
-export function getMsTeams(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getMsTeams(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -121,7 +125,12 @@ export function getMsTeams(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe)
     };
 }
 
-export function getMsTeamsMonitor(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getMsTeamsMonitor(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -237,7 +246,11 @@ export const resetUpdateMsTeams = () => {
 };
 
 // Calls the API to add webhook to project
-export function updateMsTeams(projectId: $TSFixMe, webhookId: $TSFixMe, data: $TSFixMe) {
+export function updateMsTeams(
+    projectId: $TSFixMe,
+    webhookId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 

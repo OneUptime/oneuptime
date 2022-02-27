@@ -18,11 +18,11 @@ process.on('uncaughtException', err => {
 });
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
-import express from 'express'
-import path from 'path'
+import express from 'express';
+import path from 'path';
 const app = express();
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cors... Remove this comment to see the full error message
-import cors from 'cors'
+import cors from 'cors';
 
 app.use(cors());
 
@@ -43,7 +43,10 @@ app.use(function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
     return next();
 });
 
-app.get(['/env.js', '/dashboard/env.js'], function(req: $TSFixMe, res: $TSFixMe) {
+app.get(['/env.js', '/dashboard/env.js'], function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
@@ -108,12 +111,18 @@ app.get(['/env.js', '/dashboard/env.js'], function(req: $TSFixMe, res: $TSFixMe)
 });
 
 //APP VERSION
-app.use(['/dashboard/api/version', '/dashboard/version'], function(req: $TSFixMe, res: $TSFixMe) {
+app.use(['/dashboard/api/version', '/dashboard/version'], function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.setHeader('Content-Type', 'application/json');
     res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
-app.get(['/dashboard/status', '/status'], function(req: $TSFixMe, res: $TSFixMe) {
+app.get(['/dashboard/status', '/status'], function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

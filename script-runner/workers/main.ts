@@ -1,6 +1,6 @@
-import errorService from '../utils/errorService'
-import scriptMonitors from './scriptMonitors'
-import ApiService from '../utils/apiService'
+import errorService from '../utils/errorService';
+import scriptMonitors from './scriptMonitors';
+import ApiService from '../utils/apiService';
 
 export default {
     runScriptMonitorsJob: async () => {

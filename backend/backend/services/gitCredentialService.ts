@@ -1,17 +1,13 @@
-import Crypto from 'crypto'
-import GitCredentialModel from '../models/gitCredential'
+import Crypto from 'crypto';
+import GitCredentialModel from '../models/gitCredential';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
-import { encrypt } from '../config/encryptDecrypt'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import fs from 'fs'
+import { encrypt } from '../config/encryptDecrypt';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import fs from 'fs';
 
 export default {
-    findOneBy: async function({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    findOneBy: async function({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -24,13 +20,7 @@ export default {
 
         return gitCredential;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;

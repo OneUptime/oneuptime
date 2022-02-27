@@ -8,10 +8,10 @@
 
 'use strict';
 
-import axios from 'axios'
+import axios from 'axios';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./config"' has no exported member 'API_UR... Remove this comment to see the full error message
-import { API_URL } from './config'
-import logger from './logger'
+import { API_URL } from './config';
+import logger from './logger';
 
 /** The request headers. */
 const headers = {
@@ -48,7 +48,13 @@ const defaultErrorHandler = (error: $TSFixMe) => {
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const get = (apiUrl: $TSFixMe, url: $TSFixMe, key: $TSFixMe, success: $TSFixMe, error = defaultErrorHandler) => {
+const get = (
+    apiUrl: $TSFixMe,
+    url: $TSFixMe,
+    key: $TSFixMe,
+    success: $TSFixMe,
+    error = defaultErrorHandler
+) => {
     // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     headers['apiKey'] = key;
 
@@ -69,7 +75,14 @@ const get = (apiUrl: $TSFixMe, url: $TSFixMe, key: $TSFixMe, success: $TSFixMe, 
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const post = (apiUrl: $TSFixMe, url: $TSFixMe, data: $TSFixMe, key: $TSFixMe, success: $TSFixMe, error = defaultErrorHandler) => {
+const post = (
+    apiUrl: $TSFixMe,
+    url: $TSFixMe,
+    data: $TSFixMe,
+    key: $TSFixMe,
+    success: $TSFixMe,
+    error = defaultErrorHandler
+) => {
     // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     headers['apiKey'] = key;
 

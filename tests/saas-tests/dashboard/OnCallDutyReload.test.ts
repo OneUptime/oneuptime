@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 const user = {
@@ -55,13 +55,17 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) =>
+                elem.click()
+            );
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) =>
+                elem.click()
+            );
 
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,

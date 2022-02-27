@@ -1,14 +1,10 @@
-import CustomFieldModel from '../models/customField'
-import IncomingRequestService from '../services/incomingRequestService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import CustomFieldModel from '../models/customField';
+import IncomingRequestService from '../services/incomingRequestService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -113,13 +109,7 @@ export default {
         return customField;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;

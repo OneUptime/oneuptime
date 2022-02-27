@@ -1,4 +1,4 @@
-import chai from 'chai'
+import chai from 'chai';
 chai.use(require('chai-http'));
 
 const expect = chai.expect;
@@ -16,7 +16,10 @@ describe('OneUptimeLogger', function(this: $TSFixMe) {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
     this.timeout(timeout + 1000);
-    let projectId: $TSFixMe, token: $TSFixMe, componentId, applicationLog: $TSFixMe;
+    let projectId: $TSFixMe,
+        token: $TSFixMe,
+        componentId,
+        applicationLog: $TSFixMe;
     // create a new user
     const component = { name: 'Our Component' };
 

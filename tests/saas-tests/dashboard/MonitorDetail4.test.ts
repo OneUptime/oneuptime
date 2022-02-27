@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -61,7 +61,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector = '#addWebhookButton';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#endpoint');
@@ -76,7 +78,9 @@ describe('Monitor Detail API', () => {
 
             const createdWebhookSelector = '#webhook_name';
 
-            await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#createWebhook', {
                 hidden: true,
             });
@@ -114,7 +118,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 10; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                    e.click()
+                );
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.pageWaitForSelector(page, '#endpoint');
 
@@ -132,7 +138,9 @@ describe('Monitor Detail API', () => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
                         .click();
                 });
-                await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) =>
+                    e.click()
+                );
                 await init.pageWaitForSelector(page, '#createWebhook', {
                     hidden: true,
                 });
@@ -162,7 +170,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnNextWebhook', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#btnNextWebhook', (elem: $TSFixMe) =>
+                elem.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, createdWebhookSelector);
@@ -176,7 +186,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnPrevWebhook', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#btnPrevWebhook', (elem: $TSFixMe) =>
+                elem.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, createdWebhookSelector);

@@ -1,9 +1,13 @@
-import ApplicationScannerService from '../services/applicationScannerService'
+import ApplicationScannerService from '../services/applicationScannerService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 export default {
-    isAuthorizedApplicationScanner: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isAuthorizedApplicationScanner: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             let applicationScannerKey,
                 applicationScannerName,

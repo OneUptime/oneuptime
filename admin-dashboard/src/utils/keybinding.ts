@@ -11,7 +11,12 @@ const initKeys = ['f'];
  * @param {function} resetKeys function to reset the keys array
  */
 
-const keyBind = (event: $TSFixMe, route: $TSFixMe, keys: $TSFixMe, resetKeys: $TSFixMe) => {
+const keyBind = (
+    event: $TSFixMe,
+    route: $TSFixMe,
+    keys: $TSFixMe,
+    resetKeys: $TSFixMe
+) => {
     let shortcut = [];
     // ensure the target is always body and not inside any other element (input, textarea, etc)
     if (route.shortcut && event.target.localName === 'body' && event.key) {

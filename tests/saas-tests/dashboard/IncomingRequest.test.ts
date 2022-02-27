@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -80,12 +80,15 @@ describe('Incoming HTTP Request', () => {
             await init.pageClick(page, '#name');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#name', incidentRequest.name);
-            await init.page$Eval(page, '#createIncident', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#createIncident', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '#selectAllMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#selectAllMonitors', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#selectAllMonitors', (elem: $TSFixMe) =>
+                elem.click()
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#advancedOptionsBtn');

@@ -1,6 +1,6 @@
 const getApi = require('../utils/api').getApi;
-import ErrorService from '../utils/errorService'
-import ApplicationSecurity from './applicationSecurity'
+import ErrorService from '../utils/errorService';
+import ApplicationSecurity from './applicationSecurity';
 
 export default {
     runApplicationScan: async function() {

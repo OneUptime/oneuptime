@@ -1,5 +1,5 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'cust... Remove this comment to see the full error message
-import { customUpdate } from '../util/db'
+import { customUpdate } from '../util/db';
 
 const statusPageCollection = 'statuspages';
 

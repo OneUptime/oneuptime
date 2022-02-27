@@ -1,29 +1,29 @@
-import express from 'express'
-import axios from 'axios'
-import UserService from '../services/userService'
-import MonitorService from '../services/monitorService'
-import MonitorLogService from '../services/monitorLogService'
-import LighthouseLogService from '../services/lighthouseLogService'
-import NotificationService from '../services/notificationService'
-import RealTimeService from '../services/realTimeService'
-import ScheduleService from '../services/scheduleService'
-import ProbeService from '../services/probeService'
-import ComponentService from '../services/componentService'
-import ErrorService from 'common-server/utils/error'
-import Api from '../utils/api'
+import express from 'express';
+import axios from 'axios';
+import UserService from '../services/userService';
+import MonitorService from '../services/monitorService';
+import MonitorLogService from '../services/monitorLogService';
+import LighthouseLogService from '../services/lighthouseLogService';
+import NotificationService from '../services/notificationService';
+import RealTimeService from '../services/realTimeService';
+import ScheduleService from '../services/scheduleService';
+import ProbeService from '../services/probeService';
+import ComponentService from '../services/componentService';
+import ErrorService from 'common-server/utils/error';
+import Api from '../utils/api';
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-import multer from 'multer'
-import storage from '../middlewares/upload'
-import https from 'https'
+import multer from 'multer';
+import storage from '../middlewares/upload';
+import https from 'https';
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
@@ -444,8 +444,8 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     try {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const subProjectIds = req.user.subProjects
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+              req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
         const { limit, skip } = req.query;
@@ -514,8 +514,8 @@ router.get(
             const type = req.query.type;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { projectId: { $in: subProjectIds }, type }
@@ -561,8 +561,8 @@ router.get(
             const type = req.query.type;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
             const subProjectIds = req.user.subProjects
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                  req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
@@ -702,8 +702,8 @@ router.post(
                 failedReasons: upFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.up
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                    ? ProbeService.conditions(
+                    ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                      ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.up,
                           data
@@ -715,8 +715,8 @@ router.post(
                 failedReasons: degradedFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.degraded
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                    ? ProbeService.conditions(
+                    ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                      ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.degraded,
                           data
@@ -728,8 +728,8 @@ router.post(
                 failedReasons: downFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.down
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                    ? ProbeService.conditions(
+                    ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                      ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.down,
                           data
@@ -764,7 +764,8 @@ router.post(
                 );
             }
             data.reason = data.reason.filter(
-                (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => self.indexOf(item) === pos
+                (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                    self.indexOf(item) === pos
             );
             const log = await ProbeService.saveMonitorLog(data);
 
@@ -894,7 +895,10 @@ router.get(
     }
 );
 
-const _updateDeviceMonitorPingTime = async function(req: $TSFixMe, res: $TSFixMe) {
+const _updateDeviceMonitorPingTime = async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const projectId = req.params.projectId;
         const deviceId = req.params.deviceId;

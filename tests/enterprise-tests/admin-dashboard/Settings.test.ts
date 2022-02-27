@@ -1,8 +1,8 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer';
 
-import utils from '../../test-utils'
-import init from '../../test-init'
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
 
@@ -68,7 +68,9 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#settings a', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#settings a', (elem: $TSFixMe) =>
+                elem.click()
+            );
 
             // if element does not exist it will timeout and throw
             const licenseOption = await init.pageWaitForSelector(

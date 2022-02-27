@@ -23,18 +23,18 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
-import fs from 'fs'
-import util from './util/db'
-import scripts from './scripts'
+import fs from 'fs';
+import util from './util/db';
+import scripts from './scripts';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./util/db"' has no exported member 'find'... Remove this comment to see the full error message
-import { find, save, update, removeMany } from './util/db'
+import { find, save, update, removeMany } from './util/db';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
-import bodyParser from 'body-parser'
+import bodyParser from 'body-parser';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
-import cors from 'cors'
+import cors from 'cors';
 
 async function interactWithDB(req: $TSFixMe, res: $TSFixMe) {
     if (req.params.dbFunction === 'find') {

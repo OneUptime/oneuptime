@@ -1,15 +1,19 @@
-import mongoose from '../config/db'
-import ProjectService from '../services/projectService'
+import mongoose from '../config/db';
+import ProjectService from '../services/projectService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ObjectID = mongoose.Types.ObjectId;
-import MonitorService from '../services/monitorService'
+import MonitorService from '../services/monitorService';
 
 export default {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    isValidProjectIdAndApiKey: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isValidProjectIdAndApiKey: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         //get project id
         let projectId, apiKey;
 
@@ -154,7 +158,11 @@ export default {
         return statusPageUrl;
     },
 
-    isValidMonitor: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isValidMonitor: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({
             query: {

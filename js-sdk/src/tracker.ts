@@ -22,7 +22,12 @@ class ErrorTracker {
     tags: $TSFixMe;
     utilObj: $TSFixMe;
     // constructor to set up global listeners
-    constructor(apiUrl: $TSFixMe, errorTrackerId: $TSFixMe, errorTrackerKey: $TSFixMe, options = {}) {
+    constructor(
+        apiUrl: $TSFixMe,
+        errorTrackerId: $TSFixMe,
+        errorTrackerKey: $TSFixMe,
+        options = {}
+    ) {
         this._setErrorTrackerId(errorTrackerId);
         this._setApiUrl(apiUrl);
         this._setErrorTrackerKey(errorTrackerKey);
@@ -152,10 +157,10 @@ class ErrorTracker {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type 'str... Remove this comment to see the full error message
-                ? errorEvent.message.toLowerCase()
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type '{ m... Remove this comment to see the full error message
-                : errorEvent.toLowerCase();
+                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type 'str... Remove this comment to see the full error message
+                  errorEvent.message.toLowerCase()
+                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type '{ m... Remove this comment to see the full error message
+                  errorEvent.toLowerCase();
             const substring = 'script error';
             if (string.indexOf(substring) > -1) {
                 return; // third party error

@@ -1,5 +1,5 @@
-import { GridFsStorage } from 'multer-gridfs-storage'
-import crypto from 'crypto'
+import { GridFsStorage } from 'multer-gridfs-storage';
+import crypto from 'crypto';
 
 const mongoUri = process.env['MONGO_URL'];
 

@@ -1,7 +1,7 @@
-import moment from 'moment'
-import differenceInDays from 'date-fns/differenceInDays'
-import differenceInWeeks from 'date-fns/differenceInWeeks'
-import differenceInMonths from 'date-fns/differenceInMonths'
+import moment from 'moment';
+import differenceInDays from 'date-fns/differenceInDays';
+import differenceInWeeks from 'date-fns/differenceInWeeks';
+import differenceInMonths from 'date-fns/differenceInMonths';
 
 const _this = {
     // This function will strip
@@ -20,7 +20,11 @@ const _this = {
             .toDate();
     },
 
-    compareDate: function(startTime: $TSFixMe, endTime: $TSFixMe, currentTime: $TSFixMe) {
+    compareDate: function(
+        startTime: $TSFixMe,
+        endTime: $TSFixMe,
+        currentTime: $TSFixMe
+    ) {
         const isDifferentDay = startTime >= endTime;
         const [startHour, startMin] = startTime.split(':');
         const [endHour, endMin] = endTime.split(':');

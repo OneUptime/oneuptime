@@ -156,13 +156,7 @@ export default {
         return updatedData;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -194,11 +188,7 @@ export default {
         return monitorStatus;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -268,8 +258,8 @@ export default {
     },
 };
 
-import MonitorStatusModel from '../models/monitorStatus'
-import MonitorService from '../services/monitorService'
-import RealTimeService from './realTimeService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import MonitorStatusModel from '../models/monitorStatus';
+import MonitorService from '../services/monitorService';
+import RealTimeService from './realTimeService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

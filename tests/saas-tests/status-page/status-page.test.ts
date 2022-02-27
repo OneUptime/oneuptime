@@ -1,7 +1,7 @@
-import utils from '../../test-utils'
+import utils from '../../test-utils';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
@@ -47,9 +47,13 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const response = await init.page$Eval(page, '#error', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const response = await init.page$Eval(
+                page,
+                '#error',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             expect(response).toBe('Page Not Found');
             done();
         },
@@ -141,7 +145,9 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (el: $TSFixMe) => el.click());
+            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
+                el.click()
+            );
             // Fill and submit New Component form
             await init.addComponent(componentName, page);
             // Create a Manual Monitor

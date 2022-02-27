@@ -90,7 +90,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 },
                 showingTemplate: action.payload.find(
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsType' does not exist on type '{}'.
-                    (temp: $TSFixMe) => temp.smsType === state.showingTemplate.smsType
+                    (temp: $TSFixMe) =>
+                        temp.smsType === state.showingTemplate.smsType
                 ),
             });
 
@@ -136,7 +137,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 },
                 showingTemplate: action.payload.find(
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsType' does not exist on type '{}'.
-                    (temp: $TSFixMe) => temp.smsType === state.showingTemplate.smsType
+                    (temp: $TSFixMe) =>
+                        temp.smsType === state.showingTemplate.smsType
                 ),
             });
 

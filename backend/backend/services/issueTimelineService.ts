@@ -28,11 +28,7 @@ export default {
         });
         return savedIssueTimeline;
     },
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -48,11 +44,7 @@ export default {
         return issueTimeline;
     },
     // get a list of IssueTimeline
-    async findBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -68,6 +60,6 @@ export default {
     },
 };
 
-import IssueTimelineModel from '../models/issueTimeline'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import IssueTimelineModel from '../models/issueTimeline';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -1,5 +1,5 @@
-import ErrorService from '../utils/errorService'
-import ApplicationService from '../utils/applicationService'
+import ErrorService from '../utils/errorService';
+import ApplicationService from '../utils/applicationService';
 
 export default {
     scan: async (security: $TSFixMe) => {

@@ -1,6 +1,6 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
-import LeadService from '../services/leadService'
+import LeadService from '../services/leadService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 

@@ -1,20 +1,20 @@
-import authentication from './authentication'
+import authentication from './authentication';
 // import triggers
-import resolvedTrigger from './triggers/resolved'
-import incidentTrigger from './triggers/incident'
-import monitorTrigger from './triggers/monitors'
-import acknowledgeTrigger from './triggers/acknowledge'
-import incidentsTrigger from './triggers/incidents'
-import incidentNoteTrigger from './triggers/incidentNote'
+import resolvedTrigger from './triggers/resolved';
+import incidentTrigger from './triggers/incident';
+import monitorTrigger from './triggers/monitors';
+import acknowledgeTrigger from './triggers/acknowledge';
+import incidentsTrigger from './triggers/incidents';
+import incidentNoteTrigger from './triggers/incidentNote';
 // import actions
-import createIncidentAction from './actions/createIncident'
-import acknowledgeLastIncidentAction from './actions/acknowledgeLastIncident'
-import resolveLastIncidentAction from './actions/resolveLastIncident'
-import acknowledgeAllIncidentsAction from './actions/acknowledgeAllIncidents'
-import resolveAllIncidentsAction from './actions/resolveAllIncidents'
-import acknowledgeIncidentAction from './actions/acknowledgeIncident'
-import resolveIncidentAction from './actions/resolveIncident'
-import createIncidentNoteAction from './actions/createIncidentNote'
+import createIncidentAction from './actions/createIncident';
+import acknowledgeLastIncidentAction from './actions/acknowledgeLastIncident';
+import resolveLastIncidentAction from './actions/resolveLastIncident';
+import acknowledgeAllIncidentsAction from './actions/acknowledgeAllIncidents';
+import resolveAllIncidentsAction from './actions/resolveAllIncidents';
+import acknowledgeIncidentAction from './actions/acknowledgeIncident';
+import resolveIncidentAction from './actions/resolveIncident';
+import createIncidentNoteAction from './actions/createIncidentNote';
 
 // To include the API key on all outbound requests, simply define a function here.
 // It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot.

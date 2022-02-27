@@ -243,7 +243,10 @@ export default function incident(state = initialState, action: $TSFixMe) {
                                                 action.payload,
                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'never... Remove this comment to see the full error message
                                                 ...incident.incidents.filter(
-                                                    (inc: $TSFixMe, index: $TSFixMe) =>
+                                                    (
+                                                        inc: $TSFixMe,
+                                                        index: $TSFixMe
+                                                    ) =>
                                                         inc._id !==
                                                             action.payload
                                                                 ._id ||
@@ -270,8 +273,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                                       limit: 0,
                                   },
                               ]
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
-                        : state.incidents.incidents.concat([
+                        : // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                          state.incidents.incidents.concat([
                               {
                                   _id:
                                       action.payload.projectId._id ||
@@ -800,10 +803,11 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
                 ].incidentMessages.filter(
-                    (incidentMessage: $TSFixMe) => incidentMessage._id === action.payload._id
+                    (incidentMessage: $TSFixMe) =>
+                        incidentMessage._id === action.payload._id
                 ).length > 0
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    ? state.incidentMessages[action.payload.incidentId._id][
+                    ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.map((incidentMessage: $TSFixMe) => {
                           if (incidentMessage._id === action.payload._id) {
@@ -836,12 +840,12 @@ export default function incident(state = initialState, action: $TSFixMe) {
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count: action.payload.updated
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                                ? state.incidentMessages[
+                                ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                  state.incidentMessages[
                                       action.payload.incidentId._id
                                   ][action.payload.type].count
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                                : state.incidentMessages[
+                                : // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                  state.incidentMessages[
                                       action.payload.incidentId._id
                                   ][action.payload.type].count + 1,
                         },
@@ -894,10 +898,11 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
                 ].incidentMessages.filter(
-                    (incidentMessage: $TSFixMe) => incidentMessage._id === action.payload._id
+                    (incidentMessage: $TSFixMe) =>
+                        incidentMessage._id === action.payload._id
                 ).length > 0
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    ? state.incidentMessages[action.payload.incidentId._id][
+                    ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                      state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.map((incidentMessage: $TSFixMe) => {
                           if (incidentMessage._id === action.payload._id) {
@@ -932,12 +937,12 @@ export default function incident(state = initialState, action: $TSFixMe) {
                             incidentMessages: incidentMessages,
                             count:
                                 noteFound || action.payload.updated
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                                    ? state.incidentMessages[
+                                    ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                      state.incidentMessages[
                                           action.payload.incidentId._id
                                       ][action.payload.type].count
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                                    : state.incidentMessages[
+                                    : // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                      state.incidentMessages[
                                           action.payload.incidentId._id
                                       ][action.payload.type].count + 1,
                         },
@@ -1018,8 +1023,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ]
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        ? state.incidentMessages[
+                        ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          state.incidentMessages[
                               action.payload.incidentId.slug
                           ][action.payload.type]
                         : null;
@@ -1034,8 +1039,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ].count
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        ? state.incidentMessages[
+                        ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          state.incidentMessages[
                               action.payload.incidentId.slug
                           ][action.payload.type].count
                         : 0;
@@ -1179,12 +1184,14 @@ export default function incident(state = initialState, action: $TSFixMe) {
             const incidents = state.unresolvedincidents.incidents.map(
                 incident => {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
-                    const monitors = incident.monitors.filter((monitor: $TSFixMe) => {
-                        if (monitor.monitorId._id === action.payload) {
-                            return false;
+                    const monitors = incident.monitors.filter(
+                        (monitor: $TSFixMe) => {
+                            if (monitor.monitorId._id === action.payload) {
+                                return false;
+                            }
+                            return true;
                         }
-                        return true;
-                    });
+                    );
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
                     incident.monitors = monitors;
                     return incident;
@@ -1429,8 +1436,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     [action.payload.type]: state.incidentMessages[
                         action.payload.incidentSlug
                     ]
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        ? state.incidentMessages[action.payload.incidentSlug][
+                        ? // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          state.incidentMessages[action.payload.incidentSlug][
                               action.payload.type
                           ]
                             ? {
@@ -1471,16 +1478,18 @@ export default function incident(state = initialState, action: $TSFixMe) {
             // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             incidentMessages = state.incidentMessages[
                 action.payload.incidentId._id
-            ][action.payload.type].incidentMessages.map((incidentMessage: $TSFixMe) => {
-                if (incidentMessage._id === action.payload._id) {
-                    if (!incidentMessage.editMode)
-                        incidentMessage.editMode = true;
-                    else incidentMessage.editMode = false;
-                } else {
-                    incidentMessage.editMode = false;
+            ][action.payload.type].incidentMessages.map(
+                (incidentMessage: $TSFixMe) => {
+                    if (incidentMessage._id === action.payload._id) {
+                        if (!incidentMessage.editMode)
+                            incidentMessage.editMode = true;
+                        else incidentMessage.editMode = false;
+                    } else {
+                        incidentMessage.editMode = false;
+                    }
+                    return incidentMessage;
                 }
-                return incidentMessage;
-            });
+            );
             return Object.assign({}, state, {
                 incidentMessages: {
                     ...state.incidentMessages,
@@ -1505,7 +1514,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
             incidentMessages = state.incidentMessages[
                 action.payload.incidentId
             ][action.payload.type].incidentMessages.filter(
-                (incidentMessage: $TSFixMe) => incidentMessage._id !== action.payload._id
+                (incidentMessage: $TSFixMe) =>
+                    incidentMessage._id !== action.payload._id
             );
             return Object.assign({}, state, {
                 incidentMessages: {

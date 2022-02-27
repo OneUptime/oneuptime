@@ -1,6 +1,6 @@
-import ErrorService from 'common-server/utils/error'
-import StatusPageService from '../services/statusPageService'
-import CertificateStoreService from '../services/certificateStoreService'
+import ErrorService from 'common-server/utils/error';
+import StatusPageService from '../services/statusPageService';
+import CertificateStoreService from '../services/certificateStoreService';
 
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];
@@ -55,4 +55,4 @@ export default async function() {
     } catch (error) {
         ErrorService.log('certOrder', error);
     }
-};
+}

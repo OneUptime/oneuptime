@@ -1,9 +1,9 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'should' or its corresponding t... Remove this comment to see the full error message
-import should from 'should'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import should from 'should';
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe;
 let page: $TSFixMe;
 
@@ -41,9 +41,13 @@ describe('Resend Verification API', () => {
             await init.pageClick(page, 'button[type=submit]');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#error-msg');
-            const html = await init.page$Eval(page, '#error-msg', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const html = await init.page$Eval(
+                page,
+                '#error-msg',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             should.exist(html);
             html.should.containEql('No user associated with this account');
         },

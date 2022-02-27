@@ -102,11 +102,13 @@ class SocketApp extends Component {
         if (this.props.project && this.props.activeProjectId) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
             const projectId = this.props.activeProjectId;
-            socket.on(`incidentResolved-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`incidentResolved-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -116,7 +118,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -129,11 +132,13 @@ class SocketApp extends Component {
                         thisObj.props.incidentresolvedbysocket(data);
                 }
             });
-            socket.on(`incidentAcknowledged-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`incidentAcknowledged-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -143,7 +148,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -159,8 +165,8 @@ class SocketApp extends Component {
             socket.on(`createMonitor-${projectId}`, function(data: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -172,7 +178,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId._id
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId._id
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -187,8 +194,8 @@ class SocketApp extends Component {
             socket.on(`updateMonitor-${projectId}`, function(data: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -198,7 +205,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId._id
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId._id
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -213,8 +221,8 @@ class SocketApp extends Component {
             socket.on(`deleteMonitor-${projectId}`, function(data: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -224,7 +232,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -239,8 +248,8 @@ class SocketApp extends Component {
             socket.on(`incidentCreated-${projectId}`, function(data: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -251,7 +260,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -265,11 +275,13 @@ class SocketApp extends Component {
                     }
                 }
             });
-            socket.on(`updateMonitorLog-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`updateMonitorLog-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -279,7 +291,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -291,11 +304,13 @@ class SocketApp extends Component {
                         thisObj.props.updatemonitorlogbysocket(data);
                 }
             });
-            socket.on(`updateMonitorStatus-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`updateMonitorStatus-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -309,7 +324,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -325,11 +341,13 @@ class SocketApp extends Component {
                         );
                 }
             });
-            socket.on(`updateIncidentTimeline-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`updateIncidentTimeline-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -339,7 +357,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -351,11 +370,13 @@ class SocketApp extends Component {
                         thisObj.props.updateincidenttimelinebysocket(data);
                 }
             });
-            socket.on(`updateLighthouseLog-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`updateLighthouseLog-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -365,7 +386,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -377,11 +399,13 @@ class SocketApp extends Component {
                         thisObj.props.updatelighthouselogbysocket(data);
                 }
             });
-            socket.on(`updateAllLighthouseLog-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`updateAllLighthouseLog-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -391,7 +415,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -406,8 +431,8 @@ class SocketApp extends Component {
             socket.on(`updateProbe`, function(data: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -417,7 +442,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -432,8 +458,8 @@ class SocketApp extends Component {
             socket.on(`NewNotification-${projectId}`, function(data: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -443,7 +469,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -456,11 +483,13 @@ class SocketApp extends Component {
                         thisObj.props.addnotifications(data);
                 }
             });
-            socket.on(`TeamMemberRoleUpdate-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`TeamMemberRoleUpdate-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -470,7 +499,8 @@ class SocketApp extends Component {
                 } else {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -482,11 +512,13 @@ class SocketApp extends Component {
                         thisObj.props.teamMemberRoleUpdate(data.response);
                 }
             });
-            socket.on(`TeamMemberCreate-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`TeamMemberCreate-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 const isUserInProject = thisObj.props.project
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    ? thisObj.props.project.users.some(
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                      thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
                     : false;
@@ -509,7 +541,9 @@ class SocketApp extends Component {
                         thisObj.props.teamMemberCreate(data.users);
                 }
             });
-            socket.on(`TeamMemberDelete-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`TeamMemberDelete-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                 if (data.projectId === thisObj.props.project._id) {
                     const projectUser = data.teamMembers.find(
@@ -531,14 +565,16 @@ class SocketApp extends Component {
                     );
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
                     const mainUser = thisObj.props.project?.users.find(
-                        (user: $TSFixMe) => (user.userId._id || user.userId) ===
-                            User.getUserId() &&
-                        (user.role === 'Owner' ||
-                            user.role === 'Administrator')
+                        (user: $TSFixMe) =>
+                            (user.userId._id || user.userId) ===
+                                User.getUserId() &&
+                            (user.role === 'Owner' ||
+                                user.role === 'Administrator')
                     );
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
                     const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === data.projectId
+                        (subProject: $TSFixMe) =>
+                            subProject._id === data.projectId
                     );
                     const subProjectName = subProject ? subProject.name : '';
                     if (!subProjectUser && !mainUser) {
@@ -561,7 +597,9 @@ class SocketApp extends Component {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'addIncidentNote' does not exist on type ... Remove this comment to see the full error message
                 thisObj.props.addIncidentNote(data);
             });
-            socket.on(`incidentTimeline-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`incidentTimeline-${projectId}`, function(
+                data: $TSFixMe
+            ) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTimelineBySocket' does not exist o... Remove this comment to see the full error message
                 thisObj.props.updateTimelineBySocket(data);
             });
@@ -570,15 +608,18 @@ class SocketApp extends Component {
                 thisObj.props.createMonitor(data);
             });
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'createScheduledEventSuccess' does not ex... Remove this comment to see the full error message
-            socket.on(`addScheduledEvent-${projectId}`, (event: $TSFixMe) => thisObj.props.createScheduledEventSuccess(event)
+            socket.on(`addScheduledEvent-${projectId}`, (event: $TSFixMe) =>
+                thisObj.props.createScheduledEventSuccess(event)
             );
 
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteScheduledEventSuccess' does not ex... Remove this comment to see the full error message
-            socket.on(`deleteScheduledEvent-${projectId}`, (event: $TSFixMe) => thisObj.props.deleteScheduledEventSuccess(event)
+            socket.on(`deleteScheduledEvent-${projectId}`, (event: $TSFixMe) =>
+                thisObj.props.deleteScheduledEventSuccess(event)
             );
 
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateScheduledEventSuccess' does not ex... Remove this comment to see the full error message
-            socket.on(`updateScheduledEvent-${projectId}`, (event: $TSFixMe) => thisObj.props.updateScheduledEventSuccess(event)
+            socket.on(`updateScheduledEvent-${projectId}`, (event: $TSFixMe) =>
+                thisObj.props.updateScheduledEventSuccess(event)
             );
 
             socket.on(`updateIncident-${projectId}`, (incident: $TSFixMe) => {
@@ -592,14 +633,16 @@ class SocketApp extends Component {
             });
 
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolvescheduledevent' does not exist on... Remove this comment to see the full error message
-            socket.on(`resolveScheduledEvent-${projectId}`, (event: $TSFixMe) => thisObj.props.resolvescheduledevent(event)
+            socket.on(`resolveScheduledEvent-${projectId}`, (event: $TSFixMe) =>
+                thisObj.props.resolvescheduledevent(event)
             );
 
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'slacountdown' does not exist on type 'Re... Remove this comment to see the full error message
-            socket.on(`slaCountDown-${projectId}`, (event: $TSFixMe) => thisObj.props.slacountdown({
-                incident: event.incident,
-                countDown: event.countDown,
-            })
+            socket.on(`slaCountDown-${projectId}`, (event: $TSFixMe) =>
+                thisObj.props.slacountdown({
+                    incident: event.incident,
+                    countDown: event.countDown,
+                })
             );
         }
         return null;
@@ -619,41 +662,42 @@ const mapStateToProps = (state: $TSFixMe) => ({
     project: state.project.currentProject,
     subProjects: state.subProject.subProjects.subProjects,
     probes: state.probe.probes.data,
-    activeProjectId: state.subProject.activeSubProject
+    activeProjectId: state.subProject.activeSubProject,
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
-    {
-        incidentresolvedbysocket,
-        incidentacknowledgedbysocket,
-        deletemonitorbysocket,
-        updatemonitorbysocket,
-        createmonitorbysocket,
-        incidentcreatedbysocket,
-        updatemonitorlogbysocket,
-        updatemonitorstatusbysocket,
-        updateincidenttimelinebysocket,
-        updateincidentbysocket,
-        updatelighthouselogbysocket,
-        updateprobebysocket,
-        addnotifications,
-        teamMemberRoleUpdate,
-        teamMemberCreate,
-        teamMemberDelete,
-        openModal,
-        closeModal,
-        addIncidentNote,
-        updateTimelineBySocket,
-        createMonitor,
-        createScheduledEventSuccess,
-        updateScheduledEventSuccess,
-        deleteScheduledEventSuccess,
-        deleteincidentbysocket,
-        resolvescheduledevent,
-        slacountdown,
-        updateAlllighthouselogbysocket,
-    },
-    dispatch
-);
+const mapDispatchToProps = (dispatch: $TSFixMe) =>
+    bindActionCreators(
+        {
+            incidentresolvedbysocket,
+            incidentacknowledgedbysocket,
+            deletemonitorbysocket,
+            updatemonitorbysocket,
+            createmonitorbysocket,
+            incidentcreatedbysocket,
+            updatemonitorlogbysocket,
+            updatemonitorstatusbysocket,
+            updateincidenttimelinebysocket,
+            updateincidentbysocket,
+            updatelighthouselogbysocket,
+            updateprobebysocket,
+            addnotifications,
+            teamMemberRoleUpdate,
+            teamMemberCreate,
+            teamMemberDelete,
+            openModal,
+            closeModal,
+            addIncidentNote,
+            updateTimelineBySocket,
+            createMonitor,
+            createScheduledEventSuccess,
+            updateScheduledEventSuccess,
+            deleteScheduledEventSuccess,
+            deleteincidentbysocket,
+            resolvescheduledevent,
+            slacountdown,
+            updateAlllighthouselogbysocket,
+        },
+        dispatch
+    );
 
 export default connect(mapStateToProps, mapDispatchToProps)(SocketApp);

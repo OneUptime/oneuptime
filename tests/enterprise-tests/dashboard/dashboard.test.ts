@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -111,7 +111,9 @@ describe('Enterprise Dashboard API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await init.page$Eval(page, '#components', (el: $TSFixMe) => el.click());
+            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
+                el.click()
+            );
 
             // Fill and submit New Component form
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -130,7 +132,9 @@ describe('Enterprise Dashboard API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.page$Eval(page, '#components', (el: $TSFixMe) => el.click());
+            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
+                el.click()
+            );
 
             // Navigate to details page of component created in previous test
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -190,7 +194,9 @@ describe('Enterprise Dashboard API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await init.page$Eval(page, '#components', (el: $TSFixMe) => el.click());
+            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
+                el.click()
+            );
 
             // Navigate to details page of component created in previous test
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.

@@ -1,9 +1,13 @@
-import ErrorService from 'common-server/utils/error'
-import ApplicationLogService from '../services/applicationLogService'
+import ErrorService from 'common-server/utils/error';
+import ApplicationLogService from '../services/applicationLogService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
-    isApplicationLogValid: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isApplicationLogValid: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             const data = req.body;
             const applicationLogId = req.params.applicationLogId;

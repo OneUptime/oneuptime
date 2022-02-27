@@ -335,7 +335,8 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 action.payload.monitorIds.length > 0 &&
                 action.payload.monitorIds.find(
                     // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                    (monitor: $TSFixMe) => monitor._id === state.individualnote._id
+                    (monitor: $TSFixMe) =>
+                        monitor._id === state.individualnote._id
                 );
             return Object.assign({}, state, {
                 error: null,
@@ -392,31 +393,36 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                         state.statusPage.monitorIds &&
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
                         state.statusPage.monitorIds.length > 0
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
-                            ? state.statusPage.monitorIds.map((monitor: $TSFixMe) => {
-                                  if (monitor._id === action.payload._id) {
-                                      monitor.name = action.payload.name;
+                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                              state.statusPage.monitorIds.map(
+                                  (monitor: $TSFixMe) => {
+                                      if (monitor._id === action.payload._id) {
+                                          monitor.name = action.payload.name;
+                                      }
+                                      return monitor;
                                   }
-                                  return monitor;
-                              })
+                              )
                             : [],
                     monitorsData:
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
                         state.statusPage.monitorsData &&
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
                         state.statusPage.monitorsData.length > 0
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
-                            ? state.statusPage.monitorsData.map((monitor: $TSFixMe) => {
-                                  if (monitor._id === action.payload._id) {
-                                      return {
-                                          ...monitor,
-                                          ...action.payload,
-                                          monitorCategoryId:
-                                              action.payload.monitorCategoryId,
-                                      };
+                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                              state.statusPage.monitorsData.map(
+                                  (monitor: $TSFixMe) => {
+                                      if (monitor._id === action.payload._id) {
+                                          return {
+                                              ...monitor,
+                                              ...action.payload,
+                                              monitorCategoryId:
+                                                  action.payload
+                                                      .monitorCategoryId,
+                                          };
+                                      }
+                                      return monitor;
                                   }
-                                  return monitor;
-                              })
+                              )
                             : [],
                 },
                 requesting: false,
@@ -437,9 +443,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                         state.statusPage.monitorIds &&
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
                         state.statusPage.monitorIds.length > 0
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
-                            ? state.statusPage.monitorIds.filter(
-                                  (monitor: $TSFixMe) => monitor._id !== action.payload
+                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                              state.statusPage.monitorIds.filter(
+                                  (monitor: $TSFixMe) =>
+                                      monitor._id !== action.payload
                               )
                             : [],
                     monitorsData:
@@ -447,9 +454,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                         state.statusPage.monitorsData &&
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
                         state.statusPage.monitorsData.length > 0
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
-                            ? state.statusPage.monitorsData.filter(
-                                  (monitor: $TSFixMe) => monitor._id !== action.payload
+                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                              state.statusPage.monitorsData.filter(
+                                  (monitor: $TSFixMe) =>
+                                      monitor._id !== action.payload
                               )
                             : [],
                 },
@@ -556,8 +564,8 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                         const messageLog =
                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'never'.
                             item.message && item.message.length > 0
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'never'.
-                                ? item.message
+                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'never'.
+                                  item.message
                                 : [];
                         oneNote = {
                             // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
@@ -643,8 +651,8 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     skip: action.payload.skip,
                     count: action.payload.count
                         ? action.payload.count
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
-                        : state.notes.count,
+                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                          state.notes.count,
                 },
                 requestingmore: false,
             });
@@ -1146,15 +1154,17 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.statusPage,
 
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
-                    monitorsData: state.statusPage.monitorsData.map((monitor: $TSFixMe) => {
-                        if (
-                            String(monitor._id) ===
-                            String(action.payload.monitorId)
-                        ) {
-                            monitor.statuses = action.payload.statuses.data;
+                    monitorsData: state.statusPage.monitorsData.map(
+                        (monitor: $TSFixMe) => {
+                            if (
+                                String(monitor._id) ===
+                                String(action.payload.monitorId)
+                            ) {
+                                monitor.statuses = action.payload.statuses.data;
+                            }
+                            return monitor;
                         }
-                        return monitor;
-                    }),
+                    ),
                 },
                 requestingstatuses: false,
                 monitorStatuses: {
@@ -1181,113 +1191,126 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.statusPage,
 
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
-                    monitorsData: state.statusPage.monitorsData.map((monitor: $TSFixMe) => {
-                        if (monitor._id === action.payload.status.monitorId) {
-                            const data = Object.assign(
-                                {},
-                                action.payload.status.data
-                            );
-                            const probes = action.payload.probes;
-                            const isValidProbe =
-                                (monitor.type === 'url' ||
-                                    monitor.type === 'api' ||
-                                    monitor.type === 'ip') &&
-                                probes &&
-                                probes.length > 0;
-
+                    monitorsData: state.statusPage.monitorsData.map(
+                        (monitor: $TSFixMe) => {
                             if (
-                                monitor.statuses &&
-                                monitor.statuses.length > 0
+                                monitor._id === action.payload.status.monitorId
                             ) {
-                                const monitorProbes = monitor.statuses.map(
-                                    (a: $TSFixMe) => a._id
+                                const data = Object.assign(
+                                    {},
+                                    action.payload.status.data
                                 );
+                                const probes = action.payload.probes;
+                                const isValidProbe =
+                                    (monitor.type === 'url' ||
+                                        monitor.type === 'api' ||
+                                        monitor.type === 'ip') &&
+                                    probes &&
+                                    probes.length > 0;
 
                                 if (
-                                    monitorProbes.includes(data.probeId) ||
-                                    !data.probeId
+                                    monitor.statuses &&
+                                    monitor.statuses.length > 0
                                 ) {
-                                    monitor.statuses = monitor.statuses.map(
-                                        (probeStatuses: $TSFixMe) => {
-                                            const probeId = probeStatuses._id;
-
-                                            if (
-                                                probeId === data.probeId ||
-                                                !data.probeId
-                                            ) {
-                                                const previousStatus =
-                                                    probeStatuses.statuses[0];
-                                                previousStatus.endTime = new Date().toISOString();
-
-                                                return {
-                                                    _id: probeId,
-                                                    statuses: [
-                                                        data,
-                                                        previousStatus,
-                                                        ...probeStatuses.statuses.slice(
-                                                            1
-                                                        ),
-                                                    ],
-                                                };
-                                            } else {
-                                                return probeStatuses;
-                                            }
-                                        }
+                                    const monitorProbes = monitor.statuses.map(
+                                        (a: $TSFixMe) => a._id
                                     );
 
                                     if (
-                                        isValidProbe &&
-                                        !probes.every((probe: $TSFixMe) => monitorProbes.includes(probe._id)
-                                        )
+                                        monitorProbes.includes(data.probeId) ||
+                                        !data.probeId
                                     ) {
-                                        // add manual status to all new probes
-                                        const newProbeStatuses: $TSFixMe = [];
+                                        monitor.statuses = monitor.statuses.map(
+                                            (probeStatuses: $TSFixMe) => {
+                                                const probeId =
+                                                    probeStatuses._id;
 
-                                        probes.forEach((probe: $TSFixMe) => {
-                                            if (
-                                                !monitorProbes.includes(
+                                                if (
+                                                    probeId === data.probeId ||
+                                                    !data.probeId
+                                                ) {
+                                                    const previousStatus =
+                                                        probeStatuses
+                                                            .statuses[0];
+                                                    previousStatus.endTime = new Date().toISOString();
+
+                                                    return {
+                                                        _id: probeId,
+                                                        statuses: [
+                                                            data,
+                                                            previousStatus,
+                                                            ...probeStatuses.statuses.slice(
+                                                                1
+                                                            ),
+                                                        ],
+                                                    };
+                                                } else {
+                                                    return probeStatuses;
+                                                }
+                                            }
+                                        );
+
+                                        if (
+                                            isValidProbe &&
+                                            !probes.every((probe: $TSFixMe) =>
+                                                monitorProbes.includes(
                                                     probe._id
                                                 )
-                                            ) {
-                                                newProbeStatuses.push({
-                                                    _id: probe._id,
-                                                    statuses: [data],
-                                                });
-                                            }
-                                        });
+                                            )
+                                        ) {
+                                            // add manual status to all new probes
+                                            const newProbeStatuses: $TSFixMe = [];
 
+                                            probes.forEach(
+                                                (probe: $TSFixMe) => {
+                                                    if (
+                                                        !monitorProbes.includes(
+                                                            probe._id
+                                                        )
+                                                    ) {
+                                                        newProbeStatuses.push({
+                                                            _id: probe._id,
+                                                            statuses: [data],
+                                                        });
+                                                    }
+                                                }
+                                            );
+
+                                            monitor.statuses = [
+                                                ...monitor.statuses,
+                                                ...newProbeStatuses,
+                                            ];
+                                        }
+                                    } else {
                                         monitor.statuses = [
                                             ...monitor.statuses,
-                                            ...newProbeStatuses,
+                                            {
+                                                _id: data.probeId || null,
+                                                statuses: [data],
+                                            },
                                         ];
                                     }
                                 } else {
-                                    monitor.statuses = [
-                                        ...monitor.statuses,
-                                        {
-                                            _id: data.probeId || null,
-                                            statuses: [data],
-                                        },
-                                    ];
-                                }
-                            } else {
-                                if (isValidProbe) {
-                                    monitor.statuses = probes.map((probe: $TSFixMe) => ({
-                                        _id: probe._id,
-                                        statuses: [data]
-                                    }));
-                                } else {
-                                    monitor.statuses = [
-                                        {
-                                            _id: data.probeId || null,
-                                            statuses: [data],
-                                        },
-                                    ];
+                                    if (isValidProbe) {
+                                        monitor.statuses = probes.map(
+                                            (probe: $TSFixMe) => ({
+                                                _id: probe._id,
+                                                statuses: [data],
+                                            })
+                                        );
+                                    } else {
+                                        monitor.statuses = [
+                                            {
+                                                _id: data.probeId || null,
+                                                statuses: [data],
+                                            },
+                                        ];
+                                    }
                                 }
                             }
+                            return monitor;
                         }
-                        return monitor;
-                    }),
+                    ),
                 },
                 requestingstatuses: false,
             });
@@ -1315,7 +1338,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 logs: action.payload.monitorLogs.map((log: $TSFixMe) => ({
                     monitorId: log.monitorId,
                     logs: log.logs,
-                    count: log.logs.count
+                    count: log.logs.count,
                 })),
                 lastIncidentTimelines: {
                     requesting: false,
@@ -1723,7 +1746,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 return note;
             });
             const monitors = action.payload
-                ? action.payload.monitors.map((monitor: $TSFixMe) => monitor.monitorId)
+                ? action.payload.monitors.map(
+                      (monitor: $TSFixMe) => monitor.monitorId
+                  )
                 : [];
             // once we find at least one monitor in the statusPageMonitorIds array
             // we break out of the loop and add the incident to the list
@@ -1743,10 +1768,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.notes,
                     notes,
                     count: incidentFound
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
-                        ? state.notes.count
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
-                        : state.notes.count + 1,
+                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                          state.notes.count
+                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                          state.notes.count + 1,
                 },
             };
         }

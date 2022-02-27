@@ -1,26 +1,17 @@
-import chai from 'chai'
+import chai from 'chai';
 chai.use(require('chai-http'));
 const expect = require('chai').expect;
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'urld... Remove this comment to see the full error message
-import decode from 'urldecode'
+import decode from 'urldecode';
 
 const methods = {
-    getAuthorizationHeader: ({
-        jwtToken
-    }: $TSFixMe) => `Basic ${jwtToken}`,
-    login: async ({
-        request,
-        email,
-        password
-    }: $TSFixMe) =>
+    getAuthorizationHeader: ({ jwtToken }: $TSFixMe) => `Basic ${jwtToken}`,
+    login: async ({ request, email, password }: $TSFixMe) =>
         await request.post('/user/login').send({
             email,
             password,
         }),
-    ssoLogin: async ({
-        request,
-        email
-    }: $TSFixMe) =>
+    ssoLogin: async ({ request, email }: $TSFixMe) =>
         await request.get(`/api/user/sso/login?email=${email}`),
     /**
    * Example of payload:
@@ -35,7 +26,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        payload
+        payload,
     }: $TSFixMe) => {
         return await request
             .post(`/component/${projectId}`)
@@ -58,7 +49,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        payload
+        payload,
     }: $TSFixMe) => {
         return await request
             .post(`/monitor/${projectId}`)
@@ -82,7 +73,7 @@ const methods = {
         authorization,
         projectId,
         monitorId,
-        payload
+        payload,
     }: $TSFixMe) => {
         return await request
             .post(`/subscriber/${projectId}/subscribe/${monitorId}`)
@@ -93,7 +84,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        rechargeBalanceAmount
+        rechargeBalanceAmount,
     }: $TSFixMe) => {
         return await request
             .post(`/stripe/${projectId}/addBalance`)
@@ -104,7 +95,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        name
+        name,
     }: $TSFixMe) => {
         return await request
             .post(`/schedule/${projectId}`)
@@ -120,7 +111,7 @@ const methods = {
         authorization,
         projectId,
         scheduleId,
-        payload
+        payload,
     }: $TSFixMe) => {
         return await request
             .put(`/schedule/${projectId}/${scheduleId}`)
@@ -157,7 +148,7 @@ const methods = {
         authorization,
         projectId,
         scheduleId,
-        payload
+        payload,
     }: $TSFixMe) => {
         return await request
             .post(`/schedule/${projectId}/${scheduleId}/addescalation`)
@@ -170,7 +161,7 @@ const methods = {
         projectId,
         incidentId,
         skip = 0,
-        limit = 999
+        limit = 999,
     }: $TSFixMe) => {
         return await request
             .get(
@@ -183,7 +174,7 @@ const methods = {
         authorization,
         projectId,
         skip = 0,
-        limit = 999
+        limit = 999,
     }: $TSFixMe) => {
         return await request
             .get(
@@ -197,7 +188,7 @@ const methods = {
         projectId,
         incidentId,
         skip = 0,
-        limit = 999
+        limit = 999,
     }: $TSFixMe) => {
         return await request
             .get(
@@ -205,10 +196,7 @@ const methods = {
             )
             .set('Authorization', authorization);
     },
-    verifyToken: async ({
-        request,
-        token
-    }: $TSFixMe) => {
+    verifyToken: async ({ request, token }: $TSFixMe) => {
         return await request.get(`/user/confirmation/${token}`).redirects(0);
     },
     /**
@@ -225,7 +213,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        payload
+        payload,
     }: $TSFixMe) => {
         return await request
             .post(`/incident/${projectId}/create-incident`)
@@ -236,7 +224,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        incidentId
+        incidentId,
     }: $TSFixMe) => {
         return await request
             .post(`/incident/${projectId}/acknowledge/${incidentId}`)
@@ -246,7 +234,7 @@ const methods = {
         request,
         authorization,
         subProjectId,
-        incidentId
+        incidentId,
     }: $TSFixMe) => {
         return await request
             .post(`/incident/${subProjectId}/acknowledge/${incidentId}`)
@@ -256,7 +244,7 @@ const methods = {
         request,
         authorization,
         projectId,
-        incidentId
+        incidentId,
     }: $TSFixMe) => {
         return await request
             .post(`/incident/${projectId}/resolve/${incidentId}`)
@@ -266,7 +254,7 @@ const methods = {
         request,
         authorization,
         subProjectId,
-        incidentId
+        incidentId,
     }: $TSFixMe) => {
         return await request
             .post(`/incident/${subProjectId}/resolve/${incidentId}`)
@@ -278,28 +266,16 @@ const methods = {
      *  projectName: 'PROJECT_NAME'
      * }
      */
-    createProject: async ({
-        request,
-        authorization,
-        payload
-    }: $TSFixMe) =>
+    createProject: async ({ request, authorization, payload }: $TSFixMe) =>
         await request
             .post(`/api/project/create`)
             .set('Authorization', authorization)
             .send(payload),
-    fetchProject: async ({
-        request,
-        authorization,
-        projectId
-    }: $TSFixMe) =>
+    fetchProject: async ({ request, authorization, projectId }: $TSFixMe) =>
         await request
             .get(`/api/project/projects/${projectId}`)
             .set('Authorization', authorization),
-    deleteProject: async ({
-        request,
-        authorization,
-        id
-    }: $TSFixMe) =>
+    deleteProject: async ({ request, authorization, id }: $TSFixMe) =>
         await request
             .delete(`/api/project/${id}/deleteProject`)
             .set('Authorization', authorization),
@@ -315,20 +291,12 @@ const methods = {
      *          'http://localhost:9876/logout',
      *  }
      */
-    createSso: async ({
-        request,
-        authorization,
-        payload
-    }: $TSFixMe) =>
+    createSso: async ({ request, authorization, payload }: $TSFixMe) =>
         await request
             .post(`/api/sso/`)
             .set('Authorization', authorization)
             .send(payload),
-    deleteSso: async ({
-        request,
-        authorization,
-        id
-    }: $TSFixMe) =>
+    deleteSso: async ({ request, authorization, id }: $TSFixMe) =>
         await request
             .delete(`/api/sso/${id}`)
             .set('Authorization', authorization),
@@ -342,7 +310,7 @@ const methods = {
     createSsoDefaultRole: async ({
         request,
         authorization,
-        payload
+        payload,
     }: $TSFixMe) =>
         await request
             .post(`/api/ssoDefaultRoles/`)
@@ -352,39 +320,28 @@ const methods = {
         request,
         authorization,
         id,
-        payload
+        payload,
     }: $TSFixMe) =>
         await request
             .put(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization)
             .send(payload),
-    fetchSsoDefaultRoles: async ({
-        request,
-        authorization
-    }: $TSFixMe) =>
+    fetchSsoDefaultRoles: async ({ request, authorization }: $TSFixMe) =>
         await request
             .get(`/api/ssoDefaultRoles/`)
             .set('Authorization', authorization),
-    fetchSsoDefaultRole: async ({
-        request,
-        authorization,
-        id
-    }: $TSFixMe) =>
+    fetchSsoDefaultRole: async ({ request, authorization, id }: $TSFixMe) =>
         await request
             .get(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
-    deleteSsoDefaultRole: async ({
-        request,
-        authorization,
-        id
-    }: $TSFixMe) =>
+    deleteSsoDefaultRole: async ({ request, authorization, id }: $TSFixMe) =>
         await request
             .delete(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization),
     fetchIdpSAMLResponse: async ({
         SAMLRequest,
         username,
-        password
+        password,
     }: $TSFixMe) => {
         let firstIdpResponse;
         try {
@@ -422,7 +379,7 @@ const methods = {
             res: { text: html },
         } = samlResponsePage;
         // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
-        import { parse } from 'node-html-parser'
+        import { parse } from 'node-html-parser';
         const root = parse(html);
         const input = root.querySelectorAll('input')[1];
         const value = input.rawAttrs.split(' ')[2];

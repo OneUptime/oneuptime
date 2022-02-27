@@ -75,13 +75,7 @@ export default {
         return emailTemplate;
     },
 
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -111,11 +105,7 @@ export default {
         return result;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -193,8 +183,8 @@ export default {
     },
 };
 
-import EmailTemplateModel from '../models/emailTemplate'
-import emailTemplateVariables from '../config/emailTemplateVariables'
-import defaultTemplate from '../config/emailTemplate'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import EmailTemplateModel from '../models/emailTemplate';
+import emailTemplateVariables from '../config/emailTemplateVariables';
+import defaultTemplate from '../config/emailTemplate';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

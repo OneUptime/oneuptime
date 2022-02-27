@@ -14,7 +14,7 @@ class BaseAction {
         apiPath,
         isResourceInProject,
         actionType,
-        isRequestAllowed = true
+        isRequestAllowed = true,
     }: $TSFixMe) {
         if (!friendlyName) {
             throw new Error('friendlyName is required.');
@@ -44,10 +44,14 @@ class BaseAction {
 
     getConstants() {
         const friendlyName = this.friendlyName.replace(' ', '_').toUpperCase();
-        const request = this.actionType.toUpperCase() + '_' + friendlyName + '_REQUEST';
-        const success = this.actionType.toUpperCase() + '_' + friendlyName + '_SUCCESS';
-        const failure = this.actionType.toUpperCase() + '_' + friendlyName + '_FAILURE';
-        const reset = this.actionType.toUpperCase() + '_' + friendlyName + '_RESET';
+        const request =
+            this.actionType.toUpperCase() + '_' + friendlyName + '_REQUEST';
+        const success =
+            this.actionType.toUpperCase() + '_' + friendlyName + '_SUCCESS';
+        const failure =
+            this.actionType.toUpperCase() + '_' + friendlyName + '_FAILURE';
+        const reset =
+            this.actionType.toUpperCase() + '_' + friendlyName + '_RESET';
 
         const constants = {
             request: request,
@@ -56,14 +60,26 @@ class BaseAction {
             reset: reset,
         };
 
-        if(this.actionType === "list"){
-            //add pagination actions. 
+        if (this.actionType === 'list') {
+            //add pagination actions.
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginateNext' does not exist on type '{ ... Remove this comment to see the full error message
-            constants.paginateNext = this.actionType.toUpperCase() + '_' + friendlyName + '_PAGINATE_NEXT';
+            constants.paginateNext =
+                this.actionType.toUpperCase() +
+                '_' +
+                friendlyName +
+                '_PAGINATE_NEXT';
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginatePrevious' does not exist on type... Remove this comment to see the full error message
-            constants.paginatePrevious = this.actionType.toUpperCase() + '_' + friendlyName + '_PAGINATE_PREVIOUS';
+            constants.paginatePrevious =
+                this.actionType.toUpperCase() +
+                '_' +
+                friendlyName +
+                '_PAGINATE_PREVIOUS';
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginateToPage' does not exist on type '... Remove this comment to see the full error message
-            constants.paginateToPage = this.actionType.toUpperCase() + '_' + friendlyName + '_PAGINATE_TO_PAGE';
+            constants.paginateToPage =
+                this.actionType.toUpperCase() +
+                '_' +
+                friendlyName +
+                '_PAGINATE_TO_PAGE';
         }
 
         return constants;
@@ -75,7 +91,7 @@ class BaseAction {
         const actions = {};
 
         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        actions[this.actionKeys.request] = function () {
+        actions[this.actionKeys.request] = function() {
             return {
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 type: constants[this.constantKeys.request],
@@ -83,7 +99,7 @@ class BaseAction {
         };
 
         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        actions[this.actionKeys.success] = function (data: $TSFixMe) {
+        actions[this.actionKeys.success] = function(data: $TSFixMe) {
             return {
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 type: constants[this.constantKeys.success],
@@ -92,7 +108,7 @@ class BaseAction {
         };
 
         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        actions[this.actionKeys.failure] = function (error: $TSFixMe) {
+        actions[this.actionKeys.failure] = function(error: $TSFixMe) {
             return {
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 type: constants[this.constantKeys.failure],
@@ -101,7 +117,7 @@ class BaseAction {
         };
 
         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        actions[this.actionKeys.apiCall] = async function (data: $TSFixMe) {
+        actions[this.actionKeys.apiCall] = async function(data: $TSFixMe) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequestAllowed' does not exist on type... Remove this comment to see the full error message
             if (this.isRequestAllowed) {
                 throw 'This request is not allowed';

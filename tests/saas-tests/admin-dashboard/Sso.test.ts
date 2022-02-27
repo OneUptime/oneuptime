@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 
 require('should');
@@ -219,9 +219,13 @@ describe('SSO API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#sso-count');
 
-            const count = await init.page$Eval(page, '#sso-count', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const count = await init.page$Eval(
+                page,
+                '#sso-count',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
 
             expect(count).toContain('1');
 
@@ -279,33 +283,49 @@ describe('SSO API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const ssoCount = await init.page$Eval(page, '#sso-count', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const ssoCount = await init.page$Eval(
+                page,
+                '#sso-count',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
 
             expect(ssoCount).toContain('12');
 
-            const firstPageTbody = await init.page$Eval(page, 'tbody', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const firstPageTbody = await init.page$Eval(
+                page,
+                'tbody',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             expect(firstPageTbody).toContain('subdomain.11.test.hackerbay.io');
             expect(firstPageTbody).toContain('subdomain.2.test.hackerbay.io');
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#next-button');
 
-            const secondPageTbody = await init.page$Eval(page, 'tbody', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const secondPageTbody = await init.page$Eval(
+                page,
+                'tbody',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             expect(secondPageTbody).toContain('subdomain.1.test.hackerbay.io');
             expect(secondPageTbody).toContain('subdomain.0.test.hackerbay.io');
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#previous-button');
 
-            const initalPageTbody = await init.page$Eval(page, 'tbody', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const initalPageTbody = await init.page$Eval(
+                page,
+                'tbody',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
 
             expect(initalPageTbody).toContain('subdomain.11.test.hackerbay.io');
             expect(initalPageTbody).toContain('subdomain.2.test.hackerbay.io');

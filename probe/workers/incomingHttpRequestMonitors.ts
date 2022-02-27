@@ -1,13 +1,11 @@
-import ApiService from '../utils/apiService'
-import ErrorService from '../utils/errorService'
+import ApiService from '../utils/apiService';
+import ErrorService from '../utils/errorService';
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 export default {
-    run: async ({
-        monitor
-    }: $TSFixMe) => {
+    run: async ({ monitor }: $TSFixMe) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.link && monitor.criteria) {

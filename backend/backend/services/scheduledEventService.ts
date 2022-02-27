@@ -1,19 +1,21 @@
-import ScheduledEventModel from '../models/scheduledEvent'
-import UserModel from '../models/user'
-import ErrorService from 'common-server/utils/error'
-import RealTimeService from './realTimeService'
-import ScheduledEventNoteService from './scheduledEventNoteService'
-import AlertService from './alertService'
-import moment from 'moment'
-import getSlug from '../utils/getSlug'
-import MonitorService from './monitorService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import ScheduledEventModel from '../models/scheduledEvent';
+import UserModel from '../models/user';
+import ErrorService from 'common-server/utils/error';
+import RealTimeService from './realTimeService';
+import ScheduledEventNoteService from './scheduledEventNoteService';
+import AlertService from './alertService';
+import moment from 'moment';
+import getSlug from '../utils/getSlug';
+import MonitorService from './monitorService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function({
-        projectId
-    }: $TSFixMe, data: $TSFixMe, recurring: $TSFixMe) {
+    create: async function(
+        { projectId }: $TSFixMe,
+        data: $TSFixMe,
+        recurring: $TSFixMe
+    ) {
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor to create a scheduled event'
@@ -33,7 +35,7 @@ export default {
 
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-            monitorId: monitor
+            monitorId: monitor,
         }));
 
         data.projectId = projectId;
@@ -87,13 +89,17 @@ export default {
             if (!data.monitorDuringEvent) {
                 if (data.monitors && data.monitors.length > 0) {
                     await MonitorService.markMonitorsAsShouldNotMonitor(
-                        data.monitors.map((i: $TSFixMe) => i.monitorId._id || i.monitorId)
+                        data.monitors.map(
+                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
+                        )
                     );
                 }
             } else {
                 if (data.monitors && data.monitors.length > 0) {
                     await MonitorService.markMonitorsAsShouldMonitor(
-                        data.monitors.map((i: $TSFixMe) => i.monitorId._id || i.monitorId)
+                        data.monitors.map(
+                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
+                        )
                     );
                 }
             }
@@ -114,7 +120,9 @@ export default {
             // revert monitor to monitoring state
             if (!data.monitorDuringEvent) {
                 await MonitorService.markMonitorsAsShouldMonitor(
-                    data.monitors.map((i: $TSFixMe) => i.monitorId._id || i.monitorId)
+                    data.monitors.map(
+                        (i: $TSFixMe) => i.monitorId._id || i.monitorId
+                    )
                 );
             }
 
@@ -173,16 +181,20 @@ export default {
 
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-            monitorId: monitor
+            monitorId: monitor,
         }));
 
         if (!data.monitorDuringEvent) {
             await MonitorService.markMonitorsAsShouldNotMonitor(
-                data.monitors.map((i: $TSFixMe) => i.monitorId._id || i.monitorId)
+                data.monitors.map(
+                    (i: $TSFixMe) => i.monitorId._id || i.monitorId
+                )
             );
         } else {
             await MonitorService.markMonitorsAsShouldMonitor(
-                data.monitors.map((i: $TSFixMe) => i.monitorId._id || i.monitorId)
+                data.monitors.map(
+                    (i: $TSFixMe) => i.monitorId._id || i.monitorId
+                )
             );
         }
 
@@ -280,7 +292,9 @@ export default {
 
         if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
             await MonitorService.markMonitorsAsShouldMonitor(
-                scheduledEvent.monitors.map((i: $TSFixMe) => i.monitorId._id || i.monitorId)
+                scheduledEvent.monitors.map(
+                    (i: $TSFixMe) => i.monitorId._id || i.monitorId
+                )
             );
         }
 
@@ -299,13 +313,7 @@ export default {
         return scheduledEvent;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -337,11 +345,7 @@ export default {
         return scheduledEvents;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -411,7 +415,10 @@ export default {
         return subProjectScheduledEvents;
     },
 
-    getSubProjectOngoingScheduledEvents: async function(subProjectIds: $TSFixMe, query: $TSFixMe) {
+    getSubProjectOngoingScheduledEvents: async function(
+        subProjectIds: $TSFixMe,
+        query: $TSFixMe
+    ) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -495,7 +502,8 @@ export default {
             scheduledEvents.map(async (event: $TSFixMe) => {
                 // remove the monitor from scheduled event monitors list
                 event.monitors = event.monitors.filter(
-                    (monitor: $TSFixMe) => String(monitor.monitorId._id) !== String(monitorId)
+                    (monitor: $TSFixMe) =>
+                        String(monitor.monitorId._id) !== String(monitorId)
                 );
 
                 if (event.monitors.length > 0) {

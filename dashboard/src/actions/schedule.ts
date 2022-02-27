@@ -32,7 +32,11 @@ export function scheduleSuccess(schedule: $TSFixMe) {
 
 // Calls the API to fetch Schedules.
 
-export function fetchSchedules(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchSchedules(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -152,7 +156,11 @@ export function projectScheduleSuccess(schedule: $TSFixMe) {
 
 // Gets list of schedules in a project.
 
-export function fetchProjectSchedule(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchProjectSchedule(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -266,7 +274,11 @@ export function renameScheduleError(error: $TSFixMe) {
     };
 }
 
-export function renameSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe, scheduleName: $TSFixMe) {
+export function renameSchedule(
+    projectId: $TSFixMe,
+    scheduleId: $TSFixMe,
+    scheduleName: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
@@ -408,7 +420,11 @@ export function addMonitorError(error: $TSFixMe) {
     };
 }
 
-export function addMonitors(projectId: $TSFixMe, scheduleId: $TSFixMe, data: $TSFixMe) {
+export function addMonitors(
+    projectId: $TSFixMe,
+    scheduleId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`schedule/${projectId}/${scheduleId}`, data);
 
@@ -470,7 +486,11 @@ export function addUserError(error: $TSFixMe) {
     };
 }
 
-export function addUsers(projectId: $TSFixMe, scheduleId: $TSFixMe, data: $TSFixMe) {
+export function addUsers(
+    projectId: $TSFixMe,
+    scheduleId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `schedule/${projectId}/${scheduleId}/addUsers`,
@@ -535,7 +555,11 @@ export function escalationError(error: $TSFixMe) {
     };
 }
 
-export function addEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe, data: $TSFixMe) {
+export function addEscalation(
+    projectId: $TSFixMe,
+    scheduleId: $TSFixMe,
+    data: $TSFixMe
+) {
     data = data.OnCallAlertBox;
 
     return function(dispatch: $TSFixMe) {

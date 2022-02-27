@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -30,11 +24,7 @@ export default {
         return schedules;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -145,9 +135,7 @@ export default {
                 query: { scheduleId: schedule._id },
                 select: '_id',
             });
-            await escalations.map(({
-                _id
-            }: $TSFixMe) =>
+            await escalations.map(({ _id }: $TSFixMe) =>
                 EscalationService.deleteBy({ _id: _id }, userId)
             );
         }
@@ -155,7 +143,10 @@ export default {
         return schedule;
     },
 
-    addMonitorToSchedules: async function(scheduleIds: $TSFixMe, monitorId: $TSFixMe) {
+    addMonitorToSchedules: async function(
+        scheduleIds: $TSFixMe,
+        monitorId: $TSFixMe
+    ) {
         await ScheduleModel.updateMany(
             {
                 _id: { $in: scheduleIds },
@@ -313,7 +304,11 @@ export default {
         );
     },
 
-    addEscalation: async function(scheduleId: $TSFixMe, escalations: $TSFixMe, userId: $TSFixMe) {
+    addEscalation: async function(
+        scheduleId: $TSFixMe,
+        escalations: $TSFixMe,
+        userId: $TSFixMe
+    ) {
         const _this = this;
         const escalationIds = [];
         for (const data of escalations) {
@@ -388,7 +383,10 @@ export default {
         return { escalations, count: escalationIds.length };
     },
 
-    getUserEscalations: async function(subProjectIds: $TSFixMe, userId: $TSFixMe) {
+    getUserEscalations: async function(
+        subProjectIds: $TSFixMe,
+        userId: $TSFixMe
+    ) {
         const selectEscalation =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
@@ -415,14 +413,20 @@ export default {
         return escalations;
     },
 
-    escalationCheck: async function(escalationIds: $TSFixMe, scheduleId: $TSFixMe, userId: $TSFixMe) {
+    escalationCheck: async function(
+        escalationIds: $TSFixMe,
+        scheduleId: $TSFixMe,
+        userId: $TSFixMe
+    ) {
         const _this = this;
         let scheduleIds = await _this.findOneBy({
             query: { _id: scheduleId },
             select: '_id escalationIds',
         });
 
-        scheduleIds = scheduleIds.escalationIds.map((i: $TSFixMe) => i.toString());
+        scheduleIds = scheduleIds.escalationIds.map((i: $TSFixMe) =>
+            i.toString()
+        );
         escalationIds = escalationIds.map((i: $TSFixMe) => i.toString());
 
         scheduleIds.map(async (id: $TSFixMe) => {
@@ -541,8 +545,8 @@ export default {
     },
 };
 
-import ScheduleModel from '../models/schedule'
-import EscalationService from '../services/escalationService'
-import getSlug from '../utils/getSlug'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import ScheduleModel from '../models/schedule';
+import EscalationService from '../services/escalationService';
+import getSlug from '../utils/getSlug';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';

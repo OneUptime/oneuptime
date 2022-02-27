@@ -1,37 +1,37 @@
-import express from 'express'
-import UserService from '../services/userService'
-import ProjectService from '../services/projectService'
+import express from 'express';
+import UserService from '../services/userService';
+import ProjectService from '../services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'saml... Remove this comment to see the full error message
-import saml2 from 'saml2-js'
-import { decode } from 'js-base64'
-import MailService from '../services/mailService'
-import SsoService from '../services/ssoService'
+import saml2 from 'saml2-js';
+import { decode } from 'js-base64';
+import MailService from '../services/mailService';
+import SsoService from '../services/ssoService';
 const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const router = express.Router();
-import multer from 'multer'
-import storage from '../middlewares/upload'
-import winston from 'winston'
+import multer from 'multer';
+import storage from '../middlewares/upload';
+import winston from 'winston';
 // @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../config/constants.json'. Con... Remove this comment to see the full error message
-import constants from '../config/constants.json'
+import constants from '../config/constants.json';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/emaildomains"' has no exported ... Remove this comment to see the full error message
-import { emaildomains } from '../config/emaildomains'
-import randToken from 'rand-token'
-import VerificationTokenModel from '../models/verificationToken'
+import { emaildomains } from '../config/emaildomains';
+import randToken from 'rand-token';
+import VerificationTokenModel from '../models/verificationToken';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
-import UserModel from '../models/user'
-import ErrorService from 'common-server/utils/error'
-import SsoDefaultRolesService from '../services/ssoDefaultRolesService'
+import { IS_SAAS_SERVICE } from '../config/server';
+import UserModel from '../models/user';
+import ErrorService from 'common-server/utils/error';
+import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-import Ip from '../middlewares/ipHandler'
+import Ip from '../middlewares/ipHandler';
 
 router.post('/signup', async function(req, res) {
     try {
@@ -366,7 +366,10 @@ router.get('/sso/login', async function(req, res) {
             sso_login_url: remoteLoginUrl,
         });
 
-        sp.create_login_request_url(idp, {}, function(error: $TSFixMe, login_url: $TSFixMe) {
+        sp.create_login_request_url(idp, {}, function(
+            error: $TSFixMe,
+            login_url: $TSFixMe
+        ) {
             if (error != null) return sendErrorResponse(req, res, error);
             return sendItemResponse(req, res, { url: login_url });
         });
@@ -418,7 +421,10 @@ router.post('/sso/callback', async function(req, res) {
         sso_login_url: sso.samlSsoUrl,
     });
 
-    sp.post_assert(idp, options, async function(err: $TSFixMe, saml_response: $TSFixMe) {
+    sp.post_assert(idp, options, async function(
+        err: $TSFixMe,
+        saml_response: $TSFixMe
+    ) {
         if (err != null)
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -1700,9 +1706,10 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
         projects
             .filter((project: $TSFixMe) => {
                 return project.users.find(
-                    (user: $TSFixMe) => user.userId === userId &&
-                    user.role === 'Owner' &&
-                    project.users.length > 1
+                    (user: $TSFixMe) =>
+                        user.userId === userId &&
+                        user.role === 'Owner' &&
+                        project.users.length > 1
                 );
             })
             .forEach(async (project: $TSFixMe) => {
@@ -1714,15 +1721,18 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
         projects
             .filter((project: $TSFixMe) => {
                 return project.users.find(
-                    (user: $TSFixMe) => (user.userId === userId && user.role !== 'Owner') ||
-                    (user.userId === userId &&
-                        user.role === 'Owner' &&
-                        project.users.length === 1)
+                    (user: $TSFixMe) =>
+                        (user.userId === userId && user.role !== 'Owner') ||
+                        (user.userId === userId &&
+                            user.role === 'Owner' &&
+                            project.users.length === 1)
                 );
             })
             .forEach(async (project: $TSFixMe) => {
                 const { _id: projectId, users } = project;
-                const user = users.find((user: $TSFixMe) => user.userId === userId);
+                const user = users.find(
+                    (user: $TSFixMe) => user.userId === userId
+                );
                 if (user) {
                     if (user.role === 'Owner') {
                         await ProjectService.deleteBy(

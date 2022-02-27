@@ -1,19 +1,19 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
-import NotificationService from '../services/notificationService'
-import ErrorService from 'common-server/utils/error'
-import PerformanceTrackerService from '../services/performanceTrackerService'
-import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService'
-import { decode } from 'js-base64'
+import NotificationService from '../services/notificationService';
+import ErrorService from 'common-server/utils/error';
+import PerformanceTrackerService from '../services/performanceTrackerService';
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
+import { decode } from 'js-base64';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
+import uuid from 'uuid';
 
 // Route
 // Description: Adding a new performance tracker to a component.
@@ -382,13 +382,13 @@ router.get(
                 time: time.length > 0 ? time[time.length - 1].value : 0,
                 throughput:
                     throughput.length > 0
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
-                        ? throughput[throughput.length - 1].value
+                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+                          throughput[throughput.length - 1].value
                         : 0,
                 errorRate:
                     errorRate.length > 0
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
-                        ? errorRate[errorRate.length - 1].value
+                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+                          errorRate[errorRate.length - 1].value
                         : 0,
             };
             return sendItemResponse(req, res, result);

@@ -18,7 +18,10 @@ const initialState = {
     },
 };
 
-export default function monitorCustomField(state = initialState, action: $TSFixMe) {
+export default function monitorCustomField(
+    state = initialState,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case types.CREATE_CUSTOM_FIELD_REQUEST:
             return {

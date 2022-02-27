@@ -26,4 +26,4 @@ export default {
     },
 };
 
-import incidentSMSActionModel from '../models/incidentSMSAction'
+import incidentSMSActionModel from '../models/incidentSMSAction';

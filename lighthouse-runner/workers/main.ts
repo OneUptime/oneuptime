@@ -1,6 +1,6 @@
 const getApi = require('../utils/api').getApi;
-import UrlMonitors from './urlMonitors'
-import ErrorService from '../utils/errorService'
+import UrlMonitors from './urlMonitors';
+import ErrorService from '../utils/errorService';
 
 export default {
     runJob: async function() {

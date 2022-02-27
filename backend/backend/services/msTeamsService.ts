@@ -81,7 +81,14 @@ export default {
     },
 
     // send notification to slack workspace channels
-    async notify(project: $TSFixMe, monitor: $TSFixMe, incident: $TSFixMe, integration: $TSFixMe, component: $TSFixMe, duration: $TSFixMe) {
+    async notify(
+        project: $TSFixMe,
+        monitor: $TSFixMe,
+        incident: $TSFixMe,
+        integration: $TSFixMe,
+        component: $TSFixMe,
+        duration: $TSFixMe
+    ) {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
             const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
@@ -282,7 +289,13 @@ export default {
     },
 
     // send notification to slack workspace channels
-    async noteNotify(project: $TSFixMe, incident: $TSFixMe, integration: $TSFixMe, data: $TSFixMe, monitor: $TSFixMe) {
+    async noteNotify(
+        project: $TSFixMe,
+        incident: $TSFixMe,
+        integration: $TSFixMe,
+        data: $TSFixMe,
+        monitor: $TSFixMe
+    ) {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
             const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
@@ -325,10 +338,10 @@ export default {
     },
 };
 
-import IntegrationService from './integrationService'
-import axios from 'axios'
-import ProjectService from './projectService'
-import ErrorService from 'common-server/utils/error'
+import IntegrationService from './integrationService';
+import axios from 'axios';
+import ProjectService from './projectService';
+import ErrorService from 'common-server/utils/error';
 const {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,

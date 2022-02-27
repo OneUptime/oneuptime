@@ -5,7 +5,12 @@ export default {
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function(projectId: $TSFixMe, message: $TSFixMe, page: $TSFixMe, createdById: $TSFixMe) {
+    create: async function(
+        projectId: $TSFixMe,
+        message: $TSFixMe,
+        page: $TSFixMe,
+        createdById: $TSFixMe
+    ) {
         let feedback = new FeedbackModel();
 
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'Documen... Remove this comment to see the full error message
@@ -66,9 +71,9 @@ export default {
     },
 };
 
-import FeedbackModel from '../models/feedback'
-import MailService from './mailService'
-import UserService from './userService'
-import ProjectService from './projectService'
-import AirtableService from './airtableService'
-import ErrorService from 'common-server/utils/error'
+import FeedbackModel from '../models/feedback';
+import MailService from './mailService';
+import UserService from './userService';
+import ProjectService from './projectService';
+import AirtableService from './airtableService';
+import ErrorService from 'common-server/utils/error';

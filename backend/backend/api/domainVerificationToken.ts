@@ -1,18 +1,18 @@
-import express from 'express'
+import express from 'express';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'psl'... Remove this comment to see the full error message
-import psl from 'psl'
+import psl from 'psl';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
-import { getUser, isUserMasterAdmin } from '../middlewares/user'
+import { getUser, isUserMasterAdmin } from '../middlewares/user';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import DomainVerificationService from '../services/domainVerificationService'
+import DomainVerificationService from '../services/domainVerificationService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/response"' has no exported... Remove this comment to see the full error message
-import { sendListResponse } from '../middlewares/response'
-import StatusPageService from '../services/statusPageService'
-import ProjectService from '../services/projectService'
-import errorService from 'common-server/utils/error'
+import { sendListResponse } from '../middlewares/response';
+import StatusPageService from '../services/statusPageService';
+import ProjectService from '../services/projectService';
+import errorService from 'common-server/utils/error';
 
 const router = express.Router();
 

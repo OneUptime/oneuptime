@@ -3,11 +3,11 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
-import { getUser } from '../middlewares/user'
+import { getUser } from '../middlewares/user';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/project"' has no exported ... Remove this comment to see the full error message
-import { getUserRole } from '../middlewares/project'
+import { getUserRole } from '../middlewares/project';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 
 export default ({
     router,
@@ -18,7 +18,7 @@ export default ({
     listApiProps,
     isResourceInProject,
     friendlyResourceName,
-    service
+    service,
 }: $TSFixMe) => {
     const getItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
         try {
@@ -177,7 +177,11 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    const updateItemMiddleware = async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
@@ -208,7 +212,11 @@ export default ({
     const getMiddlewares = (props: $TSFixMe) => {
         const functionChain = [];
 
-        const apiPropsMiddleware = (req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) => {
+        const apiPropsMiddleware = (
+            req: $TSFixMe,
+            res: $TSFixMe,
+            next: $TSFixMe
+        ) => {
             req.apiProps = props;
             return next();
         };

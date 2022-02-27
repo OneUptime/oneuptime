@@ -16,4 +16,4 @@ export default function flat(arr: $TSFixMe) {
         }
     })(arr);
     return flattened;
-};
+}

@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'ligh... Remove this comment to see the full error message
-import lighthouse from 'lighthouse'
-import chromeLauncher from 'chrome-launcher'
-import ora from 'ora'
+import lighthouse from 'lighthouse';
+import chromeLauncher from 'chrome-launcher';
+import ora from 'ora';
 
 /**
  * Adjustments needed for DevTools network throttling to simulate
@@ -35,7 +35,11 @@ const config = {
     },
 };
 
-function launchChromeAndRunLighthouse(url: $TSFixMe, flags = {}, config = null) {
+function launchChromeAndRunLighthouse(
+    url: $TSFixMe,
+    flags = {},
+    config = null
+) {
     return chromeLauncher.launch(flags).then(chrome => {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'port' does not exist on type '{}'.
         flags.port = chrome.port;

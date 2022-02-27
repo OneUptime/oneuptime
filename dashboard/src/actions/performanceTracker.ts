@@ -27,12 +27,12 @@ export const createPerformanceTrackerRequest = () => ({
 
 export const createPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_PERFORMANCE_TRACKER_SUCCESS,
-    payload
+    payload,
 });
 
 export const createPerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.CREATE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const createPerformanceTrackerReset = () => ({
@@ -42,7 +42,7 @@ export const createPerformanceTrackerReset = () => ({
 export const createPerformanceTracker = ({
     projectId,
     componentId,
-    values
+    values,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(createPerformanceTrackerRequest());
     const promise = postApi(
@@ -78,12 +78,12 @@ export const fetchPerformanceTrackerRequest = () => ({
 
 export const fetchPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKER_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchPerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKER_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchPerformanceTrackerReset = () => ({
@@ -93,7 +93,7 @@ export const fetchPerformanceTrackerReset = () => ({
 export const fetchPerformanceTracker = ({
     projectId,
     performanceTrackerId,
-    slug
+    slug,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchPerformanceTrackerRequest());
     const promise = getApi(
@@ -124,17 +124,17 @@ export const fetchPerformanceTracker = ({
 // fetch performance tracker list
 export const fetchPerformanceTrackersRequest = (fetchingPage: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_REQUEST,
-    payload: fetchingPage
+    payload: fetchingPage,
 });
 
 export const fetchPerformanceTrackersSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchPerformanceTrackersFailure = (error: $TSFixMe) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchPerformanceTrackersReset = () => ({
@@ -146,7 +146,7 @@ export const fetchPerformanceTrackers = ({
     componentId,
     skip = 0,
     limit = 0,
-    fetchingPage = false
+    fetchingPage = false,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchPerformanceTrackersRequest(fetchingPage));
     const promise = getApi(
@@ -181,12 +181,12 @@ export const updatePerformanceTrackerRequest = () => ({
 
 export const updatePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_SUCCESS,
-    payload
+    payload,
 });
 
 export const updatePerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const updatePerformanceTrackerReset = () => ({
@@ -197,7 +197,7 @@ export const updatePerformanceTracker = ({
     projectId,
     componentId,
     performanceTrackerId,
-    values
+    values,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(updatePerformanceTrackerRequest());
     const promise = putApi(
@@ -233,12 +233,12 @@ export const deletePerformanceTrackerRequest = () => ({
 
 export const deletePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_PERFORMANCE_TRACKER_SUCCESS,
-    payload
+    payload,
 });
 
 export const deletePerformanceTrackerFailure = (error: $TSFixMe) => ({
     type: types.DELETE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deletePerformanceTrackerReset = () => ({
@@ -247,7 +247,7 @@ export const deletePerformanceTrackerReset = () => ({
 
 export const deletePerformanceTracker = ({
     projectId,
-    performanceTrackerId
+    performanceTrackerId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deletePerformanceTrackerRequest());
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
@@ -283,12 +283,12 @@ export const resetPerformanceTrackerKeyRequest = () => ({
 
 export const resetPerformanceTrackerKeySuccess = (payload: $TSFixMe) => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_SUCCESS,
-    payload
+    payload,
 });
 
 export const resetPerformanceTrackerKeyFailure = (error: $TSFixMe) => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const resetPerformanceTrackerKeyReset = () => ({
@@ -297,7 +297,7 @@ export const resetPerformanceTrackerKeyReset = () => ({
 
 export const resetPerformanceTrackerKey = ({
     projectId,
-    performanceTrackerId
+    performanceTrackerId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(resetPerformanceTrackerKeyRequest());
     const promise = putApi(
@@ -333,17 +333,17 @@ export const removeQuickStartRequest = () => ({
 
 export const removeQuickStartSuccess = (payload: $TSFixMe) => ({
     type: types.REMOVE_QUICK_START_SUCCESS,
-    payload
+    payload,
 });
 
 export const removeQuickStartFailure = (error: $TSFixMe) => ({
     type: types.REMOVE_QUICK_START_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const removeQuickStart = ({
     projectId,
-    performanceTrackerId
+    performanceTrackerId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(removeQuickStartRequest());
     const promise = putApi(
@@ -379,19 +379,19 @@ export const fetchLastMetricsRequest = () => ({
 
 export const fetchLastMetricsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_LAST_METRICS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchLastMetricsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_LAST_METRICS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchLastMetrics = ({
     projectId,
     performanceTrackerId,
     startDate,
-    endDate
+    endDate,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(fetchLastMetricsRequest());
 
@@ -423,7 +423,9 @@ export const fetchLastMetrics = ({
     return promise;
 };
 
-export const addPerformanceTracker = (payload: $TSFixMe) => (dispatch: $TSFixMe) => {
+export const addPerformanceTracker = (payload: $TSFixMe) => (
+    dispatch: $TSFixMe
+) => {
     return dispatch({
         type: types.ADD_PERFORMANCE_TRACKER,
         payload,

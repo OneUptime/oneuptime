@@ -72,7 +72,7 @@ export default {
     },
 };
 
-import ErrorService from './errorService'
-import moment from 'moment'
+import ErrorService from './errorService';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const monitorCollection = global.db.collection('monitors');

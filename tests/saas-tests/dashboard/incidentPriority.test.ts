@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -61,7 +61,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -84,7 +87,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             // two incident priority is automatically added to a project
             // High incident priority is marked as default
@@ -126,7 +132,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             const editButtonLastRowIndentifier = `#priorityEdit_${priorityName}_2`;
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -152,7 +161,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             const lastRowIndentifier = `#priority_${newPriorityName}_2`;
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -192,7 +204,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             const incidentPrioritiesCount = '#incidentPrioritiesCount';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -223,7 +238,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
@@ -264,7 +282,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             // default priority
             await init.pageWaitForSelector(page, '#priorities', {
@@ -319,7 +340,10 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.incident-priority-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             // default priority

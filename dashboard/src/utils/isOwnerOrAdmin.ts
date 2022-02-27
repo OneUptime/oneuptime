@@ -7,7 +7,9 @@
 const isOwnerOrAdmin = (userId: $TSFixMe, project: $TSFixMe) => {
     const currentUser =
         project &&
-        project.users.filter((user: $TSFixMe) => String(user.userId) === String(userId));
+        project.users.filter(
+            (user: $TSFixMe) => String(user.userId) === String(userId)
+        );
 
     return currentUser &&
         currentUser.length > 0 &&

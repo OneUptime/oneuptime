@@ -43,7 +43,11 @@ export function decrementNextCount() {
 }
 
 // Get invoice from the backend
-export function getInvoice(projectId: $TSFixMe, startingAfter: $TSFixMe, endingBefore: $TSFixMe) {
+export function getInvoice(
+    projectId: $TSFixMe,
+    startingAfter: $TSFixMe,
+    endingBefore: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         const reqFornext = Boolean(startingAfter) && !endingBefore;

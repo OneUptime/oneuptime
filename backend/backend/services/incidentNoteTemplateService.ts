@@ -1,11 +1,7 @@
-import IncidentNoteTemplateModel from '../models/incidentNoteTemplate'
+import IncidentNoteTemplateModel from '../models/incidentNoteTemplate';
 
 export default {
-    findBy: async function({
-        query = {},
-        limit,
-        skip
-    }: $TSFixMe) {
+    findBy: async function({ query = {}, limit, skip }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -55,10 +51,7 @@ export default {
         incidentNoteTemplate = await IncidentNoteTemplateModel.create(data);
         return incidentNoteTemplate;
     },
-    updateOneBy: async function({
-        query = {},
-        data
-    }: $TSFixMe) {
+    updateOneBy: async function({ query = {}, data }: $TSFixMe) {
         if (!query.deleted) query.deleted = false;
 
         const { projectId, _id } = query;

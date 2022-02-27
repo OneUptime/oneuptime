@@ -1,9 +1,13 @@
-import ContainerScannerService from '../services/containerScannerService'
+import ContainerScannerService from '../services/containerScannerService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 export default {
-    isAuthorizedContainerScanner: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    isAuthorizedContainerScanner: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        next: $TSFixMe
+    ) {
         try {
             let containerScannerKey,
                 containerScannerName,

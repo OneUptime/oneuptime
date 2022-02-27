@@ -61,7 +61,10 @@ export function updatemonitorlogbysocket(log: $TSFixMe) {
     };
 }
 
-export function updatemonitorstatusbysocket(status: $TSFixMe, probes: $TSFixMe) {
+export function updatemonitorstatusbysocket(
+    status: $TSFixMe,
+    probes: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         dispatch({
             type: 'UPDATE_MONITOR_STATUS',
@@ -201,10 +204,7 @@ export function resolvescheduledevent(event: $TSFixMe) {
     };
 }
 
-export function slacountdown({
-    incident,
-    countDown
-}: $TSFixMe) {
+export function slacountdown({ incident, countDown }: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         dispatch({
             type: 'SLA_COUNT_DOWN',

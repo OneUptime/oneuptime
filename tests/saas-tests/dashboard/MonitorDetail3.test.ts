@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -64,7 +64,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector = '#addSlackButton';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#endpoint');
@@ -82,7 +84,9 @@ describe('Monitor Detail API', () => {
             //Only the NAME is rendered as well as the ACTIONS to be performed.
             const createdWebhookSelector = `#name_slack_${webHookName}`;
 
-            await init.page$Eval(page, '#createSlack', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#createSlack', {
                 hidden: true,
             });
@@ -128,7 +132,10 @@ describe('Monitor Detail API', () => {
             expect(existingWebhookName).toEqual(webHookName);
 
             const editWebhookButtonSelector = `#edit_slack_${webHookName}`;
-            await init.page$Eval(page, editWebhookButtonSelector, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                editWebhookButtonSelector,
+                (e: $TSFixMe) => e.click()
             );
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
@@ -138,7 +145,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
-            await init.page$Eval(page, '#slackUpdate', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#slackUpdate', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#slackUpdate', {
                 hidden: true,
             });
@@ -182,12 +191,17 @@ describe('Monitor Detail API', () => {
             expect(countWebhooks).toEqual(1);
 
             const deleteWebhookButtonSelector = `#delete_slack_${newWebHookName}`;
-            await init.page$Eval(page, deleteWebhookButtonSelector, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                deleteWebhookButtonSelector,
+                (e: $TSFixMe) => e.click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#slackDelete');
-            await init.page$Eval(page, '#slackDelete', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#slackDelete', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#slackDelete', {
                 hidden: true,
             });
@@ -225,7 +239,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 11; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                    e.click()
+                );
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.pageWaitForSelector(page, '#endpoint');
 
@@ -248,7 +264,9 @@ describe('Monitor Detail API', () => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
                         .click();
                 });
-                await init.page$Eval(page, '#createSlack', (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
+                    e.click()
+                );
                 await init.pageWaitForSelector(page, '#createSlack', {
                     hidden: true,
                 });

@@ -42,7 +42,11 @@ export const resetCreateFeedback = () => {
 };
 
 // Calls the API to register a user.
-export function createFeedback(projectId: $TSFixMe, feedback: $TSFixMe, page: $TSFixMe) {
+export function createFeedback(
+    projectId: $TSFixMe,
+    feedback: $TSFixMe,
+    page: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(`feedback/${projectId}`, { feedback, page });
 

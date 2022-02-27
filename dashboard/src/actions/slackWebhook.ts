@@ -121,7 +121,12 @@ export function getSlack(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
     };
 }
 
-export function getSlackMonitor(projectId: $TSFixMe, monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getSlackMonitor(
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -237,7 +242,11 @@ export const resetUpdateSlack = () => {
 };
 
 // Calls the API to add webhook to project
-export function updateSlack(projectId: $TSFixMe, webhookId: $TSFixMe, data: $TSFixMe) {
+export function updateSlack(
+    projectId: $TSFixMe,
+    webhookId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 

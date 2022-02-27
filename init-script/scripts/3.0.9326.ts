@@ -1,5 +1,5 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
-import { find, update } from '../util/db'
+import { find, update } from '../util/db';
 
 const projectCollection = 'projects';
 
@@ -40,7 +40,7 @@ async function run() {
                 projectUsers =
                     project.users?.map((user: $TSFixMe) => ({
                         ...user,
-                        show: true
+                        show: true,
                     })) || [];
                 projectUsers.push({
                     show: false,
@@ -52,7 +52,7 @@ async function run() {
             projectUsers =
                 project.users?.map((users: $TSFixMe) => ({
                     ...users,
-                    show: true
+                    show: true,
                 })) || [];
         }
 
@@ -72,7 +72,9 @@ async function run() {
                     return user;
                 }) || [];
 
-            const subProjectUserIds = subProjectUsers.map((user: $TSFixMe) => user.userId);
+            const subProjectUserIds = subProjectUsers.map(
+                (user: $TSFixMe) => user.userId
+            );
 
             if (
                 adminUserId &&

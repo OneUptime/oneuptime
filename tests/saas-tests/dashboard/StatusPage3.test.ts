@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 
@@ -192,9 +192,13 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await init.page$Eval(page, '#field-error', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const element = await init.page$Eval(
+                page,
+                '#field-error',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             expect(element).toContain('Domain is required');
             done();
         },
@@ -229,9 +233,13 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await init.page$Eval(page, '#field-error', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const element = await init.page$Eval(
+                page,
+                '#field-error',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             expect(element).toContain('Domain is not valid.');
             done();
         },

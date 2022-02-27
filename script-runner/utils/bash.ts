@@ -1,5 +1,5 @@
-import { exec } from 'child_process'
-import { performance } from 'perf_hooks'
+import { exec } from 'child_process';
+import { performance } from 'perf_hooks';
 
 const run = async (script: $TSFixMe) => {
     const start = performance.now();

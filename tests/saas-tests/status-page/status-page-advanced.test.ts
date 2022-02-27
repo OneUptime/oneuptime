@@ -1,7 +1,7 @@
-import utils from '../../test-utils'
+import utils from '../../test-utils';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
@@ -109,7 +109,9 @@ describe('Status-Page Advanced Options', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (el: $TSFixMe) => el.click());
+            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
+                el.click()
+            );
 
             // Fill and submit New Component form
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -249,7 +251,8 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.subscribers-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(page, '.subscribers-tab', (elems: $TSFixMe) =>
+                elems[0].click()
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#addSubscriberButton');
@@ -303,7 +306,8 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.subscribers-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(page, '.subscribers-tab', (elems: $TSFixMe) =>
+                elems[0].click()
             );
             // To confirm that the subscriber created is present.
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -341,7 +345,10 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.custom-domains-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.custom-domains-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#addMoreDomain');
@@ -391,7 +398,10 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
             // Add Enable Subscribers
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -484,7 +494,10 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.advanced-options-tab', (elems: $TSFixMe) => elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.advanced-options-tab',
+                (elems: $TSFixMe) => elems[0].click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.

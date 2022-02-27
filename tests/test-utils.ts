@@ -1,5 +1,5 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'faker' or its corresponding ty... Remove this comment to see the full error message
-import faker from 'faker'
+import faker from 'faker';
 
 const user = faker.helpers.createCard();
 user.email = generateRandomBusinessEmail();
@@ -124,7 +124,8 @@ function capitalize(words: $TSFixMe) {
 
     words = words.split(' ');
     words = words.map(
-        (word: $TSFixMe) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        (word: $TSFixMe) =>
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     );
 
     return words.join(' ').trim();

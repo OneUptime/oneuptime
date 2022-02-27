@@ -1,15 +1,15 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-import IncidentSettingsService from '../services/incidentSettingsService'
-import IncidentPrioritiesService from '../services/incidentPrioritiesService'
+import IncidentSettingsService from '../services/incidentSettingsService';
+import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/incidentDefaultSettings"' has n... Remove this comment to see the full error message
-import { variables } from '../config/incidentDefaultSettings'
+import { variables } from '../config/incidentDefaultSettings';
 
 router.get('/variables', async function(req, res) {
     try {

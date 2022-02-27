@@ -295,7 +295,8 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                         const componentIndex =
                             subProjectComponents &&
                             subProjectComponents.findIndex(
-                                (component: $TSFixMe) => component._id === newComponent._id
+                                (component: $TSFixMe) =>
+                                    component._id === newComponent._id
                             );
                         const isSubProjectComponent = componentIndex > -1;
 
@@ -421,9 +422,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                         subProjectComponent => {
                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
                             subProjectComponent.components = subProjectComponent.components.filter(
-                                ({
-                                    _id
-                                }: $TSFixMe) => _id !== action.payload
+                                ({ _id }: $TSFixMe) => _id !== action.payload
                             );
                             return subProjectComponent;
                         }

@@ -1,4 +1,4 @@
-import moment from 'moment'
+import moment from 'moment';
 const MonitorService = require('../services/monitorService'),
     MonitorLogService = require('../services/monitorLogService'),
     MonitorStatusService = require('../services/monitorStatusService'),
@@ -61,7 +61,11 @@ const job = async (monitor: $TSFixMe) => {
             await ProbeService.saveMonitorLog({
                 monitorId: monitor._id,
                 status: 'offline',
-                reason: await successReasons.filter(function(item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) {
+                reason: await successReasons.filter(function(
+                    item: $TSFixMe,
+                    pos: $TSFixMe,
+                    self: $TSFixMe
+                ) {
                     return self.indexOf(item) == pos;
                 }),
             });

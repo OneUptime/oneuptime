@@ -1,8 +1,8 @@
-import { fork } from 'child_process'
+import { fork } from 'child_process';
 const child = fork('./lighthouseWorker');
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cli-... Remove this comment to see the full error message
-import Table from 'cli-table'
-import program from 'commander'
+import Table from 'cli-table';
+import program from 'commander';
 
 program
     // @ts-expect-error ts-migrate(2551) FIXME: Property 'option' does not exist on type 'typeof i... Remove this comment to see the full error message

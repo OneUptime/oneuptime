@@ -90,7 +90,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 },
                 showingTemplate: action.payload.find(
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type '{}'.
-                    (temp: $TSFixMe) => temp.emailType === state.showingTemplate.emailType
+                    (temp: $TSFixMe) =>
+                        temp.emailType === state.showingTemplate.emailType
                 ),
             });
 
@@ -138,7 +139,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 },
                 showingTemplate: action.payload.find(
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type '{}'.
-                    (temp: $TSFixMe) => temp.emailType === state.showingTemplate.emailType
+                    (temp: $TSFixMe) =>
+                        temp.emailType === state.showingTemplate.emailType
                 ),
             });
 

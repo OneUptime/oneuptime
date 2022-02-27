@@ -623,8 +623,8 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     page:
                         // @ts-expect-error ts-migrate(2551) FIXME: Property 'page' does not exist on type '{ requesti... Remove this comment to see the full error message
                         state.projectTeam.page > 1
-                            // @ts-expect-error ts-migrate(2551) FIXME: Property 'page' does not exist on type '{ requesti... Remove this comment to see the full error message
-                            ? state.projectTeam.page - 1
+                            ? // @ts-expect-error ts-migrate(2551) FIXME: Property 'page' does not exist on type '{ requesti... Remove this comment to see the full error message
+                              state.projectTeam.page - 1
                             : 1,
                 },
             });

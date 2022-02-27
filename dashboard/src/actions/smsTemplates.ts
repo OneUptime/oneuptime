@@ -327,7 +327,11 @@ export function deleteSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe) {
     };
 }
 
-export function updateSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe, data: $TSFixMe) {
+export function updateSmtpConfig(
+    projectId: $TSFixMe,
+    smtpId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`smsSmtp/${projectId}/${smtpId}`, data);
         dispatch(smtpConfigRequest(promise));

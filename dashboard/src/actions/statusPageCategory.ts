@@ -9,18 +9,18 @@ export const createStatusPageCategoryRequest = () => ({
 
 export const createStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload
+    payload,
 });
 
 export const createStatusPageCategoryFailure = (error: $TSFixMe) => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const createStatusPageCategory = ({
     projectId,
     statusPageId,
-    statusPageCategoryName
+    statusPageCategoryName,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     const promise = postApi(`statusPageCategory/${projectId}/${statusPageId}`, {
         statusPageCategoryName,
@@ -56,18 +56,18 @@ export const updateStatusPageCategoryRequest = () => ({
 
 export const updateStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload
+    payload,
 });
 
 export const updateStatusPageCategoryFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const updateStatusPageCategory = ({
     projectId,
     statusPageCategoryId,
-    statusPageCategoryName
+    statusPageCategoryName,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     const promise = putApi(
         `statusPageCategory/${projectId}/${statusPageCategoryId}`,
@@ -106,19 +106,19 @@ export const fetchStatusPageCategoriesRequest = () => ({
 
 export const fetchStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchStatusPageCategoriesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchStatusPageCategories = ({
     projectId,
     statusPageId,
     skip,
-    limit
+    limit,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     if (!skip) {
         skip = 0;
@@ -160,19 +160,19 @@ export const fetchAllStatusPageCategoriesRequest = () => ({
 
 export const fetchAllStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchAllStatusPageCategoriesFailure = (error: $TSFixMe) => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchAllStatusPageCategories = ({
     projectId,
     statusPageId,
     skip,
-    limit
+    limit,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     if (!skip) {
         skip = 0;
@@ -214,17 +214,17 @@ export const deleteStatusPageCategoryRequest = () => ({
 
 export const deleteStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteStatusPageCategoryFailure = (error: $TSFixMe) => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deleteStatusPageCategory = ({
     projectId,
-    statusPageCategoryId
+    statusPageCategoryId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
     const promise = deleteApi(

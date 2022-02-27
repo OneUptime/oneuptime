@@ -21,7 +21,10 @@ const INITIAL_STATE = {
     testSuccess: false,
 };
 
-export default function profileSettings(state = INITIAL_STATE, action: $TSFixMe) {
+export default function profileSettings(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     const settings = {};
     switch (action.type) {
         case REQUESTING_SETTINGS:

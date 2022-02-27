@@ -1,7 +1,7 @@
-import StatusPageCategoryModel from '../models/statusPageCategory'
-import MonitorModel from '../models/monitor'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import StatusPageCategoryModel from '../models/statusPageCategory';
+import MonitorModel from '../models/monitor';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
     create: async function(data: $TSFixMe) {
@@ -47,13 +47,7 @@ export default {
         return statusPageCategory;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;

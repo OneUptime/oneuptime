@@ -1,9 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -126,7 +122,9 @@ export default {
                 query: findquery,
                 select: '_id',
             });
-            const incidentIds = incidents.map((incident: $TSFixMe) => incident._id);
+            const incidentIds = incidents.map(
+                (incident: $TSFixMe) => incident._id
+            );
 
             const populateIncidentMessage = [
                 {
@@ -848,7 +846,12 @@ export default {
         return incidentObj;
     },
 
-    subscribe: async function(projectId: $TSFixMe, url: $TSFixMe, type: $TSFixMe, monitors: $TSFixMe) {
+    subscribe: async function(
+        projectId: $TSFixMe,
+        url: $TSFixMe,
+        type: $TSFixMe,
+        monitors: $TSFixMe
+    ) {
         const zapier = new ZapierModel();
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
         zapier.projectId = projectId;
@@ -875,7 +878,11 @@ export default {
         return;
     },
 
-    pushToZapier: async function(type: $TSFixMe, incident: $TSFixMe, incidentNote: $TSFixMe) {
+    pushToZapier: async function(
+        type: $TSFixMe,
+        incident: $TSFixMe,
+        incidentNote: $TSFixMe
+    ) {
         const _this = this;
         const projectId = incident.projectId._id || incident.projectId;
         // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
@@ -951,17 +958,17 @@ export default {
     },
 };
 
-import axios from 'axios'
-import ProjectService from './projectService'
-import ErrorService from 'common-server/utils/error'
-import IncidentService from './incidentService'
-import IncidentTimelineService from './incidentTimelineService'
-import MonitorService from './monitorService'
-import ZapierModel from '../models/zapier'
-import IncidentModel from '../models/incident'
-import NotificationService from './notificationService'
-import RealTimeService from './realTimeService'
-import IncidentMessageService from '../services/incidentMessageService'
-import IncidentMessageModel from '../models/incidentMessage'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import axios from 'axios';
+import ProjectService from './projectService';
+import ErrorService from 'common-server/utils/error';
+import IncidentService from './incidentService';
+import IncidentTimelineService from './incidentTimelineService';
+import MonitorService from './monitorService';
+import ZapierModel from '../models/zapier';
+import IncidentModel from '../models/incident';
+import NotificationService from './notificationService';
+import RealTimeService from './realTimeService';
+import IncidentMessageService from '../services/incidentMessageService';
+import IncidentMessageModel from '../models/incidentMessage';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -1,13 +1,13 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 const {
     sendErrorResponse,
     sendEmptyResponse,
 } = require('../middlewares/response');
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
-import { isAuthorizedService } from '../middlewares/serviceAuthorization'
-import RealtimeService from '../services/realtimeService'
+import { isAuthorizedService } from '../middlewares/serviceAuthorization';
+import RealtimeService from '../services/realtimeService';
 
 router.post('/send-created-incident', isAuthorizedService, async function(
     req: $TSFixMe,
@@ -55,7 +55,10 @@ router.post('/send-sla-countdown', isAuthorizedService, async function(
     }
 });
 
-router.post('/delete-incident', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/delete-incident', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { projectId, incident } = req.body;
 
@@ -108,7 +111,10 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
     }
 });
 
-router.post('/update-incident', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/update-incident', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { incident, projectId } = req.body;
 
@@ -384,7 +390,10 @@ router.post('/incident-acknowledged', isAuthorizedService, async function(
     }
 });
 
-router.post('/status-page-edit', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/status-page-edit', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { statusPage, projectId } = req.body;
 
@@ -395,7 +404,10 @@ router.post('/status-page-edit', isAuthorizedService, async function(req: $TSFix
     }
 });
 
-router.post('/component-edit', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/component-edit', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { component, projectId } = req.body;
 
@@ -406,7 +418,10 @@ router.post('/component-edit', isAuthorizedService, async function(req: $TSFixMe
     }
 });
 
-router.post('/monitor-edit', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/monitor-edit', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { monitor, projectId } = req.body;
 
@@ -501,7 +516,10 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
     }
 });
 
-router.post('/update-probe', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/update-probe', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { data } = req.body;
 
@@ -603,7 +621,10 @@ router.post('/send-application-log-delete', isAuthorizedService, async function(
     }
 });
 
-router.post('/send-log-created', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/send-log-created', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { contentLog, applicationLogId } = req.body;
 
@@ -794,7 +815,10 @@ router.post('/send-error-metrics', isAuthorizedService, async function(
     }
 });
 
-router.post('/handle-scanning', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/handle-scanning', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { security } = req.body;
 
@@ -805,7 +829,10 @@ router.post('/handle-scanning', isAuthorizedService, async function(req: $TSFixM
     }
 });
 
-router.post('/handle-log', isAuthorizedService, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/handle-log', isAuthorizedService, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { securityId, securityLog } = req.body;
 

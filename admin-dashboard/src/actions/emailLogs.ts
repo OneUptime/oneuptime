@@ -23,7 +23,9 @@ export const fetchEmailLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchEmailLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchEmailLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
 
@@ -75,7 +77,11 @@ export const searchEmailLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchEmailLogs = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const searchEmailLogs = (
+    filter: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -243,7 +249,9 @@ export const resetConfirmEmailLogStatus = () => {
 };
 
 // Calls the API to change emailLogStatus
-export const emailLogStatusChange = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const emailLogStatusChange = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
     dispatch(changeEmailLogStatusRequest());
 

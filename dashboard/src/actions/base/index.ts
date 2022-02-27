@@ -18,7 +18,7 @@ export default class Actions {
         listActionProps,
         friendlyName,
         apiPath,
-        isResourceInProject
+        isResourceInProject,
     }: $TSFixMe) {
         this.createAction = null;
         this.updateAction = null;
@@ -91,7 +91,6 @@ export default class Actions {
     getDeleteActions() {
         return this.deleteAction.getActions();
     }
-
 
     getCreateConstants() {
         return this.createAction.getConstants();

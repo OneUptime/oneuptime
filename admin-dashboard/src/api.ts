@@ -12,7 +12,7 @@ import { User } from './config';
 const baseURL = API_URL;
 const licensingURL = LICENSING_URL;
 
-import Q from 'q'
+import Q from 'q';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',

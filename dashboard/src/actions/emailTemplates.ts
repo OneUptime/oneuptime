@@ -288,7 +288,11 @@ export function deleteSmtpConfigSuccess(config: $TSFixMe) {
     };
 }
 
-export function deleteSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe, data: $TSFixMe) {
+export function deleteSmtpConfig(
+    projectId: $TSFixMe,
+    smtpId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = deleteApi(`emailSmtp/${projectId}/${smtpId}`, data);
         dispatch(deleteSmtpConfigRequest(promise));
@@ -327,7 +331,11 @@ export function deleteSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe, data: $T
     };
 }
 
-export function updateSmtpConfig(projectId: $TSFixMe, smtpId: $TSFixMe, data: $TSFixMe) {
+export function updateSmtpConfig(
+    projectId: $TSFixMe,
+    smtpId: $TSFixMe,
+    data: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(`emailSmtp/${projectId}/${smtpId}`, data);
         dispatch(smtpConfigRequest(promise));

@@ -7,15 +7,18 @@ export const createCustomFieldRequest = () => ({
 
 export const createCustomFieldSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_CUSTOM_FIELD_SUCCESS,
-    payload
+    payload,
 });
 
 export const createCustomFieldFailure = (error: $TSFixMe) => ({
     type: types.CREATE_CUSTOM_FIELD_FAILURE,
-    payload: error
+    payload: error,
 });
 
-export const createCustomField = (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const createCustomField = (
+    projectId: $TSFixMe,
+    data: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(createCustomFieldRequest());
 
@@ -41,18 +44,18 @@ export const updateCustomFieldRequest = () => ({
 
 export const updateCustomFieldSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_CUSTOM_FIELD_SUCCESS,
-    payload
+    payload,
 });
 
 export const updateCustomFieldFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_CUSTOM_FIELD_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const updateCustomField = ({
     projectId,
     customFieldId,
-    data
+    data,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(updateCustomFieldRequest());
@@ -82,12 +85,12 @@ export const fetchCustomFieldsRequest = () => ({
 
 export const fetchCustomFieldsSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_CUSTOM_FIELDS_SUCCESS,
-    payload
+    payload,
 });
 
 export const fetchCustomFieldsFailure = (error: $TSFixMe) => ({
     type: types.FETCH_CUSTOM_FIELDS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const fetchCustomFields = (
@@ -127,12 +130,12 @@ export const deleteCustomFieldRequest = () => ({
 
 export const deleteCustomFieldSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_CUSTOM_FIELD_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteCustomFieldFailure = (error: $TSFixMe) => ({
     type: types.DELETE_CUSTOM_FIELD_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deleteCustomField = (

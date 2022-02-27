@@ -1,8 +1,8 @@
-import { Mutex } from 'async-mutex'
-import mongoose from 'mongoose'
+import { Mutex } from 'async-mutex';
+import mongoose from 'mongoose';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module '../services/errorService' or i... Remove this comment to see the full error message
-import errorService from '../services/errorService'
-import MUTEX_RESOURCES from './MUTEX_RESOURCES'
+import errorService from '../services/errorService';
+import MUTEX_RESOURCES from './MUTEX_RESOURCES';
 
 // this is a single mutex storage
 // it contains one mutex per project

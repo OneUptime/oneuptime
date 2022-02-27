@@ -25,7 +25,10 @@ export function deletemonitorbysocket(monitor: $TSFixMe) {
     };
 }
 
-export function updatemonitorstatusbysocket(status: $TSFixMe, probes: $TSFixMe) {
+export function updatemonitorstatusbysocket(
+    status: $TSFixMe,
+    probes: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         dispatch({
             type: 'UPDATE_MONITOR_STATUS',

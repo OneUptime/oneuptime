@@ -1,8 +1,8 @@
-import Mongoose from 'mongoose'
-import mongoose from '../config/db'
-import JsonToCsv from './jsonToCsv'
-import ErrorService from 'common-server/utils/error'
-import logger from 'common-server/utils/logger'
+import Mongoose from 'mongoose';
+import mongoose from '../config/db';
+import JsonToCsv from './jsonToCsv';
+import ErrorService from 'common-server/utils/error';
+import logger from 'common-server/utils/logger';
 
 function logResponse(req: $TSFixMe, res: $TSFixMe, responsebody: $TSFixMe) {
     const requestEndedAt = Date.now();
@@ -105,7 +105,12 @@ export default {
         return logResponse(req, res, { message });
     },
 
-    sendListResponse: async function(req: $TSFixMe, res: $TSFixMe, list: $TSFixMe, count: $TSFixMe) {
+    sendListResponse: async function(
+        req: $TSFixMe,
+        res: $TSFixMe,
+        list: $TSFixMe,
+        count: $TSFixMe
+    ) {
         const response = {};
 
         if (!list) {

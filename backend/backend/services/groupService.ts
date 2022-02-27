@@ -1,4 +1,4 @@
-import GroupModel from '../models/groups'
+import GroupModel from '../models/groups';
 
 export default {
     findBy: async function(query: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
@@ -105,7 +105,11 @@ export default {
         return group;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, projectId: $TSFixMe) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        projectId: $TSFixMe
+    ) {
         if (!query) {
             query = {};
         }

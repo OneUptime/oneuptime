@@ -165,7 +165,11 @@ class Util {
         }
         return localFileName;
     }
-    _addCodeSnippetToFrame(lines: $TSFixMe, frame: $TSFixMe, linesOfContext = 5) {
+    _addCodeSnippetToFrame(
+        lines: $TSFixMe,
+        frame: $TSFixMe,
+        linesOfContext = 5
+    ) {
         if (lines.length < 1) return;
         const lineNumber = frame.lineNumber || 0;
         const maxLines = lines.length;

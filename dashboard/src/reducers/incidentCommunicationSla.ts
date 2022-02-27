@@ -25,7 +25,10 @@ const initialState = {
     activeSla: '',
 };
 
-export default function incidentCommunicationSla(state = initialState, action: $TSFixMe) {
+export default function incidentCommunicationSla(
+    state = initialState,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case types.CREATE_COMMUNICATION_SLA_REQUEST:
             return {

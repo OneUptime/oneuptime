@@ -1,5 +1,5 @@
-import utils from './test-utils'
-import chai from 'chai'
+import utils from './test-utils';
+import chai from 'chai';
 chai.use(require('chai-http'));
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request(utils.BACKEND_URL);
@@ -607,8 +607,9 @@ const _this = {
         await _this.pageClick(page, 'button[type=submit]');
         try {
             const signupResponse = await page.waitForResponse(
-                (response: $TSFixMe) => response.url().includes('/user/signup') &&
-                response.status() === 200
+                (response: $TSFixMe) =>
+                    response.url().includes('/user/signup') &&
+                    response.status() === 200
             );
             if (signupResponse) {
                 const signupData = await signupResponse.text();
@@ -655,7 +656,11 @@ const _this = {
         await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
-    selectDropdownValue: async function(selector: $TSFixMe, text: $TSFixMe, page: $TSFixMe) {
+    selectDropdownValue: async function(
+        selector: $TSFixMe,
+        text: $TSFixMe,
+        page: $TSFixMe
+    ) {
         await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
         //'div.css-1gl4k7y' is used if present. However, it presence is not consistent
@@ -680,7 +685,11 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageClick(page, '#btnCreateProject');
     },
-    addMonitor: async function(monitorName: $TSFixMe, description: $TSFixMe, page: $TSFixMe) {
+    addMonitor: async function(
+        monitorName: $TSFixMe,
+        description: $TSFixMe,
+        page: $TSFixMe
+    ) {
         await _this.pageWaitForSelector(page, '#form-new-monitor', {
             visible: true,
             timeout: _this.timeout,
@@ -711,7 +720,11 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    addAdditionalMonitor: async function(monitorName: $TSFixMe, description: $TSFixMe, page: $TSFixMe) {
+    addAdditionalMonitor: async function(
+        monitorName: $TSFixMe,
+        description: $TSFixMe,
+        page: $TSFixMe
+    ) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#cbMonitors');
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -746,7 +759,10 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    navigateToComponentDetails: async function(component: $TSFixMe, page: $TSFixMe) {
+    navigateToComponentDetails: async function(
+        component: $TSFixMe,
+        page: $TSFixMe
+    ) {
         // Navigate to Components page
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await _this.pageWaitForSelector(page, '#components', {
@@ -759,7 +775,10 @@ const _this = {
         // Navigate to details page of component assumed created
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, `#more-details-${component}`);
-        await _this.page$Eval(page, `#more-details-${component}`, (e: $TSFixMe) => e.click()
+        await _this.page$Eval(
+            page,
+            `#more-details-${component}`,
+            (e: $TSFixMe) => e.click()
         );
     },
     addMonitorToStatusPage: async function(
@@ -858,13 +877,19 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.page$Eval(page, `#react-tabs-${tabId}`, (e: $TSFixMe) => e.click());
+        await _this.page$Eval(page, `#react-tabs-${tabId}`, (e: $TSFixMe) =>
+            e.click()
+        );
     },
-    themeNavigationAndConfirmation: async function(page: $TSFixMe, theme: $TSFixMe) {
+    themeNavigationAndConfirmation: async function(
+        page: $TSFixMe,
+        theme: $TSFixMe
+    ) {
         await _this.pageWaitForSelector(page, '.branding-tab', {
             visible: true,
         });
-        await _this.page$$Eval(page, '.branding-tab', (elems: $TSFixMe) => elems[0].click()
+        await _this.page$$Eval(page, '.branding-tab', (elems: $TSFixMe) =>
+            elems[0].click()
         );
         await _this.pageWaitForSelector(page, `#${theme}`, {
             visible: true,
@@ -881,7 +906,10 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageClick(page, '.basic-tab');
     },
-    registerAndLoggingTeamMember: async function(user: $TSFixMe, page: $TSFixMe) {
+    registerAndLoggingTeamMember: async function(
+        user: $TSFixMe,
+        page: $TSFixMe
+    ) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/register'),
             {
@@ -967,7 +995,11 @@ const _this = {
         await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
-    addComponent: async function(component: $TSFixMe, page: $TSFixMe, projectName = null) {
+    addComponent: async function(
+        component: $TSFixMe,
+        page: $TSFixMe,
+        projectName = null
+    ) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await _this.pageWaitForSelector(page, '#components', {
             visible: true,
@@ -1030,7 +1062,11 @@ const _this = {
         ]);
     },
 
-    navigateToMonitorDetails: async function(component: $TSFixMe, monitor: $TSFixMe, page: $TSFixMe) {
+    navigateToMonitorDetails: async function(
+        component: $TSFixMe,
+        monitor: $TSFixMe,
+        page: $TSFixMe
+    ) {
         // Navigate to Components page
         await _this.navigateToComponentDetails(component, page);
 
@@ -1101,7 +1137,10 @@ const _this = {
         );
     },
 
-    createUserFromAdminDashboard: async function(user: $TSFixMe, page: $TSFixMe) {
+    createUserFromAdminDashboard: async function(
+        user: $TSFixMe,
+        page: $TSFixMe
+    ) {
         // create the user from admin dashboard
         const { email } = user;
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -1142,7 +1181,11 @@ const _this = {
         await _this.pageClick(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, '#frmUser', { hidden: true });
     },
-    addSchedule: async function(callSchedule: $TSFixMe, projectName: $TSFixMe, page: $TSFixMe) {
+    addSchedule: async function(
+        callSchedule: $TSFixMe,
+        projectName: $TSFixMe,
+        page: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -1275,7 +1318,11 @@ const _this = {
             visible: true,
         });
     },
-    addMonitorToComponent: async function(component: $TSFixMe, monitorName: $TSFixMe, page: $TSFixMe) {
+    addMonitorToComponent: async function(
+        component: $TSFixMe,
+        monitorName: $TSFixMe,
+        page: $TSFixMe
+    ) {
         component && (await _this.addComponent(component, page));
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, 'input[id=name]');
@@ -1304,7 +1351,11 @@ const _this = {
             visible: true,
         });
     },
-    addNewMonitorToComponent: async function(page: $TSFixMe, componentName: $TSFixMe, monitorName: $TSFixMe) {
+    addNewMonitorToComponent: async function(
+        page: $TSFixMe,
+        componentName: $TSFixMe,
+        monitorName: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
             timeout: _this.timeout,
@@ -1577,7 +1628,11 @@ const _this = {
             visible: true,
         });
     },
-    addIncidentToProject: async function(monitorName: $TSFixMe, projectName: $TSFixMe, page: $TSFixMe) {
+    addIncidentToProject: async function(
+        monitorName: $TSFixMe,
+        projectName: $TSFixMe,
+        page: $TSFixMe
+    ) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#incidentLog');
         await _this.page$Eval(page, '#incidentLog', (e: $TSFixMe) => e.click());
@@ -1590,7 +1645,10 @@ const _this = {
                 timeout: _this.timeout,
             }
         );
-        await _this.page$Eval(page, `#btnCreateIncident_${projectName}`, (e: $TSFixMe) => e.click()
+        await _this.page$Eval(
+            page,
+            `#btnCreateIncident_${projectName}`,
+            (e: $TSFixMe) => e.click()
         );
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#frmIncident');
@@ -1600,13 +1658,18 @@ const _this = {
         await _this.pageClick(page, `#${monitorName}`);
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageClick(page, '#incidentType');
-        await _this.page$Eval(page, '#createIncident', (e: $TSFixMe) => e.click());
+        await _this.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
+            e.click()
+        );
 
         await _this.pageWaitForSelector(page, '#createIncident', {
             hidden: true,
         });
     },
-    addIncidentPriority: async function(incidentPriority: $TSFixMe, page: $TSFixMe) {
+    addIncidentPriority: async function(
+        incidentPriority: $TSFixMe,
+        page: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -1626,7 +1689,10 @@ const _this = {
         await _this.pageWaitForSelector(page, '.incident-priority-tab', {
             visible: true,
         });
-        await _this.page$$Eval(page, '.incident-priority-tab', (elems: $TSFixMe) => elems[0].click()
+        await _this.page$$Eval(
+            page,
+            '.incident-priority-tab',
+            (elems: $TSFixMe) => elems[0].click()
         );
 
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -1643,7 +1709,11 @@ const _this = {
             hidden: true,
         });
     },
-    addStatusPageToProject: async function(statusPageName: $TSFixMe, projectName: $TSFixMe, page: $TSFixMe) {
+    addStatusPageToProject: async function(
+        statusPageName: $TSFixMe,
+        projectName: $TSFixMe,
+        page: $TSFixMe
+    ) {
         const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
         );
@@ -1679,7 +1749,11 @@ const _this = {
             hidden: true,
         });
     },
-    addScheduleToProject: async function(scheduleName: $TSFixMe, projectName: $TSFixMe, page: $TSFixMe) {
+    addScheduleToProject: async function(
+        scheduleName: $TSFixMe,
+        projectName: $TSFixMe,
+        page: $TSFixMe
+    ) {
         const createStatusPageSelector = await _this.page$(
             page,
             `#btnCreateStatusPage_${projectName}`,
@@ -1814,7 +1888,11 @@ const _this = {
             request.continue();
         }
     },
-    addProject: async function(page: $TSFixMe, projectName = null, checkCard = false) {
+    addProject: async function(
+        page: $TSFixMe,
+        projectName = null,
+        checkCard = false
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -1881,7 +1959,10 @@ const _this = {
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
-    addResourceCategory: async function(resourceCategory: $TSFixMe, page: $TSFixMe) {
+    addResourceCategory: async function(
+        resourceCategory: $TSFixMe,
+        page: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -1918,7 +1999,10 @@ const _this = {
             visible: true,
         });
     },
-    addGrowthProject: async function(projectName = 'GrowthProject', page: $TSFixMe) {
+    addGrowthProject: async function(
+        projectName = 'GrowthProject',
+        page: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -1948,7 +2032,10 @@ const _this = {
             await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
-    addScaleProject: async function(projectName = 'ScaleProject', page: $TSFixMe) {
+    addScaleProject: async function(
+        projectName = 'ScaleProject',
+        page: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -2135,11 +2222,13 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#call-enabled');
         if (enableCalls) {
-            await _this.page$Eval(page, '#call-enabled', (element: $TSFixMe) => element.click()
+            await _this.page$Eval(page, '#call-enabled', (element: $TSFixMe) =>
+                element.click()
             );
         }
         if (enableSms) {
-            await _this.page$Eval(page, '#sms-enabled', (element: $TSFixMe) => element.click()
+            await _this.page$Eval(page, '#sms-enabled', (element: $TSFixMe) =>
+                element.click()
             );
         }
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
@@ -2184,7 +2273,9 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#smtpswitch');
         if (enable)
-            await _this.page$Eval(page, '#smtpswitch', (elem: $TSFixMe) => elem.click());
+            await _this.page$Eval(page, '#smtpswitch', (elem: $TSFixMe) =>
+                elem.click()
+            );
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#user');
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
@@ -2213,7 +2304,11 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, '#user');
     },
-    setAlertPhoneNumber: async (phoneNumber: $TSFixMe, code: $TSFixMe, page: $TSFixMe) => {
+    setAlertPhoneNumber: async (
+        phoneNumber: $TSFixMe,
+        code: $TSFixMe,
+        page: $TSFixMe
+    ) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -2279,7 +2374,11 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageClick(page, '#createSubscriber');
     },
-    addCustomField: async function(page: $TSFixMe, data: $TSFixMe, owner: $TSFixMe) {
+    addCustomField: async function(
+        page: $TSFixMe,
+        data: $TSFixMe,
+        owner: $TSFixMe
+    ) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -2361,7 +2460,12 @@ const _this = {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageClick(page, '.advanced-tab');
     },
-    pageType: async function(page: $TSFixMe, selector: $TSFixMe, text: $TSFixMe, opts: $TSFixMe) {
+    pageType: async function(
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        text: $TSFixMe,
+        opts: $TSFixMe
+    ) {
         await _this.pageWaitForSelector(page, selector, {
             visible: true,
             timeout: _this.timeout,
@@ -2369,18 +2473,31 @@ const _this = {
         await page.focus(selector);
         return await page.type(selector, text, opts);
     },
-    pageClick: async function(page: $TSFixMe, selector: $TSFixMe, opts: $TSFixMe) {
+    pageClick: async function(
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        opts: $TSFixMe
+    ) {
         await _this.pageWaitForSelector(page, selector, {
             visible: true,
             timeout: _this.timeout,
         });
         return await page.click(selector, opts);
     },
-    page$Eval: async function(page: $TSFixMe, selector: $TSFixMe, evalFunction: $TSFixMe, opts = null) {
+    page$Eval: async function(
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        evalFunction: $TSFixMe,
+        opts = null
+    ) {
         await _this.pageWaitForSelector(page, selector, opts);
         return await page.$eval(selector, evalFunction);
     },
-    page$$Eval: async function(page: $TSFixMe, selector: $TSFixMe, evalFunction: $TSFixMe) {
+    page$$Eval: async function(
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        evalFunction: $TSFixMe
+    ) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
         await _this.pageWaitForSelector(page, selector);
         return await page.$$eval(selector, evalFunction);
@@ -2394,7 +2511,11 @@ const _this = {
         await _this.pageWaitForSelector(page, selector);
         return await page.$$(selector, opts);
     },
-    pageWaitForSelector: async function(page: $TSFixMe, selector: $TSFixMe, opts: $TSFixMe) {
+    pageWaitForSelector: async function(
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        opts: $TSFixMe
+    ) {
         if (!opts) {
             opts = {};
         }
@@ -2417,7 +2538,11 @@ const _this = {
             return false;
         }
     },
-    pageClickNavigate: async function(page: $TSFixMe, selector: $TSFixMe, opts: $TSFixMe) {
+    pageClickNavigate: async function(
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        opts: $TSFixMe
+    ) {
         await _this.pageWaitForSelector(page, selector, {
             visible: true,
             timeout: _this.timeout,

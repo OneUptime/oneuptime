@@ -1,15 +1,15 @@
-import express from 'express'
-import EmailSmtpService from '../services/emailSmtpService'
-import MailService from '../services/mailService'
+import express from 'express';
+import EmailSmtpService from '../services/emailSmtpService';
+import MailService from '../services/mailService';
 const router = express.Router();
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import UserService from '../services/userService'
+import UserService from '../services/userService';
 
 router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     try {

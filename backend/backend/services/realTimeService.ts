@@ -383,7 +383,10 @@ export default {
         }
     },
 
-    addScheduledEventInvestigationNote: async (note: $TSFixMe, projectId: $TSFixMe) => {
+    addScheduledEventInvestigationNote: async (
+        note: $TSFixMe,
+        projectId: $TSFixMe
+    ) => {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
             if (!global || !global.io) {
@@ -441,7 +444,10 @@ export default {
         }
     },
 
-    deleteScheduledEventInvestigationNote: async (note: $TSFixMe, projectId: $TSFixMe) => {
+    deleteScheduledEventInvestigationNote: async (
+        note: $TSFixMe,
+        projectId: $TSFixMe
+    ) => {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
             if (!global || !global.io) {
@@ -499,7 +505,10 @@ export default {
         }
     },
 
-    updateScheduledEventInvestigationNote: async (note: $TSFixMe, projectId: $TSFixMe) => {
+    updateScheduledEventInvestigationNote: async (
+        note: $TSFixMe,
+        projectId: $TSFixMe
+    ) => {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
             if (!global || !global.io) {
@@ -801,7 +810,11 @@ export default {
         }
     },
 
-    updateMonitorLog: async (data: $TSFixMe, logData: $TSFixMe, projectId: $TSFixMe) => {
+    updateMonitorLog: async (
+        data: $TSFixMe,
+        logData: $TSFixMe,
+        projectId: $TSFixMe
+    ) => {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
             if (!global || !global.io) {
@@ -1326,9 +1339,7 @@ export default {
             ErrorService.log('realTimeService.sendErrorMetrics', error);
         }
     },
-    handleScanning: ({
-        security
-    }: $TSFixMe) => {
+    handleScanning: ({ security }: $TSFixMe) => {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
             if (!global || !global.io) {
@@ -1342,10 +1353,7 @@ export default {
             ErrorService.log('realTimeService.handleScanning', error);
         }
     },
-    handleLog: ({
-        securityId,
-        securityLog
-    }: $TSFixMe) => {
+    handleLog: ({ securityId, securityLog }: $TSFixMe) => {
         try {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
             if (!global || !global.io) {
@@ -1361,7 +1369,11 @@ export default {
         }
     },
 
-    updateTweets: async (tweets: $TSFixMe, statusPageId: $TSFixMe, projectId: $TSFixMe) => {
+    updateTweets: async (
+        tweets: $TSFixMe,
+        statusPageId: $TSFixMe,
+        projectId: $TSFixMe
+    ) => {
         try {
             // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
             const project = await ProjectService.findOneBy({
@@ -1387,12 +1399,12 @@ export default {
     },
 };
 
-import ErrorService from 'common-server/utils/error'
-import ProjectService from './projectService'
-import MonitorService from './monitorService'
-import IncidentService from './incidentService'
+import ErrorService from 'common-server/utils/error';
+import ProjectService from './projectService';
+import MonitorService from './monitorService';
+import IncidentService from './incidentService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
-import { postApi } from '../utils/api'
+import { postApi } from '../utils/api';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/realtime"' has no exported memb... Remove this comment to see the full error message
-import { REALTIME_URL } from '../config/realtime'
+import { REALTIME_URL } from '../config/realtime';
 const realtimeBaseUrl = `${REALTIME_URL}/realtime`;

@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
@@ -151,7 +151,9 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
@@ -504,7 +506,9 @@ describe('API Monitor API', () => {
             const deleteButtonSelector = `#delete_${testMonitorName}`;
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, deleteButtonSelector);
-            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             const confirmDeleteButtonSelector = '#deleteMonitor';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.

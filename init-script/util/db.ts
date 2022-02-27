@@ -43,12 +43,20 @@ async function update(collection: $TSFixMe, query: $TSFixMe, value: $TSFixMe) {
     return global.db.collection(collection).updateOne(query, { $set: value });
 }
 
-async function updateMany(collection: $TSFixMe, query: $TSFixMe, value: $TSFixMe) {
+async function updateMany(
+    collection: $TSFixMe,
+    query: $TSFixMe,
+    value: $TSFixMe
+) {
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
     return global.db.collection(collection).updateMany(query, { $set: value });
 }
 
-async function customUpdate(collection: $TSFixMe, query: $TSFixMe, value: $TSFixMe) {
+async function customUpdate(
+    collection: $TSFixMe,
+    query: $TSFixMe,
+    value: $TSFixMe
+) {
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
     return global.db.collection(collection).updateMany(query, value);
 }
@@ -57,20 +65,31 @@ async function removeMany(collection: $TSFixMe, query: $TSFixMe) {
     return global.db.collection(collection).remove(query, { multi: true });
 }
 
-async function removeField(collection: $TSFixMe, query: $TSFixMe, field: $TSFixMe) {
+async function removeField(
+    collection: $TSFixMe,
+    query: $TSFixMe,
+    field: $TSFixMe
+) {
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
     return global.db
         .collection(collection)
         .updateOne(query, { $unset: { [field]: '' } }, { multi: true });
 }
-async function removeFieldsFromMany(collection: $TSFixMe, query: $TSFixMe, field: $TSFixMe) {
+async function removeFieldsFromMany(
+    collection: $TSFixMe,
+    query: $TSFixMe,
+    field: $TSFixMe
+) {
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
     return global.db
         .collection(collection)
         .updateMany(query, { $unset: { [field]: '' } }, { multi: true });
 }
 
-async function rename(oldCollectionName: $TSFixMe, newCollectionName: $TSFixMe) {
+async function rename(
+    oldCollectionName: $TSFixMe,
+    newCollectionName: $TSFixMe
+) {
     // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
     return global.db
         .listCollections({ name: oldCollectionName })

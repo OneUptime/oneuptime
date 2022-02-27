@@ -1,6 +1,6 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
-import InvoiceService from '../services/invoiceService'
+import InvoiceService from '../services/invoiceService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 

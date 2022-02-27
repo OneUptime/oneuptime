@@ -142,7 +142,8 @@ export function getProjects(switchToProjectId: $TSFixMe) {
                     if (User.getCurrentProjectId()) {
                         // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         const project = projects.filter(
-                            (project: $TSFixMe) => project._id === User.getCurrentProjectId()
+                            (project: $TSFixMe) =>
+                                project._id === User.getCurrentProjectId()
                         );
                         if (project && project.length > 0) {
                             dispatch(switchProject(dispatch, project[0]));
@@ -169,7 +170,8 @@ export function getProjects(switchToProjectId: $TSFixMe) {
                     if (User.getCurrentProjectId() && !projectSwitched) {
                         // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
                         const project = projects.filter(
-                            (project: $TSFixMe) => project._id === User.getCurrentProjectId()
+                            (project: $TSFixMe) =>
+                                project._id === User.getCurrentProjectId()
                         );
                         if (project.length > 0) {
                             dispatch(switchProject(dispatch, project[0]));
@@ -305,7 +307,11 @@ export function createProject(values: $TSFixMe) {
     };
 }
 
-export function switchToProjectViewerNav(userId: $TSFixMe, subProjects: $TSFixMe, currentProject: $TSFixMe) {
+export function switchToProjectViewerNav(
+    userId: $TSFixMe,
+    subProjects: $TSFixMe,
+    currentProject: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         dispatch({
             type: types.SHOW_VIEWER_MENU,
@@ -314,7 +320,11 @@ export function switchToProjectViewerNav(userId: $TSFixMe, subProjects: $TSFixMe
     };
 }
 
-export function switchProject(dispatch: $TSFixMe, project: $TSFixMe, subProjects = []) {
+export function switchProject(
+    dispatch: $TSFixMe,
+    project: $TSFixMe,
+    subProjects = []
+) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
 
@@ -653,7 +663,13 @@ export function changePlanError(error: $TSFixMe) {
     };
 }
 
-export function changePlan(projectId: $TSFixMe, planId: $TSFixMe, projectName: $TSFixMe, oldPlan: $TSFixMe, newPlan: $TSFixMe) {
+export function changePlan(
+    projectId: $TSFixMe,
+    planId: $TSFixMe,
+    projectName: $TSFixMe,
+    oldPlan: $TSFixMe,
+    newPlan: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/changePlan`, {
             projectName,
@@ -691,7 +707,11 @@ export function changePlan(projectId: $TSFixMe, planId: $TSFixMe, projectName: $
     };
 }
 
-export function upgradeToEnterpriseMail(projectId: $TSFixMe, projectName: $TSFixMe, oldPlan: $TSFixMe) {
+export function upgradeToEnterpriseMail(
+    projectId: $TSFixMe,
+    projectName: $TSFixMe,
+    oldPlan: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/upgradeToEnterprise`, {
             projectName,
@@ -958,7 +978,7 @@ export function updateProjectBalanceFailure(error: $TSFixMe) {
 
 export const updateProjectBalance = ({
     projectId,
-    intentId
+    intentId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(updateProjectBalanceRequest());
 
@@ -1052,10 +1072,7 @@ export function setEmailNotificationFailure(error: $TSFixMe) {
     };
 }
 
-export function setEmailNotification({
-    projectId,
-    data
-}: $TSFixMe) {
+export function setEmailNotification({ projectId, data }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(setEmailNotificationRequest());
 
@@ -1100,10 +1117,7 @@ export function setSmsNotificationFailure(error: $TSFixMe) {
     };
 }
 
-export function setSmsNotification({
-    projectId,
-    data
-}: $TSFixMe) {
+export function setSmsNotification({ projectId, data }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(setSmsNotificationRequest());
 
@@ -1149,10 +1163,7 @@ export function setWebhookNotificationSettingsFailure(error: $TSFixMe) {
     };
 }
 
-export function setWebhookNotificationSettings({
-    projectId,
-    data
-}: $TSFixMe) {
+export function setWebhookNotificationSettings({ projectId, data }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(setWebhookNotificationSettingsRequest());
 
@@ -1204,10 +1215,7 @@ export function resetCreateProjectDomain() {
     };
 }
 
-export function createProjectDomain({
-    projectId,
-    data
-}: $TSFixMe) {
+export function createProjectDomain({ projectId, data }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(createProjectDomainRequest());
 
@@ -1306,11 +1314,7 @@ export function resetUpdateProjectDomain() {
     };
 }
 
-export function updateProjectDomain({
-    projectId,
-    domainId,
-    data
-}: $TSFixMe) {
+export function updateProjectDomain({ projectId, domainId, data }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(updateProjectDomainRequest());
 
@@ -1363,11 +1367,7 @@ export function resetVerifyProjectDomain() {
     };
 }
 
-export function verifyProjectDomain({
-    projectId,
-    domainId,
-    data
-}: $TSFixMe) {
+export function verifyProjectDomain({ projectId, domainId, data }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 
@@ -1420,10 +1420,7 @@ export function resetDeleteProjectDomain() {
     };
 }
 
-export function deleteProjectDomain({
-    projectId,
-    domainId
-}: $TSFixMe) {
+export function deleteProjectDomain({ projectId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
 

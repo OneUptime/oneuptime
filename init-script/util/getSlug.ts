@@ -1,5 +1,5 @@
-import slugify from 'slugify'
-import generate from 'nanoid'
+import slugify from 'slugify';
+import generate from 'nanoid';
 
 export default function getSlug(name: $TSFixMe) {
     name = String(name);
@@ -11,4 +11,4 @@ export default function getSlug(name: $TSFixMe) {
     slug = slug.toLowerCase();
 
     return slug;
-};
+}

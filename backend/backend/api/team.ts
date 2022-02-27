@@ -1,17 +1,17 @@
-import express from 'express'
+import express from 'express';
 
 const router = express.Router();
-import TeamService from '../services/teamService'
+import TeamService from '../services/teamService';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-import RealTimeService from '../services/realTimeService'
-import NotificationService from '../services/notificationService'
+import RealTimeService from '../services/realTimeService';
+import NotificationService from '../services/notificationService';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-import ErrorService from 'common-server/utils/error'
+import ErrorService from 'common-server/utils/error';
 
 // Route
 // Description: Getting details of team members of the project.
@@ -38,8 +38,8 @@ router.get(
     async function(req, res) {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const subProjectIds = req.user.subProjects
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+              req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         try {
             const subProjectTeamMembers = await Promise.all(

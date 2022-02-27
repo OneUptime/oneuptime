@@ -1,15 +1,15 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 
-import AutomatedScriptService from '../services/automatedScriptService'
+import AutomatedScriptService from '../services/automatedScriptService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/response"' has no exported... Remove this comment to see the full error message
-import { sendItemResponse } from '../middlewares/response'
+import { sendItemResponse } from '../middlewares/response';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
-import { getUser } from '../middlewares/user'
+import { getUser } from '../middlewares/user';
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {

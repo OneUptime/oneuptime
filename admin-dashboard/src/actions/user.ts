@@ -23,7 +23,9 @@ export const fetchUsersError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch all users.
-export const fetchUsers = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchUsers = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchUsersRequest());
@@ -179,7 +181,9 @@ export const updateUserSettingError = (error: $TSFixMe) => {
 };
 
 // Calls the API to update user setting.
-export const updateUserSetting = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const updateUserSetting = (values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     const data = new FormData();
     if (values.profilePic && values.profilePic[0]) {
         data.append(
@@ -423,7 +427,9 @@ export const enableAdminModeReset = () => {
 };
 
 // Enable admin mode
-export const enableAdminMode = (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const enableAdminMode = (userId: $TSFixMe, values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(enableAdminModeRequest());
 
     try {
@@ -481,7 +487,9 @@ export const disableAdminModeReset = () => {
 };
 
 // Disable admin mode
-export const disableAdminMode = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const disableAdminMode = (userId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(disableAdminModeRequest());
 
     try {
@@ -591,7 +599,9 @@ export const addUserNoteError = (error: $TSFixMe) => {
 };
 
 // Calls the API to add Admin Note
-export const addUserNote = (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const addUserNote = (userId: $TSFixMe, values: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(addUserNoteRequest());
 
     try {
@@ -646,7 +656,11 @@ export const searchUsersError = (error: $TSFixMe) => {
 };
 
 // Calls the search users api
-export const searchUsers = (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const searchUsers = (
+    filter: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => async (dispatch: $TSFixMe) => {
     const values = {
         filter,
     };
@@ -762,7 +776,11 @@ export function fetchUserHistoryError(error: $TSFixMe) {
     };
 }
 
-export function fetchUserloginHistory(userId: $TSFixMe, skip: $TSFixMe, limit = 10) {
+export function fetchUserloginHistory(
+    userId: $TSFixMe,
+    skip: $TSFixMe,
+    limit = 10
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = getApi(`history/${userId}?skip=${skip}&limit=${limit}`);

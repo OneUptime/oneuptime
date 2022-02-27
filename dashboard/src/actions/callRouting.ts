@@ -2,7 +2,11 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/callRouting';
 import errors from '../errors';
 
-export function getCallRoutingNumbers(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getCallRoutingNumbers(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     if (!skip) skip = 0;
     if (!limit) limit = 10;
     return function(dispatch: $TSFixMe) {
@@ -231,7 +235,10 @@ export function uploadCallRoutingAudioSuccess(
     };
 }
 
-export function uploadCallRoutingAudioRequest(callRoutingId: $TSFixMe, audioFieldName: $TSFixMe) {
+export function uploadCallRoutingAudioRequest(
+    callRoutingId: $TSFixMe,
+    audioFieldName: $TSFixMe
+) {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST,
         payload: { callRoutingId, audioFieldName },
@@ -249,7 +256,11 @@ export function uploadCallRoutingAudioFailure(
     };
 }
 
-export function addCallRoutingSchedule(projectId: $TSFixMe, callRoutingId: $TSFixMe, values: $TSFixMe) {
+export function addCallRoutingSchedule(
+    projectId: $TSFixMe,
+    callRoutingId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `callRouting/${projectId}/${callRoutingId}`,
@@ -302,7 +313,11 @@ export function addCallRoutingScheduleFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchNumbers(projectId: $TSFixMe, countryCode: $TSFixMe, numberType: $TSFixMe) {
+export function fetchNumbers(
+    projectId: $TSFixMe,
+    countryCode: $TSFixMe,
+    numberType: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `callRouting/${projectId}/routingNumbers?countryCode=${countryCode}&numberType=${numberType}`
@@ -411,7 +426,11 @@ export function removeNumbersFailure(error: $TSFixMe) {
     };
 }
 
-export function getCallRoutingLogs(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getCallRoutingLogs(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `callRouting/${projectId}/logs?skip=${skip}&limit=${limit}`
@@ -476,7 +495,11 @@ export function getCallRoutingLogsReset() {
     };
 }
 
-export function removeIntroAudio(projectId: $TSFixMe, callRoutingId: $TSFixMe, backup: $TSFixMe) {
+export function removeIntroAudio(
+    projectId: $TSFixMe,
+    callRoutingId: $TSFixMe,
+    backup: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `callRouting/${projectId}/${callRoutingId}/removeAudio`,
@@ -525,7 +548,10 @@ export function removeIntroAudioSuccess(numbers: $TSFixMe, backup: $TSFixMe) {
     }
 }
 
-export function removeIntroAudioRequest(callRoutingId: $TSFixMe, backup: $TSFixMe) {
+export function removeIntroAudioRequest(
+    callRoutingId: $TSFixMe,
+    backup: $TSFixMe
+) {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST,

@@ -1,7 +1,7 @@
-import StatusPageService from '../services/statusPageService'
+import StatusPageService from '../services/statusPageService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-import apiMiddleware from './api'
-import ipaddr from 'ipaddr.js'
+import apiMiddleware from './api';
+import ipaddr from 'ipaddr.js';
 
 const _this = {
     ipWhitelist: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
@@ -43,8 +43,8 @@ const _this = {
         }
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
         const ipWhitelist = statusPage.ipWhitelist
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
-            ? [...statusPage.ipWhitelist]
+            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
+              [...statusPage.ipWhitelist]
             : [];
         // if ip whitelist is enabled and no ip is saved
         // block the access

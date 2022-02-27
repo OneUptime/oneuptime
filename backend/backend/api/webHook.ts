@@ -1,5 +1,5 @@
-import express from 'express'
-import IntegrationService from '../services/integrationService'
+import express from 'express';
+import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -214,7 +214,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         data.monitors =
             data.monitors &&
             data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor
+                monitorId: monitor,
             }));
 
         const existingWebhook = await IntegrationService.findOneBy({

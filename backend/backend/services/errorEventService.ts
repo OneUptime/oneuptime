@@ -42,11 +42,7 @@ export default {
 
         return savedErrorEvent;
     },
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -59,13 +55,7 @@ export default {
         return result;
     },
     // get all error events that matches the specified query
-    async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -263,7 +253,10 @@ export default {
             count: errorTrackerIssues.length,
         };
     },
-    async findOneWithPrevAndNext(errorEventId: $TSFixMe, errorTrackerId: $TSFixMe) {
+    async findOneWithPrevAndNext(
+        errorEventId: $TSFixMe,
+        errorTrackerId: $TSFixMe
+    ) {
         let previous, next;
         const selectErrorTracker =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt issueId';
@@ -412,10 +405,10 @@ export default {
     },
 };
 
-import ErrorEventModel from '../models/errorEvent'
-import IssueService from './issueService'
-import IssueMemberService from './issueMemberService'
-import IssueTimelineService from './issueTimelineService'
-import moment from 'moment'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import ErrorEventModel from '../models/errorEvent';
+import IssueService from './issueService';
+import IssueMemberService from './issueMemberService';
+import IssueTimelineService from './issueTimelineService';
+import moment from 'moment';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

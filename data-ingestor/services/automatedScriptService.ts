@@ -1,14 +1,14 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
-import { postApi } from '../utils/api'
-import ErrorService from './errorService'
+import { postApi } from '../utils/api';
+import ErrorService from './errorService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { scriptBaseUrl } from '../utils/config'
+import { scriptBaseUrl } from '../utils/config';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const scriptLogCollection = global.db.collection('automationsriptlogs');
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const scriptCollection = global.db.collection('automationsripts');
-import { ObjectId } from 'mongodb'
-import moment from 'moment'
+import { ObjectId } from 'mongodb';
+import moment from 'moment';
 
 export default {
     createLog: async function(id: $TSFixMe, data: $TSFixMe) {
@@ -18,18 +18,18 @@ export default {
             scriptLog.automationScriptId = id ? ObjectId(id) : null;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByUser' does not exist on type '{... Remove this comment to see the full error message
             scriptLog.triggerByUser = data.triggerByUser
-                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                ? ObjectId(data.triggerByUser)
+                ? // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                  ObjectId(data.triggerByUser)
                 : null;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByScript' does not exist on type ... Remove this comment to see the full error message
             scriptLog.triggerByScript = data.triggerByScript
-                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                ? ObjectId(data.triggerByScript)
+                ? // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                  ObjectId(data.triggerByScript)
                 : null;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByIncident' does not exist on typ... Remove this comment to see the full error message
             scriptLog.triggerByIncident = data.triggerByIncident
-                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
-                ? ObjectId(data.triggerByIncident)
+                ? // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                  ObjectId(data.triggerByIncident)
                 : null;
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type '{}'.
             scriptLog.status = data.status || null;
@@ -101,7 +101,7 @@ export default {
         triggeredId,
         triggeredBy,
         resources,
-        stackSize = 0
+        stackSize = 0,
     }: $TSFixMe) {
         try {
             const _this = this;
@@ -170,7 +170,7 @@ export default {
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
-        stackSize
+        stackSize,
     }: $TSFixMe) {
         try {
             const _this = this;
@@ -219,14 +219,14 @@ export default {
                 };
             }
             triggeredBy === 'user'
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                ? (data.triggerByUser = triggeredId)
+                ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                  (data.triggerByUser = triggeredId)
                 : triggeredBy === 'script'
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                ? (data.triggerByScript = triggeredId)
+                ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                  (data.triggerByScript = triggeredId)
                 : triggeredBy === 'incident'
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                ? (data.triggerByIncident = triggeredId)
+                ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                  (data.triggerByIncident = triggeredId)
                 : null;
             // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
             if (data.success && successEvent.length > 0) {

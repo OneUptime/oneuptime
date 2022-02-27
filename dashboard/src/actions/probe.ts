@@ -32,7 +32,11 @@ export const resetProbe = () => {
 };
 
 // Gets project Probes
-export function getProbes(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getProbes(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 

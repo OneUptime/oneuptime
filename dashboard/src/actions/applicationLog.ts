@@ -4,7 +4,11 @@ import errors from '../errors';
 
 //Create new log container
 //props -> {name: '', type, data -> { data.url}}
-export function createApplicationLog(projectId: $TSFixMe, componentId: $TSFixMe, values: $TSFixMe) {
+export function createApplicationLog(
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/create`,
@@ -129,7 +133,11 @@ export function resetFetchApplicationLogs() {
 
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
-export function deleteApplicationLog(projectId: $TSFixMe, componentId: $TSFixMe, applicationLogId: $TSFixMe) {
+export function deleteApplicationLog(
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLogId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = deleteApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
@@ -410,7 +418,11 @@ export function editApplicationLogFailure(error: $TSFixMe) {
     };
 }
 
-export function fetchStats(projectId: $TSFixMe, componentId: $TSFixMe, applicationLogId: $TSFixMe) {
+export function fetchStats(
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLogId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
@@ -484,7 +496,12 @@ export function getLogSuccess(log: $TSFixMe) {
     };
 }
 
-export function searchLog(projectId: $TSFixMe, componentId: $TSFixMe, applicationLogId: $TSFixMe, payload: $TSFixMe) {
+export function searchLog(
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLogId: $TSFixMe,
+    payload: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,

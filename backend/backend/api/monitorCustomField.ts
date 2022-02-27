@@ -1,14 +1,14 @@
-import express from 'express'
+import express from 'express';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
-import { getUser } from '../middlewares/user'
+import { getUser } from '../middlewares/user';
 const {
     sendErrorResponse,
     sendItemResponse,
     sendListResponse,
 } = require('../middlewares/response');
-import MonitorCustomFieldService from '../services/monitorCustomField'
+import MonitorCustomFieldService from '../services/monitorCustomField';
 
 const router = express.Router();
 

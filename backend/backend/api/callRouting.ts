@@ -1,17 +1,17 @@
-import express from 'express'
+import express from 'express';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../services/twilioService"' has no export... Remove this comment to see the full error message
-import { fetchPhoneNumbers } from '../services/twilioService'
-import CallRoutingService from '../services/callRoutingService'
-import FileService from '../services/fileService'
+import { fetchPhoneNumbers } from '../services/twilioService';
+import CallRoutingService from '../services/callRoutingService';
+import FileService from '../services/fileService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
-import multer from 'multer'
-import storage from '../middlewares/upload'
+import multer from 'multer';
+import storage from '../middlewares/upload';
 
 const callForward = async (req: $TSFixMe, res: $TSFixMe) => {
     try {

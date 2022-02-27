@@ -22,7 +22,9 @@ export const fetchSsoDefaultRolesError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSsoDefaultRoles = (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchSsoDefaultRoles = (skip: $TSFixMe, limit: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     skip = skip ? parseInt(skip) : 0;
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsoDefaultRolesRequest());
@@ -69,7 +71,9 @@ export const fetchSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSsoDefaultRole = (ssoDefaultRoleId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchSsoDefaultRole = (ssoDefaultRoleId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(fetchSsoDefaultRoleRequest());
     try {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
@@ -112,7 +116,9 @@ export const deleteSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const deleteSsoDefaultRole = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const deleteSsoDefaultRole = (ssoId: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(deleteSsoDefaultRoleRequest());
     try {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
@@ -156,9 +162,9 @@ export const addSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const addSsoDefaultRole = ({
-    data
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const addSsoDefaultRole = ({ data }: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(addSsoDefaultRoleRequest());
     try {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -201,10 +207,9 @@ export const updateSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const updateSsoDefaultRole = ({
-    id,
-    data
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const updateSsoDefaultRole = ({ id, data }: $TSFixMe) => async (
+    dispatch: $TSFixMe
+) => {
     dispatch(updateSsoDefaultRoleRequest());
     try {
         await putApi(`ssoDefaultRoles/${id}`, data);

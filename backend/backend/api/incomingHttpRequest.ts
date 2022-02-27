@@ -1,10 +1,10 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
-import ProbeService from '../services/probeService'
+import ProbeService from '../services/probeService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/api"' has no exported memb... Remove this comment to see the full error message
-import { isValidMonitor } from '../middlewares/api'
+import { isValidMonitor } from '../middlewares/api';
 
 const incomingHttpRequest = async function(req: $TSFixMe, res: $TSFixMe) {
     try {

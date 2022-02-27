@@ -1,7 +1,7 @@
-import utils from '../../test-utils'
+import utils from '../../test-utils';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
-import axios from 'axios'
-import init from '../../test-init'
+import axios from 'axios';
+import init from '../../test-init';
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Version API', function() {

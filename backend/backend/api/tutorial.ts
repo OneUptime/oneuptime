@@ -1,7 +1,7 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 
-import UserService from '../services/userService'
+import UserService from '../services/userService';
 
 const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;

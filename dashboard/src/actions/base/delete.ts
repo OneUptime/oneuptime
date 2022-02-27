@@ -5,7 +5,7 @@ class DeleteActionBase extends BaseAction {
         friendlyName,
         apiPath,
         isResourceInProject,
-        isRequestAllowed
+        isRequestAllowed,
     }: $TSFixMe) {
         super({
             friendlyName,

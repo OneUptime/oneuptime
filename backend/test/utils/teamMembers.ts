@@ -1,7 +1,7 @@
-import mongoose from 'mongoose'
-import ProjectModel from '../../backend/models/project'
+import mongoose from 'mongoose';
+import ProjectModel from '../../backend/models/project';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module '../../backend/services/errorSe... Remove this comment to see the full error message
-import ErrorService from '../../backend/services/errorService'
+import ErrorService from '../../backend/services/errorService';
 
 export default {
     /**
@@ -10,7 +10,10 @@ export default {
      * @param {Object} projectId
      * @returns {Object | {error : string}} the updated project or an error
      */
-    addTeamMembersToProject: async function(projectId: $TSFixMe, teamMembers: $TSFixMe) {
+    addTeamMembersToProject: async function(
+        projectId: $TSFixMe,
+        teamMembers: $TSFixMe
+    ) {
         try {
             if (
                 Array.isArray(teamMembers) &&
@@ -46,7 +49,10 @@ export default {
      * @param {Object} projectId
      * @returns {Object | {error : string}} the updated project or an error
      */
-    removeTeamMembersFromProject: async function(projectId: $TSFixMe, teamMembers: $TSFixMe) {
+    removeTeamMembersFromProject: async function(
+        projectId: $TSFixMe,
+        teamMembers: $TSFixMe
+    ) {
         try {
             if (
                 Array.isArray(teamMembers) &&

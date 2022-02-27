@@ -1,25 +1,25 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
-import nodemailer from 'nodemailer'
+import nodemailer from 'nodemailer';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
-import hbs from 'nodemailer-express-handlebars'
-import Handlebars from 'handlebars'
-import Whitepapers from '../config/whitepaper'
-import ErrorService from 'common-server/utils/error'
-import defaultEmailTemplates from '../config/emailTemplate'
-import GlobalConfigService from './globalConfigService'
-import EmailSmtpService from './emailSmtpService'
-import EmailStatusService from './emailStatusService'
-import DateTime from '../utils/DateTime'
-import Path from 'path'
-import fsp from 'fs/promises'
-import moment from 'moment'
+import hbs from 'nodemailer-express-handlebars';
+import Handlebars from 'handlebars';
+import Whitepapers from '../config/whitepaper';
+import ErrorService from 'common-server/utils/error';
+import defaultEmailTemplates from '../config/emailTemplate';
+import GlobalConfigService from './globalConfigService';
+import EmailSmtpService from './emailSmtpService';
+import EmailStatusService from './emailStatusService';
+import DateTime from '../utils/DateTime';
+import Path from 'path';
+import fsp from 'fs/promises';
+import moment from 'moment';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import { isEmpty } from 'lodash'
+import { isEmpty } from 'lodash';
 const helpers = {
     year: DateTime.getCurrentYear,
 };
 
-import UppercaseFirstLetter from '../utils/UppercaseFirstLetter'
+import UppercaseFirstLetter from '../utils/UppercaseFirstLetter';
 
 const options = {
     viewEngine: {
@@ -130,7 +130,7 @@ const _this = {
         user,
         pass,
         secure,
-        internalSmtp
+        internalSmtp,
     }: $TSFixMe) {
         let settings = {};
         if (!host || !user || !pass) {
@@ -655,7 +655,7 @@ const _this = {
     sendDeleteProjectEmail: async function({
         userEmail,
         name,
-        projectName
+        projectName,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -823,7 +823,11 @@ const _this = {
             throw error;
         }
     },
-    sendVerifyEmail: async function(tokenVerifyURL: $TSFixMe, name: $TSFixMe, email: $TSFixMe) {
+    sendVerifyEmail: async function(
+        tokenVerifyURL: $TSFixMe,
+        name: $TSFixMe,
+        email: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1187,7 +1191,10 @@ const _this = {
         }
     },
 
-    sendUserFeedbackResponse: async function(userEmail: $TSFixMe, name: $TSFixMe) {
+    sendUserFeedbackResponse: async function(
+        userEmail: $TSFixMe,
+        name: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -1498,7 +1505,10 @@ const _this = {
         }
     },
 
-    sendWhitepaperEmail: async function(to: $TSFixMe, whitepaperName: $TSFixMe) {
+    sendWhitepaperEmail: async function(
+        to: $TSFixMe,
+        whitepaperName: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1693,7 +1703,10 @@ const _this = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function(forgotPasswordURL: $TSFixMe, email: $TSFixMe) {
+    sendForgotPasswordMail: async function(
+        forgotPasswordURL: $TSFixMe,
+        email: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3125,7 +3138,11 @@ const _this = {
         }
     },
 
-    sendNewStatusPageViewerMail: async function(project: $TSFixMe, addedByUser: $TSFixMe, email: $TSFixMe) {
+    sendNewStatusPageViewerMail: async function(
+        project: $TSFixMe,
+        addedByUser: $TSFixMe,
+        email: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3818,7 +3835,7 @@ const _this = {
         projectName,
         criterionName,
         probeName,
-        emailProgress
+        emailProgress,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -4293,7 +4310,7 @@ const _this = {
         acknowledgeTime,
         length,
         criterionName,
-        acknowledgedBy
+        acknowledgedBy,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -4502,7 +4519,7 @@ const _this = {
         resolveTime,
         length,
         criterionName,
-        resolvedBy
+        resolvedBy,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -6759,7 +6776,12 @@ const _this = {
         }
     },
 
-    sendChangePlanMail: async function(projectName: $TSFixMe, oldPlan: $TSFixMe, newPlan: $TSFixMe, email: $TSFixMe) {
+    sendChangePlanMail: async function(
+        projectName: $TSFixMe,
+        oldPlan: $TSFixMe,
+        newPlan: $TSFixMe,
+        email: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6921,7 +6943,10 @@ const _this = {
         }
     },
 
-    sendCreateProjectMail: async function(projectName: $TSFixMe, email: $TSFixMe) {
+    sendCreateProjectMail: async function(
+        projectName: $TSFixMe,
+        email: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -7080,7 +7105,10 @@ const _this = {
         }
     },
 
-    sendCreateSubProjectMail: async function(subProjectName: $TSFixMe, email: $TSFixMe) {
+    sendCreateSubProjectMail: async function(
+        subProjectName: $TSFixMe,
+        email: $TSFixMe
+    ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -7592,7 +7620,7 @@ const _this = {
         incidentId,
         reason,
         incidentSlaTimeline,
-        incidentSlaRemaining
+        incidentSlaRemaining,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -7772,7 +7800,7 @@ const _this = {
         componentName,
         incidentId,
         reason,
-        incidentSlaTimeline
+        incidentSlaTimeline,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -7943,7 +7971,7 @@ const _this = {
         projectPlan,
         name,
         userEmail,
-        projectUrl
+        projectUrl,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
@@ -8118,7 +8146,7 @@ const _this = {
         projectName,
         projectPlan,
         name,
-        userEmail
+        userEmail,
     }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;

@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -125,11 +119,7 @@ export default {
         return savedSso;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -211,7 +201,7 @@ export default {
     },
 };
 
-import SsoModel from '../models/sso'
-import SsoDefaultRolesService from './ssoDefaultRolesService'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import SsoModel from '../models/sso';
+import SsoDefaultRolesService from './ssoDefaultRolesService';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';

@@ -57,7 +57,10 @@ const INITIAL_STATE = {
     },
     stats: {},
 };
-export default function applicationLog(state = INITIAL_STATE, action: $TSFixMe) {
+export default function applicationLog(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     let applicationLogs,
         failureLogs,
         requestLogs,
@@ -462,8 +465,9 @@ export default function applicationLog(state = INITIAL_STATE, action: $TSFixMe) 
                     action.payload.type
                 ] || 0; // current count of all logs of that type
             if (
-                requestLogs.filter((log: $TSFixMe) => log._id === action.payload._id)
-                    .length > 0
+                requestLogs.filter(
+                    (log: $TSFixMe) => log._id === action.payload._id
+                ).length > 0
             ) {
                 // If the new log exist maybe the event was emitted twice or more, just replace
                 // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

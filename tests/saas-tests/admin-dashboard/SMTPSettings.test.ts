@@ -1,9 +1,9 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
-import axios from 'axios'
+import axios from 'axios';
 
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
@@ -81,7 +81,10 @@ describe('SMTP Settings API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#customSmtp');
 
-            const originalValues = await init.page$$Eval(page, 'input', (e: $TSFixMe) => e.map((field: $TSFixMe) => field.value)
+            const originalValues = await init.page$$Eval(
+                page,
+                'input',
+                (e: $TSFixMe) => e.map((field: $TSFixMe) => field.value)
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'input[name=email]');
@@ -124,7 +127,8 @@ describe('SMTP Settings API', () => {
 
             // All fields should remain as were
             expect(
-                await init.page$$Eval(page, 'input', (e: $TSFixMe) => e.map((field: $TSFixMe) => field.value)
+                await init.page$$Eval(page, 'input', (e: $TSFixMe) =>
+                    e.map((field: $TSFixMe) => field.value)
                 )
             ).toEqual(originalValues);
             done();
@@ -197,7 +201,8 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, 'input[name=from-name]');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[name=from-name]', smtpName);
-            await init.page$Eval(page, '#smtp-secure', (element: $TSFixMe) => element.click()
+            await init.page$Eval(page, '#smtp-secure', (element: $TSFixMe) =>
+                element.click()
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, 'button[type=submit]');

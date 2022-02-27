@@ -8,18 +8,18 @@ export const addContainerSecurityRequest = () => ({
 
 export const addContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.ADD_CONTAINER_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const addContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.ADD_CONTAINER_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const addContainerSecurity = ({
     projectId,
     componentId,
-    data
+    data,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addContainerSecurityRequest());
 
@@ -50,18 +50,18 @@ export const getContainerSecurityRequest = () => ({
 
 export const getContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const getContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getContainerSecurity = ({
     projectId,
     componentId,
-    containerSecurityId
+    containerSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityRequest());
 
@@ -87,7 +87,7 @@ export const getContainerSecurity = ({
 export const getContainerSecurityBySlug = ({
     projectId,
     componentId,
-    containerSecuritySlug
+    containerSecuritySlug,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityRequest());
 
@@ -113,17 +113,17 @@ export const getContainerSecurityBySlug = ({
 // Get all Container Security
 export const getContainerSecuritiesRequest = (fetchingPage: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITIES_REQUEST,
-    payload: fetchingPage
+    payload: fetchingPage,
 });
 
 export const getContainerSecuritiesSuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITIES_SUCCESS,
-    payload
+    payload,
 });
 
 export const getContainerSecuritiesFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITIES_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getContainerSecurities = ({
@@ -131,7 +131,7 @@ export const getContainerSecurities = ({
     componentId,
     skip = 0,
     limit = 0,
-    fetchingPage = false
+    fetchingPage = false,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecuritiesRequest(fetchingPage));
 
@@ -161,18 +161,18 @@ export const deleteContainerSecurityRequest = () => ({
 
 export const deleteContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_CONTAINER_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.DELETE_CONTAINER_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deleteContainerSecurity = ({
     projectId,
     componentId,
-    containerSecurityId
+    containerSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteContainerSecurityRequest());
 
@@ -206,17 +206,17 @@ export const scanContainerSecurityRequest = () => ({
 
 export const scanContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.SCAN_CONTAINER_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const scanContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.SCAN_CONTAINER_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const scanContainerSecurity = ({
     projectId,
-    containerSecurityId
+    containerSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(scanContainerSecurityRequest());
     dispatch(setActiveContainerSecurity(containerSecurityId));
@@ -246,18 +246,18 @@ export const getContainerSecurityLogRequest = () => ({
 
 export const getContainerSecurityLogSuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOG_SUCCESS,
-    payload
+    payload,
 });
 
 export const getContainerSecurityLogFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOG_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getContainerSecurityLog = ({
     projectId,
     componentId,
-    containerSecurityId
+    containerSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityLogRequest());
 
@@ -283,7 +283,7 @@ export const getContainerSecurityLog = ({
 export const getContainerSecurityLogBySlug = ({
     projectId,
     componentId,
-    containerSecuritySlug
+    containerSecuritySlug,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityLogRequest());
 
@@ -313,17 +313,17 @@ export const getContainerSecurityLogsRequest = () => ({
 
 export const getContainerSecurityLogsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_SUCCESS,
-    payload
+    payload,
 });
 
 export const getContainerSecurityLogsFailure = (error: $TSFixMe) => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getContainerSecurityLogs = ({
     projectId,
-    componentId
+    componentId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getContainerSecurityLogsRequest());
 
@@ -353,19 +353,19 @@ export const editContainerSecurityRequest = () => ({
 
 export const editContainerSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.EDIT_CONTAINER_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const editContainerSecurityFailure = (error: $TSFixMe) => ({
     type: types.EDIT_CONTAINER_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export function editContainerSecurity({
     projectId,
     componentId,
     containerSecurityId,
-    data
+    data,
 }: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(
@@ -403,18 +403,18 @@ export const addApplicationSecurityRequest = () => ({
 
 export const addApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.ADD_APPLICATION_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const addApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.ADD_APPLICATION_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const addApplicationSecurity = ({
     projectId,
     componentId,
-    data
+    data,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addApplicationSecurityRequest());
 
@@ -445,18 +445,18 @@ export const getApplicationSecurityRequest = () => ({
 
 export const getApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const getApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getApplicationSecurity = ({
     projectId,
     componentId,
-    applicationSecurityId
+    applicationSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityRequest());
 
@@ -482,7 +482,7 @@ export const getApplicationSecurity = ({
 export const getApplicationSecurityBySlug = ({
     projectId,
     componentId,
-    applicationSecuritySlug
+    applicationSecuritySlug,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityRequest());
 
@@ -508,17 +508,17 @@ export const getApplicationSecurityBySlug = ({
 // Get all Application Security
 export const getApplicationSecuritiesRequest = (fetchingPage: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITIES_REQUEST,
-    payload: fetchingPage
+    payload: fetchingPage,
 });
 
 export const getApplicationSecuritiesSuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITIES_SUCCESS,
-    payload
+    payload,
 });
 
 export const getApplicationSecuritiesFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITIES_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getApplicationSecurities = ({
@@ -526,7 +526,7 @@ export const getApplicationSecurities = ({
     componentId,
     skip = 0,
     limit = 0,
-    fetchingPage = false
+    fetchingPage = false,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
@@ -556,18 +556,18 @@ export const deleteApplicationSecurityRequest = () => ({
 
 export const deleteApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_APPLICATION_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const deleteApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.DELETE_APPLICATION_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const deleteApplicationSecurity = ({
     projectId,
     componentId,
-    applicationSecurityId
+    applicationSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteApplicationSecurityRequest());
 
@@ -601,17 +601,17 @@ export const scanApplicationSecurityRequest = () => ({
 
 export const scanApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.SCAN_APPLICATION_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const scanApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.SCAN_APPLICATION_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const scanApplicationSecurity = ({
     projectId,
-    applicationSecurityId
+    applicationSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(scanApplicationSecurityRequest());
     dispatch(setActiveApplicationSecurity(applicationSecurityId));
@@ -640,18 +640,18 @@ export const getApplicationSecurityLogRequest = () => ({
 
 export const getApplicationSecurityLogSuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOG_SUCCESS,
-    payload
+    payload,
 });
 
 export const getApplicationSecurityLogFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOG_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getApplicationSecurityLog = ({
     projectId,
     componentId,
-    applicationSecurityId
+    applicationSecurityId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityLogRequest());
 
@@ -677,7 +677,7 @@ export const getApplicationSecurityLog = ({
 export const getApplicationSecurityLogBySlug = ({
     projectId,
     componentId,
-    applicationSecuritySlug
+    applicationSecuritySlug,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityLogRequest());
 
@@ -707,17 +707,17 @@ export const getApplicationSecurityLogsRequest = () => ({
 
 export const getApplicationSecurityLogsSuccess = (payload: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_SUCCESS,
-    payload
+    payload,
 });
 
 export const getApplicationSecurityLogsFailure = (error: $TSFixMe) => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export const getApplicationSecurityLogs = ({
     projectId,
-    componentId
+    componentId,
 }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(getApplicationSecurityLogsRequest());
 
@@ -747,19 +747,19 @@ export const editApplicationSecurityRequest = () => ({
 
 export const editApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     type: types.EDIT_APPLICATION_SECURITY_SUCCESS,
-    payload
+    payload,
 });
 
 export const editApplicationSecurityFailure = (error: $TSFixMe) => ({
     type: types.EDIT_APPLICATION_SECURITY_FAILURE,
-    payload: error
+    payload: error,
 });
 
 export function editApplicationSecurity({
     projectId,
     componentId,
     applicationSecurityId,
-    data
+    data,
 }: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(
@@ -792,10 +792,10 @@ export function editApplicationSecurity({
 
 export const setActiveApplicationSecurity = (payload: $TSFixMe) => ({
     type: types.SET_ACTIVE_APPLICATION_SECURITY,
-    payload
+    payload,
 });
 
 export const setActiveContainerSecurity = (payload: $TSFixMe) => ({
     type: types.SET_ACTIVE_CONTAINER_SECURITY,
-    payload
+    payload,
 });

@@ -1,8 +1,8 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer';
 
-import utils from '../../test-utils'
-import init from '../../test-init'
+import utils from '../../test-utils';
+import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 require('should');
 
@@ -51,7 +51,9 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
+                elem.click()
+            );
             const about = await init.pageWaitForSelector(
                 page,
                 '#about-button',
@@ -76,12 +78,16 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '.bs-Modal', {
                 visible: true,
                 timeout: init.timeout,
@@ -143,12 +149,16 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '.bs-Button', {
                 visible: true,
                 timeout: init.timeout,

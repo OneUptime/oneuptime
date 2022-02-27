@@ -60,13 +60,7 @@ export default {
         return applicationLog;
     },
     //Description: Gets all application logs by component.
-    async findBy({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -97,11 +91,7 @@ export default {
         return applicationLogs;
     },
 
-    async findOneBy({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    async findOneBy({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -116,7 +106,11 @@ export default {
         return applicationLog;
     },
 
-    async getApplicationLogsByComponentId(componentId: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async getApplicationLogsByComponentId(
+        componentId: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
+    ) {
         // check if component exists
         const componentCount = await ComponentService.countBy({
             _id: componentId,
@@ -199,7 +193,11 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData = null
+    ) {
         if (!query) {
             query = {};
         }
@@ -255,14 +253,14 @@ export default {
     },
 };
 
-import ApplicationLogModel from '../models/applicationLog'
-import ComponentService from './componentService'
-import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
-import ResourceCategoryService from './resourceCategoryService'
+import ApplicationLogModel from '../models/applicationLog';
+import ComponentService from './componentService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import ResourceCategoryService from './resourceCategoryService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
-import getSlug from '../utils/getSlug'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
-import errorService from 'common-server/utils/error'
+import uuid from 'uuid';
+import getSlug from '../utils/getSlug';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';
+import errorService from 'common-server/utils/error';

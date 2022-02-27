@@ -1,13 +1,9 @@
-import MonitorCustomFieldModel from '../models/monitorCustomField'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import MonitorCustomFieldModel from '../models/monitorCustomField';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
 
 export default {
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -75,13 +71,7 @@ export default {
         return customField;
     },
 
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;

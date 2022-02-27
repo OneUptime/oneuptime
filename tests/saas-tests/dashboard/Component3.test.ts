@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 
@@ -14,7 +14,10 @@ const componentName = utils.generateRandomString();
 const newComponentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const newMonitorName = utils.generateRandomString();
-let browser: $TSFixMe, browser2: $TSFixMe, page: $TSFixMe, monitorPage: $TSFixMe;
+let browser: $TSFixMe,
+    browser2: $TSFixMe,
+    page: $TSFixMe,
+    monitorPage: $TSFixMe;
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Components', () => {
     const operationTimeOut = init.timeout;
@@ -54,7 +57,9 @@ describe('Components', () => {
             });
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let componentSpanElement = await init.pageWaitForSelector(
                 page,
@@ -105,14 +110,17 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
+                elem.click()
             );
 
             await page.bringToFront();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
+                e.click()
+            );
             // check that the monitor is offline on component page
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             componentSpanElement = await init.pageWaitForSelector(
@@ -134,13 +142,17 @@ describe('Components', () => {
             // click acknowledge button
             // acknowledge incident
             await monitorPage.waitForSelector('#btnAcknowledge_0');
-            await monitorPage.$eval('#btnAcknowledge_0', (e: $TSFixMe) => e.click());
+            await monitorPage.$eval('#btnAcknowledge_0', (e: $TSFixMe) =>
+                e.click()
+            );
             await monitorPage.waitForSelector('#AcknowledgeText_0');
 
             // click resolve button
             // resolve incident
             await monitorPage.waitForSelector('#btnResolve_0');
-            await monitorPage.$eval('#btnResolve_0', (e: $TSFixMe) => e.click());
+            await monitorPage.$eval('#btnResolve_0', (e: $TSFixMe) =>
+                e.click()
+            );
             await monitorPage.waitForSelector('#ResolveText_0');
             // confirm it is resolved here
             const resolveTextSelector = await monitorPage.$('#ResolveText_0');
@@ -151,7 +163,9 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
+                e.click()
+            );
             // confirm that the monitor is back online!
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             componentSpanElement = await init.pageWaitForSelector(
@@ -182,7 +196,9 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, `#more-details-${componentName}`);
@@ -196,7 +212,9 @@ describe('Components', () => {
             await init.pageWaitForSelector(page, 'input[name=name]');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[name=name]', '-two');
-            await init.page$Eval(page, '#editComponentButton', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#editComponentButton', (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             let spanElement = await init.pageWaitForSelector(
@@ -296,7 +314,9 @@ describe('Components', () => {
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
-            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
@@ -306,7 +326,8 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
+                elem.click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -314,15 +335,22 @@ describe('Components', () => {
                 page,
                 `#incident_${newMonitorName}_0`
             );
-            await init.page$Eval(page, `#incident_${newMonitorName}_0`, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                `#incident_${newMonitorName}_0`,
+                (e: $TSFixMe) => e.click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#AccountSwitcherId');
-            await init.page$Eval(page, '#AccountSwitcherId', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#AccountSwitcherId', (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#create-project');
-            await init.page$Eval(page, '#create-project', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#create-project', (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#name');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
@@ -331,9 +359,14 @@ describe('Components', () => {
                 'input[id=name]',
                 utils.generateRandomString()
             );
-            await init.page$Eval(page, 'label[for=Startup_month]', (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                'label[for=Startup_month]',
+                (e: $TSFixMe) => e.click()
             );
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+                e.click()
+            );
 
             let currentPage = await init.pageWaitForSelector(page, '#cbHome', {
                 visible: true,
@@ -357,14 +390,18 @@ describe('Components', () => {
             // Navigate to Components page
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
+                e.click()
+            );
 
             // Fill and submit New Component form
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-component');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[id=name]', newComponentName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#form-new-monitor');
@@ -382,7 +419,9 @@ describe('Components', () => {
             await init.pageClick(page, '#url');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -394,14 +433,18 @@ describe('Components', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            await init.page$Eval(page, `#createIncident`, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, `#createIncident`, (e: $TSFixMe) =>
+                e.click()
+            );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#viewIncident-0');
 
             await page.goto(utils.DASHBOARD_URL);
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
+                e.click()
+            );
 
             // Check for resource status Id
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
@@ -410,7 +453,10 @@ describe('Components', () => {
                 `#resource_status_${newMonitorName}`
             );
             const element = await page.$(`#resource_status_${newMonitorName}`);
-            const value = await page.evaluate((el: $TSFixMe) => el.textContent, element);
+            const value = await page.evaluate(
+                (el: $TSFixMe) => el.textContent,
+                element
+            );
 
             expect(value.trim()).toEqual('offline');
             done();

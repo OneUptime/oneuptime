@@ -2,7 +2,11 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/resourceCategories';
 import errors from '../errors';
 
-export function fetchResourceCategories(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function fetchResourceCategories(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function(dispatch: $TSFixMe) {
@@ -92,7 +96,11 @@ export function createResourceCategory(projectId: $TSFixMe, values: $TSFixMe) {
     };
 }
 
-export function updateResourceCategory(projectId: $TSFixMe, resourceCategoryId: $TSFixMe, values: $TSFixMe) {
+export function updateResourceCategory(
+    projectId: $TSFixMe,
+    resourceCategoryId: $TSFixMe,
+    values: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = putApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
@@ -152,7 +160,9 @@ export function updateResourceCategoryRequest() {
     };
 }
 
-export function updateResourceCategorySuccess(updatedResourceCategory: $TSFixMe) {
+export function updateResourceCategorySuccess(
+    updatedResourceCategory: $TSFixMe
+) {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_SUCCESS,
         payload: updatedResourceCategory,
@@ -166,7 +176,10 @@ export function updateResourceCategoryFailure(error: $TSFixMe) {
     };
 }
 
-export function deleteResourceCategory(resourceCategoryId: $TSFixMe, projectId: $TSFixMe) {
+export function deleteResourceCategory(
+    resourceCategoryId: $TSFixMe,
+    projectId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
         const promise = deleteApi(
@@ -201,7 +214,9 @@ export function deleteResourceCategory(resourceCategoryId: $TSFixMe, projectId: 
     };
 }
 
-export function deleteResourceCategorySuccess(removedResourceCategoryId: $TSFixMe) {
+export function deleteResourceCategorySuccess(
+    removedResourceCategoryId: $TSFixMe
+) {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_SUCCESS,
         payload: removedResourceCategoryId,

@@ -3,7 +3,9 @@ const fetchList = (z: $TSFixMe, bundle: $TSFixMe) => {
     const options = {
         url: `${bundle.authData.serverUrl}/zapier/incidents`,
     };
-    return z.request(options).then((response: $TSFixMe) => JSON.parse(response.content));
+    return z
+        .request(options)
+        .then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
 export default {

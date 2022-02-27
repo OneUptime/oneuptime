@@ -116,7 +116,11 @@ class OneUptimeListener {
     _setUpXhrListener() {
         const open = window.XMLHttpRequest.prototype.open;
         const _this = this;
-        function openReplacement(this: $TSFixMe, method: $TSFixMe, url: $TSFixMe) {
+        function openReplacement(
+            this: $TSFixMe,
+            method: $TSFixMe,
+            url: $TSFixMe
+        ) {
             const obj = {
                 method,
                 url,

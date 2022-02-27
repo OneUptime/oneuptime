@@ -1,19 +1,19 @@
-import express from 'express'
-import IncidentService from '../services/incidentService'
-import UserService from '../services/userService'
+import express from 'express';
+import IncidentService from '../services/incidentService';
+import UserService from '../services/userService';
 const {
     sendIncidentCreatedCall,
     sendVerificationSMS,
     test,
 } = require('../services/twilioService');
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const router = express.Router();
-import SmsCountService from '../services/smsCountService'
+import SmsCountService from '../services/smsCountService';
 
 /**
  * @param { accessToken, projectId, incidentId }: Come in the query string, passed in twilio service.

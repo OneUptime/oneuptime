@@ -1,5 +1,5 @@
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./api"' has no exported member 'postApi'.... Remove this comment to see the full error message
-import { postApi } from './api'
+import { postApi } from './api';
 
 export default {
     updateContainerSecurityToScanning: async function(security: $TSFixMe) {

@@ -35,7 +35,7 @@ export default {
         limit,
         sort,
         populate,
-        select
+        select,
     }: $TSFixMe) {
         if (!sort) sort = -1;
 
@@ -90,6 +90,6 @@ export default {
     },
 };
 
-import AlertChargeModel from '../models/alertCharge'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import AlertChargeModel from '../models/alertCharge';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';

@@ -32,7 +32,11 @@ export const resetProjectIncidents = () => {
 };
 
 // Gets project Incidents
-export function getProjectIncidents(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getProjectIncidents(
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -177,7 +181,10 @@ export function getIncidents(projectId: $TSFixMe) {
     };
 }
 //get component incidents
-export function getComponentIncidents(projectId: $TSFixMe, componentId: $TSFixMe) {
+export function getComponentIncidents(
+    projectId: $TSFixMe,
+    componentId: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `incident/${projectId}/${componentId}/incidents`
@@ -393,7 +400,12 @@ export function addIncident(incident: $TSFixMe) {
     };
 }
 // Calls the API to get the incident timeline
-export function getIncidentTimeline(projectId: $TSFixMe, incidentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export function getIncidentTimeline(
+    projectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
@@ -452,7 +464,12 @@ export function setActiveIncident(incidentId: $TSFixMe) {
 }
 
 // calls the api to post acknowledgement data to the database
-export function acknowledgeIncident(projectId: $TSFixMe, incidentId: $TSFixMe, userId: $TSFixMe, multiple: $TSFixMe) {
+export function acknowledgeIncident(
+    projectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    userId: $TSFixMe,
+    multiple: $TSFixMe
+) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function(dispatch: $TSFixMe) {
         let promise = null;
@@ -556,7 +573,12 @@ export function acknowledgeIncident(projectId: $TSFixMe, incidentId: $TSFixMe, u
 }
 
 // calls the api to store the resolve status to the database
-export function resolveIncident(projectId: $TSFixMe, incidentId: $TSFixMe, userId: $TSFixMe, multiple: $TSFixMe) {
+export function resolveIncident(
+    projectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    userId: $TSFixMe,
+    multiple: $TSFixMe
+) {
     //This function will switch to incidentId of the params being passed.
     return function(dispatch: $TSFixMe) {
         let promise = null;
@@ -802,7 +824,11 @@ export function investigationNoteSuccess(incidentMessage: $TSFixMe) {
     };
 }
 
-export function setInvestigationNote(projectId: $TSFixMe, incidentId: $TSFixMe, body: $TSFixMe) {
+export function setInvestigationNote(
+    projectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    body: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
 
@@ -859,7 +885,11 @@ export function internalNoteSuccess(incident: $TSFixMe) {
     };
 }
 
-export function setInternalNote(projectId: $TSFixMe, incidentId: $TSFixMe, body: $TSFixMe) {
+export function setInternalNote(
+    projectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    body: $TSFixMe
+) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = postApi(

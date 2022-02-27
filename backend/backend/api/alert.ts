@@ -1,13 +1,13 @@
-import express from 'express'
-import alertService from '../services/alertService'
-import IncidentService from '../services/incidentService'
-import alertChargeService from '../services/alertChargeService'
-import path from 'path'
-import fs from 'fs'
+import express from 'express';
+import alertService from '../services/alertService';
+import IncidentService from '../services/incidentService';
+import alertChargeService from '../services/alertChargeService';
+import path from 'path';
+import fs from 'fs';
 
 const router = express.Router();
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
-import { isAuthorized } from '../middlewares/authorization'
+import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const isUserOwner = require('../middlewares/project').isUserOwner;
@@ -45,8 +45,8 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     try {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
         const subProjectIds = req.user.subProjects
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+              req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         const alerts = await alertService.getSubProjectAlerts(subProjectIds);
         return sendItemResponse(req, res, alerts); // frontend expects sendItemResponse

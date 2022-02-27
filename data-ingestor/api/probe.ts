@@ -1,15 +1,15 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
-import express from 'express'
-import ProbeService from '../services/probeService'
-import MonitorService from '../services/monitorService'
-import LighthouseLogService from '../services/lighthouseLogService'
+import express from 'express';
+import ProbeService from '../services/probeService';
+import MonitorService from '../services/monitorService';
+import LighthouseLogService from '../services/lighthouseLogService';
 const router = express.Router();
 const isAuthorizedProbe = require('../middlewares/probeAuthorization')
     .isAuthorizedProbe;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
-import { ObjectId } from 'mongodb'
+import { ObjectId } from 'mongodb';
 
 router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req: $TSFixMe,
@@ -48,7 +48,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validUp,
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion
+                    matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.conditions(
@@ -68,7 +68,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: degradedSuccessReasons,
 
                     // failedReasons: degradedFailedReasons,
-                    matchedCriterion: matchedDegradedCriterion
+                    matchedCriterion: matchedDegradedCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
                         ? ProbeService.conditions(
@@ -88,14 +88,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: downSuccessReasons,
 
                     // failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion
+                    matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.conditions(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) => criterion.default !== true
+                                      (criterion: $TSFixMe) =>
+                                          criterion.default !== true
                                   ),
                               ],
                               res,
@@ -145,7 +146,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validUp,
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion
+                    matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.conditions(
@@ -164,14 +165,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion
+                    matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.conditions(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) => criterion.default !== true
+                                      (criterion: $TSFixMe) =>
+                                          criterion.default !== true
                                   ),
                               ],
                               res,
@@ -210,7 +212,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validUp,
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion
+                    matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.scriptConditions(
@@ -227,12 +229,13 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion
+                    matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.scriptConditions(resp, [
                               ...monitor.criteria.down.filter(
-                                  (criterion: $TSFixMe) => criterion.default !== true
+                                  (criterion: $TSFixMe) =>
+                                      criterion.default !== true
                               ),
                           ])
                         : {
@@ -245,7 +248,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
-                    matchedCriterion: matchedDegradedCriterion
+                    matchedCriterion: matchedDegradedCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
                         ? ProbeService.scriptConditions(
@@ -299,11 +302,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validUp,
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion
+                    matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                        ? ProbeService.conditions(
+                        ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                          ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.up,
                               data
@@ -317,11 +320,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
-                    matchedCriterion: matchedDegradedCriterion
+                    matchedCriterion: matchedDegradedCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                        ? ProbeService.conditions(
+                        ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                          ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.degraded,
                               data
@@ -335,15 +338,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion
+                    matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                        ? ProbeService.conditions(
+                        ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                          ProbeService.conditions(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) => criterion.default !== true
+                                      (criterion: $TSFixMe) =>
+                                          criterion.default !== true
                                   ),
                               ],
                               data
@@ -440,11 +444,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validUp,
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion
+                    matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                        ? ProbeService.conditions(
+                        ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                          ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.up,
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesData' does not exist on type '... Remove this comment to see the full error message
@@ -460,11 +464,11 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
-                    matchedCriterion: matchedDegradedCriterion
+                    matchedCriterion: matchedDegradedCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                        ? ProbeService.conditions(
+                        ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                          ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.degraded,
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesData' does not exist on type '... Remove this comment to see the full error message
@@ -480,15 +484,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion
+                    matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-                        ? ProbeService.conditions(
+                        ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                          ProbeService.conditions(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) => criterion.default !== true
+                                      (criterion: $TSFixMe) =>
+                                          criterion.default !== true
                                   ),
                               ],
                               // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesData' does not exist on type '... Remove this comment to see the full error message
@@ -565,12 +570,13 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             data.reason =
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
                 data && data.reason && data.reason.length
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
-                    ? data.reason.filter(
-                          (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => self.indexOf(item) === pos
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                      data.reason.filter(
+                          (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                              self.indexOf(item) === pos
                       )
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
-                    : data.reason;
+                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                      data.reason;
             const index =
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
                 data.reason && data.reason.indexOf('Request Timed out');
@@ -579,12 +585,13 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.reason =
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
                     data && data.reason && data.reason.length
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
-                        ? data.reason.filter(
-                              (item: $TSFixMe) => !item.includes('Response Time is')
+                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                          data.reason.filter(
+                              (item: $TSFixMe) =>
+                                  !item.includes('Response Time is')
                           )
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
-                        : data.reason;
+                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                          data.reason;
             }
 
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScanStatus' does not exist on ... Remove this comment to see the full error message
@@ -652,7 +659,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -664,7 +674,10 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req: $TSFix
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const data = req.body;
         data.probeId = req.probe.id;
@@ -676,7 +689,10 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req: $TSFix
     }
 });
 
-router.post('/set-scan-status', isAuthorizedProbe, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/set-scan-status', isAuthorizedProbe, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { monitorIds, scanning } = req.body;
         await MonitorService.updateScanStatus(monitorIds, scanning);
@@ -687,7 +703,10 @@ router.post('/set-scan-status', isAuthorizedProbe, async function(req: $TSFixMe,
     }
 });
 
-router.post('/add-probe-scan', isAuthorizedProbe, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/add-probe-scan', isAuthorizedProbe, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { monitorIds } = req.body;
         await MonitorService.addProbeScanning(monitorIds, req.probe.id);
@@ -698,7 +717,10 @@ router.post('/add-probe-scan', isAuthorizedProbe, async function(req: $TSFixMe, 
     }
 });
 
-router.post('/remove-probe-scan', isAuthorizedProbe, async function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/remove-probe-scan', isAuthorizedProbe, async function(
+    req: $TSFixMe,
+    res: $TSFixMe
+) {
     try {
         const { monitorIds } = req.body;
         await MonitorService.removeProbeScanning(monitorIds, req.probe.id);

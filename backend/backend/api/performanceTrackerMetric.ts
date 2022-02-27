@@ -1,15 +1,15 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
-import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService'
-import moment from 'moment'
-import { decode } from 'js-base64'
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
+import moment from 'moment';
+import { decode } from 'js-base64';
 
 const {
     sendErrorResponse,
     sendItemResponse,
 } = require('../middlewares/response');
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/performanceTracker"' has n... Remove this comment to see the full error message
-import { isValidAPIKey } from '../middlewares/performanceTracker'
+import { isValidAPIKey } from '../middlewares/performanceTracker';
 
 // Route
 // Description: Receiving Performance metric data from sdk.

@@ -1,4 +1,4 @@
-import GlobalConfigService from '../../backend/services/globalConfigService'
+import GlobalConfigService from '../../backend/services/globalConfigService';
 
 export default {
     initTestConfig: async function() {

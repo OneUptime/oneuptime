@@ -3,7 +3,11 @@ class Logger {
     apiUrl: $TSFixMe;
     applicationLogId: $TSFixMe;
     applicationLogKey: $TSFixMe;
-    constructor(apiUrl: $TSFixMe, applicationLogId: $TSFixMe, applicationLogKey: $TSFixMe) {
+    constructor(
+        apiUrl: $TSFixMe,
+        applicationLogId: $TSFixMe,
+        applicationLogKey: $TSFixMe
+    ) {
         this._setApplicationLogId(applicationLogId);
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);

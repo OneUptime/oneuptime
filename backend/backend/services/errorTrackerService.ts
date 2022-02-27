@@ -79,13 +79,7 @@ export default {
     },
 
     // find a list of error trackers
-    async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -115,11 +109,7 @@ export default {
         return result;
     },
     // find a particular error tracker
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -132,7 +122,11 @@ export default {
         return result;
     },
     // get all error trackers by component ID
-    async getErrorTrackersByComponentId(componentId: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async getErrorTrackersByComponentId(
+        componentId: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
+    ) {
         // Check if component exists
         const componentCount = await ComponentService.countBy({
             _id: componentId,
@@ -205,7 +199,11 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData = null) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData = null
+    ) {
         if (!query) {
             query = {};
         }
@@ -248,14 +246,14 @@ export default {
     },
 };
 
-import ErrorTrackerModel from '../models/errorTracker'
-import ComponentService from './componentService'
-import ResourceCategoryService from './resourceCategoryService'
-import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
+import ErrorTrackerModel from '../models/errorTracker';
+import ComponentService from './componentService';
+import ResourceCategoryService from './resourceCategoryService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
-import getSlug from '../utils/getSlug'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import errorService from 'common-server/utils/error'
+import uuid from 'uuid';
+import getSlug from '../utils/getSlug';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import errorService from 'common-server/utils/error';

@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        skip,
-        limit,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -134,11 +128,7 @@ export default {
         return user;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -163,14 +153,19 @@ export default {
             let projectIds = [];
             if (userProjects.length > 0) {
                 const subProjects = userProjects
-                    .map((project: $TSFixMe) => project.parentProjectId ? project : null)
+                    .map((project: $TSFixMe) =>
+                        project.parentProjectId ? project : null
+                    )
                     .filter((subProject: $TSFixMe) => subProject !== null);
                 parentProjectIds = subProjects.map(
-                    (subProject: $TSFixMe) => subProject.parentProjectId._id ||
-                    subProject.parentProjectId
+                    (subProject: $TSFixMe) =>
+                        subProject.parentProjectId._id ||
+                        subProject.parentProjectId
                 );
                 const projects = userProjects
-                    .map((project: $TSFixMe) => project.parentProjectId ? null : project)
+                    .map((project: $TSFixMe) =>
+                        project.parentProjectId ? null : project
+                    )
                     .filter((project: $TSFixMe) => project !== null);
                 projectIds = projects.map((project: $TSFixMe) => project._id);
             }
@@ -240,17 +235,16 @@ export default {
         return updatedData;
     },
 
-    updatePush: async function({
-        userId,
-        data
-    }: $TSFixMe) {
+    updatePush: async function({ userId, data }: $TSFixMe) {
         const user = await UserModel.findOne({ _id: userId });
         const checkExist = await user.identification.find(
-            (user: $TSFixMe) => String(user.userAgent) === String(data.userAgent)
+            (user: $TSFixMe) =>
+                String(user.userAgent) === String(data.userAgent)
         );
         if (!data.checked) {
             const findIndex = await user.identification.findIndex(
-                (user: $TSFixMe) => String(user.userAgent) === String(data.userAgent)
+                (user: $TSFixMe) =>
+                    String(user.userAgent) === String(data.userAgent)
             );
             await user.identification.splice(findIndex, 1);
         } else {
@@ -265,7 +259,12 @@ export default {
         return userData;
     },
 
-    closeTutorialBy: async function(query: $TSFixMe, type: $TSFixMe, data: $TSFixMe, projectId: $TSFixMe) {
+    closeTutorialBy: async function(
+        query: $TSFixMe,
+        type: $TSFixMe,
+        data: $TSFixMe,
+        projectId: $TSFixMe
+    ) {
         if (!query) query = {};
         if (!data) data = {};
 
@@ -454,7 +453,11 @@ export default {
         return backupCodes;
     },
 
-    verifyUserBackupCode: async function(code: $TSFixMe, secretKey: $TSFixMe, counter: $TSFixMe) {
+    verifyUserBackupCode: async function(
+        code: $TSFixMe,
+        secretKey: $TSFixMe,
+        counter: $TSFixMe
+    ) {
         const _this = this;
         hotp.options = { digits: 8 };
         const isValid = hotp.check(code, secretKey, counter);
@@ -527,7 +530,12 @@ export default {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function(email: $TSFixMe, password: $TSFixMe, clientIP: $TSFixMe, userAgent: $TSFixMe) {
+    login: async function(
+        email: $TSFixMe,
+        password: $TSFixMe,
+        clientIP: $TSFixMe,
+        userAgent: $TSFixMe
+    ) {
         const _this = this;
         let user = null;
         if (util.isEmailValid(email)) {
@@ -777,7 +785,10 @@ export default {
     },
 
     // Description: replace password temporarily in "admin mode"
-    switchToAdminMode: async function(userId: $TSFixMe, temporaryPassword: $TSFixMe) {
+    switchToAdminMode: async function(
+        userId: $TSFixMe,
+        temporaryPassword: $TSFixMe
+    ) {
         if (!temporaryPassword) {
             const error = new Error(
                 'A temporary password is required for admin mode'
@@ -959,18 +970,23 @@ export default {
                 let projectIds = [];
                 if (userProjects.length > 0) {
                     const subProjects = userProjects
-                        .map((project: $TSFixMe) => project.parentProjectId ? project : null
+                        .map((project: $TSFixMe) =>
+                            project.parentProjectId ? project : null
                         )
                         .filter((subProject: $TSFixMe) => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        (subProject: $TSFixMe) => subProject.parentProjectId._id ||
-                        subProject.parentProjectId
+                        (subProject: $TSFixMe) =>
+                            subProject.parentProjectId._id ||
+                            subProject.parentProjectId
                     );
                     const projects = userProjects
-                        .map((project: $TSFixMe) => project.parentProjectId ? null : project
+                        .map((project: $TSFixMe) =>
+                            project.parentProjectId ? null : project
                         )
                         .filter((project: $TSFixMe) => project !== null);
-                    projectIds = projects.map((project: $TSFixMe) => project._id);
+                    projectIds = projects.map(
+                        (project: $TSFixMe) => project._id
+                    );
                 }
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
@@ -1040,7 +1056,11 @@ export default {
         return user;
     },
 
-    searchUsers: async function(query: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    searchUsers: async function(
+        query: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
@@ -1057,18 +1077,23 @@ export default {
                 let projectIds = [];
                 if (userProjects.length > 0) {
                     const subProjects = userProjects
-                        .map((project: $TSFixMe) => project.parentProjectId ? project : null
+                        .map((project: $TSFixMe) =>
+                            project.parentProjectId ? project : null
                         )
                         .filter((subProject: $TSFixMe) => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        (subProject: $TSFixMe) => subProject.parentProjectId._id ||
-                        subProject.parentProjectId
+                        (subProject: $TSFixMe) =>
+                            subProject.parentProjectId._id ||
+                            subProject.parentProjectId
                     );
                     const projects = userProjects
-                        .map((project: $TSFixMe) => project.parentProjectId ? null : project
+                        .map((project: $TSFixMe) =>
+                            project.parentProjectId ? null : project
                         )
                         .filter((project: $TSFixMe) => project !== null);
-                    projectIds = projects.map((project: $TSFixMe) => project._id);
+                    projectIds = projects.map(
+                        (project: $TSFixMe) => project._id
+                    );
                 }
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
@@ -1097,10 +1122,7 @@ export default {
         return 'User(s) Removed Successfully!';
     },
 
-    getAccessToken: function({
-        userId,
-        expiresIn
-    }: $TSFixMe) {
+    getAccessToken: function({ userId, expiresIn }: $TSFixMe) {
         return jwt.sign(
             {
                 id: userId,
@@ -1112,30 +1134,30 @@ export default {
 };
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
 // @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../config/constants.json'. Con... Remove this comment to see the full error message
-import constants from '../config/constants.json'
-import UserModel from '../models/user'
-import util from './utilService.js'
-import randToken from 'rand-token'
-import PaymentService from './paymentService'
-import crypto from 'crypto'
-import ProjectService from './projectService'
-import ErrorService from 'common-server/utils/error'
+import constants from '../config/constants.json';
+import UserModel from '../models/user';
+import util from './utilService.js';
+import randToken from 'rand-token';
+import PaymentService from './paymentService';
+import crypto from 'crypto';
+import ProjectService from './projectService';
+import ErrorService from 'common-server/utils/error';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'geoi... Remove this comment to see the full error message
-import geoip from 'geoip-lite'
+import geoip from 'geoip-lite';
 const jwtSecretKey = process.env['JWT_SECRET'];
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server'
+import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
-import VerificationTokenModel from '../models/verificationToken'
-import MailService from '../services/mailService'
-import AirtableService from './airtableService'
+import VerificationTokenModel from '../models/verificationToken';
+import MailService from '../services/mailService';
+import AirtableService from './airtableService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'spea... Remove this comment to see the full error message
-import speakeasy from 'speakeasy'
-import { hotp } from 'otplib'
-import LoginHistoryService from './loginHistoryService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import speakeasy from 'speakeasy';
+import { hotp } from 'otplib';
+import LoginHistoryService from './loginHistoryService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

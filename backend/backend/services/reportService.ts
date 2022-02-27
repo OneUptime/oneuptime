@@ -6,7 +6,13 @@ export default {
      * @param { string } projectId of project to query
      * @returns {Promise} rejected if their is an error resolves if all is good
      */
-    async getMostActiveMembers(subProjectIds: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+    async getMostActiveMembers(
+        subProjectIds: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
@@ -184,7 +190,12 @@ export default {
      * @description get the average resolve time for the current month
      * @returns { Promise } array if resolved || error if rejected
      */
-    async getAverageTimeBy(subProjectIds: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, filter: $TSFixMe) {
+    async getAverageTimeBy(
+        subProjectIds: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        filter: $TSFixMe
+    ) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
@@ -307,7 +318,12 @@ export default {
      * @description get the number of incidents for the past 12 months
      * @returns { Promise } array if resolved || error if rejected
      */
-    async getIncidentCountBy(subProjectIds: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe, filter: $TSFixMe) {
+    async getIncidentCountBy(
+        subProjectIds: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        filter: $TSFixMe
+    ) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
@@ -403,7 +419,7 @@ export default {
     },
 };
 
-import moment from 'moment'
-import IncidentModel from '../models/incident'
-import UserService from './userService'
-import MonitorService from './monitorService'
+import moment from 'moment';
+import IncidentModel from '../models/incident';
+import UserService from './userService';
+import MonitorService from './monitorService';

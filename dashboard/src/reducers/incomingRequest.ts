@@ -30,7 +30,10 @@ const initialState = {
     activeIncomingRequest: '',
 };
 
-export default function incomingRequest(state = initialState, action: $TSFixMe) {
+export default function incomingRequest(
+    state = initialState,
+    action: $TSFixMe
+) {
     switch (action.type) {
         case types.FETCH_ALL_INCOMING_REQUEST_REQUEST:
             return {

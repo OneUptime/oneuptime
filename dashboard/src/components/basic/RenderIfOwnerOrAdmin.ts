@@ -9,10 +9,7 @@ import PropTypes from 'prop-types';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 
-const RenderIfOwnerOrAdmin = ({
-    currentProject,
-    children
-}: $TSFixMe) => {
+const RenderIfOwnerOrAdmin = ({ currentProject, children }: $TSFixMe) => {
     const userId = User.getUserId();
 
     return isOwnerOrAdmin(userId, currentProject) ? children : null;

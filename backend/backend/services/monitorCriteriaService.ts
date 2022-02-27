@@ -713,7 +713,11 @@ const MonitorCriteriaService = {
         }
     },
 
-    mapNestedCriteria: function(criteriaObj: $TSFixMe, innerContainer: $TSFixMe, cr: $TSFixMe) {
+    mapNestedCriteria: function(
+        criteriaObj: $TSFixMe,
+        innerContainer: $TSFixMe,
+        cr: $TSFixMe
+    ) {
         innerContainer = [...innerContainer];
         for (let j = 0; j < criteriaObj.criteria.length; j++) {
             const innerVal = {};
@@ -779,6 +783,6 @@ const MonitorCriteriaService = {
 };
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import { isEmpty } from 'lodash'
+import { isEmpty } from 'lodash';
 
 export default MonitorCriteriaService;

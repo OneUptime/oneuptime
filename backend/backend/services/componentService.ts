@@ -74,8 +74,8 @@ export default {
                 // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
                 plan.category === 'Startup'
                     ? 5
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                    : plan.category === 'Growth'
+                    : // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    plan.category === 'Growth'
                     ? 10
                     : 0;
 
@@ -126,7 +126,11 @@ export default {
         }
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe, unsetData: $TSFixMe) {
+    updateOneBy: async function(
+        query: $TSFixMe,
+        data: $TSFixMe,
+        unsetData: $TSFixMe
+    ) {
         if (!query) {
             query = {};
         }
@@ -200,13 +204,7 @@ export default {
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -237,11 +235,7 @@ export default {
         return components;
     },
 
-    async findOneBy({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -307,7 +301,9 @@ export default {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
+                subProjectIds = subProjects.map(
+                    (project: $TSFixMe) => project._id
+                );
             }
             subProjectIds.push(project._id);
             const componentsCount = await this.countBy({
@@ -367,7 +363,11 @@ export default {
         }
     },
 
-    async getComponentsBySubprojects(subProjectIds: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async getComponentsBySubprojects(
+        subProjectIds: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
+    ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         const _this = this;
@@ -396,7 +396,11 @@ export default {
         return subProjectComponents;
     },
 
-    async getComponentsByPaginate(projectId: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async getComponentsByPaginate(
+        projectId: $TSFixMe,
+        limit: $TSFixMe,
+        skip: $TSFixMe
+    ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         const _this = this;
@@ -510,7 +514,7 @@ export default {
     },
 };
 
-import ComponentModel from '../models/component'
+import ComponentModel from '../models/component';
 // import ComponentModel from '../models/component'
 // import ProbeService from './probeService'
 // import ComponentStatusService from './componentStatusService'
@@ -520,21 +524,21 @@ import ComponentModel from '../models/component'
 // import ComponentLogByWeekService from './componentLogByWeekService'
 // import ComponentCategoryService from './componentCategoryService'
 // import ComponentCriteriaService from './componentCriteriaService'
-import Plans from '../config/plans'
-import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
-import ProjectService from './projectService'
-import PaymentService from './paymentService'
-import MonitorService from './monitorService'
+import Plans from '../config/plans';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import ProjectService from './projectService';
+import PaymentService from './paymentService';
+import MonitorService from './monitorService';
 // import StatusPageService from './statusPageService'
 // import ScheduleService from './scheduleService'
 // import IntegrationService from './integrationService'
-import TeamService from './teamService'
+import TeamService from './teamService';
 // import moment from 'moment'
 // import _ from 'lodash'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
-import getSlug from '../utils/getSlug'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import errorService from 'common-server/utils/error'
+import { IS_SAAS_SERVICE } from '../config/server';
+import getSlug from '../utils/getSlug';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import errorService from 'common-server/utils/error';

@@ -78,7 +78,10 @@ const INITIAL_STATE = {
     },
 };
 
-export default function profileSettings(state = INITIAL_STATE, action: $TSFixMe) {
+export default function profileSettings(
+    state = INITIAL_STATE,
+    action: $TSFixMe
+) {
     switch (action.type) {
         //update profile setting
         case types.UPDATE_PROFILE_SETTING_REQUEST:

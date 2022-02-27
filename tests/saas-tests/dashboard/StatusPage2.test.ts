@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 
@@ -425,13 +425,17 @@ describe('Status Page', () => {
             await init.pageClick(page, '.custom-domains-tab');
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
-            await init.page$Eval(page, '#btnDeleteDomain_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#btnDeleteDomain_0', (elem: $TSFixMe) =>
+                elem.click()
             );
             await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#confirmDomainDelete', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                '#confirmDomainDelete',
+                (elem: $TSFixMe) => elem.click()
             );
             await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 hidden: true,
@@ -508,9 +512,13 @@ describe('Status Page', () => {
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
-            await init.page$Eval(page, '#btnDeleteDomain_0', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(page, '#btnDeleteDomain_0', (elem: $TSFixMe) =>
+                elem.click()
             );
-            await init.page$Eval(page, '#cancelDomainDelete', (elem: $TSFixMe) => elem.click()
+            await init.page$Eval(
+                page,
+                '#cancelDomainDelete',
+                (elem: $TSFixMe) => elem.click()
             );
 
             await page.reload({ waitUntil: 'networkidle2' });

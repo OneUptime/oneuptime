@@ -1,9 +1,9 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'should' or its corresponding t... Remove this comment to see the full error message
-import should from 'should'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import should from 'should';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 let browser: $TSFixMe, otherBrowser: $TSFixMe;
 let page: $TSFixMe, otherPage: $TSFixMe;

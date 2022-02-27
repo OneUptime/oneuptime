@@ -8,16 +8,16 @@
 
 'use strict';
 
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
 dotenv.config();
 
-import Promise from 'promise'
+import Promise from 'promise';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cron... Remove this comment to see the full error message
-import cron from 'cron'
-import si from 'systeminformation'
+import cron from 'cron';
+import si from 'systeminformation';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./helpers"' has no exported member 'get'.... Remove this comment to see the full error message
-import { get, post } from './helpers'
-import logger from './logger'
+import { get, post } from './helpers';
+import logger from './logger';
 const {
     onlineTestData,
     degradedTestData,
@@ -132,13 +132,13 @@ const ping = (
                                                   (used, partitionUsed) =>
                                                       used + partitionUsed
                                               )
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'used' does not exist on type 'FsSizeData... Remove this comment to see the full error message
-                                        : storage.used,
+                                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'used' does not exist on type 'FsSizeData... Remove this comment to see the full error message
+                                          storage.used,
                                 totalStorage:
                                     storage && storage.length > 0
                                         ? storage[0].size
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'size' does not exist on type 'FsSizeData... Remove this comment to see the full error message
-                                        : storage.size,
+                                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'size' does not exist on type 'FsSizeData... Remove this comment to see the full error message
+                                          storage.size,
                                 storageUsage:
                                     storage && storage.length > 0
                                         ? storage
@@ -147,8 +147,8 @@ const ping = (
                                                   (use, partitionUse) =>
                                                       use + partitionUse
                                               )
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'use' does not exist on type 'FsSizeData[... Remove this comment to see the full error message
-                                        : storage.use,
+                                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'use' does not exist on type 'FsSizeData[... Remove this comment to see the full error message
+                                          storage.use,
                                 mainTemp: data[3].main,
                                 maxTemp: data[3].max,
                             };
@@ -187,7 +187,12 @@ const ping = (
  * @return {Object} The server monitor handlers.
  */
 
-export default function(config: $TSFixMe, apiUrl: $TSFixMe, apiKey: $TSFixMe, monitorId: $TSFixMe) {
+export default function(
+    config: $TSFixMe,
+    apiUrl: $TSFixMe,
+    apiKey: $TSFixMe,
+    monitorId: $TSFixMe
+) {
     let pingServer: $TSFixMe,
         projectId = config,
         interval: $TSFixMe,
@@ -302,4 +307,4 @@ export default function(config: $TSFixMe, apiUrl: $TSFixMe, apiKey: $TSFixMe, mo
             return pingServer;
         },
     };
-};
+}

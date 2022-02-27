@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -70,8 +64,8 @@ export default {
         monitors = monitors
             .filter((monitor: $TSFixMe) => !monitor.shouldNotMonitor)
             .map((monitor: $TSFixMe) => ({
-            monitorId: monitor._id
-        }));
+                monitorId: monitor._id,
+            }));
         if (monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor not undergoing scheduled maintenance'
@@ -90,9 +84,7 @@ export default {
             });
             const users =
                 project && project.users && project.users.length
-                    ? project.users.map(({
-                    userId
-                }: $TSFixMe) => userId)
+                    ? project.users.map(({ userId }: $TSFixMe) => userId)
                     : [];
 
             let errorMsg;
@@ -430,7 +422,8 @@ export default {
             }
 
             const monitors = incident.monitors.map(
-                (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
+                (monitor: $TSFixMe) =>
+                    monitor.monitorId._id || monitor.monitorId
             );
 
             // update all monitor status in the background to match incident type
@@ -472,11 +465,7 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function({
-        query,
-        populate,
-        select
-    }: $TSFixMe) {
+    findOneBy: async function({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -615,7 +604,9 @@ export default {
 
         const notifications = [];
 
-        const monitors = incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
+        const monitors = incident.monitors.map(
+            (monitor: $TSFixMe) => monitor.monitorId
+        );
 
         // handle this asynchronous operation in the background
         AlertService.sendCreatedIncidentToSubscribers(incident, monitors).catch(
@@ -1207,7 +1198,10 @@ export default {
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     },
 
-    getComponentIncidents: async function(projectId: $TSFixMe, componentId: $TSFixMe) {
+    getComponentIncidents: async function(
+        projectId: $TSFixMe,
+        componentId: $TSFixMe
+    ) {
         const _this = this;
         const monitors = await MonitorService.findBy({
             query: { projectId, componentId },
@@ -1303,7 +1297,11 @@ export default {
         ]);
         return { incidents, count, _id: projectId };
     },
-    sendIncidentResolvedNotification: async function(incident: $TSFixMe, name: $TSFixMe, monitor: $TSFixMe) {
+    sendIncidentResolvedNotification: async function(
+        incident: $TSFixMe,
+        name: $TSFixMe,
+        monitor: $TSFixMe
+    ) {
         const _this = this;
         const populateComponent = [
             { path: 'projectId', select: 'name' },
@@ -1396,8 +1394,14 @@ export default {
         }
     },
 
-    sendIncidentNoteAdded: async function(projectId: $TSFixMe, incident: $TSFixMe, data: $TSFixMe) {
-        const monitors = incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
+    sendIncidentNoteAdded: async function(
+        projectId: $TSFixMe,
+        incident: $TSFixMe,
+        data: $TSFixMe
+    ) {
+        const monitors = incident.monitors.map(
+            (monitor: $TSFixMe) => monitor.monitorId
+        );
         for (const monitor of monitors) {
             SlackService.sendIncidentNoteNotification(
                 projectId,
@@ -1495,10 +1499,11 @@ export default {
                 // only delete the incident, since the monitor can be restored
                 const monitors = incident.monitors
                     .map((monitor: $TSFixMe) => ({
-                    monitorId: monitor.monitorId._id || monitor.monitorId
-                }))
+                        monitorId: monitor.monitorId._id || monitor.monitorId,
+                    }))
                     .filter(
-                        (monitor: $TSFixMe) => String(monitor.monitorId) !== String(monitorId)
+                        (monitor: $TSFixMe) =>
+                            String(monitor.monitorId) !== String(monitorId)
                     );
 
                 let updatedIncident = null;
@@ -1585,7 +1590,11 @@ export default {
         );
     },
 
-    startInterval: async function(projectId: $TSFixMe, monitors: $TSFixMe, incident: $TSFixMe) {
+    startInterval: async function(
+        projectId: $TSFixMe,
+        monitors: $TSFixMe,
+        incident: $TSFixMe
+    ) {
         const _this = this;
 
         monitors = monitors.map((monitor: $TSFixMe) => monitor.monitorId);
@@ -1773,34 +1782,34 @@ function isArrayUnique(myArray: $TSFixMe) {
 
 let intervals: $TSFixMe = [];
 
-import IncidentModel from '../models/incident'
-import IncidentTimelineService from './incidentTimelineService'
-import MonitorService from './monitorService'
-import AlertService from './alertService'
-import RealTimeService from './realTimeService'
-import NotificationService from './notificationService'
-import WebHookService from './webHookService'
-import MsTeamsService from './msTeamsService'
-import SlackService from './slackService'
-import ZapierService from './zapierService'
-import ProjectService from './projectService'
-import ErrorService from 'common-server/utils/error'
-import MonitorStatusService from './monitorStatusService'
-import ComponentService from './componentService'
-import IncidentSettingsService from './incidentSettingsService'
-import Handlebars from 'handlebars'
-import Moment from 'moment'
-import IncidentMessageService from './incidentMessageService'
+import IncidentModel from '../models/incident';
+import IncidentTimelineService from './incidentTimelineService';
+import MonitorService from './monitorService';
+import AlertService from './alertService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import WebHookService from './webHookService';
+import MsTeamsService from './msTeamsService';
+import SlackService from './slackService';
+import ZapierService from './zapierService';
+import ProjectService from './projectService';
+import ErrorService from 'common-server/utils/error';
+import MonitorStatusService from './monitorStatusService';
+import ComponentService from './componentService';
+import IncidentSettingsService from './incidentSettingsService';
+import Handlebars from 'handlebars';
+import Moment from 'moment';
+import IncidentMessageService from './incidentMessageService';
 const {
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_RESOLVED,
 } = require('../constants/incidentEvents');
-import IncidentUtilitiy from '../utils/incident'
-import IncidentCommunicationSlaService from './incidentCommunicationSlaService'
+import IncidentUtilitiy from '../utils/incident';
+import IncidentCommunicationSlaService from './incidentCommunicationSlaService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import { isEmpty } from 'lodash'
-import joinNames from '../utils/joinNames'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import getSlug from '../utils/getSlug'
+import { isEmpty } from 'lodash';
+import joinNames from '../utils/joinNames';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import getSlug from '../utils/getSlug';

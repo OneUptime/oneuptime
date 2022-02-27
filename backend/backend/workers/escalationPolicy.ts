@@ -1,9 +1,9 @@
-import ErrorService from 'common-server/utils/error'
-import OnCallScheduleStatusService from '../services/onCallScheduleStatusService'
-import AlertService from '../services/alertService'
-import DateTime from '../utils/DateTime'
-import IncidentService from '../services/incidentService'
-import ScheduleService from '../services/scheduleService'
+import ErrorService from 'common-server/utils/error';
+import OnCallScheduleStatusService from '../services/onCallScheduleStatusService';
+import AlertService from '../services/alertService';
+import DateTime from '../utils/DateTime';
+import IncidentService from '../services/incidentService';
+import ScheduleService from '../services/scheduleService';
 
 export default {
     checkActiveEscalationPolicyAndSendAlerts: async () => {
@@ -173,7 +173,8 @@ export default {
                 //and the rest happens here.
 
                 const monitors = incident.monitors.map(
-                    (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
+                    (monitor: $TSFixMe) =>
+                        monitor.monitorId._id || monitor.monitorId
                 );
                 for (const monitor of monitors) {
                     AlertService.sendAlertsToTeamMembersInSchedule({

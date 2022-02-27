@@ -1,11 +1,11 @@
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
-import cron from 'node-cron'
+import cron from 'node-cron';
 //import iotMonitorCron from './iotMonitor'
-import escalationPolicy from './escalationPolicy'
-import serverMonitorCron from './serverMonitor'
-import subscription from './subscription'
-import scheduledEventService from '../services/scheduledEventService'
-import certOrder from './certOrder'
+import escalationPolicy from './escalationPolicy';
+import serverMonitorCron from './serverMonitor';
+import subscription from './subscription';
+import scheduledEventService from '../services/scheduledEventService';
+import certOrder from './certOrder';
 
 // Generate a random number between 1 and 50 and use that to run cron jobs.
 // This is done because there will be many instances of backend in production, and one instance of backend

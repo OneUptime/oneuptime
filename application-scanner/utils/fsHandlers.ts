@@ -1,6 +1,6 @@
-import fs from 'fs'
-import Path from 'path'
-import { promisify } from 'util'
+import fs from 'fs';
+import Path from 'path';
+import { promisify } from 'util';
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);

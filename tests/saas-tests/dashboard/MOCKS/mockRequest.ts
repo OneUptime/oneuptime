@@ -1,4 +1,4 @@
-import mockResponse from './response'
+import mockResponse from './response';
 export default [
     {
         title: 'Signup',

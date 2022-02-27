@@ -1,14 +1,14 @@
-import express from 'express'
+import express from 'express';
 const router = express.Router();
 
-import EmailLogsService from '../services/emailStatusService'
+import EmailLogsService from '../services/emailStatusService';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/response"' has no exported... Remove this comment to see the full error message
-import { sendItemResponse } from '../middlewares/response'
+import { sendItemResponse } from '../middlewares/response';
 
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {

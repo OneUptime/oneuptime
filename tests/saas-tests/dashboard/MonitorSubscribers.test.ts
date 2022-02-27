@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 const csvFile = `${__dirname}/MOCKS/subscribers.csv`;
 const emptyFile = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
 const existingSubscribers = `${__dirname}/MOCKS/existing.csv`;
@@ -73,7 +73,8 @@ describe('Monitor Detail API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const input = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
-            await input.evaluate((upload: $TSFixMe) => upload.dispatchEvent(new Event('change', { bubbles: true }))
+            await input.evaluate((upload: $TSFixMe) =>
+                upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#importCsvButton');
@@ -125,7 +126,8 @@ describe('Monitor Detail API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const input = await init.page$(page, '#fileInput');
             await input.uploadFile(emptyFile);
-            await input.evaluate((upload: $TSFixMe) => upload.dispatchEvent(new Event('change', { bubbles: true }))
+            await input.evaluate((upload: $TSFixMe) =>
+                upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#importCsvButton');
@@ -171,7 +173,8 @@ describe('Monitor Detail API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const input = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
-            await input.evaluate((upload: $TSFixMe) => upload.dispatchEvent(new Event('change', { bubbles: true }))
+            await input.evaluate((upload: $TSFixMe) =>
+                upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#importCsvButton');
@@ -222,7 +225,8 @@ describe('Monitor Detail API', () => {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             const input = await init.page$(page, '#fileInput');
             await input.uploadFile(existingSubscribers);
-            await input.evaluate((upload: $TSFixMe) => upload.dispatchEvent(new Event('change', { bubbles: true }))
+            await input.evaluate((upload: $TSFixMe) =>
+                upload.dispatchEvent(new Event('change', { bubbles: true }))
             );
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageClick(page, '#importCsvButton');

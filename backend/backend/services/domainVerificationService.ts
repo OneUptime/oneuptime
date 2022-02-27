@@ -1,21 +1,18 @@
-import dns from 'dns'
+import dns from 'dns';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'psl'... Remove this comment to see the full error message
-import psl from 'psl'
-import DomainVerificationTokenModel from '../models/domainVerificationToken'
-import flatten from '../utils/flattenArray'
-import randomChar from '../utils/randomChar'
-import StatusPageService from '../services/statusPageService'
-import ProjectService from '../services/projectService'
+import psl from 'psl';
+import DomainVerificationTokenModel from '../models/domainVerificationToken';
+import flatten from '../utils/flattenArray';
+import randomChar from '../utils/randomChar';
+import StatusPageService from '../services/statusPageService';
+import ProjectService from '../services/projectService';
 const dnsPromises = dns.promises;
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
-import errorService from 'common-server/utils/error'
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import errorService from 'common-server/utils/error';
 
 export default {
-    create: async function({
-        domain,
-        projectId
-    }: $TSFixMe) {
+    create: async function({ domain, projectId }: $TSFixMe) {
         const parsed = psl.parse(domain);
         const token = 'oneuptime=' + randomChar();
 
@@ -45,11 +42,7 @@ export default {
 
         return await DomainVerificationTokenModel.create(creationData);
     },
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -68,13 +61,7 @@ export default {
         const domain = await domainQuery;
         return domain;
     },
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        populate,
-        select
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -155,7 +142,10 @@ export default {
         );
         return updatedDomain;
     },
-    doesTxtRecordExist: async function(subDomain: $TSFixMe, verificationToken: $TSFixMe) {
+    doesTxtRecordExist: async function(
+        subDomain: $TSFixMe,
+        verificationToken: $TSFixMe
+    ) {
         try {
             const parsed = psl.parse(subDomain);
             const host = 'oneuptime';
@@ -206,7 +196,10 @@ export default {
             throw error;
         }
     },
-    doesDomainBelongToProject: async function(projectId: $TSFixMe, subDomain: $TSFixMe) {
+    doesDomainBelongToProject: async function(
+        projectId: $TSFixMe,
+        subDomain: $TSFixMe
+    ) {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project

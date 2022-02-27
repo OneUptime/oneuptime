@@ -1,11 +1,5 @@
 export default {
-    findBy: async function({
-        query,
-        limit,
-        skip,
-        select,
-        populate
-    }: $TSFixMe) {
+    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -30,11 +24,7 @@ export default {
         return SmsCount;
     },
 
-    findOneBy: async function({
-        query,
-        select,
-        populate
-    }: $TSFixMe) {
+    findOneBy: async function({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -52,7 +42,14 @@ export default {
         return SmsCount;
     },
 
-    create: async function(userId: $TSFixMe, sentTo: $TSFixMe, projectId: $TSFixMe, content: $TSFixMe, status: $TSFixMe, error: $TSFixMe) {
+    create: async function(
+        userId: $TSFixMe,
+        sentTo: $TSFixMe,
+        projectId: $TSFixMe,
+        content: $TSFixMe,
+        status: $TSFixMe,
+        error: $TSFixMe
+    ) {
         const smsCountModel = new SmsCountModel();
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
         smsCountModel.userId = userId || null;
@@ -80,11 +77,7 @@ export default {
         return count;
     },
 
-    search: async function({
-        filter,
-        skip,
-        limit
-    }: $TSFixMe) {
+    search: async function({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             sendTo: { $regex: new RegExp(filter), $options: 'i' },
@@ -126,7 +119,7 @@ export default {
             problem = `You have exhausted the maximum limit of sms resends in a day please wait ${Math.floor(
                 // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
                 time / 60
-            // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
+                // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
             )} Hours ${Math.floor(time % 60)} minutes before retrying.`;
         }
         return {
@@ -158,7 +151,7 @@ export default {
     },
 };
 
-import SmsCountModel from '../models/smsCount'
-import moment from 'moment'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import SmsCountModel from '../models/smsCount';
+import moment from 'moment';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

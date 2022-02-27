@@ -1,7 +1,7 @@
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
-import puppeteer from 'puppeteer'
-import utils from '../../test-utils'
-import init from '../../test-init'
+import puppeteer from 'puppeteer';
+import utils from '../../test-utils';
+import init from '../../test-init';
 
 require('should');
 let browser: $TSFixMe, page: $TSFixMe;
@@ -66,7 +66,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector = '#addSubscriberButton';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#alertViaId');
@@ -74,7 +76,9 @@ describe('Monitor Detail API', () => {
             await init.selectDropdownValue('#alertViaId', 'email', page);
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, 'input[name=email]', subscriberEmail);
-            await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#createSubscriber', {
                 hidden: true,
             });
@@ -115,7 +119,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 5; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                    e.click()
+                );
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.pageWaitForSelector(page, '#alertViaId');
                 await init.selectDropdownValue('#alertViaId', 'email', page);
@@ -125,7 +131,9 @@ describe('Monitor Detail API', () => {
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
-                await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) =>
+                    e.click()
+                );
                 await init.pageWaitForSelector(page, '#createSubscriber', {
                     hidden: true,
                 });
@@ -200,7 +208,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector = '#addMsTeamsButton';
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                e.click()
+            );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#endpoint');
@@ -218,7 +228,9 @@ describe('Monitor Detail API', () => {
 
             const createdWebhookSelector = `#msteam_${webHookName}`;
 
-            await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#createMsTeams', {
                 hidden: true,
             });
@@ -267,7 +279,10 @@ describe('Monitor Detail API', () => {
             expect(existingWebhookName).toEqual(webHookName);
 
             const editWebhookButtonSelector = `#edit_msteam_${webHookName}`;
-            await init.page$Eval(page, editWebhookButtonSelector, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                editWebhookButtonSelector,
+                (e: $TSFixMe) => e.click()
             );
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
@@ -277,7 +292,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
-            await init.page$Eval(page, '#msteamsUpdate', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#msteamsUpdate', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#msteamsUpdate', {
                 hidden: true,
             });
@@ -319,12 +336,17 @@ describe('Monitor Detail API', () => {
             expect(countWebhooks).toEqual(1);
 
             const deleteWebhookButtonSelector = `#delete_msteam_${newWebHookName}`;
-            await init.page$Eval(page, deleteWebhookButtonSelector, (e: $TSFixMe) => e.click()
+            await init.page$Eval(
+                page,
+                deleteWebhookButtonSelector,
+                (e: $TSFixMe) => e.click()
             );
 
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
             await init.pageWaitForSelector(page, '#msteamsDelete');
-            await init.page$Eval(page, '#msteamsDelete', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#msteamsDelete', (e: $TSFixMe) =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#msteamsDelete', {
                 hidden: true,
             });
@@ -364,7 +386,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 11; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
+                    e.click()
+                );
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
                 await init.pageWaitForSelector(page, '#endpoint');
                 // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
@@ -386,7 +410,9 @@ describe('Monitor Detail API', () => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
                         .click();
                 });
-                await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) => e.click());
+                await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) =>
+                    e.click()
+                );
                 await init.pageWaitForSelector(page, '#createMsTeams', {
                     hidden: true,
                 });
@@ -412,7 +438,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnNextMsTeams', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#btnNextMsTeams', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
@@ -428,7 +456,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnPrevMsTeams', (elem: $TSFixMe) => elem.click());
+            await init.page$Eval(page, '#btnPrevMsTeams', (elem: $TSFixMe) =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
