@@ -22,7 +22,8 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./home/package*.json /usr/src/app/
-RUN npm ci --only=production
+RUN npm ci
+RUN npm install -g ts-node
 
 # Bundle app source
 COPY ./home /usr/src/app

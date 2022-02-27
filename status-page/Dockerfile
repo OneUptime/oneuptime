@@ -27,7 +27,8 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY ./status-page/package*.json /usr/src/app/
 
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci  --legacy-peer-deps
+RUN npm install -g ts-node
 RUN npm install -g serve
 RUN npm install -g eslint
 

@@ -16,7 +16,7 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
-RUN npm ci --only=production
+RUN npm ci
 COPY ./common-server /usr/src/common-server
 
 #SET ENV Variables
@@ -37,7 +37,8 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 
 # Install app dependencies
 COPY ./realtime/package*.json /usr/src/app/
-RUN npm ci --only=production
+RUN npm ci
+RUN npm install -g ts-node
 
 # Bundle app source
 COPY ./realtime /usr/src/app

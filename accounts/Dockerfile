@@ -22,7 +22,8 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./accounts/package*.json /usr/src/app/
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci  --legacy-peer-deps
+RUN npm install -g ts-node
 
 # Copy app source
 COPY ./accounts /usr/src/app

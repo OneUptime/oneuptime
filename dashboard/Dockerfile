@@ -20,7 +20,7 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/common-ui
 WORKDIR /usr/src/common-ui
 COPY ./common-ui/package*.json /usr/src/common-ui/
-RUN npm ci --only=production
+RUN npm ci
 COPY ./common-ui /usr/src/common-ui
 
 ENV NODE_OPTIONS="--max-old-space-size=8192"
@@ -39,7 +39,8 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./dashboard/package*.json /usr/src/app/
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci  --legacy-peer-deps
+RUN npm install -g ts-node
 
 # Copy app source
 COPY ./dashboard /usr/src/app
