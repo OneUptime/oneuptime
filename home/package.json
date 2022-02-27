@@ -3,8 +3,8 @@
     "version": "3.0.0",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "node server.js",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 server.js",
+        "start": "ts-node index.ts",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "test": "echo 'no tests'",
         "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
         "lighthouse": "start-server-and-test http://localhost:1444",

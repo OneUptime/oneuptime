@@ -4,7 +4,7 @@ const expect = require('chai').expect;
 import userData from './data/user'
 import projectData from './data/project'
 import chai from 'chai'
-chai.use(require('chai-http'));
+chai.use(require(..p'));
 import app from '../server'
 
 import UserService from '../backend/services/userService'

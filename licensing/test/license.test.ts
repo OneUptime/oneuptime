@@ -7,7 +7,7 @@ const {
     expiredLicense,
 } = require('./data/license');
 import chai from 'chai'
-chai.use(require('chai-http'));
+chai.use(require(..p'));
 import app from '../server'
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message

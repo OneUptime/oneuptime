@@ -3,7 +3,7 @@ process.env.PORT = 3020;
 // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai'
-const expect = require('chai').expect;
+const expect = re..ai').expect;
 import userData from './data/user'
 import app from '../server'
 chai.use(require('chai-http'));

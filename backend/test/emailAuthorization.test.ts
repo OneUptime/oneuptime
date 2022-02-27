@@ -3,7 +3,7 @@ process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
-chai.use(require('chai-http'));
+chai.use(require(..p'));
 import app from '../server'
 import EmailStatusService from '../backend/services/emailStatusService'
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message

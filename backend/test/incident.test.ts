@@ -5,7 +5,7 @@ process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
 import userData from './data/user'
-import chai from 'chai'
+import chai from ..
 chai.use(require('chai-http'));
 import app from '../server'
 

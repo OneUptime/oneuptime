@@ -4,7 +4,7 @@ process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai'
 const expect = require('chai').expect;
-import userData from './data/user'
+import userData f..ta/user'
 import dockerCredential from './data/dockerCredential'
 import app from '../server'
 chai.use(require('chai-http'));

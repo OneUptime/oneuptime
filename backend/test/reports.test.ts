@@ -3,7 +3,7 @@ process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
-chai.use(require('chai-http'));
+chai.use(require(..p'));
 import app from '../server'
 import moment from 'moment'
 import GlobalConfig from './utils/globalConfig'

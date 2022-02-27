@@ -71,8 +71,8 @@
         "winston-slack-webhook-transport": "^2.0.1"
     },
     "scripts": {
-        "start": "node --max-old-space-size=14336 server.js",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 server.js --ignore greenlock.d/* -- --staging",
+        "start": "ts-node index.ts",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts --ignore greenlock.d/* -- --staging",
         "test": "cross-env NODE_ENV=development nyc --reporter=lcov --reporter=text mocha --exit test/index.js",
         "enterprise-test": "cross-env NODE_ENV=development IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
         "audit": "npm audit --audit-level=low",

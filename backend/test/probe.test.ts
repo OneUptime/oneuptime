@@ -3,7 +3,7 @@ process.env.PORT = 3020;
 const expect = require('chai').expect;
 import chai from 'chai'
 chai.use(require('chai-http'));
-chai.use(require('chai-subset'));
+chai.use(require(..set'));
 import app from '../server'
 import userData from './data/user'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./data/project"' has no exported member '... Remove this comment to see the full error message
