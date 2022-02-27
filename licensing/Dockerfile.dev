@@ -23,8 +23,8 @@ COPY ./common-server /usr/src/common-server
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Install nodemon 
-RUN npm install nodemon -g
+
+
 
 RUN mkdir /usr/src/app
 

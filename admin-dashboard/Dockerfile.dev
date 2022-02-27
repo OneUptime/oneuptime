@@ -31,8 +31,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # Error message "error:0308010C:digital envelope routines::unsupported"
 ENV NODE_OPTIONS=--openssl-legacy-provider
 
-# Install nodemon 
-RUN npm install nodemon -g
+
+
 
 WORKDIR /usr/src/app
 

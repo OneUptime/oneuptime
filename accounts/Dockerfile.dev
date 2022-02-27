@@ -15,8 +15,8 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Install nodemon 
-RUN npm install nodemon -g
+
+
 
 WORKDIR /usr/src/app
 

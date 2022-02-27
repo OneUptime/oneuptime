@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "start": "node --max-old-space-size=14336 --max-http-header-size=80000 index.js",
-        "dev": "nodemon --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
         "test": "echo \"Error: no test specified\" && exit 1",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
@@ -16,6 +16,7 @@
     "dependencies": {
         "axios": "^0.25.0",
         "chrome-launcher": "^0.15.0",
+        "common-server": "file:../common-server",
         "cors": "^2.8.5",
         "custom-env": "^2.0.1",
         "express": "^4.17.2",
@@ -26,11 +27,10 @@
         "node-fetch": "^3.1.1",
         "ping": "^0.4.1",
         "winston": "^3.4.0",
-        "winston-slack-transport": "^2.0.0",
-        "common-server": "file:../common-server"
+        "winston-slack-transport": "^2.0.0"
     },
     "devDependencies": {
         "depcheck": "^1.4.3",
-        "nodemon": "^2.0.15"
+        "ts-node-dev": "^1.1.8"
     }
 }
