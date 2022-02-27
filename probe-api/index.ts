@@ -7,14 +7,15 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
 // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
-import http from 'http').createServer(app
+import http from 'http';
+http.createServer(app);
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
-import cors from 'cors'
+import cors from 'cors';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/config"' has no exported member '... Remove this comment to see the full error message
-import { mongoUrl } from './utils/config'
+import { mongoUrl } from './utils/config';
 
 const MongoClient = require('mongodb').MongoClient;
 

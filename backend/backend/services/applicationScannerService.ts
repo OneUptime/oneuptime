@@ -90,8 +90,8 @@ export default {
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-import ApplicationScannerModel from '../models/applicationScanner'
+import ApplicationScannerModel from '../models/applicationScanner';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1 as uuidv1} from 'uuid'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import { v1 as uuidv1 } from 'uuid';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

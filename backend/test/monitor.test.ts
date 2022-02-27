@@ -5,7 +5,8 @@ process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
-chai.use(require(..p'));
+import chai-http from 'chai-http';
+chai.use(chai-http);
 chai.use(require('chai-subset'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'

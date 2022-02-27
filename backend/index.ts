@@ -31,7 +31,8 @@ process.on('uncaughtException', err => {
 
 import path from 'path'
 // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
-import http from 'http').createServer(app
+import http from 'http';
+http.createServer(app);
 const io = require('socket.io')(http, {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session

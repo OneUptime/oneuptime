@@ -1,22 +1,22 @@
-import crypto from 'crypto'
-import EncryptionKeys from './encryptionKeys'
+import crypto from 'crypto';
+import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1 as uuidv1} from 'uuid'
-import fs from 'fs'
-import Path from 'path'
-import { promisify } from 'util'
+import { v1 as uuidv1 } from 'uuid';
+import fs from 'fs';
+import Path from 'path';
+import { promisify } from 'util';
 const unlink = promisify(fs.unlink);
-import { spawn } from 'child_process'
-import ErrorService from './errorService'
+import { spawn } from 'child_process';
+import ErrorService from './errorService';
 const {
     updateContainerSecurityToScanning,
     updateContainerSecurityLogService,
     updateContainerSecurityScanTime,
     updateContainerSecurityToFailed,
 } = require('./containerSecurityUpdate');
-import flattenArray from '../utils/flattenArray'
+import flattenArray from '../utils/flattenArray';
 
 export default {
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'security' implicitly has an 'any' type.

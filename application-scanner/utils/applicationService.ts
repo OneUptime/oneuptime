@@ -1,18 +1,18 @@
-import crypto from 'crypto'
-import EncryptionKeys from './encryptionKeys'
+import crypto from 'crypto';
+import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-import git from 'simple-git/promise'
+import git from 'simple-git/promise';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1 as uuidv1} from 'uuid'
-import Path from 'path'
-import ErrorService from './errorService'
-import fs from 'fs'
-import { promisify } from 'util'
+import { v1 as uuidv1 } from 'uuid';
+import Path from 'path';
+import ErrorService from './errorService';
+import fs from 'fs';
+import { promisify } from 'util';
 const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
-import { spawn } from 'child_process'
+import { spawn } from 'child_process';
 const {
     updateApplicationSecurityToScanning,
     updateApplicationSecurityLogService,
@@ -21,7 +21,7 @@ const {
 } = require('./applicationSecurityUpdate');
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'ssh2... Remove this comment to see the full error message
-import { Client } from 'ssh2'
+import { Client } from 'ssh2';
 export default {
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'security' implicitly has an 'any' type.
     scan: async function(security) {

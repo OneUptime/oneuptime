@@ -20,11 +20,12 @@ process.on('uncaughtException', err => {
 });
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
 // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
-import http from 'http').createServer(app
-import cors from 'cors'
+import http from 'http';
+http.createServer(app);
+import cors from 'cors';
 const io = require('socket.io')(http, {
     path: '/realtime/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session

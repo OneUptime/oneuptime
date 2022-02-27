@@ -1,15 +1,15 @@
-import { spawn } from 'child_process'
-import fs from 'fs'
-import Path from 'path'
-import fetch from 'node-fetch-commonjs'
+import { spawn } from 'child_process';
+import fs from 'fs';
+import Path from 'path';
+import fetch from 'node-fetch-commonjs';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v4 as uuidv4} from 'uuid'
-import ApiService from '../utils/apiService'
-import ErrorService from '../utils/errorService'
+import { v4 as uuidv4 } from 'uuid';
+import ApiService from '../utils/apiService';
+import ErrorService from '../utils/errorService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { serverUrl } from '../utils/config'
+import { serverUrl } from '../utils/config';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/fsHandlers"' has no exported mem... Remove this comment to see the full error message
-import { deleteFile } from '../utils/fsHandlers'
+import { deleteFile } from '../utils/fsHandlers';
 
 export default {
     // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'monitor' implicitly has an 'any' ... Remove this comment to see the full error message

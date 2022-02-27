@@ -1063,8 +1063,8 @@ export default {
             failedReasons: upFailedReasons,
             matchedCriterion: matchedUpCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.up
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
-            ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
+            ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+              _this.conditions(monitor.type, monitor.criteria.up, payload, {
                   body,
                   queryParams,
                   headers,
@@ -1076,8 +1076,8 @@ export default {
             failedReasons: degradedFailedReasons,
             matchedCriterion: matchedDegradedCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.degraded
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
-            ? _this.conditions(
+            ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+              _this.conditions(
                   monitor.type,
                   monitor.criteria.degraded,
                   payload,
@@ -1094,8 +1094,8 @@ export default {
             failedReasons: downFailedReasons,
             matchedCriterion: matchedDownCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.down
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
-            ? _this.conditions(monitor.type, monitor.criteria.down, payload, {
+            ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+              _this.conditions(monitor.type, monitor.criteria.down, payload, {
                   body,
                   queryParams,
                   headers,
@@ -1300,7 +1300,7 @@ export default {
 };
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
-import _ from 'lodash'
+import _ from 'lodash';
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'payload' implicitly has an 'any' type.
 const incomingCheckAnd = (payload, condition) => {
@@ -2665,7 +2665,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2674,7 +2674,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2698,7 +2698,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2707,7 +2707,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2733,7 +2733,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2742,7 +2742,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2766,7 +2766,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2775,7 +2775,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2799,7 +2799,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2808,7 +2808,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2832,7 +2832,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2841,7 +2841,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2865,7 +2865,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2874,7 +2874,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2914,7 +2914,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2927,7 +2927,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2954,7 +2954,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2967,7 +2967,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2996,7 +2996,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3009,7 +3009,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3036,7 +3036,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3049,7 +3049,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3076,7 +3076,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3089,7 +3089,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3116,7 +3116,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3129,7 +3129,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3156,7 +3156,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3169,7 +3169,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5033,7 +5033,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5042,7 +5042,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5063,7 +5063,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5072,7 +5072,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5095,7 +5095,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5104,7 +5104,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5125,7 +5125,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5134,7 +5134,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5155,7 +5155,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5164,7 +5164,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5185,7 +5185,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5194,7 +5194,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5215,7 +5215,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5224,7 +5224,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5261,7 +5261,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5274,7 +5274,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5298,7 +5298,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5311,7 +5311,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5337,7 +5337,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5350,7 +5350,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5374,7 +5374,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5387,7 +5387,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5411,7 +5411,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5424,7 +5424,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5448,7 +5448,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5461,7 +5461,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5485,7 +5485,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5498,7 +5498,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -6643,20 +6643,20 @@ const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-import ProbeModel from '../models/probe'
-import RealTimeService from './realTimeService'
-import ErrorService from 'common-server/utils/error'
+import ProbeModel from '../models/probe';
+import RealTimeService from './realTimeService';
+import ErrorService from 'common-server/utils/error';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1 as uuidv1} from 'uuid'
-import MonitorService from './monitorService'
-import MonitorStatusService from './monitorStatusService'
-import MonitorLogService from './monitorLogService'
-import LighthouseLogService from './lighthouseLogService'
-import IncidentService from './incidentService'
-import IncidentTimelineService from './incidentTimelineService'
-import moment from 'moment'
-import { some, forEach } from 'p-iteration'
-import vm from 'vm'
-import AutomatedScriptService from './automatedScriptService'
-import handleSelect from '../utils/select'
-import handlePopulate from '../utils/populate'
+import { v1 as uuidv1 } from 'uuid';
+import MonitorService from './monitorService';
+import MonitorStatusService from './monitorStatusService';
+import MonitorLogService from './monitorLogService';
+import LighthouseLogService from './lighthouseLogService';
+import IncidentService from './incidentService';
+import IncidentTimelineService from './incidentTimelineService';
+import moment from 'moment';
+import { some, forEach } from 'p-iteration';
+import vm from 'vm';
+import AutomatedScriptService from './automatedScriptService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';

@@ -736,7 +736,7 @@ export default {
                         _this.updateSeatDetails(project, projectSeats);
                         return returnVal;
                     }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type '{}'.
+                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type '{}'.
                 } else if (teamMember.role !== 'Viewer' && isViewer) {
                     projectSeats = projectSeats - 1;
                     _this.updateSeatDetails(project, projectSeats);
@@ -947,8 +947,8 @@ export default {
                 deletedBy: null,
                 deletedAt: null,
                 stripeSubscriptionId: subscription
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeSubscriptionId' does not exist on ... Remove this comment to see the full error message
-                    ? subscription.stripeSubscriptionId
+                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeSubscriptionId' does not exist on ... Remove this comment to see the full error message
+                      subscription.stripeSubscriptionId
                     : null,
             }
         );
@@ -1026,27 +1026,27 @@ export default {
     },
 };
 
-import ProjectModel from '../models/project'
+import ProjectModel from '../models/project';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1 as uuidv1} from 'uuid'
-import MonitorService from '../services/monitorService'
-import PaymentService from './paymentService'
-import UserService from './userService'
-import IncidentPrioritiesService from './incidentPrioritiesService'
-import integrationService from './integrationService'
-import ScheduleService from './scheduleService'
-import domains from '../config/domains' // removal of 'moment' due to declaration but not used.
-import EscalationService from './escalationService'
-import StripeService from './stripeService'
-import TeamService from './teamService'
-import StatusPageService from './statusPageService'
+import { v1 as uuidv1 } from 'uuid';
+import MonitorService from '../services/monitorService';
+import PaymentService from './paymentService';
+import UserService from './userService';
+import IncidentPrioritiesService from './incidentPrioritiesService';
+import integrationService from './integrationService';
+import ScheduleService from './scheduleService';
+import domains from '../config/domains'; // removal of 'moment' due to declaration but not used.
+import EscalationService from './escalationService';
+import StripeService from './stripeService';
+import TeamService from './teamService';
+import StatusPageService from './statusPageService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
-import componentService from './componentService'
-import DomainVerificationService from './domainVerificationService'
-import SsoDefaultRolesService from './ssoDefaultRolesService'
-import getSlug from '../utils/getSlug'
-import flattenArray from '../utils/flattenArray'
-import IncidentSettingsService from './incidentSettingsService'
-import handlePopulate from '../utils/populate'
-import handleSelect from '../utils/select'
+import { IS_SAAS_SERVICE } from '../config/server';
+import componentService from './componentService';
+import DomainVerificationService from './domainVerificationService';
+import SsoDefaultRolesService from './ssoDefaultRolesService';
+import getSlug from '../utils/getSlug';
+import flattenArray from '../utils/flattenArray';
+import IncidentSettingsService from './incidentSettingsService';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';

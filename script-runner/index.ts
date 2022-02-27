@@ -25,17 +25,18 @@ process.on('uncaughtException', err => {
 });
 
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
 // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
-import http from 'http').createServer(app
+import http from 'http';
+http.createServer(app);
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
-import cors from 'cors'
+import cors from 'cors';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
-import bodyParser from 'body-parser'
+import bodyParser from 'body-parser';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
-import cron from 'node-cron'
-import main from './workers/main'
+import cron from 'node-cron';
+import main from './workers/main';
 
 app.use(cors());
 

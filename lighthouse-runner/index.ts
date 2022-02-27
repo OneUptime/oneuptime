@@ -25,16 +25,17 @@ process.on('uncaughtException', err => {
 });
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
-import express from 'express'
+import express from 'express';
 const app = express();
 // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
-import http from 'http').createServer(app
+import http from 'http';
+http.createServer(app);
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
-import cors from 'cors'
-import Main from './workers/main'
+import cors from 'cors';
+import Main from './workers/main';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
-import cron from 'node-cron'
-import config from './utils/config'
+import cron from 'node-cron';
+import config from './utils/config';
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 
