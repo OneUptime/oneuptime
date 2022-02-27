@@ -1028,7 +1028,7 @@ export default {
 
 import ProjectModel from '../models/project'
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1: uuidv1 } from 'uuid'
+import { v1 as uuidv1} from 'uuid'
 import MonitorService from '../services/monitorService'
 import PaymentService from './paymentService'
 import UserService from './userService'

@@ -6647,7 +6647,7 @@ import ProbeModel from '../models/probe'
 import RealTimeService from './realTimeService'
 import ErrorService from 'common-server/utils/error'
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1: uuidv1 } from 'uuid'
+import { v1 as uuidv1} from 'uuid'
 import MonitorService from './monitorService'
 import MonitorStatusService from './monitorStatusService'
 import MonitorLogService from './monitorLogService'

@@ -2,7 +2,7 @@ import ProbeService from '../services/probeService'
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from '../services/errorService'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { clusterKey: CLUSTER_KEY } from '../utils/config'
+import { clusterKey as CLUSTER_KEY} from '../utils/config'
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Global &... Remove this comment to see the full error message
 global.probes = {};

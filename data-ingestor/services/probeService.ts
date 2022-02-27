@@ -6500,7 +6500,7 @@ import { ObjectId } from 'mongodb'
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
 const probeCollection = global.db.collection('probes');
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v1: uuidv1 } from 'uuid'
+import { v1 as uuidv1} from 'uuid'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
 import { postApi } from '../utils/api'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message

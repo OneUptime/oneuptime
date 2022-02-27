@@ -1,7 +1,7 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from '../services/errorService'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
-import { clusterKey: CLUSTER_KEY } from '../utils/config'
+import { clusterKey as CLUSTER_KEY} from '../utils/config'
 
 export default {
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.

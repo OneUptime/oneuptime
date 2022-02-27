@@ -4,7 +4,7 @@
 import Http from 'http'
 import Https from 'https'
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v4: uuidv4 } from 'uuid'
+import { v4 as uuidv4} from 'uuid'
 
 class OutgoingListener {
     #start;
