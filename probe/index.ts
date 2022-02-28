@@ -3,7 +3,8 @@ const { NODE_ENV } = process.env;
 import asyncSleep from 'await-sleep';
 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    require('custom-env').env();
+    import customEnv from 'custom-env';
+    customEnv.env();
 }
 
 process.on('exit', () => {

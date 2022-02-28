@@ -1,4 +1,4 @@
-const express = require('express')
+import express from 'express'
 // If your env supports require                  
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'oneuptime-staging' or its corr... Remove this comment to see the full error message
 import OneUptime from 'oneuptime-staging'

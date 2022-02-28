@@ -3,19 +3,21 @@ process.env.PORT = 3020;
 // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-import data from './data/user'
-import chai from ..
-chai.use(require('chai-http'));
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import data from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import AirtableService from '../backend/services/airtableService'
-import payment from '../backend/config/payment'
-import stripe from 'stripe')(payment.paymentPrivateKey
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import AirtableService from '../backend/services/airtableService';
+import payment from '../backend/config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Disable Sign up test', function() {

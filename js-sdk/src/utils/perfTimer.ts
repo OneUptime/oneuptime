@@ -11,7 +11,7 @@ class PerfTimer {
         this.appId = appId;
         this.appKey = appKey;
         this.dataStore = new DataStore(this.apiUrl, this.appId, this.appKey);
-        this.obs = new PerformanceObserver((list, observer) => {
+        this.obs = new PerformanceObserver(list => {
             const entry = list.getEntries()[0];
             const id = entry.name.slice(entry.name.indexOf('-') + 1);
             const originalValue = this.dataStore.getValue(id);

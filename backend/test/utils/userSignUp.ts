@@ -66,5 +66,6 @@ export default {
     },
 };
 
-import payment from '../../backend/config/payment'
-import stripe from 'stripe')(payment.paymentPrivateKey
+import payment from '../../backend/config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);

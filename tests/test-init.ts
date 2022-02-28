@@ -1,6 +1,7 @@
 import utils from './test-utils';
 import chai from 'chai';
-chai.use(require('chai-http'));
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request(utils.BACKEND_URL);
 

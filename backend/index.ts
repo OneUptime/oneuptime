@@ -1,7 +1,8 @@
 const { NODE_ENV } = process.env;
-
+import customEnv from 'custom-env'; 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    require('custom-env').env();
+    
+customEnv.env();
 }
 
 import express from 'express'

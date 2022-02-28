@@ -16,7 +16,7 @@ class HrTimer {
         return process.hrtime();
     };
 
-    end = (id: $TSFixMe, startHrTime: $TSFixMe, type: $TSFixMe) => {
+    end = (id: $TSFixMe, startHrTime: $TSFixMe) => {
         let elapsedHrTime = process.hrtime(startHrTime);
         // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type '[number, ... Remove this comment to see the full error message
         elapsedHrTime = elapsedHrTime[0] * 1000 + elapsedHrTime[1] / 1e6;

@@ -1,5 +1,6 @@
 import chai from 'chai';
-chai.use(require('chai-http'));
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
 const expect = require('chai').expect;
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'urld... Remove this comment to see the full error message
 import decode from 'urldecode';

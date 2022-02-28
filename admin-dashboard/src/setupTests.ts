@@ -1,1 +1,1 @@
-require('jest-localstorage-mock');
+import 'jest-localstorage-mock';

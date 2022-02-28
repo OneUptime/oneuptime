@@ -3,7 +3,8 @@ const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /data-ingestor/.env
-    require('custom-env').env();
+    import customEnv from 'custom-env';
+    customEnv.env();
 }
 
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message

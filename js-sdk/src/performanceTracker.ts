@@ -76,7 +76,7 @@ class PerformanceTracker {
         const load = Module._load;
         const _this = this;
         // @ts-expect-error ts-migrate(2339) FIXME: Property '_load' does not exist on type 'typeof Mo... Remove this comment to see the full error message
-        Module._load = function(request: $TSFixMe, parent: $TSFixMe) {
+        Module._load = function(request: $TSFixMe) {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {
                 const mongo = new MongooseListener(_this.start, _this.end);

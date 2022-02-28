@@ -1,5 +1,6 @@
 import chai from 'chai';
-chai.use(require('chai-http'));
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
 
 const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';

@@ -195,8 +195,8 @@ describe('Subscribers Alert logs API', () => {
                 page,
                 '#subscriberAlertTable tbody tr'
             );
-            const rowsCount = ( // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
-                await init.page$$(page, '#subscriberAlertTable tbody tr')
+            const rowsCount = (
+                await init.page$$(page, '#subscriberAlertTable tbody tr', {})
             ).length;
             expect(rowsCount).toEqual(2);
 

@@ -3,21 +3,22 @@ process.env.PORT = 3020;
 // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from ..
-chai.use(require('chai-http'));
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import AirtableService from '../backend/services/airtableService'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import AirtableService from '../backend/services/airtableService';
 
 let token, projectId: $TSFixMe, userId: $TSFixMe;
-import VerificationTokenModel from '../backend/models/verificationToken'
+import VerificationTokenModel from '../backend/models/verificationToken';
 
 let cardId: $TSFixMe, authorization: $TSFixMe;
 
@@ -26,10 +27,13 @@ describe('Stripe payment API', function() {
     this.timeout(50000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;

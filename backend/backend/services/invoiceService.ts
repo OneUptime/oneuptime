@@ -36,6 +36,7 @@ export default {
     },
 };
 
-import payment from '../config/payment'
-import stripe from 'stripe')(payment.paymentPrivateKey
-import UserService from './userService'
+import payment from '../config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);
+import UserService from './userService';

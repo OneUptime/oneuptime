@@ -1,21 +1,22 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
-import chai from 'chai'
+import chai from 'chai';
 const expect = require('chai').expect;
 
-import userData from './data/user'
-import app from '../server'
-chai.use(require('chai-http'));
+import userData from './data/user';
+import app from '../server';
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
-import GlobalConfig from './utils/globalConfig'
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import EmailLogsService from '../backend/services/emailStatusService'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import AirtableService from '../backend/services/airtableService'
-import VerificationTokenModel from '../backend/models/verificationToken'
+import { createUser } from './utils/userSignUp';
+import EmailLogsService from '../backend/services/emailStatusService';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import AirtableService from '../backend/services/airtableService';
+import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
@@ -25,11 +26,14 @@ describe('Email Logs API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         testSuiteStartTime = new Date();
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -286,9 +290,11 @@ describe('Email Logs API', function() {
         expect(res.body).to.have.property('count');
 
         // Checking searchResult match provided searchString.
-        const isEverySearchedApiUrlMatch = res.body.data.every((result: $TSFixMe) => {
-            return result.request.apiUrl.includes(searchString);
-        });
+        const isEverySearchedApiUrlMatch = res.body.data.every(
+            (result: $TSFixMe) => {
+                return result.request.apiUrl.includes(searchString);
+            }
+        );
         expect(isEverySearchedApiUrlMatch).to.be.equal(true);
 
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.

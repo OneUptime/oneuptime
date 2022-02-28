@@ -4,37 +4,38 @@ process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from ..
-chai.use(require('chai-http'));
-import app from '../server'
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
+import app from '../server';
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
+import { createUser } from './utils/userSignUp';
 
-import incidentData from './data/incident'
-import UserService from '../backend/services/userService'
-import UserModel from '../backend/models/user'
-import ProjectService from '../backend/services/projectService'
-import ProjectModel from '../backend/models/project'
-import IncidentService from '../backend/services/incidentService'
-import MonitorService from '../backend/services/monitorService'
-import NotificationService from '../backend/services/notificationService'
-import IntegrationService from '../backend/services/integrationService'
-import EmailStatusService from '../backend/services/emailStatusService'
-import AirtableService from '../backend/services/airtableService'
-import Config from './utils/config'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import AlertModel from '../backend/models/alert'
-import GlobalConfig from './utils/globalConfig'
-import ComponentModel from '../backend/models/component'
-import moment from 'moment'
-import SubscriberService from '../backend/services/subscriberService'
-import AlertVia from '../backend/config/alertType'
+import incidentData from './data/incident';
+import UserService from '../backend/services/userService';
+import UserModel from '../backend/models/user';
+import ProjectService from '../backend/services/projectService';
+import ProjectModel from '../backend/models/project';
+import IncidentService from '../backend/services/incidentService';
+import MonitorService from '../backend/services/monitorService';
+import NotificationService from '../backend/services/notificationService';
+import IntegrationService from '../backend/services/integrationService';
+import EmailStatusService from '../backend/services/emailStatusService';
+import AirtableService from '../backend/services/airtableService';
+import Config from './utils/config';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import AlertModel from '../backend/models/alert';
+import GlobalConfig from './utils/globalConfig';
+import ComponentModel from '../backend/models/component';
+import moment from 'moment';
+import SubscriberService from '../backend/services/subscriberService';
+import AlertVia from '../backend/config/alertType';
 const {
     markIncidentAsResolved,
     markIncidentAsAcknowledged,
@@ -44,7 +45,8 @@ const {
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const sleep = (waitTimeInMs: $TSFixMe) =>
+    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let token: $TSFixMe,
     userId: $TSFixMe,
@@ -385,7 +387,10 @@ describe('Incident API', function() {
         // check if sorted by ascending order of createdAt
         expect(
             res.body.data.sort(
-                (firstIncidentTimeline: $TSFixMe, secondIncidentTimeline: $TSFixMe) =>
+                (
+                    firstIncidentTimeline: $TSFixMe,
+                    secondIncidentTimeline: $TSFixMe
+                ) =>
                     Date.parse(firstIncidentTimeline.createdAt) >
                     Date.parse(secondIncidentTimeline.createdAt)
             )
@@ -712,7 +717,9 @@ describe('Incident API', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectIncidentId: $TSFixMe;
+let subProjectId: $TSFixMe,
+    newUserToken: $TSFixMe,
+    subProjectIncidentId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Incident API with Sub-Projects', function() {

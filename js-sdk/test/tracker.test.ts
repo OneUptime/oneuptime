@@ -1,7 +1,8 @@
 import chai from 'chai';
 
 const expect = chai.expect;
-chai.use(require('chai-http'));
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
 
 import { user, generateSecondRandomBusinessEmail } from './util';
 const API_URL = 'http://localhost:3002/api';

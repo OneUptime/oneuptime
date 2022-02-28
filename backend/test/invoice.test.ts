@@ -3,20 +3,22 @@ process.env.PORT = 3020;
 // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from ..
-chai.use(require('chai-http'));
-import app from '../server'
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
+chai.use(chaihttp);
+import app from '../server';
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
-import UserService from '../backend/services/userService'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import ProjectService from '../backend/services/projectService'
-import AirtableService from '../backend/services/airtableService'
-import GlobalConfig from './utils/globalConfig'
-import payment from '../backend/config/payment'
-import stripe from 'stripe')(payment.paymentPrivateKey
+import UserService from '../backend/services/userService';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import ProjectService from '../backend/services/projectService';
+import AirtableService from '../backend/services/airtableService';
+import GlobalConfig from './utils/globalConfig';
+import payment from '../backend/config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);
 
 // @ts-expect-error ts-migrate(7034) FIXME: Variable 'token' implicitly has type 'any' in some... Remove this comment to see the full error message
 let token, userId, projectId, stripeCustomerId, testPlan;

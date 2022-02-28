@@ -498,20 +498,21 @@ export default {
     },
 };
 
-import payment from '../config/payment'
-import stripe from 'stripe')(payment.paymentPrivateKey
-import Plans from '../config/plans'
-import ErrorService from 'common-server/utils/error'
-import ProjectService from './projectService'
-import ProjectModel from '../models/project'
-import StripeService from './stripeService'
-import NotificationService from './notificationService'
-const {
+import payment from '../config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);
+import Plans from '../config/plans';
+import ErrorService from 'common-server/utils/error';
+import ProjectService from './projectService';
+import ProjectModel from '../models/project';
+import StripeService from './stripeService';
+import NotificationService from './notificationService';
+import {
     getAlertChargeAmount,
     getCountryType,
     Call,
-} = require('../config/alertType');
+} from '../config/alertType';
 // import getMutex from '../constants/mutexProvider'
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/number"' has no exported member ... Remove this comment to see the full error message
-import { formatBalance } from '../utils/number'
+import { formatBalance } from '../utils/number';
 // import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'

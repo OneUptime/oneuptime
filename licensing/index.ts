@@ -6,7 +6,8 @@ const { NODE_ENV } = process.env;
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /licensing/.env
-    require('custom-env').env();
+    import customEnv from 'custom-env';
+    customEnv.env();
 }
 
 process.on('exit', () => {

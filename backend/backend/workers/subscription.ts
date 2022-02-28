@@ -1,12 +1,13 @@
-import moment from 'moment'
-import payment from '../config/payment'
-import stripe from 'stripe')(payment.paymentPrivateKey
-import ErrorService from 'common-server/utils/error'
-import ProjectService from '../services/projectService'
-import UserService from '../services/userService'
-import AlertService from '../services/alertService'
+import moment from 'moment';
+import payment from '../config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);
+import ErrorService from 'common-server/utils/error';
+import ProjectService from '../services/projectService';
+import UserService from '../services/userService';
+import AlertService from '../services/alertService';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
-import { IS_SAAS_SERVICE } from '../config/server'
+import { IS_SAAS_SERVICE } from '../config/server';
 
 // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startAfter' implicitly has an 'any' typ... Remove this comment to see the full error message
 const handleFetchingUnpaidSubscriptions = async startAfter => {

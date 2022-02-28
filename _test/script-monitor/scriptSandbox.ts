@@ -1,6 +1,14 @@
 import { join } from "path"
 import {performance} from 'perf_hooks'
 
+import {
+    isMainThread,
+    Worker,
+    parentPort,
+    workerData,
+} from 'worker_threads';
+
+
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
     availableImports: ['axios'], // init allowed modules
@@ -29,12 +37,7 @@ const {
 } = runConfig;
 
 const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = { maxScriptRunTime, maxSyncStatementDuration }) => {
-    const {
-        isMainThread,
-        Worker,
-        parentPort,
-        workerData,
-    } = require('worker_threads');
+    
 
     if (isMainThread) {
         // modifiable option in development mode only
